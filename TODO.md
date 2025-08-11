@@ -28,13 +28,23 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
   - [x] User entity
   - [x] UserGroup entity
 - [x] Create ViewModels for each entity
-- [ ] Update Core Data model file
+- [x] Update Core Data model file
+- [x] Optimize ViewModels for native performance
+- [x] Implement background queues for Core Data operations
 
-### Phase 2: Basic UI Structure
-- [ ] Create main navigation structure
-- [ ] Implement basic list views for each entity
-- [ ] Add/Edit forms for entities
-- [ ] Basic CRUD operations in UI
+### Phase 2: Basic UI Structure 🚧
+- [x] Create main navigation structure with NavigationStack
+- [x] Implement basic list views for User entity
+- [x] Add/Edit forms for User entity
+- [x] Basic CRUD operations in UI for User entity
+- [ ] **NEXT: Create Group from User functionality**
+  - [ ] Add "Create Group" button in User detail view
+  - [ ] Create Group creation form
+  - [ ] Link User as owner of the new Group
+  - [ ] Create UserGroup relationship automatically
+- [ ] Implement basic list views for other entities
+- [ ] Add/Edit forms for other entities
+- [ ] Basic CRUD operations in UI for all entities
 
 ### Phase 3: Business Logic
 - [ ] Implement expense calculation logic
@@ -55,11 +65,11 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - [ ] App Store preparation
 
 ## Current Focus
-✅ **COMPLETED**: All Core Data entities and ViewModels following MVVM architecture.
+🚧 **IN PROGRESS**: Phase 2 - Basic UI Structure. Next step: Create Group from User functionality.
 
 ## Completed Work
 
-### Core Data Entities
+### Core Data Entities ✅
 1. **Category** ✅ - Expense categories with color coding and group relationships
 2. **Entry** ✅ - Main expense entries with dates, descriptions, and relationships
 3. **Group** ✅ - Expense groups for sharing between users with currency support
@@ -67,7 +77,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 5. **User** ✅ - App users with authentication and group membership
 6. **UserGroup** ✅ - Junction table for user-group relationships with role management
 
-### ViewModels
+### ViewModels ✅
 1. **CategoryViewModel** ✅ - Full CRUD operations with filtering and validation
 2. **EntryViewModel** ✅ - Full CRUD operations with date filtering and total calculations
 3. **GroupViewModel** ✅ - Full CRUD operations with member counting and sorting
@@ -75,18 +85,29 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 5. **UserViewModel** ✅ - Full CRUD operations with email validation and role checking
 6. **UserGroupViewModel** ✅ - Full CRUD operations with role validation and permissions
 
-### Architecture Features
+### UI Components ✅
+1. **MainView** ✅ - Root navigation with NavigationStack
+2. **UserListView** ✅ - List of users with add/edit/delete functionality
+3. **UserRowView** ✅ - Individual user row component
+4. **AddUserView** ✅ - Form to create new users
+5. **EditUserView** ✅ - Form to edit existing users
+
+### Architecture Features ✅
 - **MVVM Compliance**: All business logic in ViewModels, Views only display
 - **Core Data Best Practices**: Proper delete rules, relationship management
 - **Error Handling**: Comprehensive error handling with user feedback
 - **Data Validation**: Input validation for emails, roles, and business rules
 - **Performance**: Efficient filtering, sorting, and calculation methods
+- **Native Performance**: Background queues for Core Data operations
+- **UI Thread Safety**: @MainActor for all ViewModels
 
 ## Next Steps
-1. **Update Core Data Model File** - Add all entities to the .xcdatamodeld file
-2. **Test Basic CRUD Operations** - Verify all entities work correctly
-3. **Create Basic UI Views** - Start with list views for each entity
-4. **Implement Navigation** - Set up main navigation structure
+1. **Create Group from User** - Add functionality to create a group from user detail view
+2. **Group Management UI** - Implement basic list views and forms for Group entity
+3. **User-Group Relationships** - Implement UserGroup management UI
+4. **Category Management** - Implement Category entity UI
+5. **Entry Management** - Implement Entry entity UI
+6. **Item Management** - Implement Item entity UI
 
 ## Commit History
 - ✅ **Commit 1**: Category entity and ViewModel
@@ -95,10 +116,14 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - ✅ **Commit 4**: Item entity and ViewModel
 - ✅ **Commit 5**: User entity and ViewModel
 - ✅ **Commit 6**: UserGroup entity and ViewModel
+- ✅ **Commit 7**: Complete MVVM architecture with native performance optimizations
 
 ## Technical Notes
 - All entities implement `Identifiable` protocol for SwiftUI compatibility
 - ViewModels use `@MainActor` for UI thread safety
+- UserViewModel uses background queues for Core Data operations
 - Proper Core Data delete rules implemented (Cascade, Nullify)
 - Comprehensive computed properties for formatted display
 - Utility methods for common operations and filtering
+- NavigationStack implementation for modern iOS navigation
+- Strict MVVM architecture with no business logic in Views

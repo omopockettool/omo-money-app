@@ -1,85 +1,181 @@
-# OMOMoney
+# OMOMoney - SwiftUI Expense Tracker App
 
-A native iOS personal expense tracker app built with SwiftUI and Core Data, following strict MVVM architecture principles.
+A native iOS personal expense tracker app built with SwiftUI, following strict MVVM architecture and Core Data persistence.
 
-## Features
+## 🚀 Current Status
 
-- **Expense Tracking**: Log and categorize your daily expenses
-- **Group Management**: Share expenses with family or roommates
-- **Category Management**: Organize expenses with custom categories
-- **Multi-Currency Support**: Handle different currencies for international users
-- **User Roles**: Different permission levels for group members
-- **Core Data Persistence**: Reliable local data storage
+**Phase 1: Core Data Foundation** ✅ **COMPLETED**
+- All Core Data entities implemented
+- Complete ViewModels with CRUD operations
+- Native performance optimizations
+- Background queue implementation
 
-## Requirements
+**Phase 2: Basic UI Structure** 🚧 **IN PROGRESS**
+- User management UI completed
+- NavigationStack implementation
+- Next: Create Group from User functionality
 
-- iOS 16.0+
-- Xcode 16.0+
-- Swift 5.0+
-- macOS 15.5+ (for development)
+## ✨ Features
 
-## Architecture
+### ✅ Completed
+- **User Management**: Create, read, update, delete users
+- **Core Data Integration**: Full persistence layer
+- **MVVM Architecture**: Clean separation of concerns
+- **Native Performance**: Background operations for smooth UI
+- **Modern Navigation**: NavigationStack implementation
+- **Error Handling**: Comprehensive user feedback
 
-This app follows the **MVVM (Model-View-ViewModel)** architecture pattern:
+### 🚧 In Development
+- **Group Management**: Create and manage expense groups
+- **User-Group Relationships**: Role-based permissions
+- **Category Management**: Expense categorization
+- **Entry Management**: Expense tracking
+- **Item Management**: Individual expense items
 
-- **Model**: Core Data entities (Category, Entry, Group, Item, User, UserGroup)
-- **View**: SwiftUI views that display data and handle user interactions
-- **ViewModel**: ObservableObject classes that manage business logic and Core Data operations
+### 📋 Planned
+- **Expense Analytics**: Charts and reports
+- **Multi-Currency Support**: International expense tracking
+- **Data Export**: Backup and sharing functionality
+- **Notifications**: Reminders and alerts
 
-## Project Structure
+## 🏗️ Architecture
+
+### MVVM Pattern
+- **Models**: Core Data entities with proper relationships
+- **ViewModels**: Business logic and data management
+- **Views**: Pure UI components with no business logic
+
+### Core Data Entities
+- **User**: App users with authentication
+- **Group**: Expense groups for sharing
+- **Category**: Expense categorization
+- **Entry**: Main expense records
+- **Item**: Individual expense items
+- **UserGroup**: User-group relationships with roles
+
+### Performance Features
+- **Background Queues**: Core Data operations don't block UI
+- **@MainActor**: UI thread safety for all ViewModels
+- **Efficient Filtering**: Optimized data queries
+- **Memory Management**: Proper Core Data context handling
+
+## 🛠️ Technical Requirements
+
+- **iOS**: 16.0+
+- **Swift**: 5.9+
+- **Xcode**: 16.0+
+- **Architecture**: MVVM with Core Data
+- **Navigation**: NavigationStack (iOS 16+)
+
+## 📱 Screenshots
+
+*Coming soon - App is currently in development*
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Xcode 16.0 or later
+- iOS 16.0+ device or simulator
+- Basic knowledge of SwiftUI and Core Data
+
+### Installation
+1. Clone the repository
+2. Open `OMOMoney.xcodeproj` in Xcode
+3. Select your target device
+4. Build and run the project
+
+### Development Setup
+1. Ensure all Core Data entities are properly configured
+2. Verify ViewModels follow MVVM pattern
+3. Test on physical device for best performance validation
+
+## 📁 Project Structure
 
 ```
 OMOMoney/
-├── Model/           # Core Data entities
-├── ViewModel/       # MVVM ViewModels
-├── View/            # SwiftUI views
-├── Persistence/     # Core Data stack
-└── Assets/          # App resources
+├── View/                    # SwiftUI Views
+│   ├── MainView.swift      # Root navigation
+│   ├── UserListView.swift  # User list display
+│   ├── AddUserView.swift   # User creation form
+│   └── EditUserView.swift  # User editing form
+├── ViewModel/              # MVVM ViewModels
+│   ├── UserViewModel.swift # User business logic
+│   ├── GroupViewModel.swift # Group business logic
+│   └── ...                 # Other entity ViewModels
+├── OMOMoney.xcdatamodeld/  # Core Data model
+├── Persistence.swift       # Core Data stack
+└── ContentView.swift       # App entry point
 ```
 
-## Core Data Model
+## 🔧 Development Workflow
 
-The app uses the following entities:
+### Phase-Based Development
+1. **Phase 1** ✅: Core Data foundation and ViewModels
+2. **Phase 2** 🚧: Basic UI implementation
+3. **Phase 3**: Business logic and calculations
+4. **Phase 4**: Advanced features and analytics
+5. **Phase 5**: Polish and testing
 
-- **Category**: Expense categories with color coding
-- **Entry**: Main expense entries with dates and descriptions
-- **Group**: Expense groups for sharing between users
-- **Item**: Individual items within an expense entry
-- **User**: App users with authentication
-- **UserGroup**: Junction table for user-group relationships
-
-## Getting Started
-
-1. Clone the repository
-2. Open `OMOMoney.xcodeproj` in Xcode
-3. Select your target device (physical device recommended)
-4. Build and run the project
-
-## Development
-
-This project follows incremental development principles:
-
+### Commit Strategy
 - Small, focused commits for each feature
-- Test-driven development approach
-- MVVM architecture compliance
-- Performance optimization for Core Data operations
+- Clear commit messages following conventional commits
+- Test on physical device before each commit
+- Maintain clean git history
 
-## Contributing
+## 🧪 Testing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes following MVVM principles
-4. Add tests for new functionality
-5. Submit a pull request
+### Current Testing
+- **Physical Device Testing**: Primary testing method
+- **Core Data Validation**: Entity relationships and CRUD operations
+- **UI Responsiveness**: Performance and user experience
 
-## License
+### Planned Testing
+- **Unit Tests**: ViewModel logic validation
+- **UI Tests**: User interaction flows
+- **Performance Tests**: Core Data operation timing
+- **Integration Tests**: End-to-end workflows
+
+## 🤝 Contributing
+
+This is a personal development project. The architecture and patterns are designed for learning and demonstration purposes.
+
+### Development Guidelines
+- Follow MVVM architecture strictly
+- Keep Views free of business logic
+- Use background queues for heavy operations
+- Maintain native iOS performance standards
+- Test on physical devices regularly
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Author
+## 🎯 Roadmap
 
-Dennis Chicaiza A
+### Short Term (Next 2 weeks)
+- Complete Group management UI
+- Implement User-Group relationship management
+- Add Category management interface
 
-## Version History
+### Medium Term (Next month)
+- Complete all entity UI implementations
+- Add expense calculation logic
+- Implement basic analytics
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version information.
+### Long Term (Next quarter)
+- Advanced features and polish
+- Performance optimization
+- App Store preparation
+
+## 📞 Support
+
+For development questions or issues:
+- Review the [TODO.md](TODO.md) for current development status
+- Check [CHANGELOG.md](CHANGELOG.md) for recent changes
+- Ensure you're testing on a physical device
+
+---
+
+**Last Updated**: December 19, 2024  
+**Current Version**: 0.2.0  
+**Development Phase**: Phase 2 - Basic UI Structure
