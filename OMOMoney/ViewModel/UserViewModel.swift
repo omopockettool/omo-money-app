@@ -16,13 +16,9 @@ class UserViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private let context: NSManagedObjectContext
-    private let backgroundContext: NSManagedObjectContext
     
     init(context: NSManagedObjectContext) {
         self.context = context
-        // Create background context for heavy operations
-        self.backgroundContext = NSManagedObjectContext(concurrencyType: .privateQueue)
-        self.backgroundContext.parent = context
         fetchUsers()
     }
     
@@ -73,10 +69,10 @@ class UserViewModel: ObservableObject {
         errorMessage = nil
         
         // Perform creation in background
-        backgroundContext.perform { [weak self] in
+        context.perform { [weak self] in
             guard let self = self else { return }
             
-            let newUser = User(context: self.backgroundContext)
+            let newUser = User(context: self.context)
             newUser.id = UUID()
             newUser.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
             newUser.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -84,7 +80,7 @@ class UserViewModel: ObservableObject {
             newUser.lastModifiedAt = Date()
             
             do {
-                try self.backgroundContext.save()
+                try self.context.save()
                 
                 // Update UI on main thread
                 Task { @MainActor in
@@ -130,15 +126,16 @@ class UserViewModel: ObservableObject {
         errorMessage = nil
         
         // Perform update in background
-        backgroundContext.perform { [weak self] in
+        context.perform { [weak self] in
             guard let self = self else { return }
             
             // Fetch user in background context
             let request: NSFetchRequest<User> = User.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
+            guard let userId = user.id else { return }
+            request.predicate = NSPredicate(format: "id == %@", userId as CVarArg)
             
             do {
-                let backgroundUser = try self.backgroundContext.fetch(request).first
+                let backgroundUser = try self.context.fetch(request).first
                 if let backgroundUser = backgroundUser {
                     if let name = name {
                         backgroundUser.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -148,7 +145,7 @@ class UserViewModel: ObservableObject {
                     }
                     backgroundUser.lastModifiedAt = Date()
                     
-                    try self.backgroundContext.save()
+                    try self.context.save()
                     
                     // Update UI on main thread
                     Task { @MainActor in
@@ -182,18 +179,19 @@ class UserViewModel: ObservableObject {
         errorMessage = nil
         
         // Perform deletion in background
-        backgroundContext.perform { [weak self] in
+        context.perform { [weak self] in
             guard let self = self else { return }
             
             // Fetch user in background context
             let request: NSFetchRequest<User> = User.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
+            guard let userId = user.id else { return }
+            request.predicate = NSPredicate(format: "id == %@", userId as CVarArg)
             
             do {
-                let backgroundUser = try self.backgroundContext.fetch(request).first
+                let backgroundUser = try self.context.fetch(request).first
                 if let backgroundUser = backgroundUser {
-                    self.backgroundContext.delete(backgroundUser)
-                    try self.backgroundContext.save()
+                    self.context.delete(backgroundUser)
+                    try self.context.save()
                     
                     // Update UI on main thread
                     Task { @MainActor in
