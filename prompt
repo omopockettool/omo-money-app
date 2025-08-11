@@ -1,0 +1,112 @@
+Prompt para Cursor:
+# OMOMoney - SwiftUI Expense Tracker App Development TODO
+
+## Project Overview
+Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation buiding into the view model for simplicity.
+
+## Development Strategy
+- **Incremental Development**: Small, focused commits for each feature
+- **MVVM First**: All business logic in ViewModels, Views only display
+- **Core Data Foundation**: Start with data model, build UI on top
+- **Test-Driven**: Unit tests for each component
+- **Physical Device Testing**: Always test on physical device, not simulator
+
+### Performance Considerations
+- Use background queues for Core Data operations
+- Implement proper error handling
+- Optimize for smooth UI updates
+- Follow Apple's native UI/UX conventions
+
+Para empezar 
+
+Genera el modelo de datos de Core Data en Swift usando NSManagedObject para cada entidad descrita a continuación, junto con su correspondiente ViewModel siguiendo la arquitectura MVVM.
+Requisitos de arquitectura
+	•	Modelo (Model/):
+	◦	Implementar las entidades como clases NSManagedObject con @objc y @NSManaged para cada propiedad.
+	◦	Respetar tipos (UUID?, Date?, NSDecimalNumber?, Int32, String?, Set<Entity>?) y opcionalidad.
+	◦	Incluir documentación breve para cada entidad y propiedad.
+	◦	Implementar Identifiable en todas las entidades.
+	◦	Usar dos ficheros por entidad:
+	▪	<Entity>+CoreDataClass.swift
+	▪	<Entity>+CoreDataProperties.swift
+	•	Vista Modelo (ViewModel/):
+	◦	Crear un ViewModel por entidad que sea ObservableObject.
+	◦	Incluir un @Published array de la entidad ([Entity]) para la lista de resultados.
+	◦	Incluir un inicializador que reciba NSManagedObjectContext.
+	◦	Implementar métodos CRUD (create, fetch, update, delete) para interactuar con Core Data.
+	◦	Gestionar errores y usar try? context.save() de forma segura.
+	◦	ViewModels deben exponer datos ya formateados para uso en SwiftUI (por ejemplo, fecha como String).
+	•	Vista (View/):
+	◦	No es necesario generar vistas completas, pero los ViewModels deben estar listos para enlazarse con SwiftUI.
+
+Estilo de código
+	•	Swift 5, Xcode 16+ compatible.
+	•	Nombrado limpio y consistente con Swift.
+	•	Evitar force unwrap (!).
+	•	Incluir comentarios claros para cada relación explicando el deleteRule.
+	•	Separar carpetas Model/, ViewModel/, y opcionalmente View/.
+
+
+Entidades y atributos:
+Category
+	•	id: UUID,
+	•	name: String, default ""
+	•	color: String?, optional, default "#8E8E93"
+	•	createdAt: Date?, optional
+	•	lastModifiedAt: Date?, optional
+	•	Relaciones:
+	◦	entries: Set<Entry>?, to-many, inverse category, delete rule Nullify
+	◦	group: Group?, to-one, inverse categories, delete rule Cascade
+Entry
+	•	id: UUID,
+	•	description: String?, optional, default ""
+	•	date: Date,
+	•	createdAt: Date?, optional auto generated
+	•	lastModifiedAt: Date?, optional auto generated
+	•	categoryId: UUID,
+	•	groupId: UUID,
+	•	Relaciones:
+	◦	category: Category?, to-one, inverse entries, delete rule Nullify
+	◦	group: Group?, to-one, inverse entries, delete rule Nullify
+	◦	items: Set<Item>?, to-many, inverse entry, delete rule Cascade
+Group
+	•	id: UUID,
+	•	name: String?, optional, default ""
+	•	currency: String?, optional, default "USD"
+	•	createdAt: Date?, optional auto generated
+	•	lastModifiedAt: Date?, optional auto generated
+	•	Relaciones:
+	◦	entries: Set<Entry>?, to-many, inverse group, delete rule Cascade
+	◦	categories: Set<Category>?, to-many, inverse group, delete rule Cascade
+	◦	userGroups: Set<UserGroup>?, to-many, inverse group, delete rule Cascade
+Item
+	•	id: UUID,
+	•	description: String?, optional, default ""
+	•	amount: NSDecimalNumber?, optional, default 0.0
+	•	quantity: Int32, optional, default 1
+	•	createdAt: Date?, optional auto generated
+	•	lastModifiedAt: Date?, optional auto generated
+	•	Relaciones:
+	◦	entry: Entry?, to-one, inverse items, delete rule Nullify
+User
+	•	id: UUID?, optional
+	•	name: String?, optional, default ""
+	•	email: String,
+	•	createdAt: Date?, optional auto generated
+	•	lastModifiedAt: Date?, optional auto generated
+	•	Relaciones:
+	◦	userGroups: Set<UserGroup>?, to-many, inverse user, delete rule Cascade
+UserGroup
+	•	id: UUID,
+	•	role: String?, optional, default "owner"
+	•	joinedAt: Date?, optional auto generated
+	•	userId: UUID,
+	•	groupId: UUID,
+	•	Relaciones:
+	◦	user: User?, to-one, inverse userGroups, delete rule Cascade
+	◦	group: Group?, to-one, inverse userGroups, delete rule Cascade
+Requisitos adicionales:
+	•	Genera un archivo Swift por entidad.
+	•	Implementa Identifiable en cada entidad.
+	•	Agrega inicializadores convenientes para crear cada entidad con sus propiedades mínimas.
+	•	Usa CoreDataProperties y CoreDataClass como en la convención estándar de Xcode.
