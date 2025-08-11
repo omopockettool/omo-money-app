@@ -20,14 +20,14 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 
 ### Phase 1: Core Data Foundation ✅
 - [x] Create project structure and configuration files
-- [ ] Create Core Data model entities
-  - [ ] Category entity
-  - [ ] Entry entity  
-  - [ ] Group entity
-  - [ ] Item entity
-  - [ ] User entity
-  - [ ] UserGroup entity
-- [ ] Create ViewModels for each entity
+- [x] Create Core Data model entities
+  - [x] Category entity
+  - [x] Entry entity  
+  - [x] Group entity
+  - [x] Item entity
+  - [x] User entity
+  - [x] UserGroup entity
+- [x] Create ViewModels for each entity
 - [ ] Update Core Data model file
 
 ### Phase 2: Basic UI Structure
@@ -55,14 +55,50 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - [ ] App Store preparation
 
 ## Current Focus
-Working on Phase 1: Creating Core Data entities and their corresponding ViewModels following MVVM architecture.
+✅ **COMPLETED**: All Core Data entities and ViewModels following MVVM architecture.
+
+## Completed Work
+
+### Core Data Entities
+1. **Category** ✅ - Expense categories with color coding and group relationships
+2. **Entry** ✅ - Main expense entries with dates, descriptions, and relationships
+3. **Group** ✅ - Expense groups for sharing between users with currency support
+4. **Item** ✅ - Individual items within expense entries with amounts and quantities
+5. **User** ✅ - App users with authentication and group membership
+6. **UserGroup** ✅ - Junction table for user-group relationships with role management
+
+### ViewModels
+1. **CategoryViewModel** ✅ - Full CRUD operations with filtering and validation
+2. **EntryViewModel** ✅ - Full CRUD operations with date filtering and total calculations
+3. **GroupViewModel** ✅ - Full CRUD operations with member counting and sorting
+4. **ItemViewModel** ✅ - Full CRUD operations with amount calculations and filtering
+5. **UserViewModel** ✅ - Full CRUD operations with email validation and role checking
+6. **UserGroupViewModel** ✅ - Full CRUD operations with role validation and permissions
+
+### Architecture Features
+- **MVVM Compliance**: All business logic in ViewModels, Views only display
+- **Core Data Best Practices**: Proper delete rules, relationship management
+- **Error Handling**: Comprehensive error handling with user feedback
+- **Data Validation**: Input validation for emails, roles, and business rules
+- **Performance**: Efficient filtering, sorting, and calculation methods
 
 ## Next Steps
-1. Create Category entity and ViewModel
-2. Create Entry entity and ViewModel
-3. Create Group entity and ViewModel
-4. Create Item entity and ViewModel
-5. Create User entity and ViewModel
-6. Create UserGroup entity and ViewModel
-7. Update Core Data model file
-8. Test basic CRUD operations
+1. **Update Core Data Model File** - Add all entities to the .xcdatamodeld file
+2. **Test Basic CRUD Operations** - Verify all entities work correctly
+3. **Create Basic UI Views** - Start with list views for each entity
+4. **Implement Navigation** - Set up main navigation structure
+
+## Commit History
+- ✅ **Commit 1**: Category entity and ViewModel
+- ✅ **Commit 2**: Entry entity and ViewModel  
+- ✅ **Commit 3**: Group entity and ViewModel
+- ✅ **Commit 4**: Item entity and ViewModel
+- ✅ **Commit 5**: User entity and ViewModel
+- ✅ **Commit 6**: UserGroup entity and ViewModel
+
+## Technical Notes
+- All entities implement `Identifiable` protocol for SwiftUI compatibility
+- ViewModels use `@MainActor` for UI thread safety
+- Proper Core Data delete rules implemented (Cascade, Nullify)
+- Comprehensive computed properties for formatted display
+- Utility methods for common operations and filtering
