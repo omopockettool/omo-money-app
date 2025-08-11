@@ -65,7 +65,12 @@ class GroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newGroup = Group(context: context, name: name, currency: currency)
+        let newGroup = Group(context: context)
+        newGroup.id = UUID()
+        newGroup.name = name
+        newGroup.currency = currency
+        newGroup.createdAt = Date()
+        newGroup.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -99,7 +104,7 @@ class GroupViewModel: ObservableObject {
             group.currency = currency
         }
         
-        group.updateTimestamp()
+        group.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -123,7 +128,9 @@ class GroupViewModel: ObservableObject {
         errorMessage = nil
         
         // Check if group has entries or categories before deletion
-        if group.entryCount > 0 || group.categoryCount > 0 {
+        let entryCount = (group.entries?.count ?? 0)
+        let categoryCount = (group.categories?.count ?? 0)
+        if entryCount > 0 || categoryCount > 0 {
             errorMessage = "Cannot delete group with existing entries or categories"
             isLoading = false
             return false
@@ -161,7 +168,8 @@ class GroupViewModel: ObservableObject {
     /// - Returns: True if name already exists
     func groupNameExists(_ name: String, excluding excludeGroup: Group? = nil) -> Bool {
         return groups.contains { group in
-            group.name?.lowercased() == name.lowercased() &&
+            guard let groupName = group.name else { return false }
+            return groupName.lowercased() == name.lowercased() &&
             group.id != excludeGroup?.id
         }
     }
@@ -169,33 +177,48 @@ class GroupViewModel: ObservableObject {
     /// Get groups with entries
     /// - Returns: Array of groups that have entries
     func groupsWithEntries() -> [Group] {
-        return groups.filter { $0.hasEntries }
+        return groups.filter { ($0.entries?.count ?? 0) > 0 }
     }
     
     /// Get groups with categories
     /// - Returns: Array of groups that have categories
     func groupsWithCategories() -> [Group] {
-        return groups.filter { $0.hasCategories }
+        return groups.filter { ($0.categories?.count ?? 0) > 0 }
     }
     
     /// Get groups with members
     /// - Returns: Array of groups that have members
     func groupsWithMembers() -> [Group] {
-        return groups.filter { $0.hasMembers }
+        return groups.filter { ($0.userGroups?.count ?? 0) > 0 }
     }
     
     /// Get groups by currency
     /// - Parameter currency: The currency to filter by
     /// - Returns: Array of groups using the specified currency
     func groups(withCurrency currency: String) -> [Group] {
-        return groups.filter { $0.currency == currency }
+        return groups.filter { group in
+            guard let groupCurrency = group.currency else { return false }
+            return groupCurrency == currency
+        }
     }
     
     /// Calculate total amount across all groups
     /// - Returns: Total amount as NSDecimalNumber
     func totalAmountAcrossAllGroups() -> NSDecimalNumber {
         return groups.reduce(NSDecimalNumber.zero) { total, group in
-            total.adding(group.totalAmount)
+            let groupEntries = group.entries ?? NSSet()
+            let groupTotal = groupEntries.reduce(NSDecimalNumber.zero) { entryTotal, entry in
+                guard let entry = entry as? Entry else { return entryTotal }
+                let entryItems = entry.items ?? NSSet()
+                let entryAmount = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
+                    guard let item = item as? Item else { return itemTotal }
+                    let itemAmount = item.amount ?? NSDecimalNumber.zero
+                    let itemQuantity = NSDecimalNumber(value: item.quantity)
+                    return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                }
+                return entryTotal.adding(entryAmount)
+            }
+            return total.adding(groupTotal)
         }
     }
     
@@ -203,7 +226,25 @@ class GroupViewModel: ObservableObject {
     /// - Returns: Array of groups sorted by total amount
     func groupsSortedByAmount() -> [Group] {
         return groups.sorted { group1, group2 in
-            group1.totalAmount.compare(group2.totalAmount) == .orderedDescending
+            let group1Total = calculateGroupTotal(group1)
+            let group2Total = calculateGroupTotal(group2)
+            return group1Total.compare(group2Total) == .orderedDescending
+        }
+    }
+    
+    /// Helper method to calculate total amount for a group
+    private func calculateGroupTotal(_ group: Group) -> NSDecimalNumber {
+        let groupEntries = group.entries ?? NSSet()
+        return groupEntries.reduce(NSDecimalNumber.zero) { entryTotal, entry in
+            guard let entry = entry as? Entry else { return entryTotal }
+            let entryItems = entry.items ?? NSSet()
+            let entryAmount = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
+                guard let item = item as? Item else { return itemTotal }
+                let itemAmount = item.amount ?? NSDecimalNumber.zero
+                let itemQuantity = NSDecimalNumber(value: item.quantity)
+                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+            }
+            return entryTotal.adding(entryAmount)
         }
     }
     
@@ -211,7 +252,9 @@ class GroupViewModel: ObservableObject {
     /// - Returns: Array of groups sorted by entry count
     func groupsSortedByEntryCount() -> [Group] {
         return groups.sorted { group1, group2 in
-            group1.entryCount > group2.entryCount
+            let group1EntryCount = group1.entries?.count ?? 0
+            let group2EntryCount = group2.entries?.count ?? 0
+            return group1EntryCount > group2EntryCount
         }
     }
     

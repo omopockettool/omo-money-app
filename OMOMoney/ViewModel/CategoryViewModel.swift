@@ -66,7 +66,13 @@ class CategoryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newCategory = Category(context: context, name: name, color: color, group: group)
+        let newCategory = Category(context: context)
+        newCategory.id = UUID()
+        newCategory.name = name
+        newCategory.color = color
+        newCategory.group = group
+        newCategory.createdAt = Date()
+        newCategory.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -100,7 +106,7 @@ class CategoryViewModel: ObservableObject {
             category.color = color
         }
         
-        category.updateTimestamp()
+        category.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -163,8 +169,9 @@ class CategoryViewModel: ObservableObject {
     /// - Returns: True if name already exists
     func categoryNameExists(_ name: String, in group: Group, excluding excludeCategory: Category? = nil) -> Bool {
         return categories.contains { category in
-            category.group?.id == group.id &&
-            category.name?.lowercased() == name.lowercased() &&
+            guard let categoryName = category.name else { return false }
+            return category.group?.id == group.id &&
+            categoryName.lowercased() == name.lowercased() &&
             category.id != excludeCategory?.id
         }
     }

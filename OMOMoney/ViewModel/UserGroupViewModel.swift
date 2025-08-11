@@ -83,7 +83,12 @@ class UserGroupViewModel: ObservableObject {
             return nil
         }
         
-        let newUserGroup = UserGroup(context: context, user: user, group: group, role: role)
+        let newUserGroup = UserGroup(context: context)
+        newUserGroup.id = UUID()
+        newUserGroup.user = user
+        newUserGroup.group = group
+        newUserGroup.role = role
+        newUserGroup.joinedAt = Date()
         
         do {
             try context.save()
@@ -141,9 +146,13 @@ class UserGroupViewModel: ObservableObject {
         errorMessage = nil
         
         // Check if this is the last owner of the group
-        if userGroup.isOwner {
+        let isOwner = userGroup.role == "owner"
+        if isOwner {
             let group = userGroup.group
-            let ownersInGroup = userGroups.filter { $0.group?.id == group?.id && $0.isOwner }
+            let ownersInGroup = userGroups.filter { userGroup in
+                guard let userGroupRole = userGroup.role else { return false }
+                return userGroup.group?.id == group?.id && userGroupRole == "owner"
+            }
             if ownersInGroup.count <= 1 {
                 errorMessage = "Cannot remove the last owner from a group"
                 isLoading = false
@@ -221,21 +230,30 @@ class UserGroupViewModel: ObservableObject {
     /// - Parameter role: The role to filter by
     /// - Returns: Array of relationships with the specified role
     func userGroups(withRole role: String) -> [UserGroup] {
-        return userGroups.filter { $0.role?.lowercased() == role.lowercased() }
+        return userGroups.filter { userGroup in
+            guard let userGroupRole = userGroup.role else { return false }
+            return userGroupRole.lowercased() == role.lowercased()
+        }
     }
     
     /// Get owners of a specific group
     /// - Parameter group: The group to get owners for
     /// - Returns: Array of user-group relationships for owners
     func owners(of group: Group) -> [UserGroup] {
-        return userGroups(for: group).filter { $0.isOwner }
+        return userGroups(for: group).filter { userGroup in
+            guard let userGroupRole = userGroup.role else { return false }
+            return userGroupRole == "owner"
+        }
     }
     
     /// Get admins of a specific group
     /// - Parameter group: The group to get admins for
     /// - Returns: Array of user-group relationships for admins
     func admins(of group: Group) -> [UserGroup] {
-        return userGroups(for: group).filter { $0.isAdmin }
+        return userGroups(for: group).filter { userGroup in
+            guard let userGroupRole = userGroup.role else { return false }
+            return userGroupRole == "admin"
+        }
     }
     
     /// Check if a user is an owner of a group
@@ -245,9 +263,10 @@ class UserGroupViewModel: ObservableObject {
     /// - Returns: True if user is an owner
     func isUserOwner(_ user: User, of group: Group) -> Bool {
         return userGroups.contains { userGroup in
-            userGroup.user?.id == user.id && 
+            guard let userGroupRole = userGroup.role else { return false }
+            return userGroup.user?.id == user.id && 
             userGroup.group?.id == group.id && 
-            userGroup.isOwner
+            userGroupRole == "owner"
         }
     }
     
@@ -258,16 +277,32 @@ class UserGroupViewModel: ObservableObject {
     /// - Returns: True if user is an admin
     func isUserAdmin(_ user: User, of group: Group) -> Bool {
         return userGroups.contains { userGroup in
-            userGroup.user?.id == user.id && 
+            guard let userGroupRole = userGroup.role else { return false }
+            return userGroup.user?.id == user.id && 
             userGroup.group?.id == group.id && 
-            userGroup.isAdmin
+            userGroupRole == "admin"
         }
     }
     
     /// Get user-group relationships sorted by role priority
     /// - Returns: Array of relationships sorted by role priority
     func userGroupsSortedByRole() -> [UserGroup] {
-        return userGroups.sorted { $0.rolePriority > $1.rolePriority }
+        return userGroups.sorted { userGroup1, userGroup2 in
+            let priority1 = rolePriority(for: userGroup1.role ?? "")
+            let priority2 = rolePriority(for: userGroup2.role ?? "")
+            return priority1 > priority2
+        }
+    }
+    
+    /// Helper method to get role priority
+    private func rolePriority(for role: String) -> Int {
+        switch role.lowercased() {
+        case "owner": return 4
+        case "admin": return 3
+        case "member": return 2
+        case "viewer": return 1
+        default: return 0
+        }
     }
     
     /// Get user-group relationships sorted by join date (newest first)

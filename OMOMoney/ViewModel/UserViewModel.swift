@@ -11,28 +11,18 @@ import SwiftUI
 
 @MainActor
 class UserViewModel: ObservableObject {
-    
-    // MARK: - Published Properties
-    
-    /// Published array of users for SwiftUI binding
     @Published var users: [User] = []
-    
-    /// Loading state for UI feedback
     @Published var isLoading = false
-    
-    /// Error message for user feedback
     @Published var errorMessage: String?
     
-    // MARK: - Private Properties
-    
     private let context: NSManagedObjectContext
+    private let backgroundContext: NSManagedObjectContext
     
-    // MARK: - Initialization
-    
-    /// Initialize with a managed object context
-    /// - Parameter context: The Core Data context to use for operations
     init(context: NSManagedObjectContext) {
         self.context = context
+        // Create background context for heavy operations
+        self.backgroundContext = NSManagedObjectContext(concurrencyType: .privateQueue)
+        self.backgroundContext.parent = context
         fetchUsers()
     }
     
@@ -48,51 +38,68 @@ class UserViewModel: ObservableObject {
         
         do {
             users = try context.fetch(request)
+            isLoading = false
         } catch {
             errorMessage = "Failed to fetch users: \(error.localizedDescription)"
             print("Error fetching users: \(error)")
+            isLoading = false
         }
-        
-        isLoading = false
     }
     
     /// Create a new user
     /// - Parameters:
-    ///   - name: The user name
-    ///   - email: The user email (required)
+    ///   - name: User's name
+    ///   - email: User's email address
     /// - Returns: True if creation was successful
     func createUser(name: String, email: String) -> Bool {
-        isLoading = true
-        errorMessage = nil
+        // Validate input
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "Name cannot be empty"
+            return false
+        }
         
-        // Validate email
-        guard isValidEmail(email) else {
-            errorMessage = "Invalid email format"
-            isLoading = false
+        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "Email cannot be empty"
             return false
         }
         
         // Check if email already exists
-        guard !userEmailExists(email) else {
-            errorMessage = "User with this email already exists"
-            isLoading = false
+        if userEmailExists(email) {
+            errorMessage = "Email already exists"
             return false
         }
         
-        let newUser = User(context: context, name: name, email: email)
+        isLoading = true
+        errorMessage = nil
         
-        do {
-            try context.save()
-            fetchUsers() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create user: \(error.localizedDescription)"
-            print("Error creating user: \(error)")
-            isLoading = false
-            return false
+        // Perform creation in background
+        backgroundContext.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let newUser = User(context: self.backgroundContext)
+            newUser.id = UUID()
+            newUser.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            newUser.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            newUser.createdAt = Date()
+            newUser.lastModifiedAt = Date()
+            
+            do {
+                try self.backgroundContext.save()
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.fetchUsers()
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to create user: \(error.localizedDescription)"
+                    print("Error creating user: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return true
     }
     
     /// Update an existing user
@@ -102,112 +109,132 @@ class UserViewModel: ObservableObject {
     ///   - email: New email (optional)
     /// - Returns: True if update was successful
     func updateUser(_ user: User, name: String? = nil, email: String? = nil) -> Bool {
+        // Validate input
+        if let name = name, name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            errorMessage = "Name cannot be empty"
+            return false
+        }
+        
+        if let email = email, email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            errorMessage = "Email cannot be empty"
+            return false
+        }
+        
+        // Check if email already exists (excluding current user)
+        if let email = email, userEmailExists(email, excluding: user) {
+            errorMessage = "Email already exists"
+            return false
+        }
+        
         isLoading = true
         errorMessage = nil
         
-        if let name = name {
-            user.name = name
-        }
-        
-        if let email = email {
-            // Validate email
-            guard isValidEmail(email) else {
-                errorMessage = "Invalid email format"
-                isLoading = false
-                return false
-            }
+        // Perform update in background
+        backgroundContext.perform { [weak self] in
+            guard let self = self else { return }
             
-            // Check if email already exists (excluding current user)
-            guard !userEmailExists(email, excluding: user) else {
-                errorMessage = "User with this email already exists"
-                isLoading = false
-                return false
-            }
+            // Fetch user in background context
+            let request: NSFetchRequest<User> = User.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
             
-            user.email = email
+            do {
+                let backgroundUser = try self.backgroundContext.fetch(request).first
+                if let backgroundUser = backgroundUser {
+                    if let name = name {
+                        backgroundUser.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    if let email = email {
+                        backgroundUser.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    }
+                    backgroundUser.lastModifiedAt = Date()
+                    
+                    try self.backgroundContext.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchUsers()
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to update user: \(error.localizedDescription)"
+                    print("Error updating user: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        user.updateTimestamp()
-        
-        do {
-            try context.save()
-            fetchUsers() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update user: \(error.localizedDescription)"
-            print("Error updating user: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete a user
     /// - Parameter user: The user to delete
     /// - Returns: True if deletion was successful
     func deleteUser(_ user: User) -> Bool {
-        isLoading = true
-        errorMessage = nil
-        
-        // Check if user belongs to any groups before deletion
-        if user.belongsToGroups {
+        // Check if user belongs to groups
+        if (user.userGroups?.count ?? 0) > 0 {
             errorMessage = "Cannot delete user who belongs to groups"
             isLoading = false
             return false
         }
         
-        context.delete(user)
+        isLoading = true
+        errorMessage = nil
         
-        do {
-            try context.save()
-            fetchUsers() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete user: \(error.localizedDescription)"
-            print("Error deleting user: \(error)")
-            isLoading = false
-            return false
+        // Perform deletion in background
+        backgroundContext.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch user in background context
+            let request: NSFetchRequest<User> = User.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
+            
+            do {
+                let backgroundUser = try self.backgroundContext.fetch(request).first
+                if let backgroundUser = backgroundUser {
+                    self.backgroundContext.delete(backgroundUser)
+                    try self.backgroundContext.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchUsers()
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to delete user: \(error.localizedDescription)"
+                    print("Error deleting user: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return true
     }
     
     // MARK: - Utility Methods
-    
-    /// Get user by ID
-    /// - Parameter id: The user ID to search for
-    /// - Returns: The user if found, nil otherwise
-    func user(with id: UUID) -> User? {
-        return users.first { $0.id == id }
-    }
     
     /// Get user by email
     /// - Parameter email: The email to search for
     /// - Returns: The user if found, nil otherwise
     func user(withEmail email: String) -> User? {
-        return users.first { $0.email.lowercased() == email.lowercased() }
+        return users.first { user in
+            guard let userEmail = user.email else { return false }
+            return userEmail.lowercased() == email.lowercased()
+        }
     }
     
-    /// Check if a user email already exists
+    /// Check if an email already exists
     /// - Parameters:
     ///   - email: The email to check
     ///   - excludeUser: User to exclude from check (for updates)
     /// - Returns: True if email already exists
     func userEmailExists(_ email: String, excluding excludeUser: User? = nil) -> Bool {
         return users.contains { user in
-            user.email.lowercased() == email.lowercased() &&
+            guard let userEmail = user.email else { return false }
+            return userEmail.lowercased() == email.lowercased() &&
             user.id != excludeUser?.id
         }
-    }
-    
-    /// Validate email format
-    /// - Parameter email: The email to validate
-    /// - Returns: True if email format is valid
-    private func isValidEmail(_ email: String) -> Bool {
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        return emailPredicate.evaluate(with: email)
     }
     
     /// Clear error message

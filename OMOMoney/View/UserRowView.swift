@@ -27,27 +27,34 @@ struct UserRowView: View {
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(user.displayName)
+                    Text(user.name ?? "Unnamed User")
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    Text(user.email)
+                    Text(user.email ?? "No Email")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                     
                     HStack(spacing: 8) {
-                        if user.belongsToGroups {
-                            Label("\(user.groupCount) groups", systemImage: "person.3")
+                        if let userGroups = user.userGroups, userGroups.count > 0 {
+                            Label("\(userGroups.count) groups", systemImage: "person.3")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         
-                        if user.isOwner {
-                            Label("Owner", systemImage: "crown.fill")
-                                .font(.caption)
-                                .foregroundColor(.orange)
+                        // Check if user is owner in any group
+                        if let userGroups = user.userGroups {
+                            let hasOwnerRole = userGroups.compactMap { $0 as? UserGroup }.contains { userGroup in
+                                guard let role = userGroup.role else { return false }
+                                return role == "owner"
+                            }
+                            if hasOwnerRole {
+                                Label("Owner", systemImage: "crown.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
                         }
                     }
                 }
@@ -67,5 +74,13 @@ struct UserRowView: View {
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
-    UserRowView(user: User.sampleUser(context: context), onTap: {})
+    // Create a simple user for preview
+    let user = User(context: context)
+    user.id = UUID()
+    user.name = "John Doe"
+    user.email = "john@example.com"
+    user.createdAt = Date()
+    user.lastModifiedAt = Date()
+    
+    return UserRowView(user: user, onTap: {})
 }

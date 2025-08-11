@@ -67,7 +67,14 @@ class EntryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newEntry = Entry(context: context, description: description, date: date, category: category, group: group)
+        let newEntry = Entry(context: context)
+        newEntry.id = UUID()
+        newEntry.entryDescription = description
+        newEntry.date = date
+        newEntry.createdAt = Date()
+        newEntry.lastModifiedAt = Date()
+        newEntry.category = category
+        newEntry.group = group
         
         do {
             try context.save()
@@ -106,7 +113,7 @@ class EntryViewModel: ObservableObject {
             entry.category = category
         }
         
-        entry.updateTimestamp()
+        entry.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -168,7 +175,8 @@ class EntryViewModel: ObservableObject {
     /// - Returns: Array of entries in the date range
     func entries(from startDate: Date, to endDate: Date) -> [Entry] {
         return entries.filter { entry in
-            entry.date >= startDate && entry.date <= endDate
+            guard let entryDate = entry.date else { return false }
+            return entryDate >= startDate && entryDate <= endDate
         }
     }
     
@@ -180,8 +188,9 @@ class EntryViewModel: ObservableObject {
     func entries(forMonth month: Int, year: Int) -> [Entry] {
         let calendar = Calendar.current
         return entries.filter { entry in
-            let entryMonth = calendar.component(.month, from: entry.date)
-            let entryYear = calendar.component(.year, from: entry.date)
+            guard let entryDate = entry.date else { return false }
+            let entryMonth = calendar.component(.month, from: entryDate)
+            let entryYear = calendar.component(.year, from: entryDate)
             return entryMonth == month && entryYear == year
         }
     }
@@ -199,7 +208,14 @@ class EntryViewModel: ObservableObject {
     func totalAmount(for group: Group) -> NSDecimalNumber {
         let groupEntries = entries(for: group)
         return groupEntries.reduce(NSDecimalNumber.zero) { total, entry in
-            total.adding(entry.totalAmount)
+            let entryItems = entry.items ?? NSSet()
+            let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
+                guard let item = item as? Item else { return itemTotal }
+                let itemAmount = item.amount ?? NSDecimalNumber.zero
+                let itemQuantity = NSDecimalNumber(value: item.quantity)
+                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+            }
+            return total.adding(entryTotal)
         }
     }
     
@@ -209,7 +225,14 @@ class EntryViewModel: ObservableObject {
     func totalAmount(for category: Category) -> NSDecimalNumber {
         let categoryEntries = entries(for: category)
         return categoryEntries.reduce(NSDecimalNumber.zero) { total, entry in
-            total.adding(entry.totalAmount)
+            let entryItems = entry.items ?? NSSet()
+            let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
+                guard let item = item as? Item else { return itemTotal }
+                let itemAmount = item.amount ?? NSDecimalNumber.zero
+                let itemQuantity = NSDecimalNumber(value: item.quantity)
+                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+            }
+            return total.adding(entryTotal)
         }
     }
     
@@ -221,7 +244,14 @@ class EntryViewModel: ObservableObject {
     func totalAmount(forMonth month: Int, year: Int) -> NSDecimalNumber {
         let monthEntries = entries(forMonth: month, year: year)
         return monthEntries.reduce(NSDecimalNumber.zero) { total, entry in
-            total.adding(entry.totalAmount)
+            let entryItems = entry.items ?? NSSet()
+            let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
+                guard let item = item as? Item else { return itemTotal }
+                let itemAmount = item.amount ?? NSDecimalNumber.zero
+                let itemQuantity = NSDecimalNumber(value: item.quantity)
+                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+            }
+            return total.adding(entryTotal)
         }
     }
     

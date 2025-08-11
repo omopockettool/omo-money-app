@@ -20,7 +20,7 @@ struct EditUserView: View {
         self.user = user
         self._navigationPath = navigationPath
         self._name = State(initialValue: user.name ?? "")
-        self._email = State(initialValue: user.email)
+        self._email = State(initialValue: user.email ?? "")
     }
     
     var body: some View {
@@ -40,30 +40,37 @@ struct EditUserView: View {
                 HStack {
                     Text("Created")
                     Spacer()
-                    Text(user.formattedCreatedDate)
+                    Text(formatDate(user.createdAt))
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
                     Text("Last Modified")
                     Spacer()
-                    Text(user.formattedModifiedDate)
+                    Text(formatDate(user.lastModifiedAt))
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
                     Text("Groups")
                     Spacer()
-                    Text("\(user.groupCount)")
+                    Text("\(user.userGroups?.count ?? 0)")
                         .foregroundColor(.secondary)
                 }
                 
-                if user.isOwner {
-                    HStack {
-                        Text("Role")
-                        Spacer()
-                        Label("Owner", systemImage: "crown.fill")
-                            .foregroundColor(.orange)
+                // Check if user is owner in any group
+                if let userGroups = user.userGroups {
+                    let hasOwnerRole = userGroups.compactMap { $0 as? UserGroup }.contains { userGroup in
+                        guard let role = userGroup.role else { return false }
+                        return role == "owner"
+                    }
+                    if hasOwnerRole {
+                        HStack {
+                            Text("Role")
+                            Spacer()
+                            Label("Owner", systemImage: "crown.fill")
+                                .foregroundColor(.orange)
+                        }
                     }
                 }
             }
@@ -81,7 +88,7 @@ struct EditUserView: View {
                     deleteUser()
                 }
                 .frame(maxWidth: .infinity)
-                .disabled(user.belongsToGroups)
+                .disabled((user.userGroups?.count ?? 0) > 0)
             }
         }
         .navigationTitle("Edit User")
@@ -93,6 +100,14 @@ struct EditUserView: View {
                 }
             }
         }
+    }
+    
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     private func updateUser() {
@@ -110,9 +125,17 @@ struct EditUserView: View {
 
 #Preview {
     NavigationStack {
-        EditUserView(
-            viewModel: UserViewModel(context: PersistenceController.preview.container.viewContext),
-            user: User.sampleUser(context: PersistenceController.preview.container.viewContext),
+        let context = PersistenceController.preview.container.viewContext
+        let user = User(context: context)
+        user.id = UUID()
+        user.name = "John Doe"
+        user.email = "john@example.com"
+        user.createdAt = Date()
+        user.lastModifiedAt = Date()
+        
+        return EditUserView(
+            viewModel: UserViewModel(context: context),
+            user: user,
             navigationPath: .constant(NavigationPath())
         )
     }

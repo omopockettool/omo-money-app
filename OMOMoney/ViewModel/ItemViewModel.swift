@@ -67,7 +67,14 @@ class ItemViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newItem = Item(context: context, description: description, amount: amount, quantity: quantity, entry: entry)
+        let newItem = Item(context: context)
+        newItem.id = UUID()
+        newItem.itemDescription = description
+        newItem.amount = amount
+        newItem.quantity = quantity
+        newItem.createdAt = Date()
+        newItem.lastModifiedAt = Date()
+        newItem.entry = entry
         
         do {
             try context.save()
@@ -106,7 +113,7 @@ class ItemViewModel: ObservableObject {
             item.quantity = quantity
         }
         
-        item.updateTimestamp()
+        item.lastModifiedAt = Date()
         
         do {
             try context.save()
@@ -198,7 +205,9 @@ class ItemViewModel: ObservableObject {
     func totalAmount(for entry: Entry) -> NSDecimalNumber {
         let entryItems = items(for: entry)
         return entryItems.reduce(NSDecimalNumber.zero) { total, item in
-            total.adding(item.totalAmount)
+            let itemAmount = item.amount ?? NSDecimalNumber.zero
+            let itemQuantity = NSDecimalNumber(value: item.quantity)
+            return total.adding(itemAmount.multiplying(by: itemQuantity))
         }
     }
     
@@ -208,7 +217,9 @@ class ItemViewModel: ObservableObject {
     func totalAmount(for category: Category) -> NSDecimalNumber {
         let categoryItems = items(for: category)
         return categoryItems.reduce(NSDecimalNumber.zero) { total, item in
-            total.adding(item.totalAmount)
+            let itemAmount = item.amount ?? NSDecimalNumber.zero
+            let itemQuantity = NSDecimalNumber(value: item.quantity)
+            return total.adding(itemAmount.multiplying(by: itemQuantity))
         }
     }
     
@@ -218,7 +229,9 @@ class ItemViewModel: ObservableObject {
     func totalAmount(for group: Group) -> NSDecimalNumber {
         let groupItems = items(for: group)
         return groupItems.reduce(NSDecimalNumber.zero) { total, item in
-            total.adding(item.totalAmount)
+            let itemAmount = item.amount ?? NSDecimalNumber.zero
+            let itemQuantity = NSDecimalNumber(value: item.quantity)
+            return total.adding(itemAmount.multiplying(by: itemQuantity))
         }
     }
     

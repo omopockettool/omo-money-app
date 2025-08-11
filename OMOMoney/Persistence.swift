@@ -16,7 +16,19 @@ struct PersistenceController {
         let viewContext = result.container.viewContext
         
         // Create sample users for preview
-        let sampleUsers = User.sampleUsers(context: viewContext)
+        let user1 = User(context: viewContext)
+        user1.id = UUID()
+        user1.name = "John Doe"
+        user1.email = "john@example.com"
+        user1.createdAt = Date()
+        user1.lastModifiedAt = Date()
+        
+        let user2 = User(context: viewContext)
+        user2.id = UUID()
+        user2.name = "Jane Smith"
+        user2.email = "jane@example.com"
+        user2.createdAt = Date()
+        user2.lastModifiedAt = Date()
         
         do {
             try viewContext.save()
