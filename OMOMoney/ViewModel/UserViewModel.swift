@@ -60,8 +60,8 @@ class UserViewModel: ObservableObject {
     /// - Parameters:
     ///   - name: The user name
     ///   - email: The user email (required)
-    /// - Returns: The created user or nil if failed
-    func createUser(name: String, email: String) -> User? {
+    /// - Returns: True if creation was successful
+    func createUser(name: String, email: String) -> Bool {
         isLoading = true
         errorMessage = nil
         
@@ -69,14 +69,14 @@ class UserViewModel: ObservableObject {
         guard isValidEmail(email) else {
             errorMessage = "Invalid email format"
             isLoading = false
-            return nil
+            return false
         }
         
         // Check if email already exists
         guard !userEmailExists(email) else {
             errorMessage = "User with this email already exists"
             isLoading = false
-            return nil
+            return false
         }
         
         let newUser = User(context: context, name: name, email: email)
@@ -85,13 +85,13 @@ class UserViewModel: ObservableObject {
             try context.save()
             fetchUsers() // Refresh the list
             isLoading = false
-            return newUser
+            return true
         } catch {
             context.rollback()
             errorMessage = "Failed to create user: \(error.localizedDescription)"
             print("Error creating user: \(error)")
             isLoading = false
-            return nil
+            return false
         }
     }
     
@@ -198,60 +198,6 @@ class UserViewModel: ObservableObject {
         return users.contains { user in
             user.email.lowercased() == email.lowercased() &&
             user.id != excludeUser?.id
-        }
-    }
-    
-    /// Get users who belong to a specific group
-    /// - Parameter group: The group to filter by
-    /// - Returns: Array of users in the group
-    func users(in group: Group) -> [User] {
-        return users.filter { user in
-            user.groups.contains { $0.id == group.id }
-        }
-    }
-    
-    /// Get users with a specific role
-    /// - Parameter role: The role to filter by
-    /// - Returns: Array of users with the specified role
-    func users(withRole role: String) -> [User] {
-        return users.filter { user in
-            user.roles.contains { $0.lowercased() == role.lowercased() }
-        }
-    }
-    
-    /// Get users who are owners
-    /// - Returns: Array of users who are owners in any group
-    func ownerUsers() -> [User] {
-        return users.filter { $0.isOwner }
-    }
-    
-    /// Get users who are admins
-    /// - Returns: Array of users who have admin privileges
-    func adminUsers() -> [User] {
-        return users.filter { $0.hasAdminPrivileges }
-    }
-    
-    /// Get users sorted by name
-    /// - Returns: Array of users sorted alphabetically by name
-    func usersSortedByName() -> [User] {
-        return users.sorted { user1, user2 in
-            user1.displayName.localizedCaseInsensitiveCompare(user2.displayName) == .orderedAscending
-        }
-    }
-    
-    /// Get users sorted by group count (highest first)
-    /// - Returns: Array of users sorted by number of groups
-    func usersSortedByGroupCount() -> [User] {
-        return users.sorted { $0.groupCount > $1.groupCount }
-    }
-    
-    /// Get users sorted by creation date (newest first)
-    /// - Returns: Array of users sorted by creation date
-    func usersSortedByCreationDate() -> [User] {
-        return users.sorted { user1, user2 in
-            let date1 = user1.createdAt ?? Date.distantPast
-            let date2 = user2.createdAt ?? Date.distantPast
-            return date1 > date2
         }
     }
     

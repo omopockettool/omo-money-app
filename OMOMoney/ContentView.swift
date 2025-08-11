@@ -12,7 +12,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
-        UserListView(context: viewContext)
+        MainView(context: viewContext)
     }
 }
 

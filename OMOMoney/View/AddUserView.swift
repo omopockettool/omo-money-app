@@ -9,68 +9,55 @@ import SwiftUI
 
 struct AddUserView: View {
     @ObservedObject var viewModel: UserViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Binding var navigationPath: NavigationPath
     
     @State private var name = ""
     @State private var email = ""
-    @State private var showingAlert = false
-    @State private var alertMessage = ""
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("User Information")) {
-                    TextField("Name (Optional)", text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    TextField("Email", text: $email)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .autocorrectionDisabled()
-                }
+        Form {
+            Section(header: Text("User Information")) {
+                TextField("Name (Optional)", text: $name)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                Section {
-                    Button("Add User") {
-                        addUser()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .disabled(email.isEmpty)
-                }
+                TextField("Email", text: $email)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
             }
-            .navigationTitle("Add User")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            
+            Section {
+                Button("Add User") {
+                    addUser()
                 }
+                .frame(maxWidth: .infinity)
+                .disabled(email.isEmpty)
             }
-            .alert("Error", isPresented: $showingAlert) {
-                Button("OK") { }
-            } message: {
-                Text(alertMessage)
+        }
+        .navigationTitle("Add User")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    navigationPath.removeLast()
+                }
             }
         }
     }
     
     private func addUser() {
-        guard !email.isEmpty else {
-            alertMessage = "Email is required"
-            showingAlert = true
-            return
-        }
-        
-        if let _ = viewModel.createUser(name: name, email: email) {
-            dismiss()
-        } else {
-            // Error is already handled by the ViewModel and shown in the main view
-            // We just need to wait a bit for the error to be processed
+        if viewModel.createUser(name: name, email: email) {
+            navigationPath.removeLast()
         }
     }
 }
 
 #Preview {
-    AddUserView(viewModel: UserViewModel(context: PersistenceController.preview.container.viewContext))
+    NavigationStack {
+        AddUserView(
+            viewModel: UserViewModel(context: PersistenceController.preview.container.viewContext),
+            navigationPath: .constant(NavigationPath())
+        )
+    }
 }
