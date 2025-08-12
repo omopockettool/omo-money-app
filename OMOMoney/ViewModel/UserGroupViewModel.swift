@@ -33,7 +33,7 @@ class UserGroupViewModel: ObservableObject {
     /// - Parameter context: The Core Data context to use for operations
     init(context: NSManagedObjectContext) {
         self.context = context
-        fetchUserGroups()
+        // Don't fetch user groups automatically - only when needed
     }
     
     // MARK: - CRUD Operations
@@ -83,25 +83,51 @@ class UserGroupViewModel: ObservableObject {
             return nil
         }
         
-        let newUserGroup = UserGroup(context: context)
-        newUserGroup.id = UUID()
-        newUserGroup.user = user
-        newUserGroup.group = group
-        newUserGroup.role = role
-        newUserGroup.joinedAt = Date()
+        // Store IDs for background operation
+        guard let userId = user.id, let groupId = group.id else { return nil }
         
-        do {
-            try context.save()
-            fetchUserGroups() // Refresh the list
-            isLoading = false
-            return newUserGroup
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create user group: \(error.localizedDescription)"
-            print("Error creating user group: \(error)")
-            isLoading = false
-            return nil
+        // Perform creation in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch user and group in background context
+            let userRequest: NSFetchRequest<User> = User.fetchRequest()
+            userRequest.predicate = NSPredicate(format: "id == %@", userId as CVarArg)
+            
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            
+            do {
+                let backgroundUser = try self.context.fetch(userRequest).first
+                let backgroundGroup = try self.context.fetch(groupRequest).first
+                
+                if let backgroundUser = backgroundUser, let backgroundGroup = backgroundGroup {
+                    let newUserGroup = UserGroup(context: self.context)
+                    newUserGroup.id = UUID()
+                    newUserGroup.user = backgroundUser
+                    newUserGroup.group = backgroundGroup
+                    newUserGroup.role = role
+                    newUserGroup.joinedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchUserGroups()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to create user group: \(error.localizedDescription)"
+                    print("Error creating user group: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return nil // Will be updated via async callback
     }
     
     /// Update an existing user-group relationship
@@ -113,29 +139,52 @@ class UserGroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        if let role = role {
-            // Validate role
-            guard isValidRole(role) else {
-                errorMessage = "Invalid role. Must be one of: owner, admin, member, viewer"
-                isLoading = false
-                return false
-            }
+        // Store userGroup ID for background operation
+        guard let userGroupId = userGroup.id else { return false }
+        
+        // Perform update in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
             
-            userGroup.role = role
+            // Fetch userGroup in background context
+            let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", userGroupId as CVarArg)
+            
+            do {
+                let backgroundUserGroup = try self.context.fetch(request).first
+                if let backgroundUserGroup = backgroundUserGroup {
+                    if let role = role {
+                        // Validate role
+                        guard self.isValidRole(role) else {
+                            Task { @MainActor in
+                                self.errorMessage = "Invalid role. Must be one of: owner, admin, member, viewer"
+                                self.isLoading = false
+                            }
+                            return
+                        }
+                        
+                        backgroundUserGroup.role = role
+                    }
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchUserGroups()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to update user group: \(error.localizedDescription)"
+                    print("Error updating user group: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        do {
-            try context.save()
-            fetchUserGroups() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update user group: \(error.localizedDescription)"
-            print("Error updating user group: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete a user-group relationship
@@ -145,35 +194,57 @@ class UserGroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Check if this is the last owner of the group
-        let isOwner = userGroup.role == "owner"
-        if isOwner {
-            let group = userGroup.group
-            let ownersInGroup = userGroups.filter { userGroup in
-                guard let userGroupRole = userGroup.role else { return false }
-                return userGroup.group?.id == group?.id && userGroupRole == "owner"
-            }
-            if ownersInGroup.count <= 1 {
-                errorMessage = "Cannot remove the last owner from a group"
-                isLoading = false
-                return false
+        // Store userGroup ID for background operation
+        guard let userGroupId = userGroup.id else { return false }
+        
+        // Perform deletion in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch userGroup in background context
+            let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", userGroupId as CVarArg)
+            
+            do {
+                let backgroundUserGroup = try self.context.fetch(request).first
+                if let backgroundUserGroup = backgroundUserGroup {
+                    // Check if this is the last owner of the group
+                    let isOwner = backgroundUserGroup.role == "owner"
+                    if isOwner {
+                        let group = backgroundUserGroup.group
+                        let ownersInGroup = self.userGroups.filter { userGroup in
+                            guard let userGroupRole = userGroup.role else { return false }
+                            return userGroup.group?.id == group?.id && userGroupRole == "owner"
+                        }
+                        if ownersInGroup.count <= 1 {
+                            Task { @MainActor in
+                                self.errorMessage = "Cannot remove the last owner from a group"
+                                self.isLoading = false
+                            }
+                            return
+                        }
+                    }
+                    
+                    self.context.delete(backgroundUserGroup)
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchUserGroups()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to delete user group: \(error.localizedDescription)"
+                    print("Error deleting user group: \(error)")
+                    self.isLoading = false
+                }
             }
         }
         
-        context.delete(userGroup)
-        
-        do {
-            try context.save()
-            fetchUserGroups() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete user group: \(error.localizedDescription)"
-            print("Error deleting user group: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     // MARK: - Utility Methods

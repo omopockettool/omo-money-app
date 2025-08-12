@@ -33,7 +33,7 @@ class GroupViewModel: ObservableObject {
     /// - Parameter context: The Core Data context to use for operations
     init(context: NSManagedObjectContext) {
         self.context = context
-        fetchGroups()
+        // Don't fetch groups automatically - only when needed
     }
     
     // MARK: - CRUD Operations
@@ -65,25 +65,36 @@ class GroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newGroup = Group(context: context)
-        newGroup.id = UUID()
-        newGroup.name = name
-        newGroup.currency = currency
-        newGroup.createdAt = Date()
-        newGroup.lastModifiedAt = Date()
-        
-        do {
-            try context.save()
-            fetchGroups() // Refresh the list
-            isLoading = false
-            return newGroup
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create group: \(error.localizedDescription)"
-            print("Error creating group: \(error)")
-            isLoading = false
-            return nil
+        // Perform creation in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let newGroup = Group(context: self.context)
+            newGroup.id = UUID()
+            newGroup.name = name
+            newGroup.currency = currency
+            newGroup.createdAt = Date()
+            newGroup.lastModifiedAt = Date()
+            
+            do {
+                try self.context.save()
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.fetchGroups()
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to create group: \(error.localizedDescription)"
+                    print("Error creating group: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return nil // Will be updated via async callback
     }
     
     /// Update an existing group
@@ -96,28 +107,47 @@ class GroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        if let name = name {
-            group.name = name
+        // Store group ID for background operation
+        guard let groupId = group.id else { return false }
+        
+        // Perform update in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch group in background context
+            let request: NSFetchRequest<Group> = Group.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            
+            do {
+                let backgroundGroup = try self.context.fetch(request).first
+                if let backgroundGroup = backgroundGroup {
+                    if let name = name {
+                        backgroundGroup.name = name
+                    }
+                    if let currency = currency {
+                        backgroundGroup.currency = currency
+                    }
+                    backgroundGroup.lastModifiedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchGroups()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to update group: \(error.localizedDescription)"
+                    print("Error updating group: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        if let currency = currency {
-            group.currency = currency
-        }
-        
-        group.lastModifiedAt = Date()
-        
-        do {
-            try context.save()
-            fetchGroups() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update group: \(error.localizedDescription)"
-            print("Error updating group: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete a group
@@ -127,29 +157,51 @@ class GroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Check if group has entries or categories before deletion
-        let entryCount = (group.entries?.count ?? 0)
-        let categoryCount = (group.categories?.count ?? 0)
-        if entryCount > 0 || categoryCount > 0 {
-            errorMessage = "Cannot delete group with existing entries or categories"
-            isLoading = false
-            return false
+        // Store group ID for background operation
+        guard let groupId = group.id else { return false }
+        
+        // Perform deletion in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch group in background context
+            let request: NSFetchRequest<Group> = Group.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            
+            do {
+                let backgroundGroup = try self.context.fetch(request).first
+                if let backgroundGroup = backgroundGroup {
+                    // Check if group has entries or categories before deletion
+                    let entryCount = (backgroundGroup.entries?.count ?? 0)
+                    let categoryCount = (backgroundGroup.categories?.count ?? 0)
+                    if entryCount > 0 || categoryCount > 0 {
+                        Task { @MainActor in
+                            self.errorMessage = "Cannot delete group with existing entries or categories"
+                            self.isLoading = false
+                        }
+                        return
+                    }
+                    
+                    self.context.delete(backgroundGroup)
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchGroups()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to delete group: \(error.localizedDescription)"
+                    print("Error deleting group: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        context.delete(group)
-        
-        do {
-            try context.save()
-            fetchGroups() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete group: \(error.localizedDescription)"
-            print("Error deleting group: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     // MARK: - Utility Methods
@@ -189,7 +241,10 @@ class GroupViewModel: ObservableObject {
     /// Get groups with members
     /// - Returns: Array of groups that have members
     func groupsWithMembers() -> [Group] {
-        return groups.filter { ($0.userGroups?.count ?? 0) > 0 }
+        return groups.filter { group in
+            guard let userGroups = group.userGroups else { return false }
+            return userGroups.count > 0
+        }
     }
     
     /// Get groups by currency
@@ -213,12 +268,11 @@ class GroupViewModel: ObservableObject {
                 let entryAmount = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
                     guard let item = item as? Item else { return itemTotal }
                     let itemAmount = item.amount ?? NSDecimalNumber.zero
-                    let itemQuantity = NSDecimalNumber(value: item.quantity)
-                    return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                    return itemTotal.safeAdd(itemAmount)
                 }
-                return entryTotal.adding(entryAmount)
+                return entryTotal.safeAdd(entryAmount)
             }
-            return total.adding(groupTotal)
+            return total.safeAdd(groupTotal)
         }
     }
     
@@ -241,10 +295,9 @@ class GroupViewModel: ObservableObject {
             let entryAmount = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
                 guard let item = item as? Item else { return itemTotal }
                 let itemAmount = item.amount ?? NSDecimalNumber.zero
-                let itemQuantity = NSDecimalNumber(value: item.quantity)
-                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                return itemTotal.safeAdd(itemAmount)
             }
-            return entryTotal.adding(entryAmount)
+            return entryTotal.safeAdd(entryAmount)
         }
     }
     
