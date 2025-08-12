@@ -67,27 +67,53 @@ class EntryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newEntry = Entry(context: context)
-        newEntry.id = UUID()
-        newEntry.entryDescription = description
-        newEntry.date = date
-        newEntry.createdAt = Date()
-        newEntry.lastModifiedAt = Date()
-        newEntry.category = category
-        newEntry.group = group
+        // Store IDs for background operation
+        guard let categoryId = category.id, let groupId = group.id else { return nil }
         
-        do {
-            try context.save()
-            fetchEntries() // Refresh the list
-            isLoading = false
-            return newEntry
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create entry: \(error.localizedDescription)"
-            print("Error creating entry: \(error)")
-            isLoading = false
-            return nil
+        // Perform creation in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch category and group in background context
+            let categoryRequest: NSFetchRequest<Category> = Category.fetchRequest()
+            categoryRequest.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
+            
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            
+            do {
+                let backgroundCategory = try self.context.fetch(categoryRequest).first
+                let backgroundGroup = try self.context.fetch(groupRequest).first
+                
+                if let backgroundCategory = backgroundCategory, let backgroundGroup = backgroundGroup {
+                    let newEntry = Entry(context: self.context)
+                    newEntry.id = UUID()
+                    newEntry.entryDescription = description
+                    newEntry.date = date
+                    newEntry.createdAt = Date()
+                    newEntry.lastModifiedAt = Date()
+                    newEntry.category = backgroundCategory
+                    newEntry.group = backgroundGroup
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchEntries()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to create entry: \(error.localizedDescription)"
+                    print("Error creating entry: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return nil // Will be updated via async callback
     }
     
     /// Update an existing entry
@@ -101,32 +127,61 @@ class EntryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        if let description = description {
-            entry.entryDescription = description
+        // Store entry ID for background operation
+        guard let entryId = entry.id else { return false }
+        
+        // Store category ID if provided
+        let categoryId = category?.id
+        
+        // Perform update in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch entry in background context
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+            
+            do {
+                let backgroundEntry = try self.context.fetch(request).first
+                if let backgroundEntry = backgroundEntry {
+                    if let description = description {
+                        backgroundEntry.entryDescription = description
+                    }
+                    
+                    if let date = date {
+                        backgroundEntry.date = date
+                    }
+                    
+                    if let categoryId = categoryId {
+                        // Fetch category in background context
+                        let categoryRequest: NSFetchRequest<Category> = Category.fetchRequest()
+                        categoryRequest.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
+                        if let backgroundCategory = try self.context.fetch(categoryRequest).first {
+                            backgroundEntry.category = backgroundCategory
+                        }
+                    }
+                    
+                    backgroundEntry.lastModifiedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchEntries()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to update entry: \(error.localizedDescription)"
+                    print("Error updating entry: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        if let date = date {
-            entry.date = date
-        }
-        
-        if let category = category {
-            entry.category = category
-        }
-        
-        entry.lastModifiedAt = Date()
-        
-        do {
-            try context.save()
-            fetchEntries() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update entry: \(error.localizedDescription)"
-            print("Error updating entry: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete an entry
@@ -136,20 +191,40 @@ class EntryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        context.delete(entry)
+        // Store entry ID for background operation
+        guard let entryId = entry.id else { return false }
         
-        do {
-            try context.save()
-            fetchEntries() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete entry: \(error.localizedDescription)"
-            print("Error deleting entry: \(error)")
-            isLoading = false
-            return false
+        // Perform deletion in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch entry in background context
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+            
+            do {
+                let backgroundEntry = try self.context.fetch(request).first
+                if let backgroundEntry = backgroundEntry {
+                    self.context.delete(backgroundEntry)
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchEntries()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to delete entry: \(error.localizedDescription)"
+                    print("Error deleting entry: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return true
     }
     
     // MARK: - Utility Methods
@@ -212,10 +287,9 @@ class EntryViewModel: ObservableObject {
             let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
                 guard let item = item as? Item else { return itemTotal }
                 let itemAmount = item.amount ?? NSDecimalNumber.zero
-                let itemQuantity = NSDecimalNumber(value: item.quantity)
-                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                return itemTotal.safeAdd(itemAmount)
             }
-            return total.adding(entryTotal)
+            return total.safeAdd(entryTotal)
         }
     }
     
@@ -229,10 +303,9 @@ class EntryViewModel: ObservableObject {
             let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
                 guard let item = item as? Item else { return itemTotal }
                 let itemAmount = item.amount ?? NSDecimalNumber.zero
-                let itemQuantity = NSDecimalNumber(value: item.quantity)
-                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                return itemTotal.safeAdd(itemAmount)
             }
-            return total.adding(entryTotal)
+            return total.safeAdd(entryTotal)
         }
     }
     
@@ -248,10 +321,9 @@ class EntryViewModel: ObservableObject {
             let entryTotal = entryItems.reduce(NSDecimalNumber.zero) { itemTotal, item in
                 guard let item = item as? Item else { return itemTotal }
                 let itemAmount = item.amount ?? NSDecimalNumber.zero
-                let itemQuantity = NSDecimalNumber(value: item.quantity)
-                return itemTotal.adding(itemAmount.multiplying(by: itemQuantity))
+                return itemTotal.safeAdd(itemAmount)
             }
-            return total.adding(entryTotal)
+            return total.safeAdd(entryTotal)
         }
     }
     

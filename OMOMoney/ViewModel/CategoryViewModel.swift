@@ -66,26 +66,47 @@ class CategoryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newCategory = Category(context: context)
-        newCategory.id = UUID()
-        newCategory.name = name
-        newCategory.color = color
-        newCategory.group = group
-        newCategory.createdAt = Date()
-        newCategory.lastModifiedAt = Date()
+        // Store group ID for background operation
+        guard let groupId = group.id else { return nil }
         
-        do {
-            try context.save()
-            fetchCategories() // Refresh the list
-            isLoading = false
-            return newCategory
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create category: \(error.localizedDescription)"
-            print("Error creating category: \(error)")
-            isLoading = false
-            return nil
+        // Perform creation in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch group in background context
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            
+            do {
+                let backgroundGroup = try self.context.fetch(groupRequest).first
+                if let backgroundGroup = backgroundGroup {
+                    let newCategory = Category(context: self.context)
+                    newCategory.id = UUID()
+                    newCategory.name = name
+                    newCategory.color = color
+                    newCategory.group = backgroundGroup
+                    newCategory.createdAt = Date()
+                    newCategory.lastModifiedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchCategories()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to create category: \(error.localizedDescription)"
+                    print("Error creating category: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return nil // Will be updated via async callback
     }
     
     /// Update an existing category
@@ -98,28 +119,49 @@ class CategoryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        if let name = name {
-            category.name = name
+        // Store category ID for background operation
+        guard let categoryId = category.id else { return false }
+        
+        // Perform update in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch category in background context
+            let request: NSFetchRequest<Category> = Category.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
+            
+            do {
+                let backgroundCategory = try self.context.fetch(request).first
+                if let backgroundCategory = backgroundCategory {
+                    if let name = name {
+                        backgroundCategory.name = name
+                    }
+                    
+                    if let color = color {
+                        backgroundCategory.color = color
+                    }
+                    
+                    backgroundCategory.lastModifiedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchCategories()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to update category: \(error.localizedDescription)"
+                    print("Error updating category: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        if let color = color {
-            category.color = color
-        }
-        
-        category.lastModifiedAt = Date()
-        
-        do {
-            try context.save()
-            fetchCategories() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update category: \(error.localizedDescription)"
-            print("Error updating category: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete a category
@@ -129,20 +171,40 @@ class CategoryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        context.delete(category)
+        // Store category ID for background operation
+        guard let categoryId = category.id else { return false }
         
-        do {
-            try context.save()
-            fetchCategories() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete category: \(error.localizedDescription)"
-            print("Error deleting category: \(error)")
-            isLoading = false
-            return false
+        // Perform deletion in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch category in background context
+            let request: NSFetchRequest<Category> = Category.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
+            
+            do {
+                let backgroundCategory = try self.context.fetch(request).first
+                if let backgroundCategory = backgroundCategory {
+                    self.context.delete(backgroundCategory)
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchCategories()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to delete category: \(error.localizedDescription)"
+                    print("Error deleting category: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return true
     }
     
     // MARK: - Utility Methods

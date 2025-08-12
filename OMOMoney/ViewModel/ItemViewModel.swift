@@ -67,27 +67,48 @@ class ItemViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let newItem = Item(context: context)
-        newItem.id = UUID()
-        newItem.itemDescription = description
-        newItem.amount = amount
-        newItem.quantity = quantity
-        newItem.createdAt = Date()
-        newItem.lastModifiedAt = Date()
-        newItem.entry = entry
+        // Store entry ID for background operation
+        guard let entryId = entry.id else { return nil }
         
-        do {
-            try context.save()
-            fetchItems() // Refresh the list
-            isLoading = false
-            return newItem
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to create item: \(error.localizedDescription)"
-            print("Error creating item: \(error)")
-            isLoading = false
-            return nil
+        // Perform creation in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch entry in background context
+            let entryRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+            entryRequest.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+            
+            do {
+                let backgroundEntry = try self.context.fetch(entryRequest).first
+                if let backgroundEntry = backgroundEntry {
+                    let newItem = Item(context: self.context)
+                    newItem.id = UUID()
+                    newItem.itemDescription = description
+                    newItem.amount = amount
+                    newItem.quantity = quantity
+                    newItem.createdAt = Date()
+                    newItem.lastModifiedAt = Date()
+                    newItem.entry = backgroundEntry
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchItems()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to create item: \(error.localizedDescription)"
+                    print("Error creating item: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return nil // Will be updated via async callback
     }
     
     /// Update an existing item
@@ -101,32 +122,53 @@ class ItemViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        if let description = description {
-            item.itemDescription = description
+        // Store item ID for background operation
+        guard let itemId = item.id else { return false }
+        
+        // Perform update in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch item in background context
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", itemId as CVarArg)
+            
+            do {
+                let backgroundItem = try self.context.fetch(request).first
+                if let backgroundItem = backgroundItem {
+                    if let description = description {
+                        backgroundItem.itemDescription = description
+                    }
+                    
+                    if let amount = amount {
+                        backgroundItem.amount = amount
+                    }
+                    
+                    if let quantity = quantity {
+                        backgroundItem.quantity = quantity
+                    }
+                    
+                    backgroundItem.lastModifiedAt = Date()
+                    
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchItems()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to update item: \(error.localizedDescription)"
+                    print("Error updating item: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
         
-        if let amount = amount {
-            item.amount = amount
-        }
-        
-        if let quantity = quantity {
-            item.quantity = quantity
-        }
-        
-        item.lastModifiedAt = Date()
-        
-        do {
-            try context.save()
-            fetchItems() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to update item: \(error.localizedDescription)"
-            print("Error updating item: \(error)")
-            isLoading = false
-            return false
-        }
+        return true
     }
     
     /// Delete an item
@@ -136,20 +178,40 @@ class ItemViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        context.delete(item)
+        // Store item ID for background operation
+        guard let itemId = item.id else { return false }
         
-        do {
-            try context.save()
-            fetchItems() // Refresh the list
-            isLoading = false
-            return true
-        } catch {
-            context.rollback()
-            errorMessage = "Failed to delete item: \(error.localizedDescription)"
-            print("Error deleting item: \(error)")
-            isLoading = false
-            return false
+        // Perform deletion in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch item in background context
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", itemId as CVarArg)
+            
+            do {
+                let backgroundItem = try self.context.fetch(request).first
+                if let backgroundItem = backgroundItem {
+                    self.context.delete(backgroundItem)
+                    try self.context.save()
+                    
+                    // Update UI on main thread
+                    Task { @MainActor in
+                        self.fetchItems()
+                        self.isLoading = false
+                    }
+                }
+            } catch {
+                Task { @MainActor in
+                    self.context.rollback()
+                    self.errorMessage = "Failed to delete item: \(error.localizedDescription)"
+                    print("Error deleting item: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
+        
+        return true
     }
     
     // MARK: - Utility Methods
@@ -206,8 +268,7 @@ class ItemViewModel: ObservableObject {
         let entryItems = items(for: entry)
         return entryItems.reduce(NSDecimalNumber.zero) { total, item in
             let itemAmount = item.amount ?? NSDecimalNumber.zero
-            let itemQuantity = NSDecimalNumber(value: item.quantity)
-            return total.adding(itemAmount.multiplying(by: itemQuantity))
+            return total.safeAdd(itemAmount)
         }
     }
     
@@ -218,8 +279,7 @@ class ItemViewModel: ObservableObject {
         let categoryItems = items(for: category)
         return categoryItems.reduce(NSDecimalNumber.zero) { total, item in
             let itemAmount = item.amount ?? NSDecimalNumber.zero
-            let itemQuantity = NSDecimalNumber(value: item.quantity)
-            return total.adding(itemAmount.multiplying(by: itemQuantity))
+            return total.safeAdd(itemAmount)
         }
     }
     
@@ -230,8 +290,7 @@ class ItemViewModel: ObservableObject {
         let groupItems = items(for: group)
         return groupItems.reduce(NSDecimalNumber.zero) { total, item in
             let itemAmount = item.amount ?? NSDecimalNumber.zero
-            let itemQuantity = NSDecimalNumber(value: item.quantity)
-            return total.adding(itemAmount.multiplying(by: itemQuantity))
+            return total.safeAdd(itemAmount)
         }
     }
     
