@@ -1,7 +1,39 @@
 # OMOMoney - SwiftUI Expense Tracker App Development TODO
 
+## 🚨 REGLAS ESTRICTAS DE DESARROLLO - OBLIGATORIAS
+
+### 📱 VERSIÓN DE PLATAFORMA - OBLIGATORIO
+- **iOS Target**: iOS 18.5+ (2025)
+- **SwiftUI**: Usar APIs más modernas disponibles
+- **Compatibilidad**: No usar APIs deprecadas
+
+### 🏗️ ARQUITECTURA MVVM - NO NEGOCIABLE
+- **Views**: ❌ NO contienen lógica, ❌ NO cálculos, ❌ NO formateo, ✅ SOLO SwiftUI Views
+- **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de negocio, ✅ @MainActor, ✅ @Published
+- **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
+
+### 🧵 THREADING - CRÍTICO
+- **Main Thread**: ✅ SOLO UI, ✅ navegación, ✅ gestos, ✅ animaciones
+- **Background Thread**: ✅ Core Data CRUD, ✅ cálculos complejos, ✅ filtros pesados
+- **Patrón obligatorio**: `DispatchQueue.global` → operación pesada → `DispatchQueue.main.async`
+
+### 📱 SWIFTUI - REACTIVIDAD AUTOMÁTICA (iOS 18.5+)
+- ✅ Usar `@Published` - SwiftUI se redibuja automáticamente
+- ❌ NO usar Timers para delays artificiales
+- ❌ NO usar `Task.sleep` para esperas
+- ❌ NO usar callbacks manuales (a menos que sea absolutamente necesario)
+- ✅ Usar nueva sintaxis de `onChange` - `{ oldValue, newValue in }`
+- ✅ Usar `@Observable` macro moderno (opcional)
+- ✅ Usar `NavigationStack` moderno
+
+### 🚫 PROHIBIDO
+- Operaciones pesadas en main thread
+- Lógica de negocio en Views
+- UI elements en ViewModels
+- Delays artificiales o polling
+
 ## Project Overview
-Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with STRICT MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
+Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with STRICT MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
 
 ## Development Strategy
 - **Incremental Development**: Small, focused commits for each feature
@@ -9,6 +41,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - **Core Data Foundation**: Start with data model, build UI on top
 - **Test-Driven**: Unit tests for each component
 - **Physical Device Testing**: Always test on physical device, not simulator
+- **Threading Strict**: Main thread ONLY for UI, background for ALL operations
 
 ### Performance Considerations
 - Use background queues for Core Data operations
@@ -129,6 +162,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - ✅ **Commit 11**: Complete MVVM architecture implementation with proper threading
 
 ## Technical Notes
+- **iOS Target**: iOS 18.5+ (2025) - Usar APIs más modernas disponibles
 - All entities implement `Identifiable` protocol for SwiftUI compatibility
 - ViewModels use `@MainActor` for UI thread safety
 - **All ViewModels now use background queues for Core Data operations** ✅
@@ -141,6 +175,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - **Async operations support for complex workflows** ✅
 - **Debug system for comprehensive data persistence verification** ✅
 - **Extensions for safe operations and utility functions** ✅
+- **Modern SwiftUI APIs**: onChange con nueva sintaxis, @Observable macro
 
 ## Threading Implementation ✅
 - **Main Thread**: Reserved exclusively for UI updates and user interactions
@@ -149,3 +184,32 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - **Performance**: No UI blocking during database operations
 - **Consistency**: All ViewModels follow the same threading pattern
 - **Error Handling**: Proper error propagation from background to main thread
+
+## 🚨 RECORDATORIOS CRÍTICOS - REVISAR ANTES DE CADA COMMIT
+
+### ✅ VERIFICAR ANTES DE COMMIT:
+1. **Views**: ¿Solo contienen SwiftUI Views sin lógica?
+2. **ViewModels**: ¿Solo contienen lógica de negocio sin UI?
+3. **Threading**: ¿Operaciones pesadas en background, UI en main?
+4. **@Published**: ¿Se usa para reactividad automática?
+5. **@MainActor**: ¿Se usa en ViewModels para operaciones de UI?
+6. **Delays**: ¿NO hay Timers o delays artificiales?
+7. **iOS 18.5+**: ¿Se usan APIs modernas, no deprecadas?
+8. **onChange**: ¿Se usa nueva sintaxis `{ oldValue, newValue in }`?
+
+### ❌ ERRORES CRÍTICOS - NO COMMIT:
+- Lógica de negocio en Views
+- UI elements en ViewModels
+- Operaciones pesadas en main thread
+- Timers para delays artificiales
+- Task.sleep para esperas
+- Callbacks manuales innecesarios
+- APIs deprecadas de iOS (onChange antiguo, etc.)
+- Sintaxis obsoleta de SwiftUI
+
+### 🎯 OBJETIVO FINAL
+**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread usando la reactividad automática de SwiftUI.**
+
+---
+
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM y el threading correcto son OBLIGATORIOS para mantener la fluidez de la UI.**

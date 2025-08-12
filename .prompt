@@ -1,0 +1,313 @@
+# OMOMoney - Reglas Estrictas de Desarrollo
+
+## 📱 VERSIÓN DE PLATAFORMA
+- **iOS Target**: iOS 18.5+ (2025)
+- **Xcode**: Última versión estable
+- **SwiftUI**: Usar APIs más modernas disponibles
+- **Compatibilidad**: iOS 18.5+ (puede usar todas las APIs modernas)
+
+## 🏗️ ARQUITECTURA MVVM - OBLIGATORIA
+
+### **Views (Solo UI):**
+- ✅ **Solo contienen SwiftUI Views**
+- ✅ **NO contienen lógica de negocio**
+- ✅ **NO contienen funciones de cálculo**
+- ✅ **NO contienen formateo de datos**
+- ✅ **Usan @StateObject para ViewModels**
+- ✅ **Usan @ObservedObject para ViewModels compartidos**
+
+### **ViewModels (Solo Lógica de Negocio):**
+- ✅ **Solo contienen lógica de negocio**
+- ✅ **NO contienen UI**
+- ✅ **Usan @MainActor para operaciones de UI**
+- ✅ **Usan @Published para propiedades observables**
+- ✅ **Manejan estado de la aplicación**
+
+### **Models (Solo Datos):**
+- ✅ **Solo contienen entidades de Core Data**
+- ✅ **NO contienen lógica**
+- ✅ **NO contienen UI**
+
+## 🧵 THREADING - REGLAS ESTRICTAS
+
+### **Main Thread (Solo UI):**
+- ✅ **Navegación** - `navigationPath.append()`, `navigationPath.removeLast()`
+- ✅ **Actualización de UI** - Cambios en `@Published` properties
+- ✅ **Gestos y eventos** - Button actions, tap gestures
+- ✅ **Animaciones** - Transiciones, animaciones de SwiftUI
+
+### **Background Thread (Operaciones Pesadas):**
+- ✅ **Core Data CRUD** - `context.perform { }`
+- ✅ **Cálculos complejos** - Sumas, filtros, ordenamiento
+- ✅ **Operaciones de red** - API calls, descargas
+- ✅ **Procesamiento de archivos** - Lectura/escritura
+- ✅ **Operaciones de base de datos** - Queries complejas
+
+### **🚨 REGLAS CRÍTICAS DE CORE DATA - NUNCA OLVIDAR:**
+
+#### **1. Core Data en Segundo Plano:**
+- ✅ **SIEMPRE usar** `context.perform { ... }` o `context.performAndWait { ... }`
+- ✅ **NUNCA tocar** `NSManagedObject` desde otro hilo que no sea el de su contexto
+- ✅ **Evitar race conditions** y corrupción de datos
+- ✅ **Asegurar acceso seguro** a objetos gestionados en la queue correcta
+
+#### **2. @Published y Hilos:**
+- ❌ **NUNCA modificar** propiedades `@Published` desde background threads
+- ❌ **NUNCA acceder** a `ObservableObject` desde background threads
+- ✅ **SIEMPRE volver** al main thread antes de actualizar `@Published`
+- ✅ **SwiftUI y Combine** NO son thread-safe para actualizaciones de UI
+
+#### **3. Patrón Seguro Obligatorio:**
+```swift
+// ✅ CORRECTO - Core Data seguro + UI thread-safe
+func fetchData() {
+    isLoading = true
+    
+    context.perform {
+        // ✅ Core Data en su hilo seguro
+        let request: NSFetchRequest<Entity> = Entity.fetchRequest()
+        let resultados = try? self.context.fetch(request)
+        
+        // ✅ Volver al main thread para @Published
+        DispatchQueue.main.async {
+            self.items = resultados ?? []
+            self.isLoading = false
+        }
+    }
+}
+
+// ❌ INCORRECTO - Violación de reglas
+func fetchDataWrong() {
+    DispatchQueue.global(qos: .userInitiated).async {
+        // ❌ Acceso directo a @Published desde background
+        let data = self.items.filter { ... }
+        
+        DispatchQueue.main.async {
+            completion(data)
+        }
+    }
+}
+```
+
+### **Patrón Obligatorio:**
+```swift
+// ❌ INCORRECTO - Operación pesada en main thread
+func heavyOperation() {
+    let result = complexCalculation() // Bloquea UI
+    self.result = result
+}
+
+// ✅ CORRECTO - Operación pesada en background
+func heavyOperation() {
+    DispatchQueue.global(qos: .userInitiated).async {
+        let result = self.complexCalculation() // En background
+        
+        DispatchQueue.main.async {
+            self.result = result // UI update en main thread
+        }
+    }
+}
+```
+
+## 📱 SWIFTUI - REGLAS ESTRICTAS (iOS 18.5+)
+
+### **Reactividad Automática:**
+- ✅ **Usar @Published** - SwiftUI se redibuja automáticamente
+- ✅ **NO usar callbacks manuales** - A menos que sea absolutamente necesario
+- ✅ **NO usar Timers** - Para polling o delays artificiales
+- ✅ **NO usar Task.sleep** - Para esperas artificiales
+
+### **iOS 18.5 - APIs Modernas:**
+- ✅ **onChange** - Usar nueva sintaxis de dos parámetros
+- ✅ **NavigationStack** - Navegación moderna
+- ✅ **@Observable** - Macro moderno para observabilidad
+- ✅ **ScrollView** - Nuevas capacidades de scroll
+- ✅ **Charts** - Framework nativo de gráficos
+- ✅ **Data** - Nuevas capacidades de manejo de datos
+- ✅ **Widgets** - Widgets interactivos modernos
+
+### **Patrón de Estado:**
+```swift
+@MainActor
+class MyViewModel: ObservableObject {
+    @Published var isLoading = false
+    @Published var data: [Item] = []
+    @Published var errorMessage: String?
+    
+    func loadData() {
+        isLoading = true
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = self.fetchDataFromDatabase()
+            
+            DispatchQueue.main.async {
+                self.data = result
+                self.isLoading = false
+            }
+        }
+    }
+}
+```
+
+## 🚫 PROHIBIDO
+
+### **En Views:**
+- ❌ Funciones de cálculo
+- ❌ Formateo de datos
+- ❌ Lógica de negocio
+- ❌ Operaciones de Core Data
+- ❌ Timers o delays artificiales
+
+### **En Main Thread:**
+- ❌ Operaciones CRUD de Core Data
+- ❌ Cálculos complejos
+- ❌ Filtros de arrays grandes
+- ❌ Operaciones de red
+- ❌ Procesamiento de archivos
+
+### **En ViewModels:**
+- ❌ UI elements
+- ❌ SwiftUI Views
+- ❌ Navegación directa
+- ❌ Gestos o eventos
+
+### **🚨 PROHIBICIONES ABSOLUTAS DE THREADING:**
+
+#### **Core Data:**
+- ❌ **NUNCA** usar `DispatchQueue.global` para operaciones de Core Data
+- ❌ **NUNCA** acceder a `NSManagedObject` desde fuera de su contexto
+- ❌ **NUNCA** llamar a métodos de ViewModel desde background threads
+- ❌ **NUNCA** usar `DispatchQueue.global` para filtrar propiedades `@Published`
+
+#### **@Published y ObservableObject:**
+- ❌ **NUNCA** modificar `@Published` desde background threads
+- ❌ **NUNCA** acceder a propiedades `@Published` desde `DispatchQueue.global`
+- ❌ **NUNCA** llamar a métodos `@MainActor` desde background threads
+- ❌ **NUNCA** usar `DispatchQueue.global` para operaciones que requieran datos del main thread
+
+#### **Patrones Incorrectos Eliminados:**
+```swift
+// ❌ PROHIBIDO - Eliminar completamente
+func fetchDataAsync(completion: @escaping ([Entity]) -> Void) {
+    DispatchQueue.global(qos: .userInitiated).async {
+        // ❌ Acceso a @Published desde background
+        let data = self.items.filter { ... }
+        
+        DispatchQueue.main.async {
+            completion(data)
+        }
+    }
+}
+
+// ❌ PROHIBIDO - Eliminar completamente
+func calculateAsync(completion: @escaping (Result) -> Void) {
+    DispatchQueue.global(qos: .userInitiated).async {
+        // ❌ Llamada a método @MainActor desde background
+        let result = self.heavyCalculation()
+        
+        DispatchQueue.main.async {
+            completion(result)
+        }
+    }
+}
+```
+
+## 🔄 FLUJO CORRECTO
+
+1. **Usuario interactúa** → View (Main Thread)
+2. **View llama ViewModel** → ViewModel (Main Thread)
+3. **ViewModel ejecuta operación pesada** → Background Thread
+4. **ViewModel actualiza @Published** → Main Thread
+5. **SwiftUI se redibuja automáticamente** → View (Main Thread)
+
+## 📝 EJEMPLOS DE IMPLEMENTACIÓN (iOS 18.5+)
+
+### **onChange Moderno:**
+```swift
+// ❌ DEPRECATED en iOS 18.5 - No usar
+.onChange(of: someValue) { newValue in
+    // action
+}
+
+// ✅ CORRECTO en iOS 18.5 - Usar nueva sintaxis
+.onChange(of: someValue) { oldValue, newValue in
+    // action with both old and new values
+}
+
+// ✅ También válido - Solo newValue
+.onChange(of: someValue) { newValue in
+    // action with only new value
+}
+```
+
+### **Crear Entidad:**
+```swift
+// ViewModel
+func createItem(name: String) {
+    isLoading = true
+    
+    DispatchQueue.global(qos: .userInitiated).async {
+        let success = self.context.perform {
+            // Core Data operation in background
+            let item = Item(context: self.context)
+            item.name = name
+            try self.context.save()
+        }
+        
+        DispatchQueue.main.async {
+            self.isLoading = false
+            if success {
+                self.fetchItems() // Trigger UI update
+            }
+        }
+    }
+}
+```
+
+### **Cálculo Pesado:**
+```swift
+// ViewModel
+func calculateTotal() {
+    isCalculating = true
+    
+    DispatchQueue.global(qos: .userInitiated).async {
+        let total = self.items.reduce(0) { sum, item in
+            sum + (item.amount ?? 0)
+        }
+        
+        DispatchQueue.main.async {
+            self.total = total
+            self.isCalculating = false
+        }
+    }
+}
+```
+
+## 🎯 OBJETIVO FINAL
+
+**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread.**
+
+## 🔍 VERIFICACIÓN OBLIGATORIA ANTES DE CADA COMMIT
+
+### **✅ CHECKLIST DE THREADING:**
+1. **Core Data**: ¿Se usa SOLO `context.perform` para operaciones de background?
+2. **@Published**: ¿Se actualiza SOLO desde el main thread?
+3. **DispatchQueue.global**: ¿NO se usa para acceder a propiedades del ViewModel?
+4. **@MainActor**: ¿NO se viola desde background threads?
+5. **Race Conditions**: ¿Se evita el acceso concurrente a Core Data?
+
+### **✅ CHECKLIST DE ARQUITECTURA:**
+1. **Views**: ¿Solo contienen SwiftUI Views sin lógica?
+2. **ViewModels**: ¿Solo contienen lógica de negocio sin UI?
+3. **Models**: ¿Solo contienen entidades Core Data sin lógica?
+4. **Threading**: ¿Operaciones pesadas en background, UI en main?
+
+### **❌ VERIFICAR QUE NO EXISTA:**
+- Métodos que usen `DispatchQueue.global` para acceder a `@Published`
+- Llamadas a métodos `@MainActor` desde background threads
+- Acceso directo a `NSManagedObject` desde fuera de su contexto
+- Filtros de propiedades `@Published` desde `DispatchQueue.global`
+
+---
+
+**🚨 RECUERDA: Cada vez que escribas código, verifica que siga estas reglas estrictas. La arquitectura MVVM y el threading correcto son OBLIGATORIOS.**
