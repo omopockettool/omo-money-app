@@ -8,15 +8,12 @@
 import SwiftUI
 
 struct CreateGroupView: View {
-    @ObservedObject var groupViewModel: GroupViewModel
-    @ObservedObject var userGroupViewModel: UserGroupViewModel
+    @ObservedObject var detailedGroupViewModel: DetailedGroupViewModel
     let user: User
     @Binding var navigationPath: NavigationPath
     
     @State private var groupName: String = ""
     @State private var currency: String = "USD"
-    @State private var isLoading = false
-    @State private var errorMessage: String?
     
     private let availableCurrencies = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "MXN", "BRL"]
     
@@ -67,7 +64,7 @@ struct CreateGroupView: View {
             .cornerRadius(10)
             
             // Error Message
-            if let errorMessage = errorMessage {
+            if let errorMessage = detailedGroupViewModel.groupCreationError {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
@@ -78,7 +75,7 @@ struct CreateGroupView: View {
             
             // Create Button
             Button(action: createGroup) {
-                if isLoading {
+                if detailedGroupViewModel.isCreatingGroup {
                     HStack {
                         ProgressView()
                             .scaleEffect(0.8)
@@ -90,10 +87,16 @@ struct CreateGroupView: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(groupName.isEmpty || isLoading ? Color.gray : Color.blue)
+            .background(groupName.isEmpty || detailedGroupViewModel.isCreatingGroup ? Color.gray : Color.blue)
             .foregroundColor(.white)
             .cornerRadius(10)
-            .disabled(groupName.isEmpty || isLoading)
+            .disabled(groupName.isEmpty || detailedGroupViewModel.isCreatingGroup)
+            .onTapGesture {
+                // Additional safety check
+                if !groupName.isEmpty && !detailedGroupViewModel.isCreatingGroup {
+                    createGroup()
+                }
+            }
             
             Spacer()
         }
@@ -107,68 +110,26 @@ struct CreateGroupView: View {
                 }
             }
         }
-        .onAppear {
-            clearError()
+        .onChange(of: detailedGroupViewModel.shouldNavigateBack) { oldValue, shouldNavigate in
+            if shouldNavigate {
+                // Clear state first to prevent multiple triggers
+                detailedGroupViewModel.clearGroupCreationState()
+                
+                // Navigate back
+                navigationPath.removeLast()
+            }
         }
+
     }
     
     private func createGroup() {
         guard !groupName.isEmpty else { return }
+        guard !detailedGroupViewModel.isCreatingGroup else { return } // Prevent multiple calls
         
-        isLoading = true
-        clearError()
-        
-        // Create group in background
-        Task {
-            await createGroupInBackground()
-        }
+        detailedGroupViewModel.createGroup(name: groupName, currency: currency, user: user)
     }
     
-    @MainActor
-    private func createGroupInBackground() async {
-        // Create the group (now async)
-        groupViewModel.createGroup(name: groupName, currency: currency)
-        
-        // Wait a bit for the group creation to complete
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-        
-        // Check if group was created successfully
-        if let errorMessage = groupViewModel.errorMessage {
-            self.errorMessage = errorMessage
-            isLoading = false
-            return
-        }
-        
-        // Find the newly created group
-        guard let newGroup = groupViewModel.groups.first(where: { $0.name == groupName }) else {
-            errorMessage = "Group created but not found in list"
-            isLoading = false
-            return
-        }
-        
-        // Create the user-group relationship with owner role (now async)
-        userGroupViewModel.createUserGroup(user: user, group: newGroup, role: "owner")
-        
-        // Wait a bit more for the user-group relationship to complete
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-        
-        // Check if user-group relationship was created successfully
-        if let errorMessage = userGroupViewModel.errorMessage {
-            self.errorMessage = errorMessage
-            isLoading = false
-            return
-        }
-        
-        // Success - navigate back
-        isLoading = false
-        navigationPath.removeLast()
-    }
-    
-    private func clearError() {
-        errorMessage = nil
-        groupViewModel.clearError()
-        userGroupViewModel.clearError()
-    }
+
 }
 
 #Preview {
@@ -181,9 +142,15 @@ struct CreateGroupView: View {
         user.createdAt = Date()
         user.lastModifiedAt = Date()
         
-        return CreateGroupView(
+        let detailedGroupViewModel = DetailedGroupViewModel(
+            userViewModel: UserViewModel(context: context),
             groupViewModel: GroupViewModel(context: context),
             userGroupViewModel: UserGroupViewModel(context: context),
+            entryViewModel: EntryViewModel(context: context)
+        )
+        
+        return CreateGroupView(
+            detailedGroupViewModel: detailedGroupViewModel,
             user: user,
             navigationPath: .constant(NavigationPath())
         )

@@ -22,27 +22,37 @@ struct MainView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            UserListView(viewModel: userViewModel, navigationPath: $navigationPath)
-                .navigationDestination(for: User.self) { user in
-                    EditUserView(
-                        viewModel: userViewModel,
+            DetailedGroupView(
+                userViewModel: userViewModel,
+                groupViewModel: groupViewModel,
+                userGroupViewModel: userGroupViewModel,
+                entryViewModel: EntryViewModel(context: userViewModel.context),
+                navigationPath: $navigationPath
+            )
+            .navigationDestination(for: User.self) { user in
+                EditUserView(
+                    viewModel: userViewModel,
+                    groupViewModel: groupViewModel,
+                    userGroupViewModel: userGroupViewModel,
+                    user: user,
+                    navigationPath: $navigationPath
+                )
+            }
+            .navigationDestination(for: AddUserDestination.self) { _ in
+                AddUserView(viewModel: userViewModel, navigationPath: $navigationPath)
+            }
+            .navigationDestination(for: CreateGroupDestination.self) { destination in
+                CreateGroupView(
+                    detailedGroupViewModel: DetailedGroupViewModel(
+                        userViewModel: userViewModel,
                         groupViewModel: groupViewModel,
                         userGroupViewModel: userGroupViewModel,
-                        user: user,
-                        navigationPath: $navigationPath
-                    )
-                }
-                .navigationDestination(for: AddUserDestination.self) { _ in
-                    AddUserView(viewModel: userViewModel, navigationPath: $navigationPath)
-                }
-                .navigationDestination(for: CreateGroupDestination.self) { destination in
-                    CreateGroupView(
-                        groupViewModel: groupViewModel,
-                        userGroupViewModel: userGroupViewModel,
-                        user: destination.user,
-                        navigationPath: $navigationPath
-                    )
-                }
+                        entryViewModel: EntryViewModel(context: userViewModel.context)
+                    ),
+                    user: destination.user,
+                    navigationPath: $navigationPath
+                )
+            }
         }
     }
 }

@@ -95,11 +95,11 @@ struct EditUserView: View {
                     .frame(maxWidth: .infinity)
                     .foregroundColor(.green)
                     
-                    Button("Debug Data Persistence") {
-                        debugDataPersistence()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .foregroundColor(.orange)
+                Button("Debug Data Persistence") {
+                    debugDataPersistence()
+                }
+                .frame(maxWidth: .infinity)
+                .foregroundColor(.orange)
                 }
                 
                 Button("Test Group Creation Flow") {
@@ -182,7 +182,7 @@ struct EditUserView: View {
         // Step 2: Create a test group
         print("\n🏗️ Step 2: Creating Test Group")
         let testGroupName = "Test Group \(Date().timeIntervalSince1970)"
-        groupViewModel.createGroup(name: testGroupName, currency: "USD")
+        _ = groupViewModel.createGroup(name: testGroupName, currency: "USD")
         print("🔄 Test group creation initiated (async operation)")
         
         // Step 3: Create UserGroup relationship (will be done after group creation)
@@ -258,7 +258,7 @@ struct EditUserView: View {
             
             if existingUserGroup == nil {
                 print("🔄 Creating UserGroup relationship for test group...")
-                userGroupViewModel.createUserGroup(user: user, group: testGroup, role: "owner")
+                _ = userGroupViewModel.createUserGroup(user: user, group: testGroup, role: "owner")
                 
                 // Wait a bit more and refresh
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
