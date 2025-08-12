@@ -9,7 +9,8 @@
 
 ### 🏗️ ARQUITECTURA MVVM - NO NEGOCIABLE
 - **Views**: ❌ NO contienen lógica, ❌ NO cálculos, ❌ NO formateo, ✅ SOLO SwiftUI Views
-- **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de negocio, ✅ @MainActor, ✅ @Published
+- **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de presentación, ✅ @MainActor, ✅ @Published
+- **Services**: ✅ SOLO lógica CRUD y operaciones de datos, ✅ NO lógica de presentación
 - **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
 
 ### 🧵 THREADING - CRÍTICO
@@ -78,6 +79,19 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] Implement basic list views for other entities
 - [x] Add/Edit forms for other entities
 - [x] Basic CRUD operations in UI for all entities
+
+### Phase 2.5: Architecture Reorganization 🚧
+- [ ] **REORGANIZACIÓN COMPLETA DE ARQUITECTURA MVVM** - Mejorar estructura del proyecto
+  - [ ] Crear nueva estructura de directorios siguiendo mejores prácticas MVVM
+  - [ ] Implementar capa Services para separar lógica CRUD de ViewModels
+  - [ ] Reorganizar ViewModels por funcionalidad (User/, Group/, Entry/)
+  - [ ] Reorganizar Views por funcionalidad (User/, Group/, Entry/)
+  - [ ] Crear Utilities/ para extensiones y helpers
+  - [ ] Reorganizar CoreDataStack/ para mejor gestión de persistencia
+  - [ ] Actualizar todos los imports y referencias
+  - [ ] Verificar que se mantenga threading correcto (context.perform)
+  - [ ] Verificar que se mantenga arquitectura MVVM estricta
+  - [ ] Testing de funcionalidad después de reorganización
 
 ### Phase 3: Business Logic
 - [ ] Implement expense calculation logic
