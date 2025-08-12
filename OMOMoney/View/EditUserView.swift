@@ -182,31 +182,17 @@ struct EditUserView: View {
         // Step 2: Create a test group
         print("\n🏗️ Step 2: Creating Test Group")
         let testGroupName = "Test Group \(Date().timeIntervalSince1970)"
-        if let newGroup = groupViewModel.createGroup(name: testGroupName, currency: "USD") {
-            print("✅ Test group created successfully:")
-            print("  - ID: \(newGroup.id?.uuidString ?? "N/A")")
-            print("  - Name: \(newGroup.name ?? "N/A")")
-            print("  - Currency: \(newGroup.currency ?? "N/A")")
-            print("  - Created At: \(formatDate(newGroup.createdAt))")
-        } else {
-            print("❌ Failed to create test group")
-            print("Error: \(groupViewModel.errorMessage ?? "Unknown error")")
-        }
+        groupViewModel.createGroup(name: testGroupName, currency: "USD")
+        print("🔄 Test group creation initiated (async operation)")
         
-        // Step 3: Create UserGroup relationship
+        // Step 3: Create UserGroup relationship (will be done after group creation)
         print("\n🔗 Step 3: Creating UserGroup Relationship")
-        if let newGroup = groupViewModel.groups.last {
-            if let newUserGroup = userGroupViewModel.createUserGroup(user: user, group: newGroup, role: "owner") {
-                print("✅ UserGroup relationship created successfully:")
-                print("  - ID: \(newUserGroup.id?.uuidString ?? "N/A")")
-                print("  - Role: \(newUserGroup.role ?? "N/A")")
-                print("  - Joined At: \(formatDate(newUserGroup.joinedAt))")
-                print("  - User: \(newUserGroup.user?.name ?? "N/A")")
-                print("  - Group: \(newUserGroup.group?.name ?? "N/A")")
-            } else {
-                print("❌ Failed to create UserGroup relationship")
-                print("Error: \(userGroupViewModel.errorMessage ?? "Unknown error")")
-            }
+        print("🔄 UserGroup relationship creation will be initiated after group creation completes")
+        
+        // Wait a bit for async operations to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.refreshData()
+            self.verifyTestGroupCreation()
         }
         
         // Step 4: Refresh data and verify
@@ -243,6 +229,86 @@ struct EditUserView: View {
         }
         
         print("🧪 === END TESTING GROUP CREATION FLOW ===\n")
+    }
+    
+    private func verifyTestGroupCreation() {
+        print("🔍 === VERIFYING TEST GROUP CREATION ===")
+        print("📅 Timestamp: \(Date())")
+        
+        // Check if the test group exists
+        if let testGroup = groupViewModel.groups.first(where: { $0.name?.contains("Test Group") == true }) {
+            print("✅ Test group found:")
+            print("  - Name: \(testGroup.name ?? "N/A")")
+            print("  - UserGroups: \(testGroup.userGroups?.count ?? 0)")
+            
+            // Show users in test group through UserGroup relationship
+            if let userGroups = testGroup.userGroups?.allObjects as? [UserGroup] {
+                print("  - Users in Test Group:")
+                for userGroup in userGroups {
+                    if let user = userGroup.user {
+                        print("    - \(user.name ?? "N/A") (\(user.email ?? "N/A")) - Role: \(userGroup.role ?? "N/A")")
+                    }
+                }
+            }
+            
+            // Create UserGroup relationship if it doesn't exist
+            let existingUserGroup = userGroupViewModel.userGroups.first { userGroup in
+                userGroup.group?.id == testGroup.id && userGroup.user?.id == user.id
+            }
+            
+            if existingUserGroup == nil {
+                print("🔄 Creating UserGroup relationship for test group...")
+                userGroupViewModel.createUserGroup(user: user, group: testGroup, role: "owner")
+                
+                // Wait a bit more and refresh
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.refreshData()
+                    self.finalVerification()
+                }
+            } else {
+                print("✅ UserGroup relationship already exists")
+                finalVerification()
+            }
+        } else {
+            print("❌ Test group not found yet")
+        }
+        
+        print("🔍 === END VERIFYING TEST GROUP CREATION ===\n")
+    }
+    
+    private func finalVerification() {
+        print("✅ === FINAL VERIFICATION ===")
+        print("📅 Timestamp: \(Date())")
+        
+        // Final verification
+        print("Final groups count: \(groupViewModel.groups.count)")
+        print("Final userGroups count: \(userGroupViewModel.userGroups.count)")
+        
+        // Check if the test group exists
+        if let testGroup = groupViewModel.groups.first(where: { $0.name?.contains("Test Group") == true }) {
+            print("Test group found:")
+            print("  - Name: \(testGroup.name ?? "N/A")")
+            print("  - UserGroups: \(testGroup.userGroups?.count ?? 0)")
+            
+            // Show users in test group through UserGroup relationship
+            if let userGroups = testGroup.userGroups?.allObjects as? [UserGroup] {
+                print("  - Users in Test Group:")
+                for userGroup in userGroups {
+                    if let user = userGroup.user {
+                        print("    - \(user.name ?? "N/A") (\(user.email ?? "N/A")) - Role: \(userGroup.role ?? "N/A")")
+                    }
+                }
+            }
+        }
+        
+        // Check if the UserGroup relationship exists
+        let userUserGroups = userGroupViewModel.userGroups(for: user)
+        print("User's UserGroups: \(userUserGroups.count)")
+        for userGroup in userUserGroups {
+            print("  - Group: \(userGroup.group?.name ?? "N/A") - Role: \(userGroup.role ?? "N/A")")
+        }
+        
+        print("✅ === END FINAL VERIFICATION ===\n")
     }
     
     private func debugDataPersistence() {
