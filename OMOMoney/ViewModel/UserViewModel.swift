@@ -15,7 +15,7 @@ class UserViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     
     init(context: NSManagedObjectContext) {
         self.context = context
@@ -29,19 +29,31 @@ class UserViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let request: NSFetchRequest<User> = User.fetchRequest()
-        // Sort by name, but handle nil values safely
-        request.sortDescriptors = [
-            NSSortDescriptor(keyPath: \User.name, ascending: true)
-        ]
-        
-        do {
-            users = try context.fetch(request)
-            isLoading = false
-        } catch {
-            errorMessage = "Failed to fetch users: \(error.localizedDescription)"
-            print("Error fetching users: \(error)")
-            isLoading = false
+        // Perform fetch in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let request: NSFetchRequest<User> = User.fetchRequest()
+            // Sort by name, but handle nil values safely
+            request.sortDescriptors = [
+                NSSortDescriptor(keyPath: \User.name, ascending: true)
+            ]
+            
+            do {
+                let fetchedUsers = try self.context.fetch(request)
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.users = fetchedUsers
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+                    print("Error fetching users: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
     }
     

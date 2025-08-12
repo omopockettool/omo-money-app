@@ -43,17 +43,29 @@ class ItemViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
-        
-        do {
-            items = try context.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch items: \(error.localizedDescription)"
-            print("Error fetching items: \(error)")
+        // Perform fetch in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
+            
+            do {
+                let fetchedItems = try self.context.fetch(request)
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.items = fetchedItems
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to fetch items: \(error.localizedDescription)"
+                    print("Error fetching items: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
-        
-        isLoading = false
     }
     
     /// Create a new item
@@ -220,30 +232,151 @@ class ItemViewModel: ObservableObject {
     /// - Parameter entry: The entry to filter by
     /// - Returns: Array of items in the entry
     func items(for entry: Entry) -> [Item] {
+        // This is a heavy calculation, should be done in background
         return items.filter { $0.entry?.id == entry.id }
+    }
+    
+    /// Get items for a specific entry asynchronously
+    /// - Parameter entry: The entry to filter by
+    /// - Parameter completion: Callback with the filtered items
+    func items(for entry: Entry, completion: @escaping ([Item]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let entryId = entry.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "entry.id == %@", entryId as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
+            
+            do {
+                let filteredItems = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredItems)
+                }
+            } catch {
+                print("Error fetching items for entry: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get items for a specific category
     /// - Parameter category: The category to filter by
     /// - Returns: Array of items in the category
     func items(for category: Category) -> [Item] {
+        // This is a heavy calculation, should be done in background
         return items.filter { $0.entry?.category?.id == category.id }
+    }
+    
+    /// Get items for a specific category asynchronously
+    /// - Parameter category: The category to filter by
+    /// - Parameter completion: Callback with the filtered items
+    func items(for category: Category, completion: @escaping ([Item]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let categoryId = category.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "entry.category.id == %@", categoryId as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
+            
+            do {
+                let filteredItems = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredItems)
+                }
+            } catch {
+                print("Error fetching items for category: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get items for a specific group
     /// - Parameter group: The group to filter by
     /// - Returns: Array of items in the group
     func items(for group: Group) -> [Item] {
+        // This is a heavy calculation, should be done in background
         return items.filter { $0.entry?.group?.id == group.id }
+    }
+    
+    /// Get items for a specific group asynchronously
+    /// - Parameter group: The group to filter by
+    /// - Parameter completion: Callback with the filtered items
+    func items(for group: Group, completion: @escaping ([Item]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let groupId = group.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "entry.group.id == %@", groupId as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
+            
+            do {
+                let filteredItems = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredItems)
+                }
+            } catch {
+                print("Error fetching items for group: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get items with amount greater than specified value
     /// - Parameter amount: The minimum amount threshold
     /// - Returns: Array of items above the threshold
     func items(withAmountGreaterThan amount: NSDecimalNumber) -> [Item] {
+        // This is a heavy calculation, should be done in background
         return items.filter { item in
             guard let itemAmount = item.amount else { return false }
             return itemAmount.compare(amount) == .orderedDescending
+        }
+    }
+    
+    /// Get items with amount greater than specified value asynchronously
+    /// - Parameter amount: The minimum amount threshold
+    /// - Parameter completion: Callback with the filtered items
+    func items(withAmountGreaterThan amount: NSDecimalNumber, completion: @escaping ([Item]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "amount > %@", amount as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
+            
+            do {
+                let filteredItems = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredItems)
+                }
+            } catch {
+                print("Error fetching items with amount greater than: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
         }
     }
     

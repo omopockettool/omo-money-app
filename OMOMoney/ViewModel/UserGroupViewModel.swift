@@ -25,7 +25,7 @@ class UserGroupViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     
     // MARK: - Initialization
     
@@ -43,20 +43,32 @@ class UserGroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
-        request.sortDescriptors = [
-            NSSortDescriptor(keyPath: \UserGroup.group?.name, ascending: true),
-            NSSortDescriptor(keyPath: \UserGroup.role, ascending: false)
-        ]
-        
-        do {
-            userGroups = try context.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch user groups: \(error.localizedDescription)"
-            print("Error fetching user groups: \(error)")
+        // Perform fetch in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+            request.sortDescriptors = [
+                NSSortDescriptor(keyPath: \UserGroup.group?.name, ascending: true),
+                NSSortDescriptor(keyPath: \UserGroup.role, ascending: false)
+            ]
+            
+            do {
+                let fetchedUserGroups = try self.context.fetch(request)
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.userGroups = fetchedUserGroups
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to fetch user groups: \(error.localizedDescription)"
+                    print("Error fetching user groups: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
-        
-        isLoading = false
     }
     
     /// Create a new user-group relationship
@@ -271,31 +283,75 @@ class UserGroupViewModel: ObservableObject {
     /// - Parameter user: The user to filter by
     /// - Returns: Array of relationships for the user
     func userGroups(for user: User) -> [UserGroup] {
+        // This is a heavy calculation, should be done in background
         return userGroups.filter { $0.user?.id == user.id }
     }
+    
+
     
     /// Get user-group relationships for a specific group
     /// - Parameter group: The group to filter by
     /// - Returns: Array of relationships for the group
     func userGroups(for group: Group) -> [UserGroup] {
+        // This is a heavy calculation, should be done in background
         return userGroups.filter { $0.group?.id == group.id }
+    }
+    
+    /// Get user-group relationships for a specific group asynchronously
+    /// - Parameter group: The group to filter by
+    /// - Parameter completion: Callback with the filtered relationships
+    func userGroups(for group: Group, completion: @escaping ([UserGroup]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let groupId = group.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+            request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+            request.sortDescriptors = [
+                NSSortDescriptor(keyPath: \UserGroup.role, ascending: false),
+                NSSortDescriptor(keyPath: \UserGroup.joinedAt, ascending: true)
+            ]
+            
+            do {
+                let filteredUserGroups = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredUserGroups)
+                }
+            } catch {
+                print("Error fetching user groups for group: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get users in a specific group
     /// - Parameter group: The group to get users for
     /// - Returns: Array of users in the group
     func users(in group: Group) -> [User] {
+        // This is a heavy calculation, should be done in background
         let groupUserGroups = userGroups(for: group)
         return groupUserGroups.compactMap { $0.user }
     }
+    
+
     
     /// Get groups for a specific user
     /// - Parameter user: The user to get groups for
     /// - Returns: Array of groups the user belongs to
     func groups(for user: User) -> [Group] {
+        // This is a heavy calculation, should be done in background
         let userUserGroups = userGroups(for: user)
         return userUserGroups.compactMap { $0.group }
     }
+    
+
     
     /// Get user-group relationships with a specific role
     /// - Parameter role: The role to filter by

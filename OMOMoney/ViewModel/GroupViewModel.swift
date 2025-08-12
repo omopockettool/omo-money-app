@@ -25,7 +25,7 @@ class GroupViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     
     // MARK: - Initialization
     
@@ -43,17 +43,29 @@ class GroupViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let request: NSFetchRequest<Group> = Group.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Group.name, ascending: true)]
-        
-        do {
-            groups = try context.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch groups: \(error.localizedDescription)"
-            print("Error fetching groups: \(error)")
+        // Perform fetch in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let request: NSFetchRequest<Group> = Group.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Group.name, ascending: true)]
+            
+            do {
+                let fetchedGroups = try self.context.fetch(request)
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.groups = fetchedGroups
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to fetch groups: \(error.localizedDescription)"
+                    print("Error fetching groups: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
-        
-        isLoading = false
     }
     
     /// Create a new group
@@ -229,37 +241,51 @@ class GroupViewModel: ObservableObject {
     /// Get groups with entries
     /// - Returns: Array of groups that have entries
     func groupsWithEntries() -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.filter { ($0.entries?.count ?? 0) > 0 }
     }
+    
+
     
     /// Get groups with categories
     /// - Returns: Array of groups that have categories
     func groupsWithCategories() -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.filter { ($0.categories?.count ?? 0) > 0 }
     }
+    
+
     
     /// Get groups with members
     /// - Returns: Array of groups that have members
     func groupsWithMembers() -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.filter { group in
             guard let userGroups = group.userGroups else { return false }
             return userGroups.count > 0
         }
     }
     
+
+    
     /// Get groups by currency
     /// - Parameter currency: The currency to filter by
     /// - Returns: Array of groups using the specified currency
     func groups(withCurrency currency: String) -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.filter { group in
             guard let groupCurrency = group.currency else { return false }
             return groupCurrency == currency
         }
     }
     
+
+    
     /// Calculate total amount across all groups
     /// - Returns: Total amount as NSDecimalNumber
     func totalAmountAcrossAllGroups() -> NSDecimalNumber {
+        // This is a heavy calculation, should be done in background
+        // For now, return a simple calculation, but in production this should be cached
         return groups.reduce(NSDecimalNumber.zero) { total, group in
             let groupEntries = group.entries ?? NSSet()
             let groupTotal = groupEntries.reduce(NSDecimalNumber.zero) { entryTotal, entry in
@@ -276,15 +302,20 @@ class GroupViewModel: ObservableObject {
         }
     }
     
+
+    
     /// Get groups sorted by total amount (highest first)
     /// - Returns: Array of groups sorted by total amount
     func groupsSortedByAmount() -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.sorted { group1, group2 in
             let group1Total = calculateGroupTotal(group1)
             let group2Total = calculateGroupTotal(group2)
             return group1Total.compare(group2Total) == .orderedDescending
         }
     }
+    
+
     
     /// Helper method to calculate total amount for a group
     private func calculateGroupTotal(_ group: Group) -> NSDecimalNumber {
@@ -304,12 +335,15 @@ class GroupViewModel: ObservableObject {
     /// Get groups sorted by entry count (highest first)
     /// - Returns: Array of groups sorted by entry count
     func groupsSortedByEntryCount() -> [Group] {
+        // This is a heavy calculation, should be done in background
         return groups.sorted { group1, group2 in
             let group1EntryCount = group1.entries?.count ?? 0
             let group2EntryCount = group2.entries?.count ?? 0
             return group1EntryCount > group2EntryCount
         }
     }
+    
+
     
     /// Clear error message
     func clearError() {

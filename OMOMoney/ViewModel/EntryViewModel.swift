@@ -25,7 +25,7 @@ class EntryViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     
     // MARK: - Initialization
     
@@ -43,17 +43,29 @@ class EntryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        let request: NSFetchRequest<Entry> = Entry.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Entry.date, ascending: false)]
-        
-        do {
-            entries = try context.fetch(request)
-        } catch {
-            errorMessage = "Failed to fetch entries: \(error.localizedDescription)"
-            print("Error fetching entries: \(error)")
+        // Perform fetch in background
+        context.perform { [weak self] in
+            guard let self = self else { return }
+            
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Entry.date, ascending: false)]
+            
+            do {
+                let fetchedEntries = try self.context.fetch(request)
+                
+                // Update UI on main thread
+                Task { @MainActor in
+                    self.entries = fetchedEntries
+                    self.isLoading = false
+                }
+            } catch {
+                Task { @MainActor in
+                    self.errorMessage = "Failed to fetch entries: \(error.localizedDescription)"
+                    print("Error fetching entries: \(error)")
+                    self.isLoading = false
+                }
+            }
         }
-        
-        isLoading = false
     }
     
     /// Create a new entry
@@ -233,14 +245,78 @@ class EntryViewModel: ObservableObject {
     /// - Parameter group: The group to filter by
     /// - Returns: Array of entries in the group
     func entries(for group: Group) -> [Entry] {
+        // This is a heavy calculation, should be done in background
         return entries.filter { $0.group?.id == group.id }
+    }
+    
+    /// Get entries for a specific group asynchronously
+    /// - Parameter group: The group to filter by
+    /// - Parameter completion: Callback with the filtered entries
+    func entries(for group: Group, completion: @escaping ([Entry]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let groupId = group.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Entry.date, ascending: false)]
+            
+            do {
+                let filteredEntries = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredEntries)
+                }
+            } catch {
+                print("Error fetching entries for group: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get entries for a specific category
     /// - Parameter category: The category to filter by
     /// - Returns: Array of entries in the category
     func entries(for category: Category) -> [Entry] {
+        // This is a heavy calculation, should be done in background
         return entries.filter { $0.category?.id == category.id }
+    }
+    
+    /// Get entries for a specific category asynchronously
+    /// - Parameter category: The category to filter by
+    /// - Parameter completion: Callback with the filtered entries
+    func entries(for category: Category, completion: @escaping ([Entry]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            guard let categoryId = category.id else {
+                DispatchQueue.main.async {
+                    completion([])
+                }
+                return
+            }
+            
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Entry.date, ascending: false)]
+            
+            do {
+                let filteredEntries = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredEntries)
+                }
+            } catch {
+                print("Error fetching entries for category: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
+        }
     }
     
     /// Get entries for a specific date range
@@ -249,9 +325,36 @@ class EntryViewModel: ObservableObject {
     ///   - endDate: End of the date range
     /// - Returns: Array of entries in the date range
     func entries(from startDate: Date, to endDate: Date) -> [Entry] {
+        // This is a heavy calculation, should be done in background
         return entries.filter { entry in
             guard let entryDate = entry.date else { return false }
             return entryDate >= startDate && entryDate <= endDate
+        }
+    }
+    
+    /// Get entries for a specific date range asynchronously
+    /// - Parameters:
+    ///   - startDate: Start of the date range
+    ///   - endDate: End of the date range
+    /// - Parameter completion: Callback with the filtered entries
+    func entries(from startDate: Date, to endDate: Date, completion: @escaping ([Entry]) -> Void) {
+        // Use Core Data context to perform filtering in background
+        context.perform {
+            let request: NSFetchRequest<Entry> = Entry.fetchRequest()
+            request.predicate = NSPredicate(format: "date >= %@ AND date <= %@", startDate as CVarArg, endDate as CVarArg)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Entry.date, ascending: false)]
+            
+            do {
+                let filteredEntries = try self.context.fetch(request)
+                DispatchQueue.main.async {
+                    completion(filteredEntries)
+                }
+            } catch {
+                print("Error fetching entries for date range: \(error)")
+                DispatchQueue.main.async {
+                    completion([])
+                }
+            }
         }
     }
     
