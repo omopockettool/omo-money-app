@@ -19,7 +19,7 @@ class UserViewModel: ObservableObject {
     
     init(context: NSManagedObjectContext) {
         self.context = context
-        fetchUsers()
+        // Don't fetch users automatically - only when needed
     }
     
     // MARK: - CRUD Operations
@@ -30,7 +30,10 @@ class UserViewModel: ObservableObject {
         errorMessage = nil
         
         let request: NSFetchRequest<User> = User.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \User.name, ascending: true)]
+        // Sort by name, but handle nil values safely
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \User.name, ascending: true)
+        ]
         
         do {
             users = try context.fetch(request)
@@ -49,13 +52,19 @@ class UserViewModel: ObservableObject {
     /// - Returns: True if creation was successful
     func createUser(name: String, email: String) -> Bool {
         // Validate input
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "Name cannot be empty"
-            return false
-        }
+        // Name is optional, so we don't need to validate it
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Email cannot be empty"
+            return false
+        }
+        
+        // Validate email format
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        guard emailPredicate.evaluate(with: email.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            errorMessage = "Please enter a valid email address"
             return false
         }
         
@@ -74,7 +83,7 @@ class UserViewModel: ObservableObject {
             
             let newUser = User(context: self.context)
             newUser.id = UUID()
-            newUser.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            newUser.name = trimmedName.isEmpty ? nil : trimmedName
             newUser.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             newUser.createdAt = Date()
             newUser.lastModifiedAt = Date()
@@ -114,6 +123,16 @@ class UserViewModel: ObservableObject {
         if let email = email, email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             errorMessage = "Email cannot be empty"
             return false
+        }
+        
+        // Validate email format if provided
+        if let email = email {
+            let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+            let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+            guard emailPredicate.evaluate(with: email.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                errorMessage = "Please enter a valid email address"
+                return false
+            }
         }
         
         // Check if email already exists (excluding current user)
@@ -169,7 +188,7 @@ class UserViewModel: ObservableObject {
     /// - Returns: True if deletion was successful
     func deleteUser(_ user: User) -> Bool {
         // Check if user belongs to groups
-        if (user.userGroups?.count ?? 0) > 0 {
+        if user.hasGroups {
             errorMessage = "Cannot delete user who belongs to groups"
             isLoading = false
             return false

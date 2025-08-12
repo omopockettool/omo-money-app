@@ -62,6 +62,12 @@ struct UserListView: View {
                 Text(errorMessage)
             }
         }
+        .onAppear {
+            // Load users only when view appears
+            if viewModel.users.isEmpty {
+                viewModel.fetchUsers()
+            }
+        }
     }
     
     private func deleteUsers(offsets: IndexSet) {

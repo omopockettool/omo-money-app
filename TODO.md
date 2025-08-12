@@ -1,7 +1,7 @@
 # OMOMoney - SwiftUI Expense Tracker App Development TODO
 
 ## Project Overview
-Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
+Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with STRICT MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
 
 ## Development Strategy
 - **Incremental Development**: Small, focused commits for each feature

@@ -38,23 +38,17 @@ struct UserRowView: View {
                         .lineLimit(1)
                     
                     HStack(spacing: 8) {
-                        if let userGroups = user.userGroups, userGroups.count > 0 {
-                            Label("\(userGroups.count) groups", systemImage: "person.3")
+                        if user.hasGroups {
+                            Label("\(user.safeUserGroupsCount) groups", systemImage: "person.3")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         
                         // Check if user is owner in any group
-                        if let userGroups = user.userGroups {
-                            let hasOwnerRole = userGroups.compactMap { $0 as? UserGroup }.contains { userGroup in
-                                guard let role = userGroup.role else { return false }
-                                return role == "owner"
-                            }
-                            if hasOwnerRole {
-                                Label("Owner", systemImage: "crown.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                            }
+                        if user.hasOwnerRole {
+                            Label("Owner", systemImage: "crown.fill")
+                                .font(.caption)
+                                .foregroundColor(.orange)
                         }
                     }
                 }
