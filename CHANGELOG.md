@@ -5,23 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2025-08-12
 
 ### Added
-- Complete MVVM architecture implementation
-- Background queue optimization for Core Data operations
-- NavigationStack implementation for modern iOS navigation
-- Strict separation of business logic and UI components
+- **Complete MVVM Architecture**: Full implementation with strict separation of concerns
+- **Background Threading**: All Core Data operations now use background threads
+- **Enhanced Debug System**: Comprehensive debugging tools for data persistence verification
+- **CreateGroupView**: Complete group creation functionality with user ownership
+- **Extensions**: Utility extensions for safe operations (NSDecimalNumber+Safe, User+Safe)
+- **Async Operations**: Proper async/await support for complex workflows
+- **Thread Safety**: @MainActor implementation across all ViewModels
 
 ### Changed
-- Optimized all ViewModels with @MainActor for UI thread safety
-- Improved error handling and validation across all components
-- Enhanced performance with background Core Data operations
+- **Performance Optimization**: Moved all CRUD operations to background threads
+- **UI Responsiveness**: Main thread now exclusively reserved for UI updates
+- **Error Handling**: Enhanced error propagation from background to main thread
+- **Architecture**: Consistent threading pattern across all ViewModels
+- **Navigation**: Improved group creation flow with proper async support
 
 ### Fixed
-- All compilation errors related to optional types
-- Removed duplicate Core Data files
-- Cleaned up unused directories and files
+- **Threading Issues**: Eliminated main thread blocking during Core Data operations
+- **UI Freezing**: Prevented UI freezes during database operations
+- **Memory Management**: Proper weak self references and context management
+- **Async Coordination**: Fixed CreateGroupView to work with new async ViewModels
+
+### Technical Improvements
+- **context.perform**: All ViewModels now use background context operations
+- **Task + @MainActor**: Proper UI updates from background operations
+- **Consistent Pattern**: Unified threading approach across all ViewModels
+- **Performance**: Significant improvement in UI responsiveness
+- **Debug Tools**: Added Refresh Data, Debug Data Persistence, and Test Group Creation Flow buttons
 
 ## [0.2.0] - 2025-08-11
 
