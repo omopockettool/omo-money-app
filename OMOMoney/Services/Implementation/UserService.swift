@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for User entity operations
 /// Handles all CRUD operations for User with proper threading and caching
@@ -118,7 +118,7 @@ class UserService: CoreDataService, UserServiceProtocol {
         }
         
         let count = try await count(request)
-        let exists = count > 0
+        let exists = !isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)

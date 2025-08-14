@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for User detail functionality
 /// Handles user detail display and group management

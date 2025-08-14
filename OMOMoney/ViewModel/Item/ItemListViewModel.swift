@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for Item list functionality
 /// Handles item list display and management

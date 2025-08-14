@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for UserGroup entity operations
 /// Handles all CRUD operations for UserGroup with proper threading and caching
@@ -205,7 +205,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         request.fetchLimit = 1
         
         let count = try await count(request)
-        let isMember = count > 0
+        let isMember = !isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(isMember, for: cacheKey)

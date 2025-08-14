@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for Entry entity operations
 /// Handles all CRUD operations for Entry with proper threading and caching

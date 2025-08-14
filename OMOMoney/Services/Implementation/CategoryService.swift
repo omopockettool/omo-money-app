@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for Category entity operations
 /// Handles all CRUD operations for Category with proper threading and caching
@@ -152,7 +152,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         
         let count = try await count(request)
-        let exists = count > 0
+        let exists = !isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)

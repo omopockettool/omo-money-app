@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for Entry Row functionality
 /// Handles entry row display and calculations
@@ -7,7 +7,7 @@ import CoreData
 class EntryRowViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var entryTotal: NSDecimalNumber = NSDecimalNumber.zero
+    @Published var entryTotal = NSDecimalNumber.zero
     @Published var isCalculatingTotal = false
     
     // MARK: - Private Properties

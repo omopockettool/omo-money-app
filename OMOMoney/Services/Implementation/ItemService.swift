@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for Item entity operations
 /// Handles all CRUD operations for Item with proper threading and caching

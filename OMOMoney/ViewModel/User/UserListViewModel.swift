@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for User list functionality
 /// Handles user list display and management

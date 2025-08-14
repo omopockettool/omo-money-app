@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for creating new users
 /// Handles user creation form and validation

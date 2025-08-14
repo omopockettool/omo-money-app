@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Service class for Group entity operations
 /// Handles all CRUD operations for Group with proper threading
@@ -118,7 +118,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         }
         
         let count = try await count(request)
-        let exists = count > 0
+        let exists = !isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)

@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Protocol for User service operations
 /// Enables dependency injection and testing

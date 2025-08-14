@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for Entry list functionality
 /// Handles entry list display and management

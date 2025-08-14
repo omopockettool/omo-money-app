@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct EntryRowView: View {
     @Environment(\.managedObjectContext) private var viewContext

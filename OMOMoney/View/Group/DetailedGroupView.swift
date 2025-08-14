@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct DetailedGroupView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -119,8 +119,6 @@ struct DetailedGroupView: View {
                     }
                 }
                 
-
-                
                 // Total Spent Widget
                 if let group = viewModel.selectedGroup {
                     VStack {
@@ -203,7 +201,6 @@ struct DetailedGroupView: View {
             } ?? false
         }
     }
-    
 
 }
 

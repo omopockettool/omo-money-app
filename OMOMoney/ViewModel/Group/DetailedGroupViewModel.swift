@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for Detailed Group functionality
 /// Handles group detail display, user management, and entry display
@@ -9,7 +9,7 @@ class DetailedGroupViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var selectedUser: User?
     @Published var selectedGroup: Group?
-    @Published var groupTotal: NSDecimalNumber = NSDecimalNumber.zero
+    @Published var groupTotal = NSDecimalNumber.zero
     @Published var isCalculatingTotal = false
     @Published var isLoading = false
     @Published var errorMessage: String?

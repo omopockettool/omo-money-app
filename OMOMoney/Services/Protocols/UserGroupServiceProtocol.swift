@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Protocol for UserGroup service operations
 /// Enables dependency injection and testing

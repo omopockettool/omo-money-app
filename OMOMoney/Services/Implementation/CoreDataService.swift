@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// Base service class for Core Data operations
 /// Provides common CRUD functionality and ensures proper threading

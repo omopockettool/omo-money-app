@@ -1,5 +1,5 @@
-import Foundation
 import CoreData
+import Foundation
 
 /// ViewModel for Entry detail functionality
 /// Handles entry detail display and item management

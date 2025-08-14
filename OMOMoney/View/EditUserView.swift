@@ -5,8 +5,8 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct EditUserView: View {
     @StateObject private var viewModel: EditUserViewModel
@@ -81,7 +81,7 @@ struct EditUserView: View {
                 .buttonPressAnimation()
             }
         }
-        .onChange(of: viewModel.shouldNavigateBack) { oldValue, shouldNavigate in
+        .onChange(of: viewModel.shouldNavigateBack) { _, shouldNavigate in
             if shouldNavigate {
                 withAnimation(AnimationHelper.smoothEase) {
                     navigationPath.removeLast()

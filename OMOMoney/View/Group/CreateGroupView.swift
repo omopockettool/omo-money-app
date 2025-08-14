@@ -5,8 +5,8 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct CreateGroupView: View {
     @StateObject private var viewModel: CreateGroupViewModel
@@ -52,7 +52,7 @@ struct CreateGroupView: View {
                     }
                 }
             }
-            .onChange(of: viewModel.shouldNavigateBack) { oldValue, shouldNavigate in
+            .onChange(of: viewModel.shouldNavigateBack) { _, shouldNavigate in
                 if shouldNavigate {
                     dismiss()
                     viewModel.resetForm()

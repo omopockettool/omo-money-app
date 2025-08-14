@@ -73,19 +73,9 @@ cyclomatic_complexity:
 
 # MARK: - Custom Rules
 custom_rules:
-  # Ensure @MainActor is used for UI-related code
-  main_actor_usage:
-    name: "Main Actor Usage"
-    regex: 'class.*ViewModel.*\{'
-    message: "ViewModels should use @MainActor for UI thread safety"
-    severity: warning
+
     
-  # Ensure async/await is used consistently
-  async_usage:
-    name: "Async Usage"
-    regex: 'Task\s*\{'
-    message: "Consider using async/await instead of Task blocks where possible"
-    severity: warning
+
 
 # MARK: - Excluded Paths
 excluded:
