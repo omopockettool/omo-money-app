@@ -11,13 +11,31 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         super.init(context: context)
     }
     
+    // MARK: - Cache Keys
+    enum CacheKeys {
+        static let allGroups = "GroupService.allGroups"
+        static let groupCount = "GroupService.groupCount"
+        static let groupExists = "GroupService.groupExists"
+    }
+    
     // MARK: - Group CRUD Operations
     
-    /// Fetch all groups
+    /// Fetch all groups with caching
     func fetchGroups() async throws -> [Group] {
+        // Check cache first
+        if let cachedGroups: [Group] = await CacheManager.shared.getCachedData(for: CacheKeys.allGroups) {
+            return cachedGroups
+        }
+        
+        // Fetch from Core Data
         let request: NSFetchRequest<Group> = Group.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Group.name, ascending: true)]
-        return try await fetch(request)
+        let groups = try await fetch(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(groups, for: CacheKeys.allGroups)
+        
+        return groups
     }
     
     /// Fetch group by ID
@@ -32,7 +50,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     
     /// Create a new group
     func createGroup(name: String, currency: String) async throws -> Group {
-        try await context.perform {
+        let group = try await context.perform {
             let group = Group(context: self.context)
             group.id = UUID()
             group.name = name
@@ -42,6 +60,13 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             try self.context.save()
             return group
         }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
+        
+        return group
     }
     
     /// Update an existing group
@@ -57,16 +82,33 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             
             try self.context.save()
         }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
     
     /// Delete a group
     func deleteGroup(_ group: Group) async throws {
         await delete(group)
         try await save()
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
     
-    /// Check if group exists by name
+    /// Check if group exists by name with caching
     func groupExists(withName name: String, excluding groupId: UUID? = nil) async throws -> Bool {
+        let cacheKey = "\(CacheKeys.groupExists).\(name).\(groupId?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedResult = await CacheManager.shared.getCachedValidation(for: cacheKey) {
+            return cachedResult
+        }
+        
+        // Check in Core Data
         let request: NSFetchRequest<Group> = Group.fetchRequest()
         
         if let groupId = groupId {
@@ -76,13 +118,29 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         }
         
         let count = try await count(request)
-        return count > 0
+        let exists = count > 0
+        
+        // Cache the result
+        await CacheManager.shared.cacheValidation(exists, for: cacheKey)
+        
+        return exists
     }
     
-    /// Get groups count
+    /// Get groups count with caching
     func getGroupsCount() async throws -> Int {
+        // Check cache first
+        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: CacheKeys.groupCount) {
+            return cachedCount
+        }
+        
+        // Get from Core Data
         let request: NSFetchRequest<Group> = Group.fetchRequest()
-        return try await count(request)
+        let count = try await count(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(count, for: CacheKeys.groupCount)
+        
+        return count
     }
     
     /// Get groups by owner (through UserGroup relationship)
