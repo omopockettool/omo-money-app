@@ -35,7 +35,6 @@ jobs:
         run: |
           gem install cocoapods
           curl -sSLf https://get.swiftlint.org | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
           
       - name: Cache Xcode Derived Data
         uses: actions/cache@v3
@@ -61,7 +60,7 @@ jobs:
           
       - name: SwiftLint
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="/usr/local/bin:$PATH"
           swiftlint lint --reporter github-actions-logging
           
       - name: Build Project

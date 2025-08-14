@@ -115,11 +115,10 @@ jobs:
       - name: Install SwiftLint
         run: |
           curl -sSLf https://get.swiftlint.org | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
           
       - name: Run SwiftLint
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="/usr/local/bin:$PATH"
           swiftlint lint --reporter github-actions-logging
           
       - name: Check File Sizes
