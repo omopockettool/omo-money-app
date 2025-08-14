@@ -3,8 +3,13 @@ import CoreData
 
 /// Service class for Category entity operations
 /// Handles all CRUD operations for Category with proper threading
-@MainActor
-class CategoryService: CoreDataService {
+class CategoryService: CoreDataService, CategoryServiceProtocol {
+    
+    // MARK: - Initialization
+    
+    override init(context: NSManagedObjectContext) {
+        super.init(context: context)
+    }
     
     // MARK: - Category CRUD Operations
     
@@ -26,51 +31,38 @@ class CategoryService: CoreDataService {
     }
     
     /// Create a new category
-    func createCategory(name: String, color: String? = nil, group: Group? = nil) async throws -> Category {
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                let category = Category(context: self.context)
-                category.id = UUID()
-                category.name = name
-                category.color = color ?? "#007AFF"
-                category.group = group
-                category.createdAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume(returning: category)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+    func createCategory(name: String, color: String?, group: Group) async throws -> Category {
+        try await context.perform {
+            let category = Category(context: self.context)
+            category.id = UUID()
+            category.name = name
+            category.color = color ?? "#007AFF"
+            category.group = group
+            category.createdAt = Date()
+            
+            try self.context.save()
+            return category
         }
     }
     
     /// Update an existing category
     func updateCategory(_ category: Category, name: String? = nil, color: String? = nil) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                if let name = name {
-                    category.name = name
-                }
-                if let color = color {
-                    category.color = color
-                }
-                category.lastModifiedAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+        try await context.perform {
+            if let name = name {
+                category.name = name
             }
+            if let color = color {
+                category.color = color
+            }
+            category.lastModifiedAt = Date()
+            
+            try self.context.save()
         }
     }
     
     /// Delete a category
     func deleteCategory(_ category: Category) async throws {
-        try await delete(category)
+        await delete(category)
         try await save()
     }
     
@@ -113,13 +105,5 @@ class CategoryService: CoreDataService {
         let request: NSFetchRequest<Category> = Category.fetchRequest()
         request.predicate = NSPredicate(format: "group == %@", group)
         return try await count(request)
-    }
-    
-    /// Get default categories (system categories)
-    func getDefaultCategories() async throws -> [Category] {
-        let request: NSFetchRequest<Category> = Category.fetchRequest()
-        request.predicate = NSPredicate(format: "group == nil")
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Category.name, ascending: true)]
-        return try await fetch(request)
     }
 }

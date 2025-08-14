@@ -78,12 +78,17 @@ class EntryListViewModel: ObservableObject {
     }
     
     /// Create a new entry
-    func createEntry(description: String, date: Date, group: Group, category: Category? = nil) async -> Bool {
+    func createEntry(description: String, date: Date, group: Group, category: Category) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
-            let newEntry = try await entryService.createEntry(description: description, date: date, group: group, category: category)
+            let newEntry = try await entryService.createEntry(
+                description: description, 
+                date: date, 
+                categoryId: category.id!, 
+                groupId: group.id!
+            )
             entries.insert(newEntry, at: 0) // Add at beginning since entries are sorted by date desc
             isLoading = false
             return true

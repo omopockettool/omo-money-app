@@ -1,8 +1,106 @@
 Prompt para Cursor:
-# OMOMoney - SwiftUI Expense Tracker App Development TODO
+# OMOMoney - SwiftUI Expense Tracker App Development
+
+## 🚨 REGLAS ESTRICTAS DE DESARROLLO - OBLIGATORIAS
+
+### 📱 VERSIÓN DE PLATAFORMA - OBLIGATORIO
+- **iOS Target**: iOS 18.5+ (2025)
+- **SwiftUI**: Usar APIs más modernas disponibles
+- **Compatibilidad**: No usar APIs deprecadas
+
+### 🏗️ ARQUITECTURA MVVM - NO NEGOCIABLE
+- **Views**: ❌ NO contienen lógica, ❌ NO cálculos, ❌ NO formateo, ✅ SOLO SwiftUI Views
+- **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de presentación, ✅ @MainActor, ✅ @Published
+- **Services**: ✅ SOLO lógica CRUD y operaciones de datos, ✅ NO lógica de presentación
+- **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
+
+### 🧵 THREADING - CRÍTICO
+- **Main Thread**: ✅ SOLO UI, ✅ navegación, ✅ gestos, ✅ animaciones
+- **Background Thread**: ✅ Core Data CRUD, ✅ cálculos complejos, ✅ filtros pesados
+- **Patrón obligatorio**: `DispatchQueue.global` → operación pesada → `DispatchQueue.main.async`
+
+### 📱 SWIFTUI - REACTIVIDAD AUTOMÁTICA (iOS 18.5+)
+- ✅ Usar `@Published` - SwiftUI se redibuja automáticamente
+- ❌ NO usar Timers para delays artificiales
+- ❌ NO usar `Task.sleep` para esperas
+- ❌ NO usar callbacks manuales (a menos que sea absolutamente necesario)
+- ✅ Usar nueva sintaxis de `onChange` - `{ oldValue, newValue in }`
+- ✅ Usar `@Observable` macro moderno (opcional)
+- ✅ Usar `NavigationStack` moderno
+
+### 🆕 NUEVAS REGLAS MVVM APRENDIDAS HOY - OBLIGATORIAS
+
+#### 🔄 GESTIÓN DEL CICLO DE VIDA DEL VIEWMODEL
+- **ViewModel Protocol**: ✅ Debe conformar `ObservableObject`
+- **@StateObject en Views**: ✅ Usar `@StateObject` cuando la vista crea y posee el ViewModel
+- **Beneficio**: Evita reinicialización del ViewModel en cada redibujo, previene pérdida de estado
+- **Ejemplo**: `@StateObject private var viewModel = UserListViewModel()`
+
+#### 💉 INYECCIÓN DE DEPENDENCIAS EN VIEWMODEL
+- **Service Injection**: ✅ ViewModel debe recibir service como parámetro de inicialización
+- **Principio**: Dependency Injection para aislar lógica de persistencia/red
+- **Beneficio**: Facilita mocking en tests unitarios y separación de responsabilidades
+- **Ejemplo**:
+```swift
+init(service: UserServiceProtocol) {
+    self.service = service
+}
+```
+
+#### 📁 ESTRUCTURA DEL PROYECTO - ORGANIZACIÓN PARA ESCALABILIDAD
+- **Directorio Base**: ✅ Mantener para componentes reusables (ej. Loading)
+- **Ruta sugerida**: `Base/View/Loading/Loading.swift`
+- **Organización**: Separar claramente Views, ViewModels, Services, Models
+- **Services Organization**: 
+  - `Services/Protocols/` - Todos los protocolos de servicios
+  - `Services/Implementation/` - Implementaciones concretas de servicios
+  - `Services/CoreDataService.swift` - Clase base para servicios Core Data
+- **ViewModels Organization**: 
+  - `ViewModel/User/` - ViewModels relacionados con usuarios
+  - `ViewModel/Group/` - ViewModels relacionados con grupos
+  - `ViewModel/Entry/` - ViewModels relacionados con entradas
+  - `ViewModel/Item/` - ViewModels relacionados con items
+  - `ViewModel/Category/` - ViewModels relacionados con categorías
+- **Views Organization**: 
+  - `View/User/` - Vistas relacionadas con usuarios
+  - `View/Group/` - Vistas relacionadas con grupos
+  - `View/Entry/` - Vistas relacionadas con entradas
+  - `View/Base/` - Componentes reusables (Loading, etc.)
+
+#### ⚡ CONCURRENCIA Y ASINCRONÍA
+- **Swift Concurrency**: ✅ Usar `async/await` en lugar de callbacks anidados o Combine
+- **Beneficios**:
+  - Código más limpio y legible
+  - Manejo integrado de errores con `try/catch`
+  - Evita errores de concurrencia al actualizar UI
+- **@MainActor**: ✅ Usar cuando sea necesario para operaciones de UI
+
+#### 🎯 RESUMEN DE ROLES
+- **ViewModel**: `ObservableObject` que expone datos y lógica a la vista
+- **Service**: Encapsula acceso a datos (API, Core Data, etc.) y se inyecta en ViewModel
+- **View**: Usa `@StateObject` para instanciar ViewModel y reaccionar a cambios
+
+#### 🚀 OPTIMIZACIONES DE FLUIDEZ - DIFERENCIADORAS
+- **@MainActor**: ✅ Usar correctamente en propiedades que actualizan UI
+- **Lazy Loading**: ✅ Usar `LazyVStack`, `List` para vistas grandes
+- **Procesamiento Pesado**: ❌ NO en cuerpo de vista, ✅ TODO en ViewModel o Services
+- **Caching**: ✅ Cachear datos cuando tenga sentido (imágenes, resultados Core Data)
+- **Animaciones**: ✅ Usar `withAnimation` y transiciones nativas SwiftUI
+
+### 🚫 PROHIBIDO
+- Operaciones pesadas en main thread
+- Lógica de negocio en Views
+- UI elements en ViewModels
+- Delays artificiales o polling
+- ViewModels sin Dependency Injection
+- Views sin @StateObject para ViewModels propios
+- ViewModels sin protocolo ObservableObject
+- Falta de lazy loading en listas grandes
+- Falta de caching para datos frecuentes
+- Falta de animaciones suaves
 
 ## Project Overview
-Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation buiding into the view model for simplicity.
+Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
 
 ## Development Strategy
 - **Incremental Development**: Small, focused commits for each feature
@@ -10,103 +108,218 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 16+) with 
 - **Core Data Foundation**: Start with data model, build UI on top
 - **Test-Driven**: Unit tests for each component
 - **Physical Device Testing**: Always test on physical device, not simulator
+- **Dependency Injection**: Services injected into ViewModels for testability
+- **Lifecycle Management**: Proper @StateObject usage for ViewModel persistence
 
 ### Performance Considerations
 - Use background queues for Core Data operations
 - Implement proper error handling
 - Optimize for smooth UI updates
 - Follow Apple's native UI/UX conventions
+- Use lazy loading for large lists and views
+- Cache frequently accessed data
+- Implement smooth animations and transitions
 
 Para empezar 
 
 Genera el modelo de datos de Core Data en Swift usando NSManagedObject para cada entidad descrita a continuación, junto con su correspondiente ViewModel siguiendo la arquitectura MVVM.
-Requisitos de arquitectura
-	•	Modelo (Model/):
-	◦	Implementar las entidades como clases NSManagedObject con @objc y @NSManaged para cada propiedad.
-	◦	Respetar tipos (UUID?, Date?, NSDecimalNumber?, Int32, String?, Set<Entity>?) y opcionalidad.
-	◦	Incluir documentación breve para cada entidad y propiedad.
-	◦	Implementar Identifiable en todas las entidades.
-	◦	Usar dos ficheros por entidad:
-	▪	<Entity>+CoreDataClass.swift
-	▪	<Entity>+CoreDataProperties.swift
-	•	Vista Modelo (ViewModel/):
-	◦	Crear un ViewModel por entidad que sea ObservableObject.
-	◦	Incluir un @Published array de la entidad ([Entity]) para la lista de resultados.
-	◦	Incluir un inicializador que reciba NSManagedObjectContext.
-	◦	Implementar métodos CRUD (create, fetch, update, delete) para interactuar con Core Data.
-	◦	Gestionar errores y usar try? context.save() de forma segura.
-	◦	ViewModels deben exponer datos ya formateados para uso en SwiftUI (por ejemplo, fecha como String).
-	•	Vista (View/):
-	◦	No es necesario generar vistas completas, pero los ViewModels deben estar listos para enlazarse con SwiftUI.
 
-Estilo de código
-	•	Swift 5, Xcode 16+ compatible.
-	•	Nombrado limpio y consistente con Swift.
-	•	Evitar force unwrap (!).
-	•	Incluir comentarios claros para cada relación explicando el deleteRule.
-	•	Separar carpetas Model/, ViewModel/, y opcionalmente View/.
+## 🆕 REQUISITOS DE ARQUITECTURA ACTUALIZADOS
 
+### 📁 Estructura del Proyecto
+- **Model/**: Entidades Core Data
+- **ViewModel/**: ViewModels con inyección de dependencias
+- **Service/**: Capa de servicios para operaciones CRUD
+- **View/**: Vistas SwiftUI
+- **Base/**: Componentes reusables (Loading, etc.)
 
-Entidades y atributos:
+### 🏗️ Modelo (Model/)
+- **IMPORTANTE**: Las entidades están configuradas con "Codegen: Class Definition" en Xcode
+- **NO crear archivos manuales**: Xcode genera automáticamente las clases Core Data en tiempo de compilación
+- **Verificar configuración**: Cada entidad en .xcdatamodel debe tener "Codegen: Class Definition"
+- **Entidades generadas automáticamente**: User, Group, Entry, Item, Category, UserGroup
+- **Tipos correctos**: UUID?, Date?, NSDecimalNumber?, Int32, String?, Set<Entity>?
+- **Relaciones**: Ya configuradas en .xcdatamodel con delete rules apropiadas
+
+### 💉 Vista Modelo (ViewModel/) - ACTUALIZADO
+- **Crear un ViewModel por entidad que sea ObservableObject**
+- **Incluir un @Published array de la entidad ([Entity]) para la lista de resultados**
+- **Incluir un inicializador que reciba Service como parámetro (Dependency Injection)**
+- **Implementar métodos CRUD (create, fetch, update, delete) para interactuar con Core Data**
+- **Gestionar errores y usar try? context.save() de forma segura**
+- **ViewModels deben exponer datos ya formateados para uso en SwiftUI (por ejemplo, fecha como String)**
+- **Usar @MainActor para operaciones de UI**
+- **Implementar lazy loading para listas grandes**
+- **Implementar caching para datos frecuentemente accedidos**
+
+### 🔧 Service Layer - NUEVO
+- **Crear un Service por entidad que maneje operaciones CRUD**
+- **Services deben ser inyectados en ViewModels**
+- **Implementar protocols para cada Service (ej: UserServiceProtocol)**
+- **Usar background queues para operaciones Core Data**
+- **Retornar resultados al main thread para actualizaciones de UI**
+
+### 👁️ Vista (View/)
+- **No es necesario generar vistas completas, pero los ViewModels deben estar listos para enlazarse con SwiftUI**
+- **Usar @StateObject para ViewModels que la vista posee**
+- **Implementar lazy loading con LazyVStack y List**
+- **Usar withAnimation para transiciones suaves**
+
+## Estilo de código
+- Swift 5, Xcode 16+ compatible
+- Nombrado limpio y consistente con Swift
+- Evitar force unwrap (!)
+- Incluir comentarios claros para cada relación explicando el deleteRule
+- Separar carpetas Model/, ViewModel/, Service/, View/, y Base/
+- **Usar async/await para operaciones asíncronas**
+- **Implementar proper error handling con try/catch**
+- **Usar @MainActor para operaciones de UI**
+
+## Entidades y atributos:
 Category
-	•	id: UUID,
-	•	name: String, default ""
-	•	color: String?, optional, default "#8E8E93"
-	•	createdAt: Date?, optional
-	•	lastModifiedAt: Date?, optional
-	•	Relaciones:
-	◦	entries: Set<Entry>?, to-many, inverse category, delete rule Nullify
-	◦	group: Group?, to-one, inverse categories, delete rule Cascade
+- id: UUID,
+- name: String, default ""
+- color: String?, optional, default "#8E8E93"
+- createdAt: Date?, optional
+- lastModifiedAt: Date?, optional
+- Relaciones:
+  - entries: Set<Entry>?, to-many, inverse category, delete rule Nullify
+  - group: Group?, to-one, inverse categories, delete rule Cascade
+
 Entry
-	•	id: UUID,
-	•	description: String?, optional, default ""
-	•	date: Date,
-	•	createdAt: Date?, optional auto generated
-	•	lastModifiedAt: Date?, optional auto generated
-	•	categoryId: UUID,
-	•	groupId: UUID,
-	•	Relaciones:
-	◦	category: Category?, to-one, inverse entries, delete rule Nullify
-	◦	group: Group?, to-one, inverse entries, delete rule Nullify
-	◦	items: Set<Item>?, to-many, inverse entry, delete rule Cascade
+- id: UUID,
+- description: String?, optional, default ""
+- date: Date,
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- categoryId: UUID,
+- groupId: UUID,
+- Relaciones:
+  - category: Category?, to-one, inverse entries, delete rule Nullify
+  - group: Group?, to-one, inverse entries, delete rule Nullify
+  - items: Set<Item>?, to-many, inverse entry, delete rule Cascade
+
 Group
-	•	id: UUID,
-	•	name: String?, optional, default ""
-	•	currency: String?, optional, default "USD"
-	•	createdAt: Date?, optional auto generated
-	•	lastModifiedAt: Date?, optional auto generated
-	•	Relaciones:
-	◦	entries: Set<Entry>?, to-many, inverse group, delete rule Cascade
-	◦	categories: Set<Category>?, to-many, inverse group, delete rule Cascade
-	◦	userGroups: Set<UserGroup>?, to-many, inverse group, delete rule Cascade
+- id: UUID,
+- name: String?, optional, default ""
+- currency: String?, optional, default "USD"
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - entries: Set<Entry>?, to-many, inverse group, delete rule Cascade
+  - categories: Set<Category>?, to-many, inverse group, delete rule Cascade
+  - userGroups: Set<UserGroup>?, to-many, inverse group, delete rule Cascade
+
 Item
-	•	id: UUID,
-	•	description: String?, optional, default ""
-	•	amount: NSDecimalNumber?, optional, default 0.0
-	•	quantity: Int32, optional, default 1
-	•	createdAt: Date?, optional auto generated
-	•	lastModifiedAt: Date?, optional auto generated
-	•	Relaciones:
-	◦	entry: Entry?, to-one, inverse items, delete rule Nullify
+- id: UUID,
+- description: String?, optional, default ""
+- amount: NSDecimalNumber?, optional, default 0.0
+- quantity: Int32, optional, default 1
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - entry: Entry?, to-one, inverse items, delete rule Nullify
+
 User
-	•	id: UUID?, optional
-	•	name: String?, optional, default ""
-	•	email: String,
-	•	createdAt: Date?, optional auto generated
-	•	lastModifiedAt: Date?, optional auto generated
-	•	Relaciones:
-	◦	userGroups: Set<UserGroup>?, to-many, inverse user, delete rule Cascade
+- id: UUID?, optional
+- name: String?, optional, default ""
+- email: String,
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - userGroups: Set<UserGroup>?, to-many, inverse user, delete rule Cascade
+
 UserGroup
-	•	id: UUID,
-	•	role: String?, optional, default "owner"
-	•	joinedAt: Date?, optional auto generated
-	•	userId: UUID,
-	•	groupId: UUID,
-	•	Relaciones:
-	◦	user: User?, to-one, inverse userGroups, delete rule Cascade
-	◦	group: Group?, to-one, inverse userGroups, delete rule Cascade
-Requisitos adicionales:
-	•	Genera un archivo Swift por entidad.
-	•	Implementa Identifiable en cada entidad.
-	•	Agrega inicializadores convenientes para crear cada entidad con sus propiedades mínimas.
-	•	Usa CoreDataProperties y CoreDataClass como en la convención estándar de Xcode.
+- id: UUID,
+- role: String?, optional, default "owner"
+- joinedAt: Date?, optional auto generated
+- userId: UUID,
+- groupId: UUID,
+- Relaciones:
+  - user: User?, to-one, inverse userGroups, delete rule Cascade
+  - group: Group?, to-one, inverse userGroups, delete rule Cascade
+
+## 🆕 Requisitos adicionales actualizados:
+- **IMPORTANTE**: Las entidades Core Data están configuradas con "Codegen: Class Definition" en Xcode
+- **NO crear archivos manuales**: Xcode genera automáticamente las clases Core Data en tiempo de compilación
+- **Implementa Service layer con protocols para cada entidad**
+- **ViewModels deben recibir Services como parámetros de inicialización**
+- **Usa @StateObject en Views para ViewModels propios**
+- **Implementa lazy loading y caching para performance**
+- **Usa async/await para operaciones asíncronas**
+- **Implementa proper error handling con try/catch**
+- **Usa @MainActor para operaciones de UI**
+- **Implementa animaciones suaves con withAnimation**
+
+## 🏗️ **ESTRUCTURA DE DIRECTORIOS OBLIGATORIA PARA ESCALABILIDAD**
+
+### **Services/**
+```
+Services/
+├── Protocols/              # Protocolos de servicios para DI
+│   ├── UserServiceProtocol.swift
+│   ├── GroupServiceProtocol.swift
+│   ├── EntryServiceProtocol.swift
+│   ├── ItemServiceProtocol.swift
+│   ├── CategoryServiceProtocol.swift
+│   └── UserGroupServiceProtocol.swift
+├── Implementation/         # Implementaciones concretas
+│   ├── UserService.swift
+│   ├── GroupService.swift
+│   ├── EntryService.swift
+│   ├── ItemService.swift
+│   ├── CategoryService.swift
+│   └── UserGroupService.swift
+└── CoreDataService.swift   # Clase base para servicios
+```
+
+### **ViewModels/**
+```
+ViewModel/
+├── User/                   # ViewModels relacionados con usuarios
+├── Group/                  # ViewModels relacionados con grupos
+├── Entry/                  # ViewModels relacionados con entradas
+├── Item/                   # ViewModels relacionados con items
+└── Category/               # ViewModels relacionados con categorías
+```
+
+### **Views/**
+```
+View/
+├── User/                   # Vistas relacionadas con usuarios
+├── Group/                  # Vistas relacionadas con grupos
+├── Entry/                  # Vistas relacionadas con entradas
+└── Base/                   # Componentes reusables (Loading, etc.)
+```
+
+### **Imports en Swift - IMPORTANTE**
+- **NO usar @_exported import**: En Swift, cuando todos los archivos están en el mismo target, son automáticamente visibles
+- **Imports automáticos**: Los protocolos y clases se importan automáticamente dentro del mismo módulo
+- **Mantener imports básicos**: Solo `import Foundation` e `import CoreData` son necesarios
+- **Simplicidad**: No necesitamos archivos de imports centralizados en Swift
+- **Uso de protocolos**: Usar `any ProtocolName` para evitar warnings de Swift
+
+## 🚨 RECORDATORIOS CRÍTICOS - REVISAR ANTES DE CADA IMPLEMENTACIÓN
+
+### ✅ VERIFICAR ANTES DE IMPLEMENTAR:
+1. **Views**: ¿Solo contienen SwiftUI Views sin lógica?
+2. **ViewModels**: ¿Solo contienen lógica de negocio sin UI?
+3. **Threading**: ¿Operaciones pesadas en background, UI en main?
+4. **@Published**: ¿Se usa para reactividad automática?
+5. **@MainActor**: ¿Se usa en ViewModels para operaciones de UI?
+6. **Delays**: ¿NO hay Timers o delays artificiales?
+7. **iOS 18.5+**: ¿Se usan APIs modernas, no deprecadas?
+8. **onChange**: ¿Se usa nueva sintaxis `{ oldValue, newValue in }`?
+9. **@StateObject**: ¿Se usa para ViewModels que la vista posee?
+10. **Dependency Injection**: ¿Los ViewModels reciben services como parámetros?
+11. **ObservableObject**: ¿Todos los ViewModels conforman el protocolo?
+12. **Lazy Loading**: ¿Se usa para listas y vistas grandes?
+13. **Caching**: ¿Se implementa para datos frecuentemente accedidos?
+14. **Animations**: ¿Se usan withAnimation y transiciones nativas?
+
+### 🎯 OBJETIVO FINAL
+**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread usando la reactividad automática de SwiftUI, implementando las mejores prácticas MVVM aprendidas hoy.**
+
+---
+
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**

@@ -4,9 +4,12 @@ import CoreData
 struct EntryRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: EntryRowViewModel
+    private let entry: Entry
     
     init(entry: Entry, context: NSManagedObjectContext) {
-        self._viewModel = StateObject(wrappedValue: EntryRowViewModel(entry: entry, context: context))
+        self.entry = entry
+        let itemService = ItemService(context: context)
+        self._viewModel = StateObject(wrappedValue: EntryRowViewModel(entry: entry, itemService: itemService))
     }
     
     var body: some View {
@@ -26,10 +29,9 @@ struct EntryRowView: View {
                 
                 VStack(alignment: .trailing, spacing: 4) {
                     if viewModel.isCalculatingTotal {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        StyledLoadingView(message: "", style: .compact)
                     } else {
-                        Text(viewModel.formatCurrency(viewModel.entryTotal, "USD"))
+                        Text(viewModel.formatCurrency(viewModel.entryTotal, currency: "USD"))
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)

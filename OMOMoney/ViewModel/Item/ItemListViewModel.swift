@@ -55,7 +55,9 @@ class ItemListViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            items = try await itemService.getItems(for: category)
+            // Get all items and filter by category
+            let allItems = try await itemService.fetchItems()
+            items = allItems.filter { $0.entry?.category?.id == category.id }
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -69,7 +71,9 @@ class ItemListViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            items = try await itemService.getItems(for: group)
+            // Get all items and filter by group
+            let allItems = try await itemService.fetchItems()
+            items = allItems.filter { $0.entry?.group?.id == group.id }
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -83,7 +87,9 @@ class ItemListViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            items = try await itemService.getItems(withAmountGreaterThan: amount)
+            // Get all items and filter by amount
+            let allItems = try await itemService.fetchItems()
+            items = allItems.filter { ($0.amount ?? NSDecimalNumber.zero).compare(amount) == .orderedDescending }
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -92,13 +98,14 @@ class ItemListViewModel: ObservableObject {
     }
     
     /// Create a new item
-    func createItem(description: String, amount: NSDecimalNumber, entry: Entry) async -> Bool {
+    func createItem(description: String, amount: NSDecimalNumber, quantity: Int32 = 1, entry: Entry) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
-            let newItem = try await itemService.createItem(description: description, amount: amount, entry: entry)
+            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, entry: entry)
             items.append(newItem)
+            items.sort { ($0.createdAt ?? Date()) < ($1.createdAt ?? Date()) }
             isLoading = false
             return true
         } catch {
@@ -109,12 +116,12 @@ class ItemListViewModel: ObservableObject {
     }
     
     /// Update an existing item
-    func updateItem(_ item: Item, description: String? = nil, amount: NSDecimalNumber? = nil) async -> Bool {
+    func updateItem(_ item: Item, description: String? = nil, amount: NSDecimalNumber? = nil, quantity: Int32? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
-            try await itemService.updateItem(item, description: description, amount: amount)
+            try await itemService.updateItem(item, description: description, amount: amount, quantity: quantity)
             isLoading = false
             return true
         } catch {

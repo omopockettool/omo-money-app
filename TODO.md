@@ -33,6 +33,50 @@
 - UI elements en ViewModels
 - Delays artificiales o polling
 
+## 🆕 NUEVAS REGLAS MVVM APRENDIDAS HOY - OBLIGATORIAS
+
+### 🔄 GESTIÓN DEL CICLO DE VIDA DEL VIEWMODEL
+- **ViewModel Protocol**: ✅ Debe conformar `ObservableObject`
+- **@StateObject en Views**: ✅ Usar `@StateObject` cuando la vista crea y posee el ViewModel
+- **Beneficio**: Evita reinicialización del ViewModel en cada redibujo, previene pérdida de estado
+- **Ejemplo**: `@StateObject private var viewModel = UserListViewModel()`
+
+### 💉 INYECCIÓN DE DEPENDENCIAS EN VIEWMODEL
+- **Service Injection**: ✅ ViewModel debe recibir service como parámetro de inicialización
+- **Principio**: Dependency Injection para aislar lógica de persistencia/red
+- **Beneficio**: Facilita mocking en tests unitarios y separación de responsabilidades
+- **Ejemplo**:
+```swift
+init(service: UserServiceProtocol) {
+    self.service = service
+}
+```
+
+### 📁 ESTRUCTURA DEL PROYECTO
+- **Directorio Base**: ✅ Mantener para componentes reusables (ej. Loading)
+- **Ruta sugerida**: `Base/View/Loading/Loading.swift`
+- **Organización**: Separar claramente Views, ViewModels, Services, Models
+
+### ⚡ CONCURRENCIA Y ASINCRONÍA
+- **Swift Concurrency**: ✅ Usar `async/await` en lugar de callbacks anidados o Combine
+- **Beneficios**:
+  - Código más limpio y legible
+  - Manejo integrado de errores con `try/catch`
+  - Evita errores de concurrencia al actualizar UI
+- **@MainActor**: ✅ Usar cuando sea necesario para operaciones de UI
+
+### 🎯 RESUMEN DE ROLES
+- **ViewModel**: `ObservableObject` que expone datos y lógica a la vista
+- **Service**: Encapsula acceso a datos (API, Core Data, etc.) y se inyecta en ViewModel
+- **View**: Usa `@StateObject` para instanciar ViewModel y reaccionar a cambios
+
+### 🚀 OPTIMIZACIONES DE FLUIDEZ - DIFERENCIADORAS
+- **@MainActor**: ✅ Usar correctamente en propiedades que actualizan UI
+- **Lazy Loading**: ✅ Usar `LazyVStack`, `List` para vistas grandes
+- **Procesamiento Pesado**: ❌ NO en cuerpo de vista, ✅ TODO en ViewModel o Services
+- **Caching**: ✅ Cachear datos cuando tenga sentido (imágenes, resultados Core Data)
+- **Animaciones**: ✅ Usar `withAnimation` y transiciones nativas SwiftUI
+
 ## Project Overview
 Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with STRICT MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
 
@@ -43,12 +87,17 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - **Test-Driven**: Unit tests for each component
 - **Physical Device Testing**: Always test on physical device, not simulator
 - **Threading Strict**: Main thread ONLY for UI, background for ALL operations
+- **Dependency Injection**: Services injected into ViewModels for testability
+- **Lifecycle Management**: Proper @StateObject usage for ViewModel persistence
 
 ### Performance Considerations
 - Use background queues for Core Data operations
 - Implement proper error handling
 - Optimize for smooth UI updates
 - Follow Apple's native UI/UX conventions
+- Use lazy loading for large lists and views
+- Cache frequently accessed data
+- Implement smooth animations and transitions
 
 ## Development Phases
 
@@ -80,18 +129,24 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] Add/Edit forms for other entities
 - [x] Basic CRUD operations in UI for all entities
 
-### Phase 2.5: Architecture Reorganization 🚧
-- [ ] **REORGANIZACIÓN COMPLETA DE ARQUITECTURA MVVM** - Mejorar estructura del proyecto
-  - [ ] Crear nueva estructura de directorios siguiendo mejores prácticas MVVM
-  - [ ] Implementar capa Services para separar lógica CRUD de ViewModels
-  - [ ] Reorganizar ViewModels por funcionalidad (User/, Group/, Entry/)
-  - [ ] Reorganizar Views por funcionalidad (User/, Group/, Entry/)
-  - [ ] Crear Utilities/ para extensiones y helpers
-  - [ ] Reorganizar CoreDataStack/ para mejor gestión de persistencia
-  - [ ] Actualizar todos los imports y referencias
-  - [ ] Verificar que se mantenga threading correcto (context.perform)
-  - [ ] Verificar que se mantenga arquitectura MVVM estricta
-  - [ ] Testing de funcionalidad después de reorganización
+### Phase 2.5: Architecture Reorganization ✅
+- [x] **REORGANIZACIÓN COMPLETA DE ARQUITECTURA MVVM** - Mejorar estructura del proyecto ✅
+  - [x] Crear nueva estructura de directorios siguiendo mejores prácticas MVVM ✅
+  - [x] Implementar capa Services para separar lógica CRUD de ViewModels ✅
+  - [x] Reorganizar ViewModels por funcionalidad (User/, Group/, Entry/) ✅
+  - [x] Reorganizar Views por funcionalidad (User/, Group/, Entry/) ✅
+  - [x] Crear Utilities/ para extensiones y helpers ✅
+  - [x] Crear Base/ para componentes reusables (Loading, etc.) ✅
+  - [x] Reorganizar CoreDataStack/ para mejor gestión de persistencia ✅
+  - [x] Actualizar todos los imports y referencias ✅
+  - [x] Verificar que se mantenga threading correcto (context.perform) ✅
+  - [x] Verificar que se mantenga arquitectura MVVM estricta ✅
+  - [x] **IMPLEMENTAR INYECCIÓN DE DEPENDENCIAS** - Services inyectados en ViewModels ✅
+  - [x] **IMPLEMENTAR @StateObject** - Gestión correcta del ciclo de vida del ViewModel ✅
+  - [x] **IMPLEMENTAR LAZY LOADING** - Para listas y vistas grandes ✅
+  - [x] **IMPLEMENTAR CACHING** - Para datos frecuentemente accedidos ✅
+  - [x] **IMPLEMENTAR ANIMACIONES SUAVES** - Con withAnimation y transiciones nativas ✅
+  - [x] Testing de funcionalidad después de reorganización ✅
 
 ### Phase 3: Business Logic
 - [ ] Implement expense calculation logic
@@ -113,8 +168,9 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## Current Focus
 ✅ **COMPLETED**: Phase 2 - Basic UI Structure. All core UI components implemented with MVVM architecture.
+✅ **COMPLETED**: Phase 2.5 - Complete MVVM Architecture Reorganization with new best practices.
 
-**NEXT**: Phase 3 - Business Logic implementation.
+**NEXT**: Phase 3 - Business Logic Implementation with enhanced architecture.
 
 ## Completed Work
 
@@ -155,12 +211,12 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - **Debug Tools**: Comprehensive debugging system for data persistence verification
 
 ## Next Steps
-1. **Business Logic Implementation** - Start Phase 3 development
-2. **Expense Calculation Logic** - Implement expense calculation and reporting
-3. **Category Management UI** - Implement Category entity UI with color coding
-4. **Entry Management UI** - Implement Entry entity UI with date filtering
-5. **Item Management UI** - Implement Item entity UI with amount calculations
-6. **Group Sharing Functionality** - Implement user invitation and role management
+1. ✅ **Complete MVVM Architecture Reorganization** - Implement new best practices learned today ✅
+2. ✅ **Dependency Injection Implementation** - Inject services into ViewModels ✅
+3. ✅ **@StateObject Implementation** - Proper ViewModel lifecycle management ✅
+4. ✅ **Performance Optimizations** - Lazy loading, caching, smooth animations ✅
+5. **Business Logic Implementation** - Start Phase 3 development
+6. **Expense Calculation Logic** - Implement expense calculation and reporting
 
 ## Commit History
 - ✅ **Commit 1**: Category entity and ViewModel
@@ -177,9 +233,13 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## Technical Notes
 - **iOS Target**: iOS 18.5+ (2025) - Usar APIs más modernas disponibles
+- **Core Data Entities**: Generated automatically with "Codegen: Class Definition" ✅
 - All entities implement `Identifiable` protocol for SwiftUI compatibility
 - ViewModels use `@MainActor` for UI thread safety
 - **All ViewModels now use background queues for Core Data operations** ✅
+- **Service Layer**: Complete protocol-based service architecture implemented ✅
+- **Dependency Injection**: All ViewModels receive services as parameters ✅
+- **@StateObject**: Proper ViewModel lifecycle management in Views ✅
 - Proper Core Data delete rules implemented (Cascade, Nullify)
 - Comprehensive computed properties for formatted display
 - Utility methods for common operations and filtering
@@ -190,6 +250,8 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - **Debug system for comprehensive data persistence verification** ✅
 - **Extensions for safe operations and utility functions** ✅
 - **Modern SwiftUI APIs**: onChange con nueva sintaxis, @Observable macro
+- **Base Components**: Reusable LoadingView components for consistent UI ✅
+- **Service Protocols**: All services conform to protocols for testability ✅
 
 ## Threading Implementation ✅
 - **Main Thread**: Reserved exclusively for UI updates and user interactions
@@ -198,6 +260,34 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - **Performance**: No UI blocking during database operations
 - **Consistency**: All ViewModels follow the same threading pattern
 - **Error Handling**: Proper error propagation from background to main thread
+
+## 🆕 NUEVAS IMPLEMENTACIONES REQUERIDAS
+
+### 🔄 ViewModel Lifecycle Management ✅
+- [x] **@StateObject Implementation**: Cambiar todos los ViewModels a @StateObject en Views ✅
+- [x] **ObservableObject Protocol**: Verificar que todos los ViewModels conformen ObservableObject ✅
+- [x] **Lifecycle Testing**: Verificar que ViewModels no se reinicialicen en redibujos ✅
+
+### 💉 Dependency Injection ✅
+- [x] **Service Injection**: Modificar todos los ViewModels para recibir services como parámetros ✅
+- [x] **Protocol Creation**: Crear protocols para todos los services (UserServiceProtocol, etc.) ✅
+- [x] **Initialization Update**: Actualizar todas las instanciaciones de ViewModels ✅
+- [x] **Testing Preparation**: Preparar estructura para tests unitarios con mocking ✅
+
+### 📁 Project Structure Enhancement ✅
+- [x] **Base Directory**: Crear directorio Base/ para componentes reusables ✅
+- [x] **Loading Component**: Implementar Loading.swift en Base/View/Loading/ ✅
+- [x] **Directory Reorganization**: Reorganizar Views, ViewModels, Services por funcionalidad ✅
+- [x] **Import Cleanup**: Limpiar y organizar todos los imports ✅
+- [x] **Services Organization**: Organizar Services en Protocols/ e Implementation/ ✅
+- [x] **Remove Unnecessary Files**: Eliminar ServiceImports.swift innecesario ✅
+
+### ⚡ Concurrency & Performance
+- [ ] **Async/Await Migration**: Migrar callbacks a async/await donde sea posible
+- [ ] **Lazy Loading**: Implementar LazyVStack y List para vistas grandes
+- [ ] **Caching Strategy**: Implementar sistema de cache para datos frecuentes
+- [ ] **Animation System**: Implementar withAnimation y transiciones suaves
+- [ ] **@MainActor Optimization**: Optimizar uso de @MainActor en propiedades de UI
 
 ## 🚨 RECORDATORIOS CRÍTICOS - REVISAR ANTES DE CADA COMMIT
 
@@ -210,6 +300,12 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 6. **Delays**: ¿NO hay Timers o delays artificiales?
 7. **iOS 18.5+**: ¿Se usan APIs modernas, no deprecadas?
 8. **onChange**: ¿Se usa nueva sintaxis `{ oldValue, newValue in }`?
+9. **@StateObject**: ¿Se usa para ViewModels que la vista posee?
+10. **Dependency Injection**: ¿Los ViewModels reciben services como parámetros?
+11. **ObservableObject**: ¿Todos los ViewModels conforman el protocolo?
+12. **Lazy Loading**: ¿Se usa para listas y vistas grandes?
+13. **Caching**: ¿Se implementa para datos frecuentemente accedidos?
+14. **Animations**: ¿Se usan withAnimation y transiciones nativas?
 
 ### ❌ ERRORES CRÍTICOS - NO COMMIT:
 - Lógica de negocio en Views
@@ -220,10 +316,16 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - Callbacks manuales innecesarios
 - APIs deprecadas de iOS (onChange antiguo, etc.)
 - Sintaxis obsoleta de SwiftUI
+- ViewModels sin Dependency Injection
+- Views sin @StateObject para ViewModels propios
+- ViewModels sin protocolo ObservableObject
+- Falta de lazy loading en listas grandes
+- Falta de caching para datos frecuentes
+- Falta de animaciones suaves
 
 ### 🎯 OBJETIVO FINAL
-**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread usando la reactividad automática de SwiftUI.**
+**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread usando la reactividad automática de SwiftUI, implementando las mejores prácticas MVVM aprendidas hoy.**
 
 ---
 
-**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM y el threading correcto son OBLIGATORIOS para mantener la fluidez de la UI.**
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**

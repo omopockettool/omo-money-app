@@ -12,12 +12,12 @@ class EntryRowViewModel: ObservableObject {
     
     // MARK: - Private Properties
     private let entry: Entry
-    private let itemService: ItemService
+    private let itemService: any ItemServiceProtocol
     
     // MARK: - Initialization
-    init(entry: Entry, context: NSManagedObjectContext) {
+    init(entry: Entry, itemService: any ItemServiceProtocol) {
         self.entry = entry
-        self.itemService = ItemService(context: context)
+        self.itemService = itemService
     }
     
     // MARK: - Public Methods

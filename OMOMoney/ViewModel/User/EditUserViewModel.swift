@@ -13,14 +13,23 @@ class EditUserViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var shouldNavigateBack = false
     
+    // MARK: - Computed Properties
+    var userCreatedAt: Date? {
+        return user.createdAt
+    }
+    
+    var userLastModifiedAt: Date? {
+        return user.lastModifiedAt
+    }
+    
     // MARK: - Private Properties
     private let user: User
-    private let userService: UserService
+    private let userService: any UserServiceProtocol
     
     // MARK: - Initialization
-    init(user: User, context: NSManagedObjectContext) {
+    init(user: User, userService: any UserServiceProtocol) {
         self.user = user
-        self.userService = UserService(context: context)
+        self.userService = userService
         
         // Initialize form with current values
         self.name = user.name ?? ""

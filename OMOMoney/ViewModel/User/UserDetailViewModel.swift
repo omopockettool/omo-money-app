@@ -14,15 +14,15 @@ class UserDetailViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     // MARK: - Services
-    private let userService: UserService
-    private let userGroupService: UserGroupService
-    private let groupService: GroupService
+    private let userService: any UserServiceProtocol
+    private let userGroupService: any UserGroupServiceProtocol
+    private let groupService: any GroupServiceProtocol
     
     // MARK: - Initialization
-    init(context: NSManagedObjectContext) {
-        self.userService = UserService(context: context)
-        self.userGroupService = UserGroupService(context: context)
-        self.groupService = GroupService(context: context)
+    init(userService: any UserServiceProtocol, userGroupService: any UserGroupServiceProtocol, groupService: any GroupServiceProtocol) {
+        self.userService = userService
+        self.userGroupService = userGroupService
+        self.groupService = groupService
     }
     
     // MARK: - Public Methods
@@ -34,8 +34,8 @@ class UserDetailViewModel: ObservableObject {
         
         do {
             user = try await userService.fetchUser(by: id)
-            if let user = user {
-                await loadUserGroups(for: user)
+            if let currentUser = user {
+                await loadUserGroups(for: currentUser)
             }
         } catch {
             errorMessage = "Error loading user: \(error.localizedDescription)"
@@ -56,13 +56,13 @@ class UserDetailViewModel: ObservableObject {
     
     /// Update user information
     func updateUser(name: String? = nil, email: String? = nil) async -> Bool {
-        guard let user = user else { return false }
+        guard let currentUser = user else { return false }
         
         isLoading = true
         errorMessage = nil
         
         do {
-            try await userService.updateUser(user, name: name, email: email)
+            try await userService.updateUser(currentUser, name: name, email: email)
             isLoading = false
             return true
         } catch {
@@ -74,7 +74,7 @@ class UserDetailViewModel: ObservableObject {
     
     /// Create a new group for the user
     func createGroup(name: String, currency: String) async -> Bool {
-        guard let user = user else { return false }
+        guard let currentUser = user else { return false }
         
         isLoading = true
         errorMessage = nil
@@ -84,7 +84,7 @@ class UserDetailViewModel: ObservableObject {
             let newGroup = try await groupService.createGroup(name: name, currency: currency)
             
             // Create the user-group relationship
-            let userGroup = try await userGroupService.createUserGroup(user: user, group: newGroup, role: "owner")
+            let userGroup = try await userGroupService.createUserGroup(user: currentUser, group: newGroup, role: "owner")
             
             // Update local state
             userGroups.append(userGroup)
@@ -102,7 +102,7 @@ class UserDetailViewModel: ObservableObject {
     /// Check if group name exists
     func groupExists(withName name: String) async -> Bool {
         do {
-            return try await groupService.groupExists(withName: name)
+            return try await groupService.groupExists(withName: name, excluding: nil)
         } catch {
             errorMessage = "Error checking group name: \(error.localizedDescription)"
             return false
@@ -111,7 +111,7 @@ class UserDetailViewModel: ObservableObject {
     
     /// Get groups count for the user
     func getGroupsCount() async -> Int {
-        guard let user = user else { return 0 }
+        guard user != nil else { return 0 }
         
         do {
             return try await userGroupService.getUserGroupsCount()

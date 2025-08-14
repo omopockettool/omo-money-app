@@ -49,22 +49,8 @@ class CategoryListViewModel: ObservableObject {
         isLoading = false
     }
     
-    /// Load default categories (system categories)
-    func loadDefaultCategories() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            categories = try await categoryService.getDefaultCategories()
-        } catch {
-            errorMessage = "Error loading default categories: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     /// Create a new category
-    func createCategory(name: String, color: String? = nil, group: Group? = nil) async -> Bool {
+    func createCategory(name: String, color: String? = nil, group: Group) async -> Bool {
         isLoading = true
         errorMessage = nil
         

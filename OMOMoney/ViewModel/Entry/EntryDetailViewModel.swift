@@ -50,15 +50,15 @@ class EntryDetailViewModel: ObservableObject {
         }
     }
     
-    /// Update entry information
-    func updateEntry(description: String? = nil, date: Date? = nil, category: Category? = nil) async -> Bool {
+    /// Update the entry
+    func updateEntry(description: String? = nil, date: Date? = nil, category: Category) async -> Bool {
         guard let entry = entry else { return false }
         
         isLoading = true
         errorMessage = nil
         
         do {
-            try await entryService.updateEntry(entry, description: description, date: date, category: category)
+            try await entryService.updateEntry(entry, description: description, date: date, categoryId: category.id!)
             isLoading = false
             return true
         } catch {
@@ -87,14 +87,14 @@ class EntryDetailViewModel: ObservableObject {
     }
     
     /// Create a new item for the entry
-    func createItem(description: String, amount: NSDecimalNumber) async -> Bool {
+    func createItem(description: String, amount: NSDecimalNumber, quantity: Int32 = 1) async -> Bool {
         guard let entry = entry else { return false }
         
         isLoading = true
         errorMessage = nil
         
         do {
-            let newItem = try await itemService.createItem(description: description, amount: amount, entry: entry)
+            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, entry: entry)
             items.append(newItem)
             isLoading = false
             return true
@@ -139,7 +139,8 @@ class EntryDetailViewModel: ObservableObject {
         guard let entry = entry else { return 0 }
         
         do {
-            return try await itemService.getItemsCount(for: entry)
+            let itemsForEntry = try await itemService.getItems(for: entry)
+            return itemsForEntry.count
         } catch {
             errorMessage = "Error getting items count: \(error.localizedDescription)"
             return 0

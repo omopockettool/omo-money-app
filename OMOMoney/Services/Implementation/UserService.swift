@@ -3,8 +3,13 @@ import CoreData
 
 /// Service class for User entity operations
 /// Handles all CRUD operations for User with proper threading
-@MainActor
-class UserService: CoreDataService {
+class UserService: CoreDataService, UserServiceProtocol {
+    
+    // MARK: - Initialization
+    
+    override init(context: NSManagedObjectContext) {
+        super.init(context: context)
+    }
     
     // MARK: - User CRUD Operations
     
@@ -27,49 +32,36 @@ class UserService: CoreDataService {
     
     /// Create a new user
     func createUser(name: String, email: String? = nil) async throws -> User {
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                let user = User(context: self.context)
-                user.id = UUID()
-                user.name = name
-                user.email = email
-                user.createdAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume(returning: user)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+        try await context.perform {
+            let user = User(context: self.context)
+            user.id = UUID()
+            user.name = name
+            user.email = email
+            user.createdAt = Date()
+            
+            try self.context.save()
+            return user
         }
     }
     
     /// Update an existing user
     func updateUser(_ user: User, name: String? = nil, email: String? = nil) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                if let name = name {
-                    user.name = name
-                }
-                if let email = email {
-                    user.email = email
-                }
-                user.lastModifiedAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+        try await context.perform {
+            if let name = name {
+                user.name = name
             }
+            if let email = email {
+                user.email = email
+            }
+            user.lastModifiedAt = Date()
+            
+            try self.context.save()
         }
     }
     
     /// Delete a user
     func deleteUser(_ user: User) async throws {
-        try await delete(user)
+        await delete(user)
         try await save()
     }
     

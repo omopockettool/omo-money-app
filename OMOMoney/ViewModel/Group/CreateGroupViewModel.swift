@@ -14,14 +14,20 @@ class CreateGroupViewModel: ObservableObject {
     @Published var shouldNavigateBack = false
     
     // MARK: - Services
-    private let groupService: GroupService
+    private let groupService: any GroupServiceProtocol
+    private let userGroupService: any UserGroupServiceProtocol
     
     // MARK: - Available Currencies
     let availableCurrencies = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "MXN", "BRL"]
     
+    // MARK: - Private Properties
+    private let user: User
+    
     // MARK: - Initialization
-    init(context: NSManagedObjectContext) {
-        self.groupService = GroupService(context: context)
+    init(groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, user: User) {
+        self.user = user
+        self.groupService = groupService
+        self.userGroupService = userGroupService
     }
     
     // MARK: - Public Methods
@@ -35,7 +41,7 @@ class CreateGroupViewModel: ObservableObject {
         
         do {
             // Check if group name already exists
-            let exists = try await groupService.groupExists(withName: name.trimmingCharacters(in: .whitespacesAndNewlines))
+            let exists = try await groupService.groupExists(withName: name.trimmingCharacters(in: .whitespacesAndNewlines), excluding: nil)
             if exists {
                 errorMessage = "A group with this name already exists"
                 isLoading = false
@@ -43,7 +49,10 @@ class CreateGroupViewModel: ObservableObject {
             }
             
             // Create the group
-            _ = try await groupService.createGroup(name: name.trimmingCharacters(in: .whitespacesAndNewlines), currency: currency)
+            let newGroup = try await groupService.createGroup(name: name.trimmingCharacters(in: .whitespacesAndNewlines), currency: currency)
+            
+            // Create the user-group relationship
+            _ = try await userGroupService.createUserGroup(user: user, group: newGroup, role: "owner")
             
             isLoading = false
             shouldNavigateBack = true

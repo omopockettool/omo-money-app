@@ -3,8 +3,13 @@ import CoreData
 
 /// Service class for Group entity operations
 /// Handles all CRUD operations for Group with proper threading
-@MainActor
-class GroupService: CoreDataService {
+class GroupService: CoreDataService, GroupServiceProtocol {
+    
+    // MARK: - Initialization
+    
+    override init(context: NSManagedObjectContext) {
+        super.init(context: context)
+    }
     
     // MARK: - Group CRUD Operations
     
@@ -27,49 +32,36 @@ class GroupService: CoreDataService {
     
     /// Create a new group
     func createGroup(name: String, currency: String) async throws -> Group {
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                let group = Group(context: self.context)
-                group.id = UUID()
-                group.name = name
-                group.currency = currency
-                group.createdAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume(returning: group)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+        try await context.perform {
+            let group = Group(context: self.context)
+            group.id = UUID()
+            group.name = name
+            group.currency = currency
+            group.createdAt = Date()
+            
+            try self.context.save()
+            return group
         }
     }
     
     /// Update an existing group
     func updateGroup(_ group: Group, name: String? = nil, currency: String? = nil) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                if let name = name {
-                    group.name = name
-                }
-                if let currency = currency {
-                    group.currency = currency
-                }
-                group.lastModifiedAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+        try await context.perform {
+            if let name = name {
+                group.name = name
             }
+            if let currency = currency {
+                group.currency = currency
+            }
+            group.lastModifiedAt = Date()
+            
+            try self.context.save()
         }
     }
     
     /// Delete a group
     func deleteGroup(_ group: Group) async throws {
-        try await delete(group)
+        await delete(group)
         try await save()
     }
     

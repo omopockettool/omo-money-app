@@ -8,7 +8,8 @@ struct UserListView: View {
     @State private var navigationPath = NavigationPath()
     
     init(context: NSManagedObjectContext) {
-        self._viewModel = StateObject(wrappedValue: UserListViewModel(context: context))
+        let userService = UserService(context: context)
+        self._viewModel = StateObject(wrappedValue: UserListViewModel(userService: userService))
     }
     
     var body: some View {
@@ -16,7 +17,17 @@ struct UserListView: View {
             List {
                 ForEach(viewModel.users) { user in
                     NavigationLink(value: user) {
-                        UserRowView(user: user)
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(user.name ?? "Sin nombre")
+                                    .font(.headline)
+                                Text(user.email ?? "Sin email")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
                 .onDelete(perform: deleteUsers)
@@ -57,7 +68,14 @@ struct UserListView: View {
         Task {
             for index in offsets {
                 let user = viewModel.users[index]
-                await viewModel.deleteUser(user)
+                let success = await viewModel.deleteUser(user)
+                
+                // If deletion failed, we could show additional feedback here
+                // The ViewModel already handles error messages through @Published errorMessage
+                if !success {
+                    // The error is already displayed through the alert in the view
+                    break
+                }
             }
         }
     }

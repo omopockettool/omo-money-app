@@ -6,13 +6,27 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct AddUserView: View {
-    @ObservedObject var viewModel: UserViewModel
+    @StateObject private var viewModel: CreateUserViewModel
     @Binding var navigationPath: NavigationPath
     
     @State private var name = ""
     @State private var email = ""
+    
+    init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
+        let userService = UserService(context: context)
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService))
+        self._navigationPath = navigationPath
+    }
+    
+    // For use in sheets where navigation is not needed
+    init(context: NSManagedObjectContext) {
+        let userService = UserService(context: context)
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService))
+        self._navigationPath = .constant(NavigationPath())
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -59,11 +73,20 @@ struct AddUserView: View {
                 }
             }
         }
+        .onChange(of: viewModel.shouldNavigateBack) { oldValue, shouldNavigate in
+            if shouldNavigate {
+                navigationPath.removeLast()
+                viewModel.resetForm()
+            }
+        }
     }
     
     private func addUser() {
-        if viewModel.createUser(name: name, email: email) {
-            navigationPath.removeLast()
+        viewModel.name = name
+        viewModel.email = email
+        
+        Task {
+            await viewModel.createUser()
         }
     }
 }
@@ -71,7 +94,7 @@ struct AddUserView: View {
 #Preview {
     NavigationStack {
         AddUserView(
-            viewModel: UserViewModel(context: PersistenceController.preview.container.viewContext),
+            context: PersistenceController.preview.container.viewContext,
             navigationPath: .constant(NavigationPath())
         )
     }

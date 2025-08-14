@@ -9,50 +9,37 @@ import SwiftUI
 import CoreData
 
 struct MainView: View {
-    @StateObject private var userViewModel: UserViewModel
-    @StateObject private var groupViewModel: GroupViewModel
-    @StateObject private var userGroupViewModel: UserGroupViewModel
+    @StateObject private var detailedGroupViewModel: DetailedGroupViewModel
     @State private var navigationPath = NavigationPath()
     
     init(context: NSManagedObjectContext) {
-        _userViewModel = StateObject(wrappedValue: UserViewModel(context: context))
-        _groupViewModel = StateObject(wrappedValue: GroupViewModel(context: context))
-        _userGroupViewModel = StateObject(wrappedValue: UserGroupViewModel(context: context))
+        let userService = UserService(context: context)
+        let groupService = GroupService(context: context)
+        let userGroupService = UserGroupService(context: context)
+        let entryService = EntryService(context: context)
+        let itemService = ItemService(context: context)
+        let categoryService = CategoryService(context: context)
+        
+        _detailedGroupViewModel = StateObject(wrappedValue: DetailedGroupViewModel(
+            context: context,
+            userService: userService,
+            groupService: groupService,
+            userGroupService: userGroupService,
+            entryService: entryService,
+            itemService: itemService,
+            categoryService: categoryService
+        ))
     }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            DetailedGroupView(
-                userViewModel: userViewModel,
-                groupViewModel: groupViewModel,
-                userGroupViewModel: userGroupViewModel,
-                entryViewModel: EntryViewModel(context: userViewModel.context),
-                navigationPath: $navigationPath
-            )
-            .navigationDestination(for: User.self) { user in
-                EditUserView(
-                    viewModel: userViewModel,
-                    groupViewModel: groupViewModel,
-                    userGroupViewModel: userGroupViewModel,
-                    user: user,
-                    navigationPath: $navigationPath
-                )
-            }
-            .navigationDestination(for: AddUserDestination.self) { _ in
-                AddUserView(viewModel: userViewModel, navigationPath: $navigationPath)
-            }
-            .navigationDestination(for: CreateGroupDestination.self) { destination in
-                CreateGroupView(
-                    detailedGroupViewModel: DetailedGroupViewModel(
-                        userViewModel: userViewModel,
-                        groupViewModel: groupViewModel,
-                        userGroupViewModel: userGroupViewModel,
-                        entryViewModel: EntryViewModel(context: userViewModel.context)
-                    ),
-                    user: destination.user,
-                    navigationPath: $navigationPath
-                )
-            }
+            DetailedGroupView(context: detailedGroupViewModel.context)
+                .navigationDestination(for: User.self) { user in
+                    EditUserView(user: user, context: detailedGroupViewModel.context, navigationPath: $navigationPath)
+                }
+                .navigationDestination(for: AddUserDestination.self) { _ in
+                    AddUserView(context: detailedGroupViewModel.context, navigationPath: $navigationPath)
+                }
         }
     }
 }
@@ -61,11 +48,6 @@ struct MainView: View {
 
 struct AddUserDestination: Hashable {
     let id = UUID()
-}
-
-struct CreateGroupDestination: Hashable {
-    let id = UUID()
-    let user: User
 }
 
 #Preview {

@@ -3,8 +3,13 @@ import CoreData
 
 /// Service class for UserGroup entity operations
 /// Handles all CRUD operations for UserGroup with proper threading
-@MainActor
-class UserGroupService: CoreDataService {
+class UserGroupService: CoreDataService, UserGroupServiceProtocol {
+    
+    // MARK: - Initialization
+    
+    override init(context: NSManagedObjectContext) {
+        super.init(context: context)
+    }
     
     // MARK: - UserGroup CRUD Operations
     
@@ -27,47 +32,34 @@ class UserGroupService: CoreDataService {
     
     /// Create a new user group relationship
     func createUserGroup(user: User, group: Group, role: String = "member") async throws -> UserGroup {
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                let userGroup = UserGroup(context: self.context)
-                userGroup.id = UUID()
-                userGroup.user = user
-                userGroup.group = group
-                userGroup.role = role
-                userGroup.joinedAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume(returning: userGroup)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+        try await context.perform {
+            let userGroup = UserGroup(context: self.context)
+            userGroup.id = UUID()
+            userGroup.user = user
+            userGroup.group = group
+            userGroup.role = role
+            userGroup.joinedAt = Date()
+            
+            try self.context.save()
+            return userGroup
         }
     }
     
     /// Update an existing user group
     func updateUserGroup(_ userGroup: UserGroup, role: String? = nil) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                if let role = role {
-                    userGroup.role = role
-                }
-                // UserGroup doesn't have updatedAt, using joinedAt instead
-                
-                do {
-                    try self.context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+        try await context.perform {
+            if let role = role {
+                userGroup.role = role
             }
+            // UserGroup doesn't have updatedAt, using joinedAt instead
+            
+            try self.context.save()
         }
     }
     
     /// Delete a user group relationship
     func deleteUserGroup(_ userGroup: UserGroup) async throws {
-        try await delete(userGroup)
+        await delete(userGroup)
         try await save()
     }
     

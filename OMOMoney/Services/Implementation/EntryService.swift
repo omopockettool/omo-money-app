@@ -3,8 +3,13 @@ import CoreData
 
 /// Service class for Entry entity operations
 /// Handles all CRUD operations for Entry with proper threading
-@MainActor
-class EntryService: CoreDataService {
+class EntryService: CoreDataService, EntryServiceProtocol {
+    
+    // MARK: - Initialization
+    
+    override init(context: NSManagedObjectContext) {
+        super.init(context: context)
+    }
     
     // MARK: - Entry CRUD Operations
     
@@ -26,55 +31,53 @@ class EntryService: CoreDataService {
     }
     
     /// Create a new entry
-    func createEntry(description: String, date: Date, group: Group, category: Category? = nil) async throws -> Entry {
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                let entry = Entry(context: self.context)
-                entry.id = UUID()
-                entry.entryDescription = description
-                entry.date = date
+    func createEntry(description: String?, date: Date, categoryId: UUID, groupId: UUID) async throws -> Entry {
+        try await context.perform {
+            let entry = Entry(context: self.context)
+            entry.id = UUID()
+            entry.entryDescription = description
+            entry.date = date
+            entry.createdAt = Date()
+            
+            // Set group by ID
+            if let group = try? self.context.fetch(NSFetchRequest<Group>(entityName: "Group")).first(where: { $0.id == groupId }) {
                 entry.group = group
-                entry.category = category
-                entry.createdAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume(returning: entry)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
             }
+            
+            // Set category by ID
+            if let category = try? self.context.fetch(NSFetchRequest<Category>(entityName: "Category")).first(where: { $0.id == categoryId }) {
+                entry.category = category
+            }
+            
+            try self.context.save()
+            return entry
         }
     }
     
     /// Update an existing entry
-    func updateEntry(_ entry: Entry, description: String? = nil, date: Date? = nil, category: Category? = nil) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                if let description = description {
-                    entry.entryDescription = description
-                }
-                if let date = date {
-                    entry.date = date
-                }
-                if let category = category {
-                    entry.category = category
-                }
-                entry.lastModifiedAt = Date()
-                
-                do {
-                    try self.context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+    func updateEntry(_ entry: Entry, description: String? = nil, date: Date? = nil, categoryId: UUID) async throws {
+        try await context.perform {
+            if let description = description {
+                entry.entryDescription = description
             }
+            if let date = date {
+                entry.date = date
+            }
+            
+            // Update category by ID
+            if let category = try? self.context.fetch(NSFetchRequest<Category>(entityName: "Category")).first(where: { $0.id == categoryId }) {
+                entry.category = category
+            }
+            
+            entry.lastModifiedAt = Date()
+            
+            try self.context.save()
         }
     }
     
     /// Delete an entry
     func deleteEntry(_ entry: Entry) async throws {
-        try await delete(entry)
+        await delete(entry)
         try await save()
     }
     

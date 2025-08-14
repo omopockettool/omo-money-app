@@ -12,11 +12,11 @@ class UserListViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     // MARK: - Services
-    private let userService: UserService
+    private let userService: any UserServiceProtocol
     
     // MARK: - Initialization
-    init(context: NSManagedObjectContext) {
-        self.userService = UserService(context: context)
+    init(userService: any UserServiceProtocol) {
+        self.userService = userService
     }
     
     // MARK: - Public Methods

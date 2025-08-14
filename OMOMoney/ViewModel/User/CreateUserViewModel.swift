@@ -14,11 +14,11 @@ class CreateUserViewModel: ObservableObject {
     @Published var shouldNavigateBack = false
     
     // MARK: - Services
-    private let userService: UserService
+    private let userService: any UserServiceProtocol
     
     // MARK: - Initialization
-    init(context: NSManagedObjectContext) {
-        self.userService = UserService(context: context)
+    init(userService: any UserServiceProtocol) {
+        self.userService = userService
     }
     
     // MARK: - Public Methods
@@ -35,7 +35,7 @@ class CreateUserViewModel: ObservableObject {
         
         do {
             // Check if user name already exists
-            let exists = try await userService.userExists(withName: name.trimmingCharacters(in: .whitespacesAndNewlines))
+            let exists = try await userService.userExists(withName: name.trimmingCharacters(in: .whitespacesAndNewlines), excluding: nil)
             if exists {
                 errorMessage = "A user with this name already exists"
                 isLoading = false
