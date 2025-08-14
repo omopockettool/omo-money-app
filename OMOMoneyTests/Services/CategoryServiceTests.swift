@@ -54,19 +54,20 @@ final class CategoryServiceTests: XCTestCase {
         // Given
         let categoryName = "Category without group"
         let categoryColor = "#00FF00"
+        let testGroup = testEntityFactory.createGroup()
         
         // When
         let createdCategory = try await categoryService.createCategory(
             name: categoryName,
             color: categoryColor,
-            group: nil
+            group: testGroup
         )
         
         // Then
         XCTAssertNotNil(createdCategory)
         XCTAssertEqual(createdCategory.name, categoryName)
         XCTAssertEqual(createdCategory.color, categoryColor)
-        XCTAssertNil(createdCategory.group)
+        XCTAssertEqual(createdCategory.group, testGroup)
     }
     
     // MARK: - Fetch Category Tests
@@ -196,7 +197,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testCategoryExists_True() async throws {
         // Given
-        let testCategory = testEntityFactory.createCategory(name: "Unique Category")
+        _ = testEntityFactory.createCategory(name: "Unique Category")
         try mockCoreDataStack.save()
         
         // When
@@ -208,7 +209,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testCategoryExists_False() async throws {
         // Given
-        let testCategory = testEntityFactory.createCategory(name: "Existing Category")
+        _ = testEntityFactory.createCategory(name: "Existing Category")
         try mockCoreDataStack.save()
         
         // When
@@ -222,8 +223,8 @@ final class CategoryServiceTests: XCTestCase {
         // Given
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
-        let category1 = testEntityFactory.createCategory(name: "Same Name", group: group1)
-        let category2 = testEntityFactory.createCategory(name: "Same Name", group: group2)
+        _ = testEntityFactory.createCategory(name: "Same Name", group: group1)
+        _ = testEntityFactory.createCategory(name: "Same Name", group: group2)
         try mockCoreDataStack.save()
         
         // When
@@ -302,7 +303,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testCategoryExists_Caching() async throws {
         // Given
-        let testCategory = testEntityFactory.createCategory(name: "Cache Test Category")
+        _ = testEntityFactory.createCategory(name: "Cache Test Category")
         try mockCoreDataStack.save()
         
         // When - First check (should cache)
@@ -350,7 +351,7 @@ final class CategoryServiceTests: XCTestCase {
         _ = try await categoryService.getCategories(for: testGroup)
         
         // When
-        let newCategory = try await categoryService.createCategory(
+        _ = try await categoryService.createCategory(
             name: "New Category",
             color: "#FF00FF",
             group: testGroup

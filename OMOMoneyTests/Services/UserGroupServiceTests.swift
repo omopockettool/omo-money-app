@@ -63,7 +63,7 @@ final class UserGroupServiceTests: XCTestCase {
     
     func testFetchUserGroups_WithData() async throws {
         // Given
-        let testUserGroups = testEntityFactory.createUserGroups(
+        _ = testEntityFactory.createUserGroups(
             users: testEntityFactory.createUsers(count: 2),
             groups: testEntityFactory.createGroups(count: 2)
         )
@@ -115,9 +115,9 @@ final class UserGroupServiceTests: XCTestCase {
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
         
-        let userGroup1 = testEntityFactory.createUserGroup(user: user1, group: group1)
-        let userGroup2 = testEntityFactory.createUserGroup(user: user1, group: group2)
-        let userGroup3 = testEntityFactory.createUserGroup(user: user2, group: group1)
+        _ = testEntityFactory.createUserGroup(user: user1, group: group1)
+        _ = testEntityFactory.createUserGroup(user: user1, group: group2)
+        _ = testEntityFactory.createUserGroup(user: user2, group: group1)
         
         try mockCoreDataStack.save()
         
@@ -139,9 +139,9 @@ final class UserGroupServiceTests: XCTestCase {
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
         
-        let userGroup1 = testEntityFactory.createUserGroup(user: user1, group: group1)
-        let userGroup2 = testEntityFactory.createUserGroup(user: user2, group: group1)
-        let userGroup3 = testEntityFactory.createUserGroup(user: user1, group: group2)
+        _ = testEntityFactory.createUserGroup(user: user1, group: group1)
+        _ = testEntityFactory.createUserGroup(user: user2, group: group1)
+        _ = testEntityFactory.createUserGroup(user: user1, group: group2)
         
         try mockCoreDataStack.save()
         
@@ -162,8 +162,8 @@ final class UserGroupServiceTests: XCTestCase {
         let user2 = testEntityFactory.createUser(name: "User 2")
         let testGroup = testEntityFactory.createGroup()
         
-        let userGroup1 = testEntityFactory.createUserGroup(user: user1, group: testGroup)
-        let userGroup2 = testEntityFactory.createUserGroup(user: user2, group: testGroup)
+        _ = testEntityFactory.createUserGroup(user: user1, group: testGroup)
+        _ = testEntityFactory.createUserGroup(user: user2, group: testGroup)
         
         try mockCoreDataStack.save()
         
@@ -182,8 +182,8 @@ final class UserGroupServiceTests: XCTestCase {
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
         
-        let userGroup1 = testEntityFactory.createUserGroup(user: testUser, group: group1)
-        let userGroup2 = testEntityFactory.createUserGroup(user: testUser, group: group2)
+        _ = testEntityFactory.createUserGroup(user: testUser, group: group1)
+        _ = testEntityFactory.createUserGroup(user: testUser, group: group2)
         
         try mockCoreDataStack.save()
         
@@ -200,7 +200,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testUser = testEntityFactory.createUser()
         let testGroup = testEntityFactory.createGroup()
-        let userGroup = testEntityFactory.createUserGroup(user: testUser, group: testGroup)
+        _ = testEntityFactory.createUserGroup(user: testUser, group: testGroup)
         try mockCoreDataStack.save()
         
         // When
@@ -293,7 +293,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testUser = testEntityFactory.createUser()
         _ = testEntityFactory.createGroups(count: 2)
-        let testUserGroups = testEntityFactory.createUserGroups(users: [testUser], groups: testGroups)
+        let testUserGroups = testEntityFactory.createUserGroups(users: [testUser], groups: testEntityFactory.createGroups(count: 2))
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -315,7 +315,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testGroup = testEntityFactory.createGroup()
         _ = testEntityFactory.createUsers(count: 2)
-        let testUserGroups = testEntityFactory.createUserGroups(users: testUsers, groups: [testGroup])
+        let testUserGroups = testEntityFactory.createUserGroups(users: testEntityFactory.createUsers(count: 2), groups: [testGroup])
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -337,7 +337,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testUser = testEntityFactory.createUser()
         let testGroup = testEntityFactory.createGroup()
-        let userGroup = testEntityFactory.createUserGroup(user: testUser, group: testGroup)
+        _ = testEntityFactory.createUserGroup(user: testUser, group: testGroup)
         try mockCoreDataStack.save()
         
         // When - First check (should cache)
