@@ -1,0 +1,105 @@
+name: iOS Backend Tests Only
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  XCODE_VERSION: '16.4.0'
+  IOS_VERSION: '18.5'
+
+jobs:
+  # MARK: - Backend Tests Only
+  backend-tests:
+    name: Backend Tests
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+          
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          
+      - name: Install SwiftLint
+        run: |
+          gem install cocoapods
+          gem install xcpretty
+          brew install swiftlint
+          
+      - name: Cache Xcode Derived Data
+        uses: actions/cache@v3
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-derived-data-${{ hashFiles('**/*.xcodeproj') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-derived-data-
+            
+      - name: Cache CocoaPods
+        uses: actions/cache@v3
+        with:
+          path: Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+            
+      - name: Install Dependencies
+        run: |
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
+          
+      - name: SwiftLint
+        run: |
+          swiftlint lint --reporter github-actions-logging
+          
+      - name: Build Project
+        run: |
+          xcodebuild clean build \
+            -project OMOMoney.xcodeproj \
+            -scheme OMOMoney \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
+            -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+          
+      - name: Run Backend Unit Tests
+        run: |
+          # Only run backend unit tests, skip UI tests completely
+          xcodebuild test \
+            -project OMOMoney.xcodeproj \
+            -scheme OMOMoney \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
+            -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+            -only-testing:OMOMoneyTests \
+            -skip-testing:OMOMoneyUITests \
+            -enableCodeCoverage YES \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+            
+      - name: Generate Code Coverage Report
+        run: |
+          xcrun xccov view --report --json \
+            ~/Library/Developer/Xcode/DerivedData/OMOMoney-*/Logs/Test/*.xcresult \
+            > coverage.json
+            
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.json
+          flags: ios-backend
+          name: iOS Backend Coverage
