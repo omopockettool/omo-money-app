@@ -118,6 +118,7 @@ jobs:
           
       - name: Run SwiftLint
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           swiftlint lint --reporter github-actions-logging
           
       - name: Check File Sizes

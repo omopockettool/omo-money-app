@@ -64,6 +64,7 @@ jobs:
           
       - name: SwiftLint
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           swiftlint lint --reporter github-actions-logging
           
       - name: Build Project
