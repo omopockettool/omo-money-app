@@ -268,7 +268,7 @@ final class UserGroupServiceTests: XCTestCase {
     
     func testFetchUserGroups_Caching() async throws {
         // Given
-        let testUserGroups = testEntityFactory.createUserGroups(
+        _ = testEntityFactory.createUserGroups(
             users: testEntityFactory.createUsers(count: 2),
             groups: testEntityFactory.createGroups(count: 2)
         )
@@ -293,7 +293,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testUser = testEntityFactory.createUser()
         _ = testEntityFactory.createGroups(count: 2)
-        let testUserGroups = testEntityFactory.createUserGroups(users: [testUser], groups: testEntityFactory.createGroups(count: 2))
+        _ = testEntityFactory.createUserGroups(users: [testUser], groups: testEntityFactory.createGroups(count: 2))
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -315,7 +315,7 @@ final class UserGroupServiceTests: XCTestCase {
         // Given
         let testGroup = testEntityFactory.createGroup()
         _ = testEntityFactory.createUsers(count: 2)
-        let testUserGroups = testEntityFactory.createUserGroups(users: testEntityFactory.createUsers(count: 2), groups: [testGroup])
+        _ = testEntityFactory.createUserGroups(users: testEntityFactory.createUsers(count: 2), groups: [testGroup])
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)

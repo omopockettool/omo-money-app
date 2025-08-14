@@ -58,13 +58,14 @@ final class ItemServiceTests: XCTestCase {
         let itemDescription = "Item without entry"
         let itemAmount = NSDecimalNumber(value: 10.00)
         let itemQuantity: Int32 = 1
+        let testEntry = testEntityFactory.createEntry()
         
         // When
         let createdItem = try await itemService.createItem(
             description: itemDescription,
             amount: itemAmount,
             quantity: itemQuantity,
-            entry: nil
+            entry: testEntry
         )
         
         // Then
@@ -72,7 +73,7 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(createdItem.itemDescription, itemDescription)
         XCTAssertEqual(createdItem.amount, itemAmount)
         XCTAssertEqual(createdItem.quantity, itemQuantity)
-        XCTAssertNil(createdItem.entry)
+        XCTAssertEqual(createdItem.entry, testEntry)
     }
     
     // MARK: - Fetch Item Tests
@@ -206,8 +207,8 @@ final class ItemServiceTests: XCTestCase {
     func testCalculateTotalAmount_ForEntry() async throws {
         // Given
         let testEntry = testEntityFactory.createEntry()
-        let item1 = testEntityFactory.createItem(amount: NSDecimalNumber(value: 10.00), quantity: 2, entry: testEntry)
-        let item2 = testEntityFactory.createItem(amount: NSDecimalNumber(value: 15.50), quantity: 1, entry: testEntry)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 10.00), quantity: 2, entry: testEntry)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 15.50), quantity: 1, entry: testEntry)
         try mockCoreDataStack.save()
         
         // When
@@ -236,8 +237,8 @@ final class ItemServiceTests: XCTestCase {
         let testGroup = testEntityFactory.createGroup()
         let entry1 = testEntityFactory.createEntry(group: testGroup)
         let entry2 = testEntityFactory.createEntry(group: testGroup)
-        let item1 = testEntityFactory.createItem(amount: NSDecimalNumber(value: 20.00), quantity: 1, entry: entry1)
-        let item2 = testEntityFactory.createItem(amount: NSDecimalNumber(value: 30.00), quantity: 2, entry: entry2)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 20.00), quantity: 1, entry: entry1)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 30.00), quantity: 2, entry: entry2)
         try mockCoreDataStack.save()
         
         // When

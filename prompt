@@ -108,6 +108,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - **Core Data Foundation**: Start with data model, build UI on top
 - **Test-Driven**: Unit tests for each component
 - **Physical Device Testing**: Always test on physical device, not simulator
+- **Device ID**: ALWAYS use "Dennis's iPhone (18.6) (00008120-000A190218614032)" for all testing and build
 - **Dependency Injection**: Services injected into ViewModels for testability
 - **Lifecycle Management**: Proper @StateObject usage for ViewModel persistence
 

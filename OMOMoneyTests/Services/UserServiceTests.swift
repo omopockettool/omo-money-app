@@ -164,7 +164,7 @@ final class UserServiceTests: XCTestCase {
     
     func testUserExists_True() async throws {
         // Given
-        let testUser = testEntityFactory.createUser(name: "Unique Name")
+        _ = testEntityFactory.createUser(name: "Unique Name")
         try mockCoreDataStack.save()
         
         // When
@@ -176,7 +176,7 @@ final class UserServiceTests: XCTestCase {
     
     func testUserExists_False() async throws {
         // Given
-        let testUser = testEntityFactory.createUser(name: "Existing Name")
+        _ = testEntityFactory.createUser(name: "Existing Name")
         try mockCoreDataStack.save()
         
         // When
@@ -189,7 +189,7 @@ final class UserServiceTests: XCTestCase {
     func testUserExists_ExcludingUserId() async throws {
         // Given
         let user1 = testEntityFactory.createUser(name: "Same Name")
-        let user2 = testEntityFactory.createUser(name: "Same Name")
+        _ = testEntityFactory.createUser(name: "Same Name")
         try mockCoreDataStack.save()
         
         // When
@@ -201,7 +201,7 @@ final class UserServiceTests: XCTestCase {
     
     func testUserExists_ExcludingUserIdNotFound() async throws {
         // Given
-        let testUser = testEntityFactory.createUser(name: "Unique Name")
+        _ = testEntityFactory.createUser(name: "Unique Name")
         try mockCoreDataStack.save()
         
         // When
@@ -237,7 +237,7 @@ final class UserServiceTests: XCTestCase {
     
     func testFetchUsers_Caching() async throws {
         // Given
-        let testUsers = testEntityFactory.createUsers(count: 2)
+        _ = testEntityFactory.createUsers(count: 2)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -257,7 +257,7 @@ final class UserServiceTests: XCTestCase {
     
     func testUserExists_Caching() async throws {
         // Given
-        let testUser = testEntityFactory.createUser(name: "Cache Test")
+        _ = testEntityFactory.createUser(name: "Cache Test")
         try mockCoreDataStack.save()
         
         // When - First check (should cache)
@@ -276,7 +276,7 @@ final class UserServiceTests: XCTestCase {
     
     func testGetUsersCount_Caching() async throws {
         // Given
-        let testUsers = testEntityFactory.createUsers(count: 3)
+        _ = testEntityFactory.createUsers(count: 3)
         try mockCoreDataStack.save()
         
         // When - First count (should cache)
@@ -357,7 +357,7 @@ final class UserServiceTests: XCTestCase {
             XCTFail("Should throw an error")
         } catch {
             // Expected to throw an error
-            XCTAssertTrue(error is NSError)
+            XCTAssertNotNil(error)
         }
     }
     
@@ -373,7 +373,7 @@ final class UserServiceTests: XCTestCase {
             XCTFail("Should throw an error")
         } catch {
             // Expected to throw an error
-            XCTAssertTrue(error is NSError)
+            XCTAssertNotNil(error)
         }
     }
 }
