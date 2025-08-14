@@ -32,7 +32,7 @@ jobs:
           bundler-cache: true
           
       - name: Install SwiftLint
-        uses: norio-nomura/action-swiftlint@v3
+        uses: norio-nomura/action-swiftlint@v1
         with:
           args: --reporter github-actions-logging
           

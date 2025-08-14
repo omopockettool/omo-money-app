@@ -113,7 +113,7 @@ jobs:
           python-version: '3.11'
           
       - name: Run SwiftLint
-        uses: norio-nomura/action-swiftlint@v3
+        uses: norio-nomura/action-swiftlint@v1
         with:
           args: --reporter github-actions-logging
           
