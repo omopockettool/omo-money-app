@@ -81,7 +81,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testFetchCategories_WithData() async throws {
         // Given
-        let testCategories = testEntityFactory.createCategories(count: 3)
+        _ = testEntityFactory.createCategories(count: 3)
         try mockCoreDataStack.save()
         
         // When
@@ -121,8 +121,8 @@ final class CategoryServiceTests: XCTestCase {
         // Given
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
-        let categories1 = testEntityFactory.createCategories(count: 2, group: group1)
-        let categories2 = testEntityFactory.createCategories(count: 3, group: group2)
+        _ = testEntityFactory.createCategories(count: 2, group: group1)
+        _ = testEntityFactory.createCategories(count: 3, group: group2)
         try mockCoreDataStack.save()
         
         // When
@@ -247,7 +247,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testGetCategoriesCount_WithData() async throws {
         // Given
-        let testCategories = testEntityFactory.createCategories(count: 5)
+        _ = testEntityFactory.createCategories(count: 5)
         try mockCoreDataStack.save()
         
         // When
@@ -261,7 +261,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testFetchCategories_Caching() async throws {
         // Given
-        let testCategories = testEntityFactory.createCategories(count: 2)
+        _ = testEntityFactory.createCategories(count: 2)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -282,7 +282,7 @@ final class CategoryServiceTests: XCTestCase {
     func testGetCategoriesForGroup_Caching() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testCategories = testEntityFactory.createCategories(count: 3, group: testGroup)
+        _ = testEntityFactory.createCategories(count: 3, group: testGroup)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -321,7 +321,7 @@ final class CategoryServiceTests: XCTestCase {
     
     func testGetCategoriesCount_Caching() async throws {
         // Given
-        let testCategories = testEntityFactory.createCategories(count: 3)
+        _ = testEntityFactory.createCategories(count: 3)
         try mockCoreDataStack.save()
         
         // When - First count (should cache)
@@ -343,7 +343,7 @@ final class CategoryServiceTests: XCTestCase {
     func testCreateCategory_InvalidatesCache() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testCategories = testEntityFactory.createCategories(count: 2, group: testGroup)
+        _ = testEntityFactory.createCategories(count: 2, group: testGroup)
         try mockCoreDataStack.save()
         
         // Prime the cache

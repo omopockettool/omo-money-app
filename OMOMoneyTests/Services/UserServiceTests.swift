@@ -68,7 +68,7 @@ final class UserServiceTests: XCTestCase {
     
     func testFetchUsers_WithData() async throws {
         // Given
-        let testUsers = testEntityFactory.createUsers(count: 3)
+        _ = testEntityFactory.createUsers(count: 3)
         try mockCoreDataStack.save()
         
         // When
@@ -223,7 +223,7 @@ final class UserServiceTests: XCTestCase {
     
     func testGetUsersCount_WithData() async throws {
         // Given
-        let testUsers = testEntityFactory.createUsers(count: 5)
+        _ = testEntityFactory.createUsers(count: 5)
         try mockCoreDataStack.save()
         
         // When
@@ -297,7 +297,7 @@ final class UserServiceTests: XCTestCase {
     
     func testCreateUser_InvalidatesCache() async throws {
         // Given
-        let testUsers = testEntityFactory.createUsers(count: 2)
+        _ = testEntityFactory.createUsers(count: 2)
         try mockCoreDataStack.save()
         
         // Prime the cache

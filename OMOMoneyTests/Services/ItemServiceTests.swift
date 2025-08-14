@@ -87,7 +87,7 @@ final class ItemServiceTests: XCTestCase {
     
     func testFetchItems_WithData() async throws {
         // Given
-        let testItems = testEntityFactory.createItems(count: 3)
+        _ = testEntityFactory.createItems(count: 3)
         try mockCoreDataStack.save()
         
         // When
@@ -127,8 +127,8 @@ final class ItemServiceTests: XCTestCase {
         // Given
         let entry1 = testEntityFactory.createEntry(description: "Entry 1")
         let entry2 = testEntityFactory.createEntry(description: "Entry 2")
-        let items1 = testEntityFactory.createItems(count: 2, entry: entry1)
-        let items2 = testEntityFactory.createItems(count: 3, entry: entry2)
+        _ = testEntityFactory.createItems(count: 2, entry: entry1)
+        _ = testEntityFactory.createItems(count: 3, entry: entry2)
         try mockCoreDataStack.save()
         
         // When
@@ -265,7 +265,7 @@ final class ItemServiceTests: XCTestCase {
     
     func testFetchItems_Caching() async throws {
         // Given
-        let testItems = testEntityFactory.createItems(count: 2)
+        _ = testEntityFactory.createItems(count: 2)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -286,7 +286,7 @@ final class ItemServiceTests: XCTestCase {
     func testGetItemsForEntry_Caching() async throws {
         // Given
         let testEntry = testEntityFactory.createEntry()
-        let testItems = testEntityFactory.createItems(count: 3, entry: testEntry)
+        _ = testEntityFactory.createItems(count: 3, entry: testEntry)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -307,7 +307,7 @@ final class ItemServiceTests: XCTestCase {
     func testCalculateTotalAmount_Caching() async throws {
         // Given
         let testEntry = testEntityFactory.createEntry()
-        let testItems = testEntityFactory.createItems(count: 2, entry: testEntry)
+        _ = testEntityFactory.createItems(count: 2, entry: testEntry)
         try mockCoreDataStack.save()
         
         // When - First calculation (should cache)
@@ -328,7 +328,7 @@ final class ItemServiceTests: XCTestCase {
     func testCreateItem_InvalidatesCache() async throws {
         // Given
         let testEntry = testEntityFactory.createEntry()
-        let testItems = testEntityFactory.createItems(count: 2, entry: testEntry)
+        _ = testEntityFactory.createItems(count: 2, entry: testEntry)
         try mockCoreDataStack.save()
         
         // Prime the cache

@@ -292,7 +292,7 @@ final class UserGroupServiceTests: XCTestCase {
     func testGetUserGroupsForUser_Caching() async throws {
         // Given
         let testUser = testEntityFactory.createUser()
-        let testGroups = testEntityFactory.createGroups(count: 2)
+        _ = testEntityFactory.createGroups(count: 2)
         let testUserGroups = testEntityFactory.createUserGroups(users: [testUser], groups: testGroups)
         try mockCoreDataStack.save()
         
@@ -314,7 +314,7 @@ final class UserGroupServiceTests: XCTestCase {
     func testGetUserGroupsForGroup_Caching() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testUsers = testEntityFactory.createUsers(count: 2)
+        _ = testEntityFactory.createUsers(count: 2)
         let testUserGroups = testEntityFactory.createUserGroups(users: testUsers, groups: [testGroup])
         try mockCoreDataStack.save()
         

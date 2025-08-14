@@ -34,8 +34,8 @@ final class EntryServiceTests: XCTestCase {
         let createdEntry = try await entryService.createEntry(
             description: entryDescription,
             date: entryDate,
-            category: testCategory,
-            group: testGroup
+            categoryId: testCategory.id ?? UUID(),
+            groupId: testGroup.id ?? UUID()
         )
         
         // Then
@@ -64,8 +64,8 @@ final class EntryServiceTests: XCTestCase {
         let createdEntry = try await entryService.createEntry(
             description: entryDescription,
             date: entryDate,
-            category: nil,
-            group: testGroup
+            categoryId: UUID(), // Generate a new UUID for testing
+            groupId: testGroup.id ?? UUID()
         )
         
         // Then
@@ -88,7 +88,7 @@ final class EntryServiceTests: XCTestCase {
     func testFetchEntries_WithData() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testEntries = testEntityFactory.createEntries(count: 3, group: testGroup)
+        _ = testEntityFactory.createEntries(count: 3, group: testGroup)
         try mockCoreDataStack.save()
         
         // When
@@ -128,8 +128,8 @@ final class EntryServiceTests: XCTestCase {
         // Given
         let group1 = testEntityFactory.createGroup(name: "Group 1")
         let group2 = testEntityFactory.createGroup(name: "Group 2")
-        let entries1 = testEntityFactory.createEntries(count: 2, group: group1)
-        let entries2 = testEntityFactory.createEntries(count: 3, group: group2)
+        _ = testEntityFactory.createEntries(count: 2, group: group1)
+        _ = testEntityFactory.createEntries(count: 3, group: group2)
         try mockCoreDataStack.save()
         
         // When
@@ -148,8 +148,8 @@ final class EntryServiceTests: XCTestCase {
         let testGroup = testEntityFactory.createGroup()
         let category1 = testEntityFactory.createCategory(name: "Category 1", group: testGroup)
         let category2 = testEntityFactory.createCategory(name: "Category 2", group: testGroup)
-        let entries1 = testEntityFactory.createEntries(count: 2, category: category1, group: testGroup)
-        let entries2 = testEntityFactory.createEntries(count: 3, category: category2, group: testGroup)
+        _ = testEntityFactory.createEntries(count: 2, category: category1, group: testGroup)
+        _ = testEntityFactory.createEntries(count: 3, category: category2, group: testGroup)
         try mockCoreDataStack.save()
         
         // When
@@ -174,7 +174,7 @@ final class EntryServiceTests: XCTestCase {
         let newDate = Date().addingTimeInterval(86400) // Tomorrow
         
         // When
-        try await entryService.updateEntry(testEntry, description: newDescription, date: newDate)
+        try await entryService.updateEntry(testEntry, description: newDescription, date: newDate, categoryId: testEntry.category?.id ?? UUID())
         
         // Then
         XCTAssertEqual(testEntry.entryDescription, newDescription)
@@ -206,7 +206,7 @@ final class EntryServiceTests: XCTestCase {
     
     func testFetchEntries_Caching() async throws {
         // Given
-        let testEntries = testEntityFactory.createEntries(count: 2)
+        _ = testEntityFactory.createEntries(count: 2)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -227,7 +227,7 @@ final class EntryServiceTests: XCTestCase {
     func testGetEntriesForGroup_Caching() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testEntries = testEntityFactory.createEntries(count: 3, group: testGroup)
+        _ = testEntityFactory.createEntries(count: 3, group: testGroup)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -248,7 +248,7 @@ final class EntryServiceTests: XCTestCase {
     func testGetEntriesForCategory_Caching() async throws {
         // Given
         let testCategory = testEntityFactory.createCategory()
-        let testEntries = testEntityFactory.createEntries(count: 2, category: testCategory)
+        _ = testEntityFactory.createEntries(count: 2, category: testCategory)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -271,7 +271,7 @@ final class EntryServiceTests: XCTestCase {
     func testCreateEntry_InvalidatesCache() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let testEntries = testEntityFactory.createEntries(count: 2, group: testGroup)
+        _ = testEntityFactory.createEntries(count: 2, group: testGroup)
         try mockCoreDataStack.save()
         
         // Prime the cache
@@ -281,8 +281,8 @@ final class EntryServiceTests: XCTestCase {
         _ = try await entryService.createEntry(
             description: "New Entry",
             date: Date(),
-            category: nil,
-            group: testGroup
+            categoryId: UUID(), // Generate a new UUID for testing
+            groupId: testGroup.id ?? UUID()
         )
         
         // Then - Cache should be invalidated, so we get fresh data
@@ -300,7 +300,7 @@ final class EntryServiceTests: XCTestCase {
         _ = try await entryService.fetchEntries()
         
         // When
-        try await entryService.updateEntry(testEntry, description: "Updated Entry")
+        try await entryService.updateEntry(testEntry, description: "Updated Entry", categoryId: testEntry.category?.id ?? UUID())
         
         // Then - Cache should be invalidated
         let updatedEntry = try await entryService.fetchEntry(by: testEntry.id!)
