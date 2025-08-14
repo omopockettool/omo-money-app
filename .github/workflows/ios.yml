@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  XCODE_VERSION: '15.2'
+  XCODE_VERSION: '16.4.0'
   IOS_VERSION: '18.5'
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
       - name: Install SwiftLint
         run: |
           gem install cocoapods
-          gem install swiftlint
+          brew install swiftlint
           
       - name: Cache Xcode Derived Data
         uses: actions/cache@v3
