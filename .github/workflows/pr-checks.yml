@@ -6,7 +6,7 @@ on:
     types: [ opened, synchronize, reopened ]
 
 env:
-  XCODE_VERSION: '15.2'
+  XCODE_VERSION: '16.4.0'
   IOS_VERSION: '18.5'
 
 jobs:
