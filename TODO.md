@@ -366,3 +366,91 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 ---
 
 **RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**
+
+## 🚀 **PRÓXIMOS PASOS RECOMENDADOS - IMPLEMENTACIÓN INMEDIATA**
+
+### ✅ **COMPLETADO EN ESTA ITERACIÓN**
+- [x] **Corregir CoreDataService Architecture** - Eliminar herencia ObservableObject ✅
+- [x] **Refactorizar Validación Asíncrona** - Corregir EditUserViewModel ✅
+- [x] **Implementar Lazy Loading Avanzado** - LazyVStack y paginación ✅
+- [x] **Sistema de Caching Inteligente** - CacheManager para datos y validaciones ✅
+- [x] **Sistema de Animaciones Suaves** - AnimationHelper y transiciones ✅
+
+### 🔧 **PRÓXIMOS PASOS INMEDIATOS**
+
+#### 1. **Implementar Cache en Otros Servicios** 💾
+- [ ] **CategoryService**: Agregar cache para categorías y validaciones
+- [ ] **ItemService**: Agregar cache para items y cálculos de montos
+- [ ] **UserGroupService**: Agregar cache para relaciones usuario-grupo
+- [ ] **Cache Invalidation**: Implementar invalidación automática en todos los servicios
+- [ ] **Cache Statistics**: Agregar métricas de performance del cache
+
+#### 2. **Testing Unitario con Nueva Arquitectura** 🧪
+- [ ] **Service Tests**: Tests unitarios para todos los servicios con mocking
+- [ ] **ViewModel Tests**: Tests para ViewModels con servicios inyectados
+- [ ] **Cache Tests**: Tests para verificar funcionamiento del sistema de cache
+- [ ] **Performance Tests**: Tests de performance para operaciones con cache
+- [ ] **Integration Tests**: Tests de integración entre capas
+
+#### 3. **Performance Monitoring y Optimización** 📊
+- [ ] **Cache Hit Rate**: Monitorear tasa de aciertos del cache
+- [ ] **Memory Usage**: Optimizar uso de memoria del cache
+- [ ] **Background Operations**: Monitorear performance de operaciones async
+- [ ] **UI Responsiveness**: Medir tiempo de respuesta de la UI
+- [ ] **Core Data Performance**: Optimizar queries y operaciones de base de datos
+
+#### 4. **Business Logic Implementation - Phase 3** 🏗️
+- [ ] **Expense Calculation Engine**: Motor de cálculos de gastos
+- [ ] **Category Management**: Sistema completo de gestión de categorías
+- [ ] **Group Sharing Logic**: Lógica de compartir gastos entre usuarios
+- [ ] **Currency Conversion**: Sistema de conversión de monedas
+- [ ] **Budget Management**: Gestión de presupuestos por grupo
+
+#### 5. **Advanced Features Implementation** 🚀
+- [ ] **Real-time Updates**: Actualizaciones en tiempo real entre usuarios
+- [ ] **Offline Support**: Sincronización offline con Core Data
+- [ ] **Data Export**: Exportación de datos en múltiples formatos
+- [ ] **Push Notifications**: Notificaciones para recordatorios y actualizaciones
+- [ ] **Analytics Dashboard**: Dashboard de análisis de gastos
+
+### 📈 **MÉTRICAS DE PERFORMANCE OBJETIVO**
+- **Cache Hit Rate**: >80% para operaciones frecuentes
+- **UI Response Time**: <100ms para operaciones de usuario
+- **Background Operations**: <500ms para operaciones Core Data
+- **Memory Usage**: <50MB para cache en uso activo
+- **App Launch Time**: <2 segundos para carga inicial
+
+### 🎯 **CRITERIOS DE ÉXITO**
+- [ ] **Performance**: UI completamente fluida sin bloqueos
+- [ ] **Scalability**: App maneja 1000+ usuarios sin degradación
+- [ ] **Reliability**: 99.9% uptime para operaciones críticas
+- [ ] **User Experience**: Transiciones suaves y feedback inmediato
+- [ ] **Code Quality**: 100% cobertura de tests y 0 warnings
+
+### 🔄 **ITERACIONES PLANIFICADAS**
+
+#### **Iteración 1 (Siguiente Sprint)**
+- Implementar cache en CategoryService e ItemService
+- Crear tests unitarios básicos para servicios
+- Implementar métricas básicas de performance
+
+#### **Iteración 2 (Sprint +2)**
+- Implementar cache en UserGroupService
+- Crear tests unitarios para ViewModels
+- Implementar sistema de métricas avanzado
+
+#### **Iteración 3 (Sprint +3)**
+- Implementar motor de cálculos de gastos
+- Crear tests de integración
+- Optimizar performance basado en métricas
+
+#### **Iteración 4 (Sprint +4)**
+- Implementar features avanzadas
+- Tests de performance y stress
+- Preparación para producción
+
+---
+
+**ESTADO ACTUAL: ✅ FASE 2.5 COMPLETADA - Arquitectura MVVM sólida con Swift Concurrency optimizado**
+
+**PRÓXIMO OBJETIVO: 🚀 IMPLEMENTAR CACHE COMPLETO EN TODOS LOS SERVICIOS + TESTING UNITARIO**

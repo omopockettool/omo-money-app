@@ -2,8 +2,17 @@ import Foundation
 import CoreData
 
 /// Service class for Item entity operations
-/// Handles all CRUD operations for Item with proper threading
+/// Handles all CRUD operations for Item with proper threading and caching
 class ItemService: CoreDataService, ItemServiceProtocol {
+    
+    // MARK: - Cache Keys
+    enum CacheKeys {
+        static let allItems = "ItemService.allItems"
+        static let entryItems = "ItemService.entryItems"
+        static let groupItems = "ItemService.groupItems"
+        static let entryTotalAmount = "ItemService.entryTotalAmount"
+        static let groupTotalAmount = "ItemService.groupTotalAmount"
+    }
     
     // MARK: - Initialization
     
@@ -13,11 +22,22 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     
     // MARK: - Item CRUD Operations
     
-    /// Fetch all items
+    /// Fetch all items with caching
     func fetchItems() async throws -> [Item] {
+        // Check cache first
+        if let cachedItems: [Item] = await CacheManager.shared.getCachedData(for: CacheKeys.allItems) {
+            return cachedItems
+        }
+        
+        // Fetch from Core Data
         let request: NSFetchRequest<Item> = Item.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        return try await fetch(request)
+        let items = try await fetch(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(items, for: CacheKeys.allItems)
+        
+        return items
     }
     
     /// Fetch item by ID
@@ -32,7 +52,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     
     /// Create a new item
     func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, entry: Entry) async throws -> Item {
-        try await context.perform {
+        let item = try await context.perform {
             let item = Item(context: self.context)
             item.id = UUID()
             item.itemDescription = description
@@ -44,6 +64,15 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             try self.context.save()
             return item
         }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.entryItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.entryTotalAmount)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
+        
+        return item
     }
     
     /// Update an existing item
@@ -62,44 +91,110 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             
             try self.context.save()
         }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.entryItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.entryTotalAmount)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
     }
     
     /// Delete an item
     func deleteItem(_ item: Item) async throws {
         await delete(item)
         try await save()
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.entryItems)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.entryTotalAmount)
+        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
     }
     
-    /// Get items for a specific entry
+    /// Get items for a specific entry with caching
     func getItems(for entry: Entry) async throws -> [Item] {
+        let cacheKey = "\(CacheKeys.entryItems).\(entry.id?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedItems: [Item] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cachedItems
+        }
+        
+        // Fetch from Core Data
         let request: NSFetchRequest<Item> = Item.fetchRequest()
         request.predicate = NSPredicate(format: "entry == %@", entry)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        return try await fetch(request)
+        let items = try await fetch(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(items, for: cacheKey)
+        
+        return items
     }
     
-    /// Get items for a specific group
+    /// Get items for a specific group with caching
     func getItems(for group: Group) async throws -> [Item] {
+        let cacheKey = "\(CacheKeys.groupItems).\(group.id?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedItems: [Item] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cachedItems
+        }
+        
+        // Fetch from Core Data
         let request: NSFetchRequest<Item> = Item.fetchRequest()
         request.predicate = NSPredicate(format: "entry.group == %@", group)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        return try await fetch(request)
+        let items = try await fetch(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(items, for: cacheKey)
+        
+        return items
     }
     
-    /// Calculate total amount for a specific entry
+    /// Calculate total amount for a specific entry with caching
     func calculateTotalAmount(for entry: Entry) async throws -> NSDecimalNumber {
+        let cacheKey = "\(CacheKeys.entryTotalAmount).\(entry.id?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedAmount: NSDecimalNumber = await CacheManager.shared.getCachedCalculation(for: cacheKey) {
+            return cachedAmount
+        }
+        
+        // Calculate from Core Data
         let items = try await getItems(for: entry)
-        return items.reduce(NSDecimalNumber.zero) { total, item in
+        let total = items.reduce(NSDecimalNumber.zero) { total, item in
             total.adding(item.amount ?? NSDecimalNumber.zero)
         }
+        
+        // Cache the result
+        await CacheManager.shared.cacheCalculation(total, for: cacheKey)
+        
+        return total
     }
     
-    /// Calculate total amount for a specific group
+    /// Calculate total amount for a specific group with caching
     func calculateTotalAmount(for group: Group) async throws -> NSDecimalNumber {
+        let cacheKey = "\(CacheKeys.groupTotalAmount).\(group.id?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedAmount: NSDecimalNumber = await CacheManager.shared.getCachedCalculation(for: cacheKey) {
+            return cachedAmount
+        }
+        
+        // Calculate from Core Data
         let items = try await getItems(for: group)
-        return items.reduce(NSDecimalNumber.zero) { total, item in
+        let total = items.reduce(NSDecimalNumber.zero) { total, item in
             total.adding(item.amount ?? NSDecimalNumber.zero)
         }
+        
+        // Cache the result
+        await CacheManager.shared.cacheCalculation(total, for: cacheKey)
+        
+        return total
     }
     
     /// Get items count
