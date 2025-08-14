@@ -57,8 +57,14 @@ class EntryDetailViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
+        guard let categoryId = category.id else {
+            errorMessage = "Invalid category ID"
+            isLoading = false
+            return false
+        }
+        
         do {
-            try await entryService.updateEntry(entry, description: description, date: date, categoryId: category.id!)
+            try await entryService.updateEntry(entry, description: description, date: date, categoryId: categoryId)
             isLoading = false
             return true
         } catch {

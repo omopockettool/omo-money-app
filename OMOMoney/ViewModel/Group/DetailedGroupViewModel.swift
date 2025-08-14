@@ -63,8 +63,9 @@ class DetailedGroupViewModel: ObservableObject {
             
             // Create default group if none exist
             if groups.isEmpty && !users.isEmpty {
+                guard let firstUser = users.first else { return }
                 let defaultGroup = try await groupService.createGroup(name: "Grupo Principal", currency: "USD")
-                _ = try await userGroupService.createUserGroup(user: users.first!, group: defaultGroup, role: "owner")
+                _ = try await userGroupService.createUserGroup(user: firstUser, group: defaultGroup, role: "owner")
                 groups = [defaultGroup]
             }
         } catch {
@@ -99,7 +100,7 @@ class DetailedGroupViewModel: ObservableObject {
         guard !users.isEmpty else { return }
         
         // Auto-select first user
-        let firstUser = users.first!
+        guard let firstUser = users.first else { return }
         selectedUser = firstUser
         
         // Get groups for the first user
@@ -250,7 +251,8 @@ class DetailedGroupViewModel: ObservableObject {
             ]
             
             for (categoryName, categoryColor) in testCategories {
-                _ = try await categoryService.createCategory(name: categoryName, color: categoryColor, group: groups.first!)
+                guard let firstGroup = groups.first else { continue }
+                _ = try await categoryService.createCategory(name: categoryName, color: categoryColor, group: firstGroup)
             }
             
         } catch {

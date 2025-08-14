@@ -83,11 +83,17 @@ class EntryListViewModel: ObservableObject {
         errorMessage = nil
         
         do {
+            guard let categoryId = category.id, let groupId = group.id else {
+                errorMessage = "Invalid category or group ID"
+                isLoading = false
+                return false
+            }
+            
             let newEntry = try await entryService.createEntry(
                 description: description, 
                 date: date, 
-                categoryId: category.id!, 
-                groupId: group.id!
+                categoryId: categoryId, 
+                groupId: groupId
             )
             entries.insert(newEntry, at: 0) // Add at beginning since entries are sorted by date desc
             isLoading = false
