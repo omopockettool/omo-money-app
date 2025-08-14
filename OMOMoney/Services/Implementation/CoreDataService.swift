@@ -3,7 +3,7 @@ import CoreData
 
 /// Base service class for Core Data operations
 /// Provides common CRUD functionality and ensures proper threading
-class CoreDataService: ObservableObject {
+class CoreDataService {
     let context: NSManagedObjectContext
     
     init(context: NSManagedObjectContext) {
