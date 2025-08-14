@@ -134,7 +134,7 @@ final class GroupServiceTests: XCTestCase {
     
     func testGroupExists_True() async throws {
         // Given
-        let testGroup = testEntityFactory.createGroup(name: "Unique Group")
+        _ = testEntityFactory.createGroup(name: "Unique Group")
         try mockCoreDataStack.save()
         
         // When
@@ -146,7 +146,7 @@ final class GroupServiceTests: XCTestCase {
     
     func testGroupExists_False() async throws {
         // Given
-        let testGroup = testEntityFactory.createGroup(name: "Existing Group")
+        _ = testEntityFactory.createGroup(name: "Existing Group")
         try mockCoreDataStack.save()
         
         // When
@@ -182,7 +182,7 @@ final class GroupServiceTests: XCTestCase {
     
     func testFetchGroups_Caching() async throws {
         // Given
-        let testGroups = testEntityFactory.createGroups(count: 2)
+        _ = testEntityFactory.createGroups(count: 2)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
@@ -202,7 +202,7 @@ final class GroupServiceTests: XCTestCase {
     
     func testGroupExists_Caching() async throws {
         // Given
-        let testGroup = testEntityFactory.createGroup(name: "Cache Test Group")
+        _ = testEntityFactory.createGroup(name: "Cache Test Group")
         try mockCoreDataStack.save()
         
         // When - First check (should cache)
