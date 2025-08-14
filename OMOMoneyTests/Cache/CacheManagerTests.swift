@@ -7,12 +7,11 @@ final class CacheManagerTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        cacheManager = CacheManager.shared
-        cacheManager.clearAllCaches()
+        // CacheManager will be accessed in each test method using @MainActor
     }
     
     override func tearDown() {
-        cacheManager.clearAllCaches()
+        // Cleanup will be handled in each test method
         super.tearDown()
     }
     
@@ -20,10 +19,15 @@ final class CacheManagerTests: XCTestCase {
     
     func testDataCache_StoreAndRetrieve() async {
         // Given
-        let testData = ["test": "value", "number": 42]
+        let testData: [String: Any] = ["test": "value", "number": 42]
         let cacheKey = "test.data"
         
-        // When
+        // When - Access CacheManager from main actor context
+        await MainActor.run {
+            cacheManager = CacheManager.shared
+            cacheManager.clearAllCaches()
+        }
+        
         await cacheManager.cacheData(testData, for: cacheKey)
         let retrievedData: [String: Any]? = await cacheManager.getCachedData(for: cacheKey)
         
@@ -268,7 +272,7 @@ final class CacheManagerTests: XCTestCase {
     func testTypeSafety_DifferentTypes() async {
         // Given
         let stringData = "string data"
-        let intData = 42
+        _ = 42
         let cacheKey = "type.test"
         
         // When
@@ -284,7 +288,7 @@ final class CacheManagerTests: XCTestCase {
     
     func testTypeSafety_ComplexTypes() async {
         // Given
-        let complexData = ["users": ["John", "Jane"], "count": 2, "active": true]
+        let complexData: [String: Any] = ["users": ["John", "Jane"], "count": 2, "active": true]
         let cacheKey = "complex.type"
         
         // When
