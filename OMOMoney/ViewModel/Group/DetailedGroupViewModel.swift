@@ -166,7 +166,26 @@ class DetailedGroupViewModel: ObservableObject {
         await calculateTotalForGroup(group)
     }
     
-    /// Create a new group
+    /// Refresh data after group creation
+    func refreshDataAfterGroupCreation() async {
+        do {
+            // Reload groups to include the newly created one
+            groups = try await groupService.fetchGroups()
+            
+            // If we have a selected user, try to find their newly created group
+            if let selectedUser = selectedUser {
+                let userGroups = await groups(for: selectedUser)
+                if let newestGroup = userGroups.last {
+                    selectedGroup = newestGroup
+                    await calculateTotalForGroup(newestGroup)
+                }
+            }
+        } catch {
+            errorMessage = "Error refreshing data: \(error.localizedDescription)"
+        }
+    }
+    
+    /// Create a new group with default categories
     func createGroup(name: String, currency: String, user: User) async {
         isCreatingGroup = true
         groupCreationError = nil
@@ -179,7 +198,24 @@ class DetailedGroupViewModel: ObservableObject {
             // Create the user-group relationship
             _ = try await userGroupService.createUserGroup(user: user, group: newGroup, role: "owner")
             
-            // Update state
+            // Create default categories for the new group
+            let defaultCategories = [
+                ("Comida", "#FF6B6B"),
+                ("Transporte", "#4ECDC4"),
+                ("Entretenimiento", "#45B7D1"),
+                ("Compras", "#96CEB4"),
+                ("Salud", "#FFEAA7"),
+                ("Otros", "#8E8E93")
+            ]
+            
+            for (categoryName, categoryColor) in defaultCategories {
+                _ = try await categoryService.createCategory(name: categoryName, color: categoryColor, group: newGroup)
+            }
+            
+            // ✅ REACTIVO: Actualizar el array @Published automáticamente
+            groups.append(newGroup)
+            
+            // ✅ REACTIVO: SwiftUI se actualiza automáticamente
             selectedGroup = newGroup
             groupCreationSuccess = true
             shouldNavigateBack = true

@@ -33,21 +33,37 @@ struct MainView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            DetailedGroupView(context: detailedGroupViewModel.context)
+            DetailedGroupView(
+                context: detailedGroupViewModel.context,
+                navigationPath: $navigationPath
+            )
                 .navigationDestination(for: User.self) { user in
                     EditUserView(user: user, context: detailedGroupViewModel.context, navigationPath: $navigationPath)
                 }
                 .navigationDestination(for: AddUserDestination.self) { _ in
                     AddUserView(context: detailedGroupViewModel.context, navigationPath: $navigationPath)
                 }
+                .navigationDestination(for: CreateGroupDestination.self) { destination in
+                    switch destination {
+                    case .createGroup(let user):
+                        CreateGroupView(
+                            context: detailedGroupViewModel.context, 
+                            user: user,
+                            navigationPath: $navigationPath
+                        )
+                    }
+                }
         }
     }
 }
 
 // MARK: - Navigation Destinations
-
 struct AddUserDestination: Hashable {
     let id = UUID()
+}
+
+enum CreateGroupDestination: Hashable {
+    case createGroup(User)
 }
 
 #Preview {

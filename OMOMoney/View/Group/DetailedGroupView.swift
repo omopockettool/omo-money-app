@@ -4,10 +4,9 @@ import SwiftUI
 struct DetailedGroupView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: DetailedGroupViewModel
-    @State private var showingCreateGroup = false
-    @State private var showingSettings = false
+    @Binding var navigationPath: NavigationPath
     
-    init(context: NSManagedObjectContext) {
+    init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
         let userService = UserService(context: context)
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
@@ -24,159 +23,182 @@ struct DetailedGroupView: View {
             itemService: itemService,
             categoryService: categoryService
         ))
+        self._navigationPath = navigationPath
     }
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Header with Settings button
-                HStack {
-                    Spacer()
-                    Button(
-                        action: { showingSettings = true },
-                        label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundColor(.primary)
+        VStack(spacing: 0) {
+            // Header with Settings button
+            HStack {
+                Spacer()
+                Button(
+                    action: { 
+                        // ✅ SIMPLIFICADO: Solo mostrar mensaje por ahora
+                        print("Settings button tapped")
+                    },
+                    label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title2)
+                            .foregroundColor(.primary)
+                    }
+                )
+            }
+            .padding()
+            
+            // Main Content
+            if viewModel.isLoading {
+                LoadingView(message: "Cargando datos...")
+                    .padding()
+            } else if viewModel.users.isEmpty {
+                // No users exist
+                VStack(spacing: 16) {
+                    Text("No hay usuarios creados")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    Button("Crear Primer Usuario") {
+                        Task {
+                            await viewModel.createDefaultUser()
                         }
-                    )
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
-                
-                // Main Content
-                if viewModel.isLoading {
-                    LoadingView(message: "Cargando datos...")
-                        .padding()
-                } else if viewModel.users.isEmpty {
-                    // No users exist
-                    VStack(spacing: 16) {
-                        Text("No hay usuarios creados")
+            } else {
+                // User and Group Selection
+                VStack(spacing: 16) {
+                    // User Selection Dropdown
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Usuario")
                             .font(.headline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         
-                        Button("Crear Primer Usuario") {
-                            Task {
-                                await viewModel.createDefaultUser()
+                        Picker("Usuario", selection: $viewModel.selectedUser) {
+                            Text("Seleccionar Usuario").tag(nil as User?)
+                            ForEach(viewModel.users) { user in
+                                Text(user.name ?? "Sin nombre").tag(user as User?)
                             }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .pickerStyle(MenuPickerStyle())
+                        .onChange(of: viewModel.selectedUser) { _, newUser in
+                            if let user = newUser {
+                                Task {
+                                    await viewModel.selectUser(user)
+                                }
+                            }
+                        }
                     }
-                    .padding()
-                } else {
-                    // User and Group Selection
-                    VStack(spacing: 16) {
-                        // User Selection Dropdown
+                    .padding(.horizontal)
+                    
+                    // Group Selection Dropdown (only show if user is selected)
+                    if viewModel.selectedUser != nil {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Usuario")
+                            Text("Grupo")
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             
-                            Picker("Usuario", selection: $viewModel.selectedUser) {
-                                Text("Seleccionar Usuario").tag(nil as User?)
-                                ForEach(viewModel.users) { user in
-                                    Text(user.name ?? "Sin nombre").tag(user as User?)
+                            Picker("Grupo", selection: $viewModel.selectedGroup) {
+                                Text("Seleccionar Grupo").tag(nil as Group?)
+                                ForEach(userGroupsForSelectedUser, id: \.id) { group in
+                                    Text(group.name ?? "Sin nombre").tag(group as Group?)
                                 }
                             }
                             .pickerStyle(MenuPickerStyle())
-                            .onChange(of: viewModel.selectedUser) { _, newUser in
-                                if let user = newUser {
+                            .onChange(of: viewModel.selectedGroup) { _, newGroup in
+                                if let group = newGroup {
                                     Task {
-                                        await viewModel.selectUser(user)
+                                        await viewModel.calculateTotalForGroup(group)
                                     }
                                 }
                             }
                         }
                         .padding(.horizontal)
                         
-                        // Group Selection Dropdown (only show if user is selected)
-                        if viewModel.selectedUser != nil {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Grupo")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Picker("Grupo", selection: $viewModel.selectedGroup) {
-                                    Text("Seleccionar Grupo").tag(nil as Group?)
-                                    ForEach(userGroupsForSelectedUser, id: \.id) { group in
-                                        Text(group.name ?? "Sin nombre").tag(group as Group?)
-                                    }
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .onChange(of: viewModel.selectedGroup) { _, newGroup in
-                                    if let group = newGroup {
-                                        Task {
-                                            await viewModel.calculateTotalForGroup(group)
-                                        }
-                                    }
-                                }
+                        // Create Group Button
+                        Button("Crear Nuevo Grupo") {
+                            // ✅ NAVEGACIÓN REAL: Navegar a CreateGroupView con usuario
+                            if let selectedUser = viewModel.selectedUser {
+                                navigationPath.append(CreateGroupDestination.createGroup(selectedUser))
                             }
-                            .padding(.horizontal)
-                            
-                            // Create Group Button
-                            Button("Crear Nuevo Grupo") {
-                                showingCreateGroup = true
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .padding(.horizontal)
                         }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.horizontal)
+                    }
+                }
+            }
+            
+            // Total Spent Widget
+            if let group = viewModel.selectedGroup {
+                VStack {
+                    Text("Total Gastado")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    if viewModel.isCalculatingTotal {
+                        StyledLoadingView(message: "", style: .compact)
+                    } else {
+                        Text(viewModel.formatCurrency(viewModel.groupTotal, currency: group.currency ?? "USD"))
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                .onAppear {
+                    Task {
+                        await viewModel.calculateTotalForGroup(group)
                     }
                 }
                 
-                // Total Spent Widget
-                if let group = viewModel.selectedGroup {
-                    VStack {
-                        Text("Total Gastado")
+                // Add New Entry Button
+                Button(action: {
+                    // ✅ SIMPLIFICADO: Solo mostrar mensaje por ahora
+                    print("Add Entry button tapped")
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                        Text("Agregar Nuevo Entry")
                             .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        if viewModel.isCalculatingTotal {
-                            StyledLoadingView(message: "", style: .compact)
-                        } else {
-                            Text(viewModel.formatCurrency(viewModel.groupTotal, currency: group.currency ?? "USD"))
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                        }
                     }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.blue)
                     .cornerRadius(12)
-                    .padding(.horizontal)
-                    .onAppear {
-                        Task {
-                            await viewModel.calculateTotalForGroup(group)
-                        }
-                    }
-                    
-                    // Entries List
-                    List {
-                        ForEach(viewModel.entries, id: \.id) { entry in
-                            EntryRowView(entry: entry, context: viewContext)
-                        }
-                    }
-                    .listStyle(PlainListStyle())
-                } else {
-                    Spacer()
-                    Text("Selecciona un grupo para ver los gastos")
-                        .foregroundColor(.secondary)
-                        .font(.headline)
-                    Spacer()
                 }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
+                // Entries List
+                List {
+                    ForEach(viewModel.entries, id: \.id) { entry in
+                        EntryRowView(entry: entry, context: viewContext)
+                    }
+                }
+                .listStyle(PlainListStyle())
+            } else {
+                Spacer()
+                Text("Selecciona un grupo para ver los gastos")
+                    .foregroundColor(.secondary)
+                    .font(.headline)
+                Spacer()
             }
-            .navigationTitle("OMOMoney")
-            .navigationBarTitleDisplayMode(.large)
         }
-        .sheet(isPresented: $showingCreateGroup) {
-            if let selectedUser = viewModel.selectedUser {
-                CreateGroupView(context: viewContext, user: selectedUser)
-            }
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(isPresented: $showingSettings, navigationPath: .constant(NavigationPath()))
-        }
+        .navigationTitle("OMOMoney")
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await viewModel.loadData()
             await viewModel.autoSelectFirstUserAndGroup()
+        }
+        .onAppear {
+            // ✅ REFRESH: Refrescar datos cuando la vista aparezca
+            Task {
+                await viewModel.loadData()
+            }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
@@ -204,9 +226,11 @@ struct DetailedGroupView: View {
             } ?? false
         }
     }
-
 }
 
 #Preview {
-    DetailedGroupView(context: PersistenceController.preview.container.viewContext)
+    DetailedGroupView(
+        context: PersistenceController.preview.container.viewContext,
+        navigationPath: .constant(NavigationPath())
+    )
 }

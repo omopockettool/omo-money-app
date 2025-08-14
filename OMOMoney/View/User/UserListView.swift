@@ -28,7 +28,7 @@ struct UserListView: View {
             }
             .navigationTitle("Usuarios")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     addUserButton
                 }
             }

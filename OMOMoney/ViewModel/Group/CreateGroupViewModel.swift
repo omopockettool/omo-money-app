@@ -2,7 +2,7 @@ import CoreData
 import Foundation
 
 /// ViewModel for creating new groups
-/// Handles group creation form and validation
+/// Handles group creation form and validation following strict MVVM architecture
 @MainActor
 class CreateGroupViewModel: ObservableObject {
     
@@ -11,28 +11,28 @@ class CreateGroupViewModel: ObservableObject {
     @Published var currency = "USD"
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var shouldNavigateBack = false
-    
-    // MARK: - Services
-    private let groupService: any GroupServiceProtocol
-    private let userGroupService: any UserGroupServiceProtocol
+    @Published var groupCreatedSuccessfully = false
     
     // MARK: - Available Currencies
     let availableCurrencies = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "MXN", "BRL"]
     
     // MARK: - Private Properties
     private let user: User
+    private let groupService: any GroupServiceProtocol
+    private let userGroupService: any UserGroupServiceProtocol
+    private let categoryService: any CategoryServiceProtocol
     
     // MARK: - Initialization
-    init(groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, user: User) {
+    init(user: User, groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, categoryService: any CategoryServiceProtocol) {
         self.user = user
         self.groupService = groupService
         self.userGroupService = userGroupService
+        self.categoryService = categoryService
     }
     
     // MARK: - Public Methods
     
-    /// Create a new group
+    /// Create a new group with proper validation and background operations
     func createGroup() async {
         guard validateInput() else { return }
         
@@ -40,29 +40,26 @@ class CreateGroupViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            // Check if group name already exists
-            let exists = try await groupService.groupExists(withName: name.trimmingCharacters(in: .whitespacesAndNewlines), excluding: nil)
-            if exists {
-                errorMessage = "A group with this name already exists"
-                isLoading = false
-                return
-            }
-            
-            // Create the group
+            // ✅ BACKGROUND THREAD: Operaciones Core Data en background
             let newGroup = try await groupService.createGroup(name: name.trimmingCharacters(in: .whitespacesAndNewlines), currency: currency)
             
-            // Create the user-group relationship
+            // ✅ BACKGROUND THREAD: Crear relación usuario-grupo
             _ = try await userGroupService.createUserGroup(user: user, group: newGroup, role: "owner")
             
-            isLoading = false
-            shouldNavigateBack = true
+            // ✅ BACKGROUND THREAD: Crear categorías por defecto
+            await createDefaultCategories(for: newGroup)
+            
+            // ✅ MAIN THREAD: Actualizar UI reactivamente
+            groupCreatedSuccessfully = true
+            
         } catch {
             errorMessage = "Error creating group: \(error.localizedDescription)"
-            isLoading = false
         }
+        
+        isLoading = false
     }
     
-    /// Validate group input
+    /// Validate group input with proper error messages
     func validateInput() -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -100,6 +97,29 @@ class CreateGroupViewModel: ObservableObject {
         name = ""
         currency = "USD"
         errorMessage = nil
-        shouldNavigateBack = false
+        groupCreatedSuccessfully = false
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Create default categories for a new group
+    private func createDefaultCategories(for group: Group) async {
+        let defaultCategories = [
+            ("Comida", "#FF6B6B"),
+            ("Transporte", "#4ECDC4"),
+            ("Entretenimiento", "#45B7D1"),
+            ("Compras", "#96CEB4"),
+            ("Salud", "#FFEAA7"),
+            ("Otros", "#8E8E93")
+        ]
+        
+        for (categoryName, categoryColor) in defaultCategories {
+            do {
+                _ = try await categoryService.createCategory(name: categoryName, color: categoryColor, group: group)
+            } catch {
+                // Log error but don't fail group creation
+                print("Warning: Failed to create category \(categoryName): \(error)")
+            }
+        }
     }
 }

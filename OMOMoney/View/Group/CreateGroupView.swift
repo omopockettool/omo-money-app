@@ -10,53 +10,77 @@ import SwiftUI
 
 struct CreateGroupView: View {
     @StateObject private var viewModel: CreateGroupViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Binding var navigationPath: NavigationPath
     
-    init(context: NSManagedObjectContext, user: User) {
+    init(context: NSManagedObjectContext, user: User, navigationPath: Binding<NavigationPath>) {
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
-        self._viewModel = StateObject(wrappedValue: CreateGroupViewModel(groupService: groupService, userGroupService: userGroupService, user: user))
+        let categoryService = CategoryService(context: context)
+        
+        self._viewModel = StateObject(wrappedValue: CreateGroupViewModel(
+            user: user,
+            groupService: groupService,
+            userGroupService: userGroupService,
+            categoryService: categoryService
+        ))
+        self._navigationPath = navigationPath
     }
     
     var body: some View {
-        NavigationStack {
-            Form {
-                Section(header: Text("Group Information")) {
-                    TextField("Group Name", text: $viewModel.name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    Picker("Currency", selection: $viewModel.currency) {
-                        ForEach(viewModel.availableCurrencies, id: \.self) { currency in
-                            Text(currency).tag(currency)
-                        }
+        Form {
+            Section(header: Text("Group Information")) {
+                TextField("Group Name", text: $viewModel.name)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .onChange(of: viewModel.name) { _, _ in
+                        // ✅ REACTIVO: Limpiar error cuando el usuario escribe
+                        viewModel.clearError()
                     }
-                    .pickerStyle(MenuPickerStyle())
-                }
                 
+                Picker("Currency", selection: $viewModel.currency) {
+                    ForEach(viewModel.availableCurrencies, id: \.self) { currency in
+                        Text(currency).tag(currency)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+            }
+            
+            // ✅ REACTIVO: Mostrar error si existe
+            if let errorMessage = viewModel.errorMessage {
                 Section {
-                    Button("Create Group") {
-                        Task {
-                            await viewModel.createGroup()
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .disabled(viewModel.name.isEmpty)
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
                 }
             }
-            .navigationTitle("Create Group")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+            
+            Section {
+                Button("Create Group") {
+                    Task {
+                        await viewModel.createGroup()
                     }
                 }
+                .frame(maxWidth: .infinity)
+                .disabled(viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }
-            .onChange(of: viewModel.shouldNavigateBack) { _, shouldNavigate in
-                if shouldNavigate {
-                    dismiss()
-                    viewModel.resetForm()
+        }
+        .navigationTitle("Create Group")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    navigationPath.removeLast()
                 }
+            }
+        }
+        // ✅ REACTIVO: Navegar de vuelta cuando se complete la creación
+        .onChange(of: viewModel.groupCreatedSuccessfully) { _, success in
+            if success {
+                navigationPath.removeLast()
+            }
+        }
+        // ✅ REACTIVO: Mostrar loading state
+        .overlay {
+            if viewModel.isLoading {
+                LoadingView(message: "Creating group...")
             }
         }
     }
@@ -73,5 +97,9 @@ struct CreateGroupView: View {
     mockUser.createdAt = Date()
     mockUser.lastModifiedAt = Date()
     
-    return CreateGroupView(context: context, user: mockUser)
+    return CreateGroupView(
+        context: context, 
+        user: mockUser,
+        navigationPath: .constant(NavigationPath())
+    )
 }

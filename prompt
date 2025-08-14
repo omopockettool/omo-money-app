@@ -87,6 +87,125 @@ init(service: UserServiceProtocol) {
 - **Caching**: ✅ Cachear datos cuando tenga sentido (imágenes, resultados Core Data)
 - **Animaciones**: ✅ Usar `withAnimation` y transiciones nativas SwiftUI
 
+### 🧭 NAVEGACIÓN MODERNA - OBLIGATORIA (iOS 18.5+)
+- **NavigationStack**: ✅ SIEMPRE usar NavigationStack en lugar de NavigationView
+- **NavigationDestination**: ✅ Definir destinos de navegación con tipos específicos
+- **NavigationPath**: ✅ Usar NavigationPath para gestión de estado de navegación
+- **NavigationLink**: ✅ Usar NavigationLink para navegación declarativa
+- **Navegación Programática**: ✅ Implementar `navigationPath.append()` para navegación dinámica
+
+### 🎯 MEJORES PRÁCTICAS DE NAVEGACIÓN APRENDIDAS
+1. **Centralizar la Navegación**:
+   ```swift
+   // ✅ CORRECTO: Definir destinos en un solo lugar (MainView)
+   enum CreateGroupDestination: Hashable {
+       case createGroup(User)  // Pasar datos necesarios en el enum
+   }
+   ```
+
+2. **Pasar NavigationPath**:
+   ```swift
+   // ✅ CORRECTO: Pasar navigationPath a todas las vistas que lo necesiten
+   struct DetailedView: View {
+       @Binding var navigationPath: NavigationPath
+   }
+   ```
+
+3. **Evitar NavigationStack Anidados**:
+   ```swift
+   // ❌ INCORRECTO: NavigationStack dentro de otro NavigationStack
+   NavigationStack {
+       NavigationStack { }  // ¡NO HACER ESTO!
+   }
+   
+   // ✅ CORRECTO: Un solo NavigationStack en MainView
+   NavigationStack(path: $navigationPath) {
+       DetailedView(navigationPath: $navigationPath)
+   }
+   ```
+
+4. **Navegación Tipo-Segura**:
+   ```swift
+   // ✅ CORRECTO: NavigationDestination tipado
+   .navigationDestination(for: CreateGroupDestination.self) { destination in
+       switch destination {
+       case .createGroup(let user):
+           CreateGroupView(user: user)
+       }
+   }
+   ```
+
+5. **Manejo de Estado**:
+   ```swift
+   // ✅ CORRECTO: Navegar y actualizar estado
+   Button("Crear Grupo") {
+       if let selectedUser = viewModel.selectedUser {
+           navigationPath.append(CreateGroupDestination.createGroup(selectedUser))
+       }
+   }
+   ```
+
+6. **Retorno y Actualización**:
+   ```swift
+   // ✅ CORRECTO: Actualizar al regresar
+   .onAppear {
+       Task {
+           await viewModel.loadData()
+       }
+   }
+   ```
+
+7. **Evitar Sheets**:
+   - ❌ NO usar `.sheet()` para navegación
+   - ❌ NO usar `.fullScreenCover()`
+   - ✅ SIEMPRE usar NavigationStack + NavigationDestination
+
+8. **Gestión de Datos**:
+   - Pasar solo los datos necesarios en los enums de navegación
+   - Mantener el estado en ViewModels, no en la navegación
+   - Refrescar datos al aparecer la vista si es necesario
+
+9. **Jerarquía de Navegación**:
+   ```swift
+   MainView (NavigationStack)
+   └── DetailedView (navigationPath)
+       └── CreateView (navigationPath)
+   ```
+
+10. **Reglas de Oro**:
+    - Un solo NavigationStack en la raíz
+    - NavigationPath compartido entre vistas
+    - Enums tipados para destinos
+    - Actualización de datos al regresar
+    - Sin NavigationStacks anidados
+
+### ⚡ SWIFT CONCURRENCY AVANZADO - OBLIGATORIO
+- **async/await**: ✅ SIEMPRE usar async/await en lugar de callbacks o Combine
+- **Task**: ✅ Usar Task para operaciones asíncronas desde Views
+- **@MainActor**: ✅ Usar @MainActor para ViewModels que actualizan UI
+- **Background Context**: ✅ Usar `context.perform` para operaciones Core Data
+- **Error Handling**: ✅ Implementar try/catch con manejo de errores apropiado
+- **Patrón de Concurrencia**:
+```swift
+// ✅ CORRECTO: Operación en background, UI en main
+func createGroup() async {
+    isLoading = true
+    
+    do {
+        let newGroup = try await groupService.createGroup(name: name, currency: currency)
+        await MainActor.run {
+            groups.append(newGroup)
+            isLoading = false
+        }
+    } catch {
+        await MainActor.run {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+}
+```
+
 ### 🚫 PROHIBIDO
 - Operaciones pesadas en main thread
 - Lógica de negocio en Views
@@ -98,6 +217,15 @@ init(service: UserServiceProtocol) {
 - Falta de lazy loading en listas grandes
 - Falta de caching para datos frecuentes
 - Falta de animaciones suaves
+- **🚨 SHEETS - PROHIBIDOS A MENOS QUE SE SOLICITE ESPECÍFICAMENTE**
+  - ❌ NO usar `.sheet()` para modales
+  - ❌ NO usar `.fullScreenCover()` para pantallas completas
+  - ✅ SIEMPRE usar `NavigationStack` con `NavigationDestination`
+  - ✅ SIEMPRE usar `NavigationLink` para navegación
+  - ✅ SIEMPRE usar `NavigationPath` para gestión de estado de navegación
+  - ✅ SIEMPRE implementar navegación programática con `navigationPath.append()`
+  - ✅ SIEMPRE usar `@State private var navigationPath = NavigationPath()`
+  - ✅ SIEMPRE usar `NavigationStack(path: $navigationPath)` para navegación compleja
 
 ## Project Overview
 Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
