@@ -278,7 +278,7 @@ final class EntryServiceTests: XCTestCase {
         _ = try await entryService.getEntries(for: testGroup)
         
         // When
-        let newEntry = try await entryService.createEntry(
+        _ = try await entryService.createEntry(
             description: "New Entry",
             date: Date(),
             category: nil,

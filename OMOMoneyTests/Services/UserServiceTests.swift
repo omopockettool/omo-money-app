@@ -304,7 +304,7 @@ final class UserServiceTests: XCTestCase {
         _ = try await userService.fetchUsers()
         
         // When
-        let newUser = try await userService.createUser(name: "New User", email: "new@example.com")
+        _ = try await userService.createUser(name: "New User", email: "new@example.com")
         
         // Then - Cache should be invalidated, so we get fresh data
         let allUsers = try await userService.fetchUsers()

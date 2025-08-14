@@ -368,7 +368,7 @@ final class UserGroupServiceTests: XCTestCase {
         _ = try await userGroupService.isUser(testUser, memberOf: testGroup)
         
         // When
-        let newUserGroup = try await userGroupService.createUserGroup(
+        _ = try await userGroupService.createUserGroup(
             user: testUser,
             group: testGroup,
             role: "member"

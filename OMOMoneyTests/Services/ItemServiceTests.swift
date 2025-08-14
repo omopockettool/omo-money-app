@@ -336,7 +336,7 @@ final class ItemServiceTests: XCTestCase {
         _ = try await itemService.calculateTotalAmount(for: testEntry)
         
         // When
-        let newItem = try await itemService.createItem(
+        _ = try await itemService.createItem(
             description: "New Item",
             amount: NSDecimalNumber(value: 25.00),
             quantity: 1,
@@ -358,7 +358,7 @@ final class ItemServiceTests: XCTestCase {
         _ = try await itemService.fetchItems()
         
         // When
-        try await itemService.updateItem(testItem, description: "Updated Item")
+        try await itemService.updateItem(testItem, description: "Updated Item", amount: nil, quantity: nil)
         
         // Then - Cache should be invalidated
         let updatedItem = try await itemService.fetchItem(by: testItem.id!)

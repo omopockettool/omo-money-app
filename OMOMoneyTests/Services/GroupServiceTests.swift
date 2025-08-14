@@ -249,7 +249,7 @@ final class GroupServiceTests: XCTestCase {
         _ = try await groupService.fetchGroups()
         
         // When
-        let newGroup = try await groupService.createGroup(name: "New Group", currency: "GBP")
+        _ = try await groupService.createGroup(name: "New Group", currency: "GBP")
         
         // Then - Cache should be invalidated, so we get fresh data
         let allGroups = try await groupService.fetchGroups()
