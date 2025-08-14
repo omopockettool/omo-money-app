@@ -32,11 +32,14 @@ struct DetailedGroupView: View {
                 // Header with Settings button
                 HStack {
                     Spacer()
-                    Button(action: { showingSettings = true }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title2)
-                            .foregroundColor(.primary)
-                    }
+                    Button(
+                        action: { showingSettings = true },
+                        label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                        }
+                    )
                 }
                 .padding()
                 
