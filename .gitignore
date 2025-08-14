@@ -95,3 +95,10 @@ iOSInjectionProject/
 # Temporary files
 *.tmp
 *.temp
+# Generated plist files
+*.plist
+
+# Xcode generated files
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
