@@ -112,10 +112,15 @@ jobs:
         with:
           python-version: '3.11'
           
+      - name: Install SwiftLint
+        run: |
+          curl -sSLf https://get.swiftlint.org | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
       - name: Run SwiftLint
-        uses: norio-nomura/action-swiftlint@v1
-        with:
-          args: --reporter github-actions-logging
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          swiftlint lint --reporter github-actions-logging
           
       - name: Check File Sizes
         run: |
