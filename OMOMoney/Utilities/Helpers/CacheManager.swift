@@ -112,12 +112,20 @@ class CacheManager: ObservableObject {
     // MARK: - Cache Management
     
     /// Get cache statistics
-    func getCacheStats() -> (dataCount: Int, validationCount: Int, calculationCount: Int) {
-        return (
+    func getCacheStats() -> CacheStats {
+        return CacheStats(
             dataCount: dataCache.count,
             validationCount: validationCache.count,
             calculationCount: calculationCache.count
         )
+    }
+    
+    // MARK: - Cache Statistics Structure
+    
+    struct CacheStats {
+        let dataCount: Int
+        let validationCount: Int
+        let calculationCount: Int
     }
     
     /// Clear all caches

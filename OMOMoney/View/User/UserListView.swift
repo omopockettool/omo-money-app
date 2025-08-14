@@ -123,13 +123,16 @@ struct UserListView: View {
     
     @ViewBuilder
     private var addUserButton: some View {
-        Button(action: { 
-            withAnimation(AnimationHelper.scale) {
-                showingAddUser = true
+        Button(
+            action: { 
+                withAnimation(AnimationHelper.scale) {
+                    showingAddUser = true
+                }
+            },
+            label: {
+                Label("Agregar Usuario", systemImage: "plus")
             }
-        }) {
-            Label("Agregar Usuario", systemImage: "plus")
-        }
+        )
         .buttonPressAnimation()
     }
     
