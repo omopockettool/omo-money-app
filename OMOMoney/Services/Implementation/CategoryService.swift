@@ -151,8 +151,8 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         
-        let count = try await count(request)
-        let exists = !isEmpty
+        let results = try await fetch(request)
+        let exists = !results.isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)

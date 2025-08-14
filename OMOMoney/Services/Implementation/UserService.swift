@@ -117,8 +117,8 @@ class UserService: CoreDataService, UserServiceProtocol {
             request.predicate = NSPredicate(format: "name == %@", name)
         }
         
-        let count = try await count(request)
-        let exists = !isEmpty
+        let results = try await fetch(request)
+        let exists = !results.isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)

@@ -204,8 +204,8 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         request.predicate = NSPredicate(format: "user == %@ AND group == %@", user, group)
         request.fetchLimit = 1
         
-        let count = try await count(request)
-        let isMember = !isEmpty
+        let results = try await fetch(request)
+        let isMember = !results.isEmpty
         
         // Cache the result
         await CacheManager.shared.cacheValidation(isMember, for: cacheKey)
