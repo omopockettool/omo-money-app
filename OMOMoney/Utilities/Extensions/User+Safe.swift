@@ -15,7 +15,7 @@ extension User {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return 0 }
         guard self.id != nil else { return 0 }
-        guard !userGroups.isEmpty else { return 0 }
+        guard userGroups.count > 0 else { return 0 }
         guard userGroups.count <= 1000 else { return 0 } // Reasonable upper limit
         
         return userGroups.count
@@ -26,7 +26,7 @@ extension User {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return false }
         guard self.id != nil else { return false }
-        guard !userGroups.isEmpty else { return false }
+        guard userGroups.count > 0 else { return false }
         guard userGroups.count <= 1000 else { return false } // Reasonable upper limit
         
         // Safe iteration without any complex operations
@@ -52,7 +52,7 @@ extension User {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return false }
         guard self.id != nil else { return false }
-        guard !userGroups.isEmpty else { return false }
+        guard userGroups.count > 0 else { return false }
         guard userGroups.count <= 1000 else { return false } // Reasonable upper limit
         
         return true
@@ -63,7 +63,7 @@ extension User {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return [] }
         guard self.id != nil else { return [] }
-        guard !userGroups.isEmpty else { return [] }
+        guard userGroups.count > 0 else { return [] }
         guard userGroups.count <= 1000 else { return [] } // Reasonable upper limit
         
         var result: [UserGroup] = []
@@ -87,8 +87,8 @@ extension User {
     var safeGroups: [Group] {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return [] }
-        guard self.id != nil else { return false }
-        guard !userGroups.isEmpty else { return [] }
+        guard self.id != nil else { return [] }
+        guard userGroups.count > 0 else { return [] }
         guard userGroups.count <= 1000 else { return [] } // Reasonable upper limit
         
         var result: [Group] = []
@@ -112,7 +112,7 @@ extension User {
         // Multiple safety checks to prevent any NaN values
         guard let userGroups = self.userGroups else { return [] }
         guard self.id != nil else { return [] }
-        guard !userGroups.isEmpty else { return [] }
+        guard userGroups.count > 0 else { return [] }
         guard userGroups.count <= 1000 else { return [] } // Reasonable upper limit
         
         var result: [String] = []
