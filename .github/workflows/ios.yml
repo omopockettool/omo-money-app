@@ -34,6 +34,7 @@ jobs:
       - name: Install SwiftLint
         run: |
           gem install cocoapods
+          gem install xcpretty
           brew install swiftlint
           
       - name: Cache Xcode Derived Data
@@ -67,7 +68,7 @@ jobs:
           xcodebuild clean build \
             -project OMOMoney.xcodeproj \
             -scheme OMOMoney \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.5' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -79,7 +80,7 @@ jobs:
           xcodebuild test \
             -project OMOMoney.xcodeproj \
             -scheme OMOMoney \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.5' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
@@ -132,7 +133,7 @@ jobs:
           xcodebuild test \
             -project OMOMoney.xcodeproj \
             -scheme OMOMoney \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.5' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             -only-testing:OMOMoneyUITests \
             CODE_SIGN_IDENTITY="" \
@@ -172,7 +173,7 @@ jobs:
           xcodebuild test \
             -project OMOMoney.xcodeproj \
             -scheme OMOMoney \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.5' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             -only-testing:OMOMoneyPerformanceTests \
             CODE_SIGN_IDENTITY="" \
