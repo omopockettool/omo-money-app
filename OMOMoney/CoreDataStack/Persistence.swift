@@ -46,7 +46,10 @@ struct PersistenceController {
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "OMOMoney")
         if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+            guard let firstDescription = container.persistentStoreDescriptions.first else {
+                fatalError("No persistent store descriptions available")
+            }
+            firstDescription.url = URL(fileURLWithPath: "/dev/null")
         }
         container.loadPersistentStores(completionHandler: { _, error in
             if let error = error as NSError? {
