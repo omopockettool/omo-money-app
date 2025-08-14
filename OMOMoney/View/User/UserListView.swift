@@ -14,54 +14,108 @@ struct UserListView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            List {
-                ForEach(viewModel.users) { user in
-                    NavigationLink(value: user) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(user.name ?? "Sin nombre")
-                                    .font(.headline)
-                                Text(user.email ?? "Sin email")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(viewModel.users.enumerated()), id: \.element.id) { index, user in
+                        NavigationLink(value: user) {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(user.name ?? "Sin nombre")
+                                        .font(.headline)
+                                    Text(user.email ?? "Sin email")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
                             }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button("Delete", role: .destructive) {
+                                Task {
+                                    await viewModel.deleteUser(user)
+                                }
+                            }
+                        }
+                        .onAppear {
+                            // Load more users when approaching the end
+                            if user == viewModel.users.last && viewModel.hasMoreUsers {
+                                Task {
+                                    await viewModel.loadMoreUsers()
+                                }
+                            }
+                        }
+                        .transition(.asymmetric(
+                            insertion: .scale.combined(with: .opacity),
+                            removal: .scale.combined(with: .opacity)
+                        ))
+                        .animation(AnimationHelper.listItem.delay(Double(index) * 0.05), value: user.id)
+                    }
+                    
+                    // Loading indicator for pagination
+                    if viewModel.hasMoreUsers {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .padding()
+                                .scaleEffect(1.2)
+                                .animation(AnimationHelper.pulse, value: viewModel.isLoading)
                             Spacer()
                         }
-                        .padding(.vertical, 4)
+                        .transition(.opacity.combined(with: .scale))
+                        .animation(AnimationHelper.fade, value: viewModel.hasMoreUsers)
                     }
                 }
-                .onDelete(perform: deleteUsers)
             }
             .navigationTitle("Usuarios")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddUser = true }) {
+                    Button(action: { 
+                        withAnimation(AnimationHelper.scale) {
+                            showingAddUser = true
+                        }
+                    }) {
                         Label("Agregar Usuario", systemImage: "plus")
                     }
+                    .buttonPressAnimation()
                 }
             }
             .sheet(isPresented: $showingAddUser) {
                 AddUserView(context: viewContext)
+                    .transition(.move(edge: .bottom))
+                    .animation(AnimationHelper.slide, value: showingAddUser)
             }
             .navigationDestination(for: User.self) { user in
                 EditUserView(user: user, context: viewContext)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal: .move(edge: .leading)
+                    ))
+                    .animation(AnimationHelper.slide, value: user.id)
             }
             .task {
                 await viewModel.loadUsers()
             }
             .refreshable {
-                await viewModel.loadUsers()
+                withAnimation(AnimationHelper.smoothEase) {
+                    await viewModel.loadUsers()
+                }
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
-                viewModel.clearError()
+                withAnimation(AnimationHelper.fade) {
+                    viewModel.clearError()
+                }
             }
         } message: {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
             }
         }
+        .animation(AnimationHelper.smoothSpring, value: viewModel.users.count)
     }
     
     private func deleteUsers(offsets: IndexSet) {

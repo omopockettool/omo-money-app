@@ -215,8 +215,13 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 2. ✅ **Dependency Injection Implementation** - Inject services into ViewModels ✅
 3. ✅ **@StateObject Implementation** - Proper ViewModel lifecycle management ✅
 4. ✅ **Performance Optimizations** - Lazy loading, caching, smooth animations ✅
-5. **Business Logic Implementation** - Start Phase 3 development
-6. **Expense Calculation Logic** - Implement expense calculation and reporting
+5. 🔧 **Corregir CoreDataService Architecture** - Eliminar herencia ObservableObject
+6. 🔄 **Refactorizar Validación Asíncrona** - Corregir EditUserViewModel
+7. 📱 **Implementar Lazy Loading Avanzado** - LazyVStack y paginación
+8. 💾 **Sistema de Caching Inteligente** - Cache de datos y validaciones
+9. ✨ **Sistema de Animaciones Suaves** - withAnimation y transiciones
+10. **Business Logic Implementation** - Start Phase 3 development
+11. **Expense Calculation Logic** - Implement expense calculation and reporting
 
 ## Commit History
 - ✅ **Commit 1**: Category entity and ViewModel
@@ -230,6 +235,11 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - ✅ **Commit 9**: Enhanced debug functionality for data persistence verification
 - ✅ **Commit 10**: CreateGroupView and Extensions with MVVM architecture
 - ✅ **Commit 11**: Complete MVVM architecture implementation with proper threading
+- 🔧 **Commit 12**: Corregir CoreDataService Architecture - Eliminar herencia ObservableObject
+- 🔄 **Commit 13**: Refactorizar Validación Asíncrona - Corregir EditUserViewModel
+- 📱 **Commit 14**: Implementar Lazy Loading Avanzado - LazyVStack y paginación
+- 💾 **Commit 15**: Sistema de Caching Inteligente - Cache de datos y validaciones
+- ✨ **Commit 16**: Sistema de Animaciones Suaves - withAnimation y transiciones
 
 ## Technical Notes
 - **iOS Target**: iOS 18.5+ (2025) - Usar APIs más modernas disponibles
@@ -283,11 +293,38 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] **Remove Unnecessary Files**: Eliminar ServiceImports.swift innecesario ✅
 
 ### ⚡ Concurrency & Performance
-- [ ] **Async/Await Migration**: Migrar callbacks a async/await donde sea posible
-- [ ] **Lazy Loading**: Implementar LazyVStack y List para vistas grandes
-- [ ] **Caching Strategy**: Implementar sistema de cache para datos frecuentes
-- [ ] **Animation System**: Implementar withAnimation y transiciones suaves
-- [ ] **@MainActor Optimization**: Optimizar uso de @MainActor en propiedades de UI
+- [x] **Async/Await Migration**: Migrar callbacks a async/await donde sea posible ✅
+- [x] **Lazy Loading**: Implementar LazyVStack y List para vistas grandes ✅
+- [x] **Caching Strategy**: Implementar sistema de cache para datos frecuentes ✅
+- [x] **Animation System**: Implementar withAnimation y transiciones suaves ✅
+- [x] **@MainActor Optimization**: Optimizar uso de @MainActor en propiedades de UI ✅
+
+## 🚀 PRÓXIMOS PASOS REQUERIDOS - IMPLEMENTACIÓN INMEDIATA
+
+### 1. **Corregir CoreDataService Architecture** 🔧
+- [ ] **Eliminar herencia ObservableObject**: Los Services NO deben ser ObservableObject
+- [ ] **Mantener funcionalidad**: Preservar todos los métodos async/await
+- [ ] **Testing**: Verificar que la funcionalidad se mantiene intacta
+
+### 2. **Refactorizar Validación Asíncrona** 🔄
+- [ ] **Corregir EditUserViewModel**: Mover Task anidado a método separado
+- [ ] **Implementar validateNameAsync()**: Método async para validación de nombres
+- [ ] **Eliminar MainActor.run innecesario**: Ya estamos en @MainActor
+
+### 3. **Implementar Lazy Loading Avanzado** 📱
+- [ ] **LazyVStack en listas grandes**: Para UserListView y otras listas
+- [ ] **Lazy loading de imágenes**: Si se implementan en el futuro
+- [ ] **Pagination**: Para listas muy grandes (opcional)
+
+### 4. **Sistema de Caching Inteligente** 💾
+- [ ] **Cache de datos Core Data**: Para operaciones frecuentes
+- [ ] **Cache de validaciones**: Para evitar re-validaciones innecesarias
+- [ ] **Cache de cálculos**: Para operaciones costosas
+
+### 5. **Sistema de Animaciones Suaves** ✨
+- [ ] **withAnimation en transiciones**: Para navegación y cambios de estado
+- **Transiciones personalizadas**: Para mejor UX
+- **Animaciones de carga**: Para operaciones async
 
 ## 🚨 RECORDATORIOS CRÍTICOS - REVISAR ANTES DE CADA COMMIT
 

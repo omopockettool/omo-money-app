@@ -38,6 +38,7 @@ struct AddUserView: View {
                 TextField("Name (Optional)", text: $name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
+                    .formFocusAnimation()
                 
                 TextField("Email", text: $email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -45,10 +46,13 @@ struct AddUserView: View {
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .padding(.horizontal)
+                    .formFocusAnimation()
             }
             .padding()
             .background(Color(.systemGray6))
             .cornerRadius(10)
+            .transition(.opacity.combined(with: .scale))
+            .animation(AnimationHelper.gentleEase, value: name.isEmpty)
             
             // Add Button
             Button("Add User") {
@@ -60,6 +64,9 @@ struct AddUserView: View {
             .foregroundColor(.white)
             .cornerRadius(10)
             .disabled(email.isEmpty)
+            .buttonPressAnimation()
+            .scaleEffect(email.isEmpty ? 0.95 : 1.0)
+            .animation(AnimationHelper.buttonState, value: email.isEmpty)
             
             Spacer()
         }
@@ -69,16 +76,22 @@ struct AddUserView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") {
-                    navigationPath.removeLast()
+                    withAnimation(AnimationHelper.slide) {
+                        navigationPath.removeLast()
+                    }
                 }
+                .buttonPressAnimation()
             }
         }
         .onChange(of: viewModel.shouldNavigateBack) { oldValue, shouldNavigate in
             if shouldNavigate {
-                navigationPath.removeLast()
+                withAnimation(AnimationHelper.smoothEase) {
+                    navigationPath.removeLast()
+                }
                 viewModel.resetForm()
             }
         }
+        .animation(AnimationHelper.smoothSpring, value: viewModel.isLoading)
     }
     
     private func addUser() {

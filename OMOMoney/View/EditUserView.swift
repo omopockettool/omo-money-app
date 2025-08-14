@@ -30,12 +30,14 @@ struct EditUserView: View {
             Section(header: Text("User Information")) {
                 TextField("Name (Optional)", text: $viewModel.name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .formFocusAnimation()
                 
                 TextField("Email", text: $viewModel.email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
+                    .formFocusAnimation()
             }
             
             Section(header: Text("User Details")) {
@@ -62,6 +64,9 @@ struct EditUserView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(viewModel.name.isEmpty)
+                .buttonPressAnimation()
+                .scaleEffect(viewModel.name.isEmpty ? 0.95 : 1.0)
+                .animation(AnimationHelper.buttonState, value: viewModel.name.isEmpty)
             }
         }
         .navigationTitle("Edit User")
@@ -69,16 +74,22 @@ struct EditUserView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") {
-                    navigationPath.removeLast()
+                    withAnimation(AnimationHelper.slide) {
+                        navigationPath.removeLast()
+                    }
                 }
+                .buttonPressAnimation()
             }
         }
         .onChange(of: viewModel.shouldNavigateBack) { oldValue, shouldNavigate in
             if shouldNavigate {
-                navigationPath.removeLast()
+                withAnimation(AnimationHelper.smoothEase) {
+                    navigationPath.removeLast()
+                }
                 viewModel.resetForm()
             }
         }
+        .animation(AnimationHelper.smoothSpring, value: viewModel.isLoading)
     }
 }
 

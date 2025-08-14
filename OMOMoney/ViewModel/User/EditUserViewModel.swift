@@ -42,6 +42,9 @@ class EditUserViewModel: ObservableObject {
     func updateUser() async {
         guard validateInput() else { return }
         
+        // Additional async validation for name duplicates
+        guard await validateNameAsync() else { return }
+        
         isLoading = true
         errorMessage = nil
         
@@ -59,7 +62,7 @@ class EditUserViewModel: ObservableObject {
         }
     }
     
-    /// Validate user input
+    /// Validate user input (synchronous validation only)
     func validateInput() -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -88,23 +91,29 @@ class EditUserViewModel: ObservableObject {
             }
         }
         
-        // Check if name changed and if new name already exists
+        errorMessage = nil
+        return true
+    }
+    
+    /// Validate user name asynchronously (check for duplicates)
+    func validateNameAsync() async -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let originalName = user.name ?? ""
         
+        // Only check if name actually changed
         if trimmedName != originalName {
-            // Name changed, check if new name exists
-            Task {
-                let exists = try? await userService.userExists(withName: trimmedName, excluding: user.id)
-                if exists == true {
-                    await MainActor.run {
-                        errorMessage = "A user with this name already exists"
-                    }
-                    return
+            do {
+                let exists = try await userService.userExists(withName: trimmedName, excluding: user.id)
+                if exists {
+                    errorMessage = "A user with this name already exists"
+                    return false
                 }
+            } catch {
+                errorMessage = "Error checking user name: \(error.localizedDescription)"
+                return false
             }
         }
         
-        errorMessage = nil
         return true
     }
     

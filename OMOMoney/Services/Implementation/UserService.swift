@@ -2,8 +2,15 @@ import Foundation
 import CoreData
 
 /// Service class for User entity operations
-/// Handles all CRUD operations for User with proper threading
+/// Handles all CRUD operations for User with proper threading and caching
 class UserService: CoreDataService, UserServiceProtocol {
+    
+    // MARK: - Cache Keys
+    private enum CacheKeys {
+        static let allUsers = "UserService.allUsers"
+        static let userCount = "UserService.userCount"
+        static let userExists = "UserService.userExists"
+    }
     
     // MARK: - Initialization
     
@@ -13,11 +20,22 @@ class UserService: CoreDataService, UserServiceProtocol {
     
     // MARK: - User CRUD Operations
     
-    /// Fetch all users
+    /// Fetch all users with caching
     func fetchUsers() async throws -> [User] {
+        // Check cache first
+        if let cachedUsers: [User] = await CacheManager.shared.getCachedData(for: CacheKeys.allUsers) {
+            return cachedUsers
+        }
+        
+        // Fetch from Core Data
         let request: NSFetchRequest<User> = User.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \User.name, ascending: true)]
-        return try await fetch(request)
+        let users = try await fetch(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(users, for: CacheKeys.allUsers)
+        
+        return users
     }
     
     /// Fetch user by ID
@@ -42,6 +60,15 @@ class UserService: CoreDataService, UserServiceProtocol {
             try self.context.save()
             return user
         }
+        .then { user in
+            // Invalidate relevant cache entries
+            Task {
+                await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+                await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+                await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
+            }
+            return user
+        }
     }
     
     /// Update an existing user
@@ -57,16 +84,33 @@ class UserService: CoreDataService, UserServiceProtocol {
             
             try self.context.save()
         }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
     
     /// Delete a user
     func deleteUser(_ user: User) async throws {
         await delete(user)
         try await save()
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
     
-    /// Check if user exists by name
+    /// Check if user exists by name with caching
     func userExists(withName name: String, excluding userId: UUID? = nil) async throws -> Bool {
+        let cacheKey = "\(CacheKeys.userExists).\(name).\(userId?.uuidString ?? "nil")"
+        
+        // Check cache first
+        if let cachedResult = await CacheManager.shared.getCachedValidation(for: cacheKey) {
+            return cachedResult
+        }
+        
+        // Check in Core Data
         let request: NSFetchRequest<User> = User.fetchRequest()
         
         if let userId = userId {
@@ -76,12 +120,28 @@ class UserService: CoreDataService, UserServiceProtocol {
         }
         
         let count = try await count(request)
-        return count > 0
+        let exists = count > 0
+        
+        // Cache the result
+        await CacheManager.shared.cacheValidation(exists, for: cacheKey)
+        
+        return exists
     }
     
-    /// Get users count
+    /// Get users count with caching
     func getUsersCount() async throws -> Int {
+        // Check cache first
+        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: CacheKeys.userCount) {
+            return cachedCount
+        }
+        
+        // Get from Core Data
         let request: NSFetchRequest<User> = User.fetchRequest()
-        return try await count(request)
+        let count = try await count(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(count, for: CacheKeys.userCount)
+        
+        return count
     }
 }
