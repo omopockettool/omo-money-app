@@ -61,7 +61,7 @@ class TestEntityFactory {
     // MARK: - Category Factory Methods
     
     /// Create a test category
-    func createCategory(name: String = "Test Category", color: String = "#007AFF", group: Group? = nil) -> Category {
+    func createCategory(name: String = "Test Category", color: String = "#007AFF", group: Group? = nil) -> OMOMoney.Category {
         let category = Category(context: context)
         category.id = UUID()
         category.name = name
@@ -73,7 +73,7 @@ class TestEntityFactory {
     }
     
     /// Create multiple test categories
-    func createCategories(count: Int, prefix: String = "Category", group: Group? = nil) -> [Category] {
+    func createCategories(count: Int, prefix: String = "Category", group: Group? = nil) -> [OMOMoney.Category] {
         let colors = ["#007AFF", "#34C759", "#FF9500", "#FF3B30", "#AF52DE"]
         return (0..<count).map { index in
             createCategory(
@@ -87,7 +87,7 @@ class TestEntityFactory {
     // MARK: - Entry Factory Methods
     
     /// Create a test entry
-    func createEntry(description: String = "Test Entry", date: Date = Date(), category: Category? = nil, group: Group? = nil) -> Entry {
+    func createEntry(description: String = "Test Entry", date: Date = Date(), category: OMOMoney.Category? = nil, group: Group? = nil) -> Entry {
         let entry = Entry(context: context)
         entry.id = UUID()
         entry.entryDescription = description
@@ -100,7 +100,7 @@ class TestEntityFactory {
     }
     
     /// Create multiple test entries
-    func createEntries(count: Int, prefix: String = "Entry", category: Category? = nil, group: Group? = nil) -> [Entry] {
+    func createEntries(count: Int, prefix: String = "Entry", category: OMOMoney.Category? = nil, group: Group? = nil) -> [Entry] {
         return (0..<count).map { index in
             createEntry(
                 description: "\(prefix) \(index + 1)",
@@ -166,7 +166,7 @@ class TestEntityFactory {
     // MARK: - Complex Scenarios
     
     /// Create a complete test scenario with users, groups, categories, entries, and items
-    func createCompleteTestScenario() -> (users: [User], groups: [Group], categories: [Category], entries: [Entry], items: [Item], userGroups: [UserGroup]) {
+    func createCompleteTestScenario() -> (users: [User], groups: [Group], categories: [OMOMoney.Category], entries: [Entry], items: [Item], userGroups: [UserGroup]) {
         // Create users
         let users = createUsers(count: 3)
         
@@ -174,7 +174,7 @@ class TestEntityFactory {
         let groups = createGroups(count: 2)
         
         // Create categories for each group
-        var allCategories: [Category] = []
+        var allCategories: [OMOMoney.Category] = []
         for group in groups {
             let groupCategories = createCategories(count: 3, group: group)
             allCategories.append(contentsOf: groupCategories)
