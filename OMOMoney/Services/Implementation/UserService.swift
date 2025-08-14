@@ -50,7 +50,7 @@ class UserService: CoreDataService, UserServiceProtocol {
     
     /// Create a new user
     func createUser(name: String, email: String? = nil) async throws -> User {
-        try await context.perform {
+        let user = try await context.perform {
             let user = User(context: self.context)
             user.id = UUID()
             user.name = name
@@ -60,15 +60,13 @@ class UserService: CoreDataService, UserServiceProtocol {
             try self.context.save()
             return user
         }
-        .then { user in
-            // Invalidate relevant cache entries
-            Task {
-                await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
-                await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
-                await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
-            }
-            return user
-        }
+        
+        // Invalidate relevant cache entries
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
+        
+        return user
     }
     
     /// Update an existing user

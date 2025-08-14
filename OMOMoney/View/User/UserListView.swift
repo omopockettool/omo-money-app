@@ -17,69 +17,19 @@ struct UserListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(viewModel.users.enumerated()), id: \.element.id) { index, user in
-                        NavigationLink(value: user) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(user.name ?? "Sin nombre")
-                                        .font(.headline)
-                                    Text(user.email ?? "Sin email")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 16)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("Delete", role: .destructive) {
-                                Task {
-                                    await viewModel.deleteUser(user)
-                                }
-                            }
-                        }
-                        .onAppear {
-                            // Load more users when approaching the end
-                            if user == viewModel.users.last && viewModel.hasMoreUsers {
-                                Task {
-                                    await viewModel.loadMoreUsers()
-                                }
-                            }
-                        }
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                        .animation(AnimationHelper.listItem.delay(Double(index) * 0.05), value: user.id)
+                        userRow(for: user, at: index)
                     }
                     
                     // Loading indicator for pagination
                     if viewModel.hasMoreUsers {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .padding()
-                                .scaleEffect(1.2)
-                                .animation(AnimationHelper.pulse, value: viewModel.isLoading)
-                            Spacer()
-                        }
-                        .transition(.opacity.combined(with: .scale))
-                        .animation(AnimationHelper.fade, value: viewModel.hasMoreUsers)
+                        loadingIndicator
                     }
                 }
             }
             .navigationTitle("Usuarios")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { 
-                        withAnimation(AnimationHelper.scale) {
-                            showingAddUser = true
-                        }
-                    }) {
-                        Label("Agregar Usuario", systemImage: "plus")
-                    }
-                    .buttonPressAnimation()
+                    addUserButton
                 }
             }
             .sheet(isPresented: $showingAddUser) {
@@ -99,9 +49,7 @@ struct UserListView: View {
                 await viewModel.loadUsers()
             }
             .refreshable {
-                withAnimation(AnimationHelper.smoothEase) {
-                    await viewModel.loadUsers()
-                }
+                await viewModel.loadUsers()
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -116,6 +64,73 @@ struct UserListView: View {
             }
         }
         .animation(AnimationHelper.smoothSpring, value: viewModel.users.count)
+    }
+    
+    // MARK: - Subviews
+    
+    @ViewBuilder
+    private func userRow(for user: User, at index: Int) -> some View {
+        NavigationLink(value: user) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(user.name ?? "Sin nombre")
+                        .font(.headline)
+                    Text(user.email ?? "Sin email")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteUser(user)
+                }
+            }
+        }
+        .onAppear {
+            // Load more users when approaching the end
+            if user == viewModel.users.last && viewModel.hasMoreUsers {
+                Task {
+                    await viewModel.loadMoreUsers()
+                }
+            }
+        }
+        .transition(.asymmetric(
+            insertion: .scale.combined(with: .opacity),
+            removal: .scale.combined(with: .opacity)
+        ))
+        .animation(AnimationHelper.listItem.delay(Double(index) * 0.05), value: user.id)
+    }
+    
+    @ViewBuilder
+    private var loadingIndicator: some View {
+        HStack {
+            Spacer()
+            ProgressView()
+                .padding()
+                .scaleEffect(1.2)
+                .animation(AnimationHelper.pulse, value: viewModel.isLoading)
+            Spacer()
+        }
+        .transition(.opacity.combined(with: .scale))
+        .animation(AnimationHelper.fade, value: viewModel.hasMoreUsers)
+    }
+    
+    @ViewBuilder
+    private var addUserButton: some View {
+        Button(action: { 
+            withAnimation(AnimationHelper.scale) {
+                showingAddUser = true
+            }
+        }) {
+            Label("Agregar Usuario", systemImage: "plus")
+        }
+        .buttonPressAnimation()
     }
     
     private func deleteUsers(offsets: IndexSet) {
