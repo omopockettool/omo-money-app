@@ -1,0 +1,85 @@
+# Codecov Configuration for OMOMoney
+# This file configures code coverage reporting and thresholds
+
+# MARK: - Coverage Configuration
+coverage:
+  precision: 2
+  round: down
+  range: "80...100"
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        base: auto
+        informational: true
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        base: auto
+        informational: true
+
+# MARK: - Comment Configuration
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# MARK: - Ignore Patterns
+ignore:
+  - "OMOMoneyTests/"
+  - "OMOMoneyUITests/"
+  - "OMOMoneyPerformanceTests/"
+  - "**/*.generated.swift"
+  - "**/Generated/"
+  - "**/Mock*.swift"
+  - "**/Test*.swift"
+  - "**/Fake*.swift"
+  - "**/*+Test.swift"
+  - "**/*+Mock.swift"
+
+# MARK: - File Paths
+paths:
+  - "OMOMoney/"
+  - "!OMOMoneyTests/"
+  - "!OMOMoneyUITests/"
+  - "!OMOMoneyPerformanceTests/"
+
+# MARK: - Flags
+flags:
+  ios:
+    paths:
+      - "OMOMoney/"
+    coverage:
+      target: 85%
+      threshold: 5%
+  services:
+    paths:
+      - "OMOMoney/Services/"
+    coverage:
+      target: 90%
+      threshold: 5%
+  viewmodels:
+    paths:
+      - "OMOMoney/ViewModel/"
+    coverage:
+      target: 80%
+      threshold: 5%
+  views:
+    paths:
+      - "OMOMoney/View/"
+    coverage:
+      target: 75%
+      threshold: 5%
+
+# MARK: - Notifications
+notify:
+  wait_for_ci: true
+  require_ci_to_pass: true
+
+# MARK: - GitHub Integration
+github_checks:
+  annotations: true
