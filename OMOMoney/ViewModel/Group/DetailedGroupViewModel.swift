@@ -222,6 +222,8 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
         }
     }
     
+
+    
     /// Get entries for a specific group
     func entries(for group: Group) async -> [Entry] {
         guard group.id != nil else { return [] }

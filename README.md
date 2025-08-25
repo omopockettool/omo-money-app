@@ -196,5 +196,5 @@ For development questions or issues:
 ---
 
 **Last Updated**: December 19, 2024  
-**Current Version**: 0.6.0  
+**Current Version**: 0.6.1  
 **Development Phase**: Phase 2.5 - Architecture & Stability

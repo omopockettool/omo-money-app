@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-08-25
+
+### Fixed
+- **User Selection Dropdown**: Removed "Seleccionar Usuario" option that caused infinite loading
+- **Dropdown Logic**: Simplified user picker to only show actual users
+- **State Management**: Eliminated unnecessary deselection logic and state clearing
+- **Code Cleanup**: Removed unused deselectUser function and simplified onChange handlers
+
 ## [0.6.0] - 2025-08-25
 
 ### Added
@@ -32,6 +40,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Debug Tools**: Enhanced logging for identifying concurrency issues
 
 ## [0.5.0] - 2025-08-25
+
+### Added
+- **NSFetchedResultsController Integration**: Automatic Core Data reactivity and UI updates
+- **Real-time Entries List**: Entries now appear automatically without manual refresh
+- **Automatic UI Updates**: SwiftUI re-renders automatically when Core Data changes
+- **Lazy Loading & Pagination**: Efficient handling of large datasets with infinite scroll
+- **Comprehensive Group Validation**: Runtime crash prevention with proper Core Data object validation
+- **Threading Safety**: Proper background → main thread pattern for UI updates
+
+### Changed
+- **Core Data Integration**: Migrated from NotificationCenter to NSFetchedResultsController
+- **ViewModel Architecture**: Enhanced DetailedGroupViewModel with automatic data synchronization
+- **Performance**: Eliminated manual refresh requirements, UI updates automatically
+- **Error Prevention**: Added validation for temporary and deleted Core Data objects
+
+### Fixed
+- **Runtime Crashes**: Prevented "isTemporaryID: unrecognized selector" errors
+- **Swift 6 Compatibility**: Resolved MainActor isolation issues with nonisolated delegate methods
+- **Threading Issues**: Proper DispatchQueue.main.async pattern for UI updates
+- **Memory Management**: Weak self references and proper delegate cleanup
+
+### Technical Improvements
+- **MVVM Compliance**: Strict adherence to MVVM with automatic data binding
+- **Core Data Best Practices**: Native NSFetchedResultsController implementation
+- **Performance**: Background operations with automatic UI synchronization
+- **Debugging**: Enhanced logging for Core Data validation issues
 
 ## [0.4.0] - 2025-08-12
 

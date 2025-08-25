@@ -100,7 +100,6 @@ struct DetailedGroupView: View {
                             .foregroundColor(.primary)
                         
                         Picker("Usuario", selection: $viewModel.selectedUser) {
-                            Text("Seleccionar Usuario").tag(nil as User?)
                             ForEach(viewModel.users) { user in
                                 Text(user.name ?? "Sin nombre").tag(user as User?)
                             }
@@ -112,8 +111,6 @@ struct DetailedGroupView: View {
                                 Task {
                                     await viewModel.selectUser(user)
                                 }
-                            } else {
-                                print("⚠️ Usuario deseleccionado")
                             }
                         }
                     }
