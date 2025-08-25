@@ -95,89 +95,183 @@ init(service: UserServiceProtocol) {
 - **Navegación Programática**: ✅ Implementar `navigationPath.append()` para navegación dinámica
 
 ### 🎯 MEJORES PRÁCTICAS DE NAVEGACIÓN APRENDIDAS
-1. **Centralizar la Navegación**:
+
+#### 📋 **IMPLEMENTACIÓN COMPLETA PASO A PASO**
+
+1. **PASO 1: Definir Enums de Navegación en MainView**:
    ```swift
-   // ✅ CORRECTO: Definir destinos en un solo lugar (MainView)
+   // ✅ CORRECTO: Definir todos los destinos en MainView
    enum CreateGroupDestination: Hashable {
-       case createGroup(User)  // Pasar datos necesarios en el enum
-   }
-   ```
-
-2. **Pasar NavigationPath**:
-   ```swift
-   // ✅ CORRECTO: Pasar navigationPath a todas las vistas que lo necesiten
-   struct DetailedView: View {
-       @Binding var navigationPath: NavigationPath
-   }
-   ```
-
-3. **Evitar NavigationStack Anidados**:
-   ```swift
-   // ❌ INCORRECTO: NavigationStack dentro de otro NavigationStack
-   NavigationStack {
-       NavigationStack { }  // ¡NO HACER ESTO!
+       case createGroup(User)
    }
    
-   // ✅ CORRECTO: Un solo NavigationStack en MainView
-   NavigationStack(path: $navigationPath) {
-       DetailedView(navigationPath: $navigationPath)
+   enum SettingsDestination: Hashable {
+       case settings
+   }
+   
+   enum AddEntryDestination: Hashable {
+       case addEntry(User, Group)
    }
    ```
 
-4. **Navegación Tipo-Segura**:
+2. **PASO 2: Configurar NavigationStack en MainView**:
    ```swift
-   // ✅ CORRECTO: NavigationDestination tipado
-   .navigationDestination(for: CreateGroupDestination.self) { destination in
-       switch destination {
-       case .createGroup(let user):
-           CreateGroupView(user: user)
+   struct MainView: View {
+       @State private var navigationPath = NavigationPath()
+       
+       var body: some View {
+           NavigationStack(path: $navigationPath) {
+               DetailedGroupView(navigationPath: $navigationPath)
+                   
+               // ✅ CORRECTO: Definir TODOS los destinos aquí
+               .navigationDestination(for: CreateGroupDestination.self) { destination in
+                   switch destination {
+                   case .createGroup(let user):
+                       CreateGroupView(user: user, navigationPath: $navigationPath)
+                   }
+               }
+               .navigationDestination(for: SettingsDestination.self) { destination in
+                   switch destination {
+                   case .settings:
+                       SettingsView(navigationPath: $navigationPath)
+                   }
+               }
+               .navigationDestination(for: AddEntryDestination.self) { destination in
+                   switch destination {
+                   case .addEntry(let user, let group):
+                       AddEntryView(user: user, group: group, navigationPath: $navigationPath)
+                   }
+               }
+           }
        }
    }
    ```
 
-5. **Manejo de Estado**:
+3. **PASO 3: Pasar NavigationPath a Vistas Hijas**:
    ```swift
-   // ✅ CORRECTO: Navegar y actualizar estado
-   Button("Crear Grupo") {
-       if let selectedUser = viewModel.selectedUser {
-           navigationPath.append(CreateGroupDestination.createGroup(selectedUser))
+   // ✅ CORRECTO: Pasar navigationPath como @Binding
+   struct DetailedGroupView: View {
+       @Binding var navigationPath: NavigationPath
+       
+       var body: some View {
+           // Botones de navegación
+           Button("Crear Grupo") {
+               if let selectedUser = viewModel.selectedUser {
+                   navigationPath.append(CreateGroupDestination.createGroup(selectedUser))
+               }
+           }
+           
+           Button("Settings") {
+               navigationPath.append(SettingsDestination.settings)
+           }
+           
+           Button("Add Entry") {
+               if let user = viewModel.selectedUser, let group = viewModel.selectedGroup {
+                   navigationPath.append(AddEntryDestination.addEntry(user, group))
+               }
+           }
        }
    }
    ```
 
-6. **Retorno y Actualización**:
+4. **PASO 4: Implementar Navegación de Retorno en Vistas Destino**:
    ```swift
-   // ✅ CORRECTO: Actualizar al regresar
-   .onAppear {
-       Task {
-           await viewModel.loadData()
+   struct CreateGroupView: View {
+       @Binding var navigationPath: NavigationPath
+       
+       var body: some View {
+           // ✅ CORRECTO: Usar navigationPath.removeLast() para regresar
+           Button("Cancelar") {
+               navigationPath.removeLast()
+           }
+           
+           // ✅ CORRECTO: Regresar automáticamente después de crear
+           .onChange(of: viewModel.groupCreatedSuccessfully) { _, newValue in
+               if newValue {
+                   navigationPath.removeLast()
+               }
+           }
        }
    }
    ```
 
-7. **Evitar Sheets**:
-   - ❌ NO usar `.sheet()` para navegación
-   - ❌ NO usar `.fullScreenCover()`
-   - ✅ SIEMPRE usar NavigationStack + NavigationDestination
-
-8. **Gestión de Datos**:
-   - Pasar solo los datos necesarios en los enums de navegación
-   - Mantener el estado en ViewModels, no en la navegación
-   - Refrescar datos al aparecer la vista si es necesario
-
-9. **Jerarquía de Navegación**:
+5. **PASO 5: Actualizar Datos al Regresar**:
    ```swift
-   MainView (NavigationStack)
-   └── DetailedView (navigationPath)
-       └── CreateView (navigationPath)
+   struct DetailedGroupView: View {
+       var body: some View {
+           // ✅ CORRECTO: Refrescar datos cuando la vista aparezca
+           .onAppear {
+               Task {
+                   await viewModel.loadData()
+                   await viewModel.autoSelectFirstUserAndGroup()
+               }
+           }
+       }
+   }
    ```
 
-10. **Reglas de Oro**:
-    - Un solo NavigationStack en la raíz
-    - NavigationPath compartido entre vistas
-    - Enums tipados para destinos
-    - Actualización de datos al regresar
-    - Sin NavigationStacks anidados
+#### 🚫 **ERRORES COMUNES A EVITAR**
+
+1. **NavigationStack Anidados**:
+   ```swift
+   // ❌ INCORRECTO: NO hacer esto
+   NavigationStack {
+       NavigationStack { }  // ¡ERROR! Doble NavigationStack
+   }
+   ```
+
+2. **Definir Destinos en Múltiples Lugares**:
+   ```swift
+   // ❌ INCORRECTO: NO definir en DetailedGroupView
+   .navigationDestination(for: CreateGroupDestination.self) { ... }
+   
+   // ✅ CORRECTO: Solo en MainView
+   ```
+
+3. **Usar @Environment(\.dismiss)**:
+   ```swift
+   // ❌ INCORRECTO: NO usar esto
+   @Environment(\.dismiss) private var dismiss
+   
+   // ✅ CORRECTO: Usar navigationPath.removeLast()
+   @Binding var navigationPath: NavigationPath
+   ```
+
+4. **Sheets para Navegación**:
+   ```swift
+   // ❌ INCORRECTO: NO usar sheets
+   .sheet(isPresented: $showingCreateGroup) { ... }
+   
+   // ✅ CORRECTO: Usar NavigationStack
+   navigationPath.append(CreateGroupDestination.createGroup(user))
+   ```
+
+#### 🔄 **PATRÓN COMPLETO DE IMPLEMENTACIÓN**
+
+1. **MainView**: Define NavigationStack y todos los NavigationDestination
+2. **Vistas Hijas**: Reciben `@Binding var navigationPath: NavigationPath`
+3. **Botones**: Usan `navigationPath.append(Destination.enumCase(data))`
+4. **Vistas Destino**: Usan `navigationPath.removeLast()` para regresar
+5. **Retorno**: Implementar `.onAppear` para refrescar datos si es necesario
+
+#### 📱 **COMPATIBILIDAD iOS 18.5+**
+
+- ✅ `NavigationStack` (reemplaza NavigationView)
+- ✅ `NavigationDestination` (navegación tipo-segura)
+- ✅ `NavigationPath` (gestión de estado de navegación)
+- ✅ `onChange` con nueva sintaxis `{ oldValue, newValue in }`
+- ✅ `@MainActor` para ViewModels
+- ✅ `async/await` para operaciones asíncronas
+
+#### 🎯 **REGLAS DE ORO FINALES**
+
+1. **Un solo NavigationStack** en MainView
+2. **NavigationPath compartido** entre todas las vistas
+3. **Enums tipados** para todos los destinos de navegación
+4. **Sin NavigationStacks anidados** ni sheets para navegación
+5. **Actualización de datos** al regresar usando `.onAppear`
+6. **Navegación programática** con `navigationPath.append()`
+7. **Retorno programático** con `navigationPath.removeLast()`
 
 ### ⚡ SWIFT CONCURRENCY AVANZADO - OBLIGATORIO
 - **async/await**: ✅ SIEMPRE usar async/await en lugar de callbacks o Combine

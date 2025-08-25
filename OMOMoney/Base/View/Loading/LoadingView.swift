@@ -25,7 +25,7 @@ struct LoadingView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color(.secondarySystemBackground))
     }
 }
 
@@ -59,7 +59,7 @@ struct StyledLoadingView: View {
             }
         case .fullScreen:
             ZStack {
-                Color(.systemBackground)
+                Color(.secondarySystemBackground)
                     .ignoresSafeArea()
                 
                 LoadingView(message: message)

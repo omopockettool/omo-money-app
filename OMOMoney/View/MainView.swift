@@ -53,6 +53,23 @@ struct MainView: View {
                         )
                     }
                 }
+                .navigationDestination(for: SettingsDestination.self) { destination in
+                    switch destination {
+                    case .settings:
+                        SettingsView(navigationPath: $navigationPath)
+                    }
+                }
+                .navigationDestination(for: AddEntryDestination.self) { destination in
+                    switch destination {
+                    case .addEntry(let user, let group):
+                        AddEntryView(
+                            user: user,
+                            group: group,
+                            context: detailedGroupViewModel.context,
+                            navigationPath: $navigationPath
+                        )
+                    }
+                }
         }
     }
 }
@@ -64,6 +81,14 @@ struct AddUserDestination: Hashable {
 
 enum CreateGroupDestination: Hashable {
     case createGroup(User)
+}
+
+enum SettingsDestination: Hashable {
+    case settings
+}
+
+enum AddEntryDestination: Hashable {
+    case addEntry(User, Group)
 }
 
 #Preview {

@@ -33,8 +33,8 @@ struct DetailedGroupView: View {
                 Spacer()
                 Button(
                     action: { 
-                        // ✅ SIMPLIFICADO: Solo mostrar mensaje por ahora
-                        print("Settings button tapped")
+                        // ✅ NAVEGACIÓN REAL: Navegar a SettingsView
+                        navigationPath.append(SettingsDestination.settings)
                     },
                     label: {
                         Image(systemName: "gearshape.fill")
@@ -155,8 +155,10 @@ struct DetailedGroupView: View {
                 
                 // Add New Entry Button
                 Button(action: {
-                    // ✅ SIMPLIFICADO: Solo mostrar mensaje por ahora
-                    print("Add Entry button tapped")
+                    // ✅ NAVEGACIÓN REAL: Navegar a AddEntryView con usuario y grupo
+                    if let user = viewModel.selectedUser, let group = viewModel.selectedGroup {
+                        navigationPath.append(AddEntryDestination.addEntry(user, group))
+                    }
                 }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
