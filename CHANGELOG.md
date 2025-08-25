@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-08-12
+
+### Added
+- **Complete Navigation System**: Full NavigationStack + NavigationDestination implementation
+- **Settings Navigation**: Tuerca button now navigates to SettingsView
+- **Add Entry Navigation**: Add Entry button now navigates to AddEntryView
+- **Navigation Enums**: SettingsDestination and AddEntryDestination for type-safe navigation
+- **Centralized Navigation**: All NavigationDestination definitions in MainView
+- **Programmatic Navigation**: Consistent navigationPath.append() pattern across all views
+
+### Changed
+- **Navigation Architecture**: Migrated from sheet-based to pure NavigationStack approach
+- **Navigation Pattern**: Unified navigation using NavigationPath and NavigationDestination
+- **Button Actions**: Updated all navigation buttons to use programmatic navigation
+- **LoadingView Compatibility**: Fixed Color(.systemBackground) issues for macOS compatibility
+
+### Fixed
+- **Navigation Consistency**: All views now follow the same navigation pattern
+- **Parameter Order**: Corrected AddEntryView init parameter order in MainView
+- **Navigation State**: Centralized NavigationPath management in MainView
+- **Return Navigation**: Proper navigationPath.removeLast() implementation
+
+### Technical Improvements
+- **Type-Safe Navigation**: Enum-based navigation destinations with associated values
+- **NavigationStack Centralization**: Single source of truth for all navigation destinations
+- **iOS 18.5+ Best Practices**: Modern NavigationStack implementation
+- **Navigation Testing**: Verified all navigation flows work correctly
+
 ## [0.3.0] - 2025-08-12
 
 ### Added
