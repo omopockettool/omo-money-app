@@ -12,6 +12,7 @@
 - **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de presentación, ✅ @MainActor, ✅ @Published
 - **Services**: ✅ SOLO lógica CRUD y operaciones de datos, ✅ NO lógica de presentación
 - **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
+- **Core Data Integration**: ✅ SIEMPRE usar NSFetchedResultsController para respetar MVVM
 
 ### 🧵 THREADING - CRÍTICO
 - **Main Thread**: ✅ SOLO UI, ✅ navegación, ✅ gestos, ✅ animaciones
@@ -77,8 +78,73 @@ init(service: UserServiceProtocol) {
 - **Caching**: ✅ Cachear datos cuando tenga sentido (imágenes, resultados Core Data)
 - **Animaciones**: ✅ Usar `withAnimation` y transiciones nativas SwiftUI
 
+## ✅ TRABAJO COMPLETADO
+
+### 🎯 **Sistema de Navegación Completo**
+- [x] **Create Group Navigation**: Implementado NavigationDestination para CreateGroupView ✅
+- [x] **Settings Navigation**: Implementado NavigationDestination para SettingsView ✅  
+- [x] **Add Entry Navigation**: Implementado NavigationDestination para AddEntryView ✅
+- [x] **Navigation Testing**: Verificado que todas las navegaciones funcionen correctamente ✅
+- [x] **Navigation State Management**: Asegurado consistencia del estado de navegación ✅
+
+### 🎯 **Sistema de Entries con Reactividad Automática**
+- [x] **NSFetchedResultsController**: Implementado para reactividad automática de Core Data ✅
+- [x] **Lista de Entries**: Entries se muestran automáticamente sin refresh manual ✅
+- [x] **Lazy Loading & Paginación**: Implementado para listas grandes ✅
+- [x] **Validaciones de Seguridad**: Prevención de crashes de runtime ✅
+- [x] **Threading Correcto**: Background → main thread pattern implementado ✅
+- [x] **MVVM Respetado**: ViewModel maneja lógica, Views solo muestran datos ✅
+
+### 🎯 **Arquitectura y Performance**
+- [x] **MVVM Strict**: Separación completa de responsabilidades ✅
+- [x] **Core Data Best Practices**: NSFetchedResultsController nativo ✅
+- [x] **Threading Safety**: Main thread libre para UI ✅
+- [x] **Error Prevention**: Validaciones robustas implementadas ✅
+- [x] **Swift 6 Compatibility**: Sin errores de MainActor isolation ✅
+
+### 🎯 **Sistema de Primer Usuario y Estabilidad**
+- [x] **First User Creation Flow**: Sheet automático cuando la app está vacía ✅
+- [x] **Protection Flags**: Prevención de ejecuciones múltiples simultáneas ✅
+- [x] **Stable State Management**: Estado consistente de objetos Core Data ✅
+- [x] **Core Data Validation**: Validaciones simplificadas que confían en Core Data ✅
+- [x] **Infinite Loop Prevention**: Flags para evitar bucles infinitos ✅
+- [x] **Concurrency Safety**: Protección contra operaciones simultáneas ✅
+
 ## Project Overview
 Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with STRICT MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
+
+## 🚀 PRÓXIMAS TAREAS
+
+### 🎯 **Funcionalidades de Entries**
+- [ ] **Edit Entry**: Implementar edición de entries existentes
+- [ ] **Delete Entry**: Implementar eliminación de entries con confirmación
+- [ ] **Entry Details**: Vista detallada de entry individual
+- [ ] **Entry Filtering**: Filtros por fecha, categoría, monto
+- [ ] **Entry Search**: Búsqueda en tiempo real de entries
+
+### 🎯 **Funcionalidades de Categorías**
+- [ ] **Category Management**: CRUD completo para categorías
+- [ ] **Category Colors**: Selector de colores personalizados
+- [ ] **Category Icons**: Iconos para cada categoría
+- [ ] **Category Statistics**: Estadísticas de gastos por categoría
+
+### 🎯 **Funcionalidades de Grupos**
+- [ ] **Group Members**: Gestión de miembros del grupo
+- [ ] **Group Invitations**: Sistema de invitaciones
+- [ ] **Group Statistics**: Estadísticas del grupo
+- [ ] **Group Settings**: Configuración del grupo
+
+### 🎯 **Funcionalidades de Usuarios**
+- [ ] **User Profile**: Perfil de usuario completo
+- [ ] **User Preferences**: Preferencias del usuario
+- [ ] **User Statistics**: Estadísticas personales
+- [ ] **User Groups**: Gestión de grupos del usuario
+
+### 🎯 **Funcionalidades Avanzadas**
+- [ ] **Data Export**: Exportar datos a CSV/PDF
+- [ ] **Backup & Sync**: Respaldo y sincronización
+- [ ] **Notifications**: Recordatorios y notificaciones
+- [ ] **Analytics**: Gráficos y análisis de gastos
 
 ## Development Strategy
 - **Incremental Development**: Small, focused commits for each feature

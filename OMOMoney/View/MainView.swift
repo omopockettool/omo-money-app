@@ -11,6 +11,8 @@ import SwiftUI
 struct MainView: View {
     @StateObject private var detailedGroupViewModel: DetailedGroupViewModel
     @State private var navigationPath = NavigationPath()
+    @State private var canAccessSettings = false
+    @State private var showingCreateFirstUser = false
     
     init(context: NSManagedObjectContext) {
         let userService = UserService(context: context)
@@ -35,7 +37,8 @@ struct MainView: View {
         NavigationStack(path: $navigationPath) {
             DetailedGroupView(
                 context: detailedGroupViewModel.context,
-                navigationPath: $navigationPath
+                navigationPath: $navigationPath,
+                canAccessSettings: canAccessSettings
             )
                 .navigationDestination(for: User.self) { user in
                     EditUserView(user: user, context: detailedGroupViewModel.context, navigationPath: $navigationPath)
@@ -56,7 +59,9 @@ struct MainView: View {
                 .navigationDestination(for: SettingsDestination.self) { destination in
                     switch destination {
                     case .settings:
-                        SettingsView(navigationPath: $navigationPath)
+                        SettingsView(navigationPath: $navigationPath, selectedUser: detailedGroupViewModel.selectedUser)
+                    case .manageGroups(let user):
+                        ManageGroupsView(navigationPath: $navigationPath, selectedUser: user)
                     }
                 }
                 .navigationDestination(for: AddEntryDestination.self) { destination in
@@ -70,6 +75,29 @@ struct MainView: View {
                         )
                     }
                 }
+        }
+        .sheet(isPresented: $showingCreateFirstUser) {
+            CreateFirstUserView(
+                isPresented: $showingCreateFirstUser,
+                onUserCreated: {
+                    Task {
+                        print("🔄 Usuario creado, recargando datos...")
+                        await detailedGroupViewModel.loadData()
+                        print("🔄 Datos recargados, seleccionando usuario automáticamente...")
+                        // Asegurar que se seleccione el usuario recién creado
+                        await detailedGroupViewModel.autoSelectFirstUserAndGroup()
+                        print("🔄 Usuario seleccionado automáticamente completado")
+                    }
+                }
+            )
+        }
+        .onChange(of: detailedGroupViewModel.selectedUser) { _, newValue in
+            print("🔄 MainView: selectedUser cambió a: \(newValue?.name ?? "nil")")
+            canAccessSettings = newValue != nil
+            print("🔄 MainView: canAccessSettings = \(canAccessSettings)")
+        }
+        .onAppear {
+            checkIfAppIsEmpty()
         }
     }
 }
@@ -85,10 +113,28 @@ enum CreateGroupDestination: Hashable {
 
 enum SettingsDestination: Hashable {
     case settings
+    case manageGroups(User)
 }
 
 enum AddEntryDestination: Hashable {
     case addEntry(User, Group)
+}
+
+// MARK: - Helper Functions
+extension MainView {
+    private func checkIfAppIsEmpty() {
+        Task {
+            // Check if there are any users in the database
+            let users = try? await detailedGroupViewModel.userService.fetchUsers()
+            let isEmpty = users?.isEmpty ?? true
+            
+            await MainActor.run {
+                if isEmpty {
+                    showingCreateFirstUser = true
+                }
+            }
+        }
+    }
 }
 
 #Preview {

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-08-25
+
+### Added
+- **First User Creation Flow**: Automatic sheet presentation when app is empty
+- **Protection Flags**: Prevention of multiple simultaneous async operations
+- **Enhanced Debug Logging**: Comprehensive logging for debugging concurrency issues
+- **Stable State Management**: Consistent Core Data object state handling
+
+### Changed
+- **Group Default Name**: Changed from "Mi Grupo" to "Personal" for better professionalism
+- **Core Data Validation**: Simplified validation to trust Core Data's internal state management
+- **MVVM Pattern**: Implemented pure MVVM without manual interruptions or delays
+- **Error Prevention**: Eliminated complex Core Data state validations that caused crashes
+
+### Fixed
+- **Infinite Loop Prevention**: Added flags to prevent multiple simultaneous executions
+- **Core Data Crashes**: Resolved "isTemporaryID: unrecognized selector" errors
+- **State Inconsistency**: Fixed inconsistent group counts and object states
+- **Multiple Executions**: Prevented loadData() and autoSelectFirstUserAndGroup() from running simultaneously
+
+### Technical Improvements
+- **Concurrency Safety**: Protection flags for critical async operations
+- **Simplified Validation**: Trust Core Data's internal state management
+- **Stable Flow**: Consistent execution flow without race conditions
+- **Debug Tools**: Enhanced logging for identifying concurrency issues
+
+## [0.5.0] - 2025-08-25
+
 ## [0.4.0] - 2025-08-12
 
 ### Added

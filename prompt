@@ -13,11 +13,26 @@ Prompt para Cursor:
 - **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de presentación, ✅ @MainActor, ✅ @Published
 - **Services**: ✅ SOLO lógica CRUD y operaciones de datos, ✅ NO lógica de presentación
 - **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
+- **Core Data Integration**: ✅ SIEMPRE usar NSFetchedResultsController para respetar MVVM
 
 ### 🧵 THREADING - CRÍTICO
 - **Main Thread**: ✅ SOLO UI, ✅ navegación, ✅ gestos, ✅ animaciones
 - **Background Thread**: ✅ Core Data CRUD, ✅ cálculos complejos, ✅ filtros pesados
 - **Patrón obligatorio**: `DispatchQueue.global` → operación pesada → `DispatchQueue.main.async`
+
+### 🗄️ CORE DATA + MVVM - OBLIGATORIO
+- **NSFetchedResultsController**: ✅ SIEMPRE usar para respetar MVVM y arquitectura limpia
+- **Beneficios**:
+  - ✅ **Reactividad automática**: Se actualiza solo cuando Core Data cambia
+  - ✅ **Performance**: Solo carga datos cuando es necesario
+  - ✅ **MVVM puro**: ViewModel no maneja lógica de Core Data
+  - ✅ **Nativo**: Usa las APIs oficiales de Apple
+  - ✅ **Eficiente**: No polling, no notificaciones manuales
+- **Implementación**:
+  - ViewModel implementa `NSFetchedResultsControllerDelegate`
+  - `@Published var entries` se actualiza automáticamente
+  - SwiftUI re-renderiza cuando `@Published` cambia
+  - **NO usar NotificationCenter** para cambios de Core Data
 
 ### 📱 SWIFTUI - REACTIVIDAD AUTOMÁTICA (iOS 18.5+)
 - ✅ Usar `@Published` - SwiftUI se redibuja automáticamente
@@ -27,6 +42,24 @@ Prompt para Cursor:
 - ✅ Usar nueva sintaxis de `onChange` - `{ oldValue, newValue in }`
 - ✅ Usar `@Observable` macro moderno (opcional)
 - ✅ Usar `NavigationStack` moderno
+
+#### 🖼️ PREVIEW MACRO - USO CORRECTO
+- **#Preview es SOLO para SwiftUI Views**: ✅ El macro `#Preview` está diseñado para previsualizar SwiftUI Views que conforman al protocolo `View`
+- **ViewModels NO usan #Preview**: ❌ NO usar `#Preview` en ViewModels, Services, o cualquier clase que NO sea una SwiftUI View
+- **Error común**: `'buildExpression' is unavailable: this expression does not conform to 'View'` ocurre cuando se intenta previsualizar un tipo no-View
+- **Uso correcto**: 
+  ```swift
+  // ✅ CORRECTO: En View files
+  #Preview {
+      MyView()
+  }
+  
+  // ❌ INCORRECTO: En ViewModel files
+  #Preview {
+      MyViewModel()  // ¡ERROR! ViewModel no es View
+  }
+  ```
+- **Principio**: Solo previsualizar Views, nunca ViewModels o Services
 
 ### 🆕 NUEVAS REGLAS MVVM APRENDIDAS HOY - OBLIGATORIAS
 
@@ -320,6 +353,56 @@ func createGroup() async {
   - ✅ SIEMPRE implementar navegación programática con `navigationPath.append()`
   - ✅ SIEMPRE usar `@State private var navigationPath = NavigationPath()`
   - ✅ SIEMPRE usar `NavigationStack(path: $navigationPath)` para navegación compleja
+
+### 🆕 NUEVAS REGLAS APRENDIDAS - OBLIGATORIAS
+
+#### 🔒 PREVENCIÓN DE EJECUCIONES MÚLTIPLES
+- **Flags de protección**: ✅ Usar flags booleanos para evitar ejecuciones simultáneas de funciones async
+- **Problema identificado**: Ejecuciones múltiples causan estado inconsistente en Core Data y bucles infinitos
+- **Solución implementada**: 
+```swift
+private var isAutoSelecting = false
+
+func autoSelectFirstUserAndGroup() async {
+    guard !isAutoSelecting else {
+        print("⚠️ autoSelectFirstUserAndGroup ya está en ejecución, saltando...")
+        return
+    }
+    
+    isAutoSelecting = true
+    // ... código de la función ...
+    isAutoSelecting = false
+}
+```
+
+#### 🗄️ VALIDACIONES DE CORE DATA - SIMPLIFICADAS
+- **NO validar manualmente**: ❌ NO usar `objectID.isTemporaryID` ni verificaciones complejas de estado
+- **Confiar en Core Data**: ✅ Dejar que Core Data maneje su propio estado internamente
+- **Validaciones mínimas**: ✅ Solo verificar que objetos existan (`object != nil`), no su estado interno
+- **Error común**: `'-[Group isTemporaryID]: unrecognized selector sent to instance'`
+- **Solución**: Eliminar verificaciones de `isDeleted`, `isTemporaryID` y confiar en la reactividad de SwiftUI
+
+#### 🎯 PATRÓN MVVM PURO - SIN INTERRUPCIONES MANUALES
+- **Reactividad automática**: ✅ Usar `@Published` y dejar que SwiftUI espere naturalmente
+- **Sin delays artificiales**: ❌ NO usar `Task.sleep`, `Task.yield` ni pausas manuales
+- **Flujo natural**: ✅ La vista espera automáticamente a que los datos estén listos
+- **Principio**: "La vista espera naturalmente usando @Published, no interrumpimos el flujo"
+
+#### 🔄 GESTIÓN DE ESTADO ESTABLE
+- **Flags de protección**: ✅ Implementar en funciones críticas como `loadData()` y `autoSelectFirstUserAndGroup()`
+- **Estado consistente**: ✅ Evitar que múltiples operaciones modifiquen el mismo estado simultáneamente
+- **Logs de debug**: ✅ Agregar logs detallados para identificar problemas de concurrencia
+- **Patrón recomendado**: 
+```swift
+private var isOperationInProgress = false
+
+func criticalOperation() async {
+    guard !isOperationInProgress else { return }
+    isOperationInProgress = true
+    // ... operación crítica ...
+    isOperationInProgress = false
+}
+```
 
 ## Project Overview
 Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.

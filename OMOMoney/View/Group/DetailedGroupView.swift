@@ -5,8 +5,10 @@ struct DetailedGroupView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: DetailedGroupViewModel
     @Binding var navigationPath: NavigationPath
+    let canAccessSettings: Bool
+    @State private var showingCreateFirstUser = false
     
-    init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
+    init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>, canAccessSettings: Bool = false) {
         let userService = UserService(context: context)
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
@@ -24,6 +26,7 @@ struct DetailedGroupView: View {
             categoryService: categoryService
         ))
         self._navigationPath = navigationPath
+        self.canAccessSettings = canAccessSettings
     }
     
     var body: some View {
@@ -31,17 +34,19 @@ struct DetailedGroupView: View {
             // Header with Settings button
             HStack {
                 Spacer()
-                Button(
-                    action: { 
-                        // ✅ NAVEGACIÓN REAL: Navegar a SettingsView
-                        navigationPath.append(SettingsDestination.settings)
-                    },
-                    label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title2)
-                            .foregroundColor(.primary)
-                    }
-                )
+                if canAccessSettings {
+                    Button(
+                        action: { 
+                            // ✅ NAVEGACIÓN REAL: Navegar a SettingsView
+                            navigationPath.append(SettingsDestination.settings)
+                        },
+                        label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                        }
+                    )
+                }
             }
             .padding()
             
@@ -52,16 +57,37 @@ struct DetailedGroupView: View {
             } else if viewModel.users.isEmpty {
                 // No users exist
                 VStack(spacing: 16) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+                    
                     Text("No hay usuarios creados")
                         .font(.headline)
                         .foregroundColor(.secondary)
                     
+                    Text("Crea tu primer usuario para empezar a usar OMOMoney")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
                     Button("Crear Primer Usuario") {
-                        Task {
-                            await viewModel.createDefaultUser()
-                        }
+                        showingCreateFirstUser = true
                     }
                     .buttonStyle(.borderedProminent)
+                }
+                .padding()
+            } else if viewModel.selectedUser == nil || viewModel.selectedGroup == nil {
+                // Waiting for auto-selection
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Configurando usuario y grupo...")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    Text("Por favor espera mientras se selecciona automáticamente")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .padding()
             } else {
@@ -82,9 +108,12 @@ struct DetailedGroupView: View {
                         .pickerStyle(MenuPickerStyle())
                         .onChange(of: viewModel.selectedUser) { _, newUser in
                             if let user = newUser {
+                                print("🔄 Usuario seleccionado en UI: \(user.name ?? "Sin nombre")")
                                 Task {
                                     await viewModel.selectUser(user)
                                 }
+                            } else {
+                                print("⚠️ Usuario deseleccionado")
                             }
                         }
                     }
@@ -98,19 +127,19 @@ struct DetailedGroupView: View {
                                 .foregroundColor(.primary)
                             
                             Picker("Grupo", selection: $viewModel.selectedGroup) {
-                                Text("Seleccionar Grupo").tag(nil as Group?)
                                 ForEach(userGroupsForSelectedUser, id: \.id) { group in
                                     Text(group.name ?? "Sin nombre").tag(group as Group?)
                                 }
                             }
                             .pickerStyle(MenuPickerStyle())
-                            .onChange(of: viewModel.selectedGroup) { _, newGroup in
-                                if let group = newGroup {
-                                    Task {
-                                        await viewModel.calculateTotalForGroup(group)
-                                    }
+                                                    .onChange(of: viewModel.selectedGroup) { _, newGroup in
+                            if let group = newGroup {
+                                Task {
+                                    await viewModel.calculateTotalForGroup(group)
+                                    await viewModel.loadEntriesForSelectedGroup()
                                 }
                             }
+                        }
                         }
                         .padding(.horizontal)
                         
@@ -150,6 +179,7 @@ struct DetailedGroupView: View {
                 .onAppear {
                     Task {
                         await viewModel.calculateTotalForGroup(group)
+                        await viewModel.loadEntriesForSelectedGroup()
                     }
                 }
                 
@@ -176,12 +206,115 @@ struct DetailedGroupView: View {
                 .padding(.top, 8)
                 
                 // Entries List
-                List {
-                    ForEach(viewModel.entries, id: \.id) { entry in
-                        EntryRowView(entry: entry, context: viewContext)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Gastos del Grupo")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                                                VStack(alignment: .trailing, spacing: 2) {
+                            Text("\(viewModel.entries.count) gastos")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            if viewModel.hasMoreEntries {
+                                Text("+ más disponibles")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    if viewModel.isLoadingEntries && viewModel.entries.isEmpty {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Cargando gastos...")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    } else if viewModel.entries.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "list.bullet.clipboard")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            
+                            Text("No hay gastos registrados")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Añade tu primer gasto usando el botón de arriba")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 8) {
+                                ForEach(viewModel.entries, id: \.id) { entry in
+                                    EntryRowView(
+                                        entry: entry, 
+                                        context: viewContext, 
+                                        groupCurrency: group.currency ?? "USD"
+                                    )
+                                    .padding(.horizontal)
+                                    .background(Color(.secondarySystemBackground))
+                                    .cornerRadius(8)
+                                }
+                                
+                                // Loading indicator for next page
+                                if viewModel.isLoadingEntries {
+                                    HStack {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                        Text("Cargando más gastos...")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding()
+                                }
+                                
+                                // Load more button
+                                if viewModel.hasMoreEntries && !viewModel.isLoadingEntries {
+                                    Button(action: {
+                                        Task {
+                                            await viewModel.loadMoreEntries()
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "arrow.down.circle")
+                                            Text("Cargar más gastos")
+                                        }
+                                        .foregroundColor(.blue)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.tertiarySystemBackground))
+                                        .cornerRadius(8)
+                                    }
+                                    .padding(.horizontal)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .frame(maxHeight: 400)
+                        .refreshable {
+                            await viewModel.refreshEntries()
+                        }
                     }
                 }
-                .listStyle(PlainListStyle())
             } else {
                 Spacer()
                 Text("Selecciona un grupo para ver los gastos")
@@ -194,12 +327,13 @@ struct DetailedGroupView: View {
         .navigationBarTitleDisplayMode(.large)
         .task {
             await viewModel.loadData()
-            await viewModel.autoSelectFirstUserAndGroup()
+            await viewModel.maintainSelectedGroup()
         }
         .onAppear {
             // ✅ REFRESH: Refrescar datos cuando la vista aparezca
             Task {
                 await viewModel.loadData()
+                await viewModel.refreshEntriesAfterCreation()
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -210,6 +344,9 @@ struct DetailedGroupView: View {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
             }
+        }
+        .sheet(isPresented: $showingCreateFirstUser) {
+            CreateFirstUserView(isPresented: $showingCreateFirstUser)
         }
     }
     
@@ -233,6 +370,7 @@ struct DetailedGroupView: View {
 #Preview {
     DetailedGroupView(
         context: PersistenceController.preview.container.viewContext,
-        navigationPath: .constant(NavigationPath())
+        navigationPath: .constant(NavigationPath()),
+        canAccessSettings: true
     )
 }

@@ -72,6 +72,31 @@ struct AddEntryView: View {
                         .cornerRadius(8)
                     }
                 }
+                
+                // Group Selection
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Grupo")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack {
+                        Image(systemName: "person.3.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                        
+                        Text(group.name ?? "Sin nombre")
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Text("(No se puede cambiar)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
             }
             .padding(.horizontal)
             
@@ -141,6 +166,8 @@ struct AddEntryView: View {
         )
         
         if success {
+            // ✅ SUCCESS: Entry creado exitosamente
+            // Ahora regresamos a la vista anterior
             navigationPath.removeLast()
         }
     }

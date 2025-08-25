@@ -1,10 +1,11 @@
 import CoreData
 import Foundation
+import Combine
 
 /// ViewModel for Detailed Group functionality
 /// Handles group detail display, user management, and entry display
 @MainActor
-class DetailedGroupViewModel: ObservableObject {
+class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
     
     // MARK: - Published Properties
     @Published var selectedUser: User?
@@ -16,6 +17,16 @@ class DetailedGroupViewModel: ObservableObject {
     @Published var users: [User] = []
     @Published var groups: [Group] = []
     @Published var entries: [Entry] = []
+    @Published var isLoadingEntries = false
+    @Published var hasMoreEntries = true
+    @Published var currentPage = 0
+    private let entriesPerPage = 20
+    
+    // Flag para evitar múltiples ejecuciones simultáneas
+    private var isAutoSelecting = false
+    
+    // MARK: - NSFetchedResultsController
+    private var entriesFetchedResultsController: NSFetchedResultsController<Entry>?
     
     // MARK: - Group Creation State
     @Published var isCreatingGroup = false
@@ -25,7 +36,7 @@ class DetailedGroupViewModel: ObservableObject {
     
     // MARK: - Services
     let context: NSManagedObjectContext
-    private let userService: any UserServiceProtocol
+    let userService: any UserServiceProtocol
     private let groupService: any GroupServiceProtocol
     private let userGroupService: any UserGroupServiceProtocol
     private let entryService: any EntryServiceProtocol
@@ -34,6 +45,7 @@ class DetailedGroupViewModel: ObservableObject {
     
     // MARK: - Initialization
     init(context: NSManagedObjectContext, userService: any UserServiceProtocol, groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, entryService: any EntryServiceProtocol, itemService: any ItemServiceProtocol, categoryService: any CategoryServiceProtocol) {
+        // ✅ INIT: Inicializar todas las propiedades let antes de super.init()
         self.context = context
         self.userService = userService
         self.groupService = groupService
@@ -41,38 +53,47 @@ class DetailedGroupViewModel: ObservableObject {
         self.entryService = entryService
         self.itemService = itemService
         self.categoryService = categoryService
+        
+        super.init()
+        
+        // ✅ NSFetchedResultsController: Configurar para reactividad automática
+        setupEntriesFetchedResultsController()
     }
     
     // MARK: - Public Methods
     
     /// Load data for the application
     func loadData() async {
+        // Evitar múltiples ejecuciones simultáneas
+        guard !isLoading else {
+            print("⚠️ loadData ya está en ejecución, saltando...")
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
+        
+        print("🔄 Cargando datos iniciales...")
         
         do {
             // Load users and groups
             users = try await userService.fetchUsers()
+            print("✅ Usuarios cargados: \(users.count)")
+            
             groups = try await groupService.fetchGroups()
-            
-            // Create default user if none exist
-            if users.isEmpty {
-                let defaultUser = try await userService.createUser(name: "Usuario Principal", email: "usuario@omomoney.com")
-                users = [defaultUser]
-            }
-            
-            // Create default group if none exist
-            if groups.isEmpty && !users.isEmpty {
-                guard let firstUser = users.first else { return }
-                let defaultGroup = try await groupService.createGroup(name: "Grupo Principal", currency: "USD")
-                _ = try await userGroupService.createUserGroup(user: firstUser, group: defaultGroup, role: "owner")
-                groups = [defaultGroup]
-            }
+            print("✅ Grupos cargados: \(groups.count)")
         } catch {
+            print("❌ ERROR cargando datos: \(error.localizedDescription)")
             errorMessage = "Error loading data: \(error.localizedDescription)"
         }
         
         isLoading = false
+        
+        // Auto-select user and group after loading data
+        if selectedUser == nil || selectedGroup == nil {
+            print("🔄 Iniciando auto-selección después de cargar datos...")
+            await autoSelectFirstUserAndGroup()
+        }
     }
     
     /// Get user groups for a specific group
@@ -88,8 +109,21 @@ class DetailedGroupViewModel: ObservableObject {
     /// Get groups for a specific user
     func groups(for user: User) async -> [Group] {
         do {
-            return try await userGroupService.getGroups(for: user)
+            let userGroups = try await userGroupService.getGroups(for: user)
+            print("📊 Grupos obtenidos para usuario \(safeUserName(user)): \(userGroups.count)")
+            
+            // Log adicional para debuggear
+            if userGroups.isEmpty {
+                print("⚠️ ADVERTENCIA: Usuario \(safeUserName(user)) no tiene grupos asignados")
+            } else {
+                for (index, group) in userGroups.enumerated() {
+                    print("  📁 Grupo \(index + 1): \(safeGroupName(group))")
+                }
+            }
+            
+            return userGroups
         } catch {
+            print("❌ ERROR obteniendo grupos: \(error.localizedDescription)")
             errorMessage = "Error loading user groups: \(error.localizedDescription)"
             return []
         }
@@ -97,29 +131,95 @@ class DetailedGroupViewModel: ObservableObject {
     
     /// Auto-select first user and first group
     func autoSelectFirstUserAndGroup() async {
-        guard !users.isEmpty else { return }
+        // Evitar múltiples ejecuciones simultáneas
+        guard !isAutoSelecting else {
+            print("⚠️ autoSelectFirstUserAndGroup ya está en ejecución, saltando...")
+            return
+        }
+        
+        isAutoSelecting = true
+        print("🔄 Iniciando auto-selección de usuario y grupo...")
+        
+        // Wait for users to be loaded if empty
+        if users.isEmpty {
+            print("📥 Cargando datos...")
+            await loadData()
+        }
+        
+        guard !users.isEmpty else { 
+            print("❌ ERROR: No hay usuarios disponibles para seleccionar")
+            return 
+        }
         
         // Auto-select first user
-        guard let firstUser = users.first else { return }
+        guard let firstUser = users.first else { 
+            print("❌ ERROR: No se pudo obtener el primer usuario")
+            return 
+        }
+        
+        // Validar que el usuario sea válido
+        guard !firstUser.isDeleted else {
+            print("❌ ERROR: Usuario marcado para eliminar")
+            return
+        }
+        
+        print("✅ Usuario seleccionado automáticamente: \(safeUserName(firstUser))")
         selectedUser = firstUser
         
         // Get groups for the first user
         let userGroups = await groups(for: firstUser)
         
         if let firstGroup = userGroups.first {
+            print("🔍 Grupo encontrado: \(safeGroupName(firstGroup))")
+            
             selectedGroup = firstGroup
+            print("✅ Grupo seleccionado automáticamente: \(safeGroupName(firstGroup))")
+            
             // Load entries and calculate total for the selected group
+            await loadEntriesForSelectedGroup()
             await calculateTotalForGroup(firstGroup)
+        } else {
+            print("⚠️ Usuario seleccionado pero no tiene grupos")
+        }
+        
+        isAutoSelecting = false
+    }
+    
+    /// Maintain selected group state (ensure user and group are always selected)
+    func maintainSelectedGroup() async {
+        // Only auto-select if we don't have both user and group
+        if selectedUser == nil || selectedGroup == nil {
+            print("🔄 Configurando usuario y grupo automáticamente...")
+            // Don't call loadData() again if we already have users
+            if !users.isEmpty {
+                await autoSelectFirstUserAndGroup()
+            } else {
+                // Only load data if we don't have users
+                await loadData()
+            }
         }
     }
     
     /// Select a user and load their groups
     func selectUser(_ user: User) async {
+        print("🔄 Cambiando usuario a: \(safeUserName(user))")
         selectedUser = user
         selectedGroup = nil // Reset selected group
         
-        // Load groups for the selected user (we don't need to store them separately as we can filter them when needed)
-        _ = await groups(for: user)
+        // Load groups for the selected user
+        let userGroups = await groups(for: user)
+        
+        // Auto-select first group for the new user
+        if let firstGroup = userGroups.first {
+            print("✅ Seleccionando primer grupo para nuevo usuario: \(safeGroupName(firstGroup))")
+            selectedGroup = firstGroup
+            
+            // Load entries and calculate total for the selected group
+            await loadEntriesForSelectedGroup()
+            await calculateTotalForGroup(firstGroup)
+        } else {
+            print("⚠️ Usuario no tiene grupos disponibles")
+        }
     }
     
     /// Get entries for a specific group
@@ -148,12 +248,23 @@ class DetailedGroupViewModel: ObservableObject {
     
     /// Calculate total for a specific group
     func calculateTotalForGroup(_ group: Group) async {
+        // Evitar recalcular si ya estamos calculando
+        guard !isCalculatingTotal else { return }
+        
+        // Evitar recalcular si ya tenemos el total para el mismo grupo
+        if let currentGroup = selectedGroup, 
+           currentGroup.id == group.id, 
+           groupTotal != NSDecimalNumber.zero {
+            return
+        }
+        
         isCalculatingTotal = true
         errorMessage = nil
         
         do {
             groupTotal = try await itemService.calculateTotalAmount(for: group)
-            entries = try await entryService.getEntries(for: group)
+            // ✅ NO sobrescribir entries aquí - mantener la paginación
+            // entries = try await entryService.getEntries(for: group)
         } catch {
             errorMessage = "Error calculating total: \(error.localizedDescription)"
         }
@@ -317,8 +428,171 @@ class DetailedGroupViewModel: ObservableObject {
         isCreatingGroup = false
     }
     
+    /// Load entries for the selected group with NSFetchedResultsController
+    func loadEntriesForSelectedGroup() async {
+        // ✅ VALIDACIÓN: Verificar que selectedGroup exista
+        guard let group = selectedGroup else {
+            print("❌ ERROR: No hay grupo seleccionado")
+            return
+        }
+        
+        isLoadingEntries = true
+        
+        // ✅ NSFetchedResultsController: Configurar y ejecutar fetch
+        configureEntriesFetchRequest(for: group)
+        
+        isLoadingEntries = false
+    }
+    
+    /// Load more entries (next page) with NSFetchedResultsController
+    func loadMoreEntries() async {
+        guard selectedGroup != nil, hasMoreEntries, !isLoadingEntries else { return }
+        
+        isLoadingEntries = true
+        
+        // ✅ NSFetchedResultsController: Cargar más entries desde los resultados
+        guard let fetchedEntries = entriesFetchedResultsController?.fetchedObjects else {
+            isLoadingEntries = false
+            return
+        }
+        
+        let nextPage = currentPage + 1
+        let startIndex = nextPage * entriesPerPage
+        let endIndex = min(startIndex + entriesPerPage, fetchedEntries.count)
+        
+        if startIndex < fetchedEntries.count {
+            let newEntries = Array(fetchedEntries[startIndex..<endIndex])
+            entries.append(contentsOf: newEntries)
+            currentPage = nextPage
+            hasMoreEntries = endIndex < fetchedEntries.count
+        }
+        
+        isLoadingEntries = false
+    }
+    
+    /// Refresh entries (pull to refresh)
+    func refreshEntries() async {
+        await loadEntriesForSelectedGroup()
+    }
+    
+    /// Refresh entries after adding a new one
+    func refreshEntriesAfterCreation() async {
+        guard let group = selectedGroup else { return }
+        
+        // ✅ REFRESH: Recargar entries y total en paralelo para mejor performance
+        await loadEntriesForSelectedGroup()
+        await calculateTotalForGroup(group)
+    }
+    
+    /// Force refresh entries (for debugging and immediate updates)
+    func forceRefreshEntries() async {
+        guard let group = selectedGroup else { return }
+        
+        // Reset pagination and reload all entries
+        currentPage = 0
+        hasMoreEntries = true
+        
+        await loadEntriesForSelectedGroup()
+        await calculateTotalForGroup(group)
+    }
+    
     /// Clear error message
     func clearError() {
         errorMessage = nil
+    }
+    
+    /// Validate Core Data object exists
+    private func isValidCoreDataObject(_ object: NSManagedObject?) -> Bool {
+        return object != nil
+    }
+    
+    /// Safe access to user name
+    private func safeUserName(_ user: User?) -> String {
+        guard let user = user else { return "Usuario Nil" }
+        return user.name ?? "Sin Nombre"
+    }
+    
+    /// Safe access to group name
+    private func safeGroupName(_ group: Group?) -> String {
+        guard let group = group else { return "Grupo Nil" }
+        return group.name ?? "Sin Nombre"
+    }
+    
+    // Función de reparación eliminada - ya no es necesaria
+    
+    /// Validate if a group exists
+    private func isValidGroup(_ group: Group?) -> Bool {
+        return group != nil
+    }
+    
+    // MARK: - NSFetchedResultsController
+    
+    /// Setup NSFetchedResultsController for automatic Core Data updates
+    private func setupEntriesFetchedResultsController() {
+        let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(keyPath: \Entry.date, ascending: false)
+        ]
+        
+        entriesFetchedResultsController = NSFetchedResultsController(
+            fetchRequest: fetchRequest,
+            managedObjectContext: context,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
+        
+        entriesFetchedResultsController?.delegate = self
+    }
+    
+    /// Configure fetch request for specific group
+    private func configureEntriesFetchRequest(for _: Group) {
+        // ✅ VALIDACIÓN: Verificar que selectedGroup exista
+        guard let group = selectedGroup else {
+            print("❌ ERROR: No hay grupo seleccionado")
+            return
+        }
+        
+        guard let fetchRequest = entriesFetchedResultsController?.fetchRequest else { return }
+        
+        // Filter by group
+        fetchRequest.predicate = NSPredicate(format: "group == %@", group)
+        
+        // Sort by date (most recent first)
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(keyPath: \Entry.date, ascending: false)
+        ]
+        
+        // Perform fetch
+        do {
+            try entriesFetchedResultsController?.performFetch()
+            updateEntriesFromFetchedResults()
+        } catch {
+            errorMessage = "Error fetching entries: \(error.localizedDescription)"
+        }
+    }
+    
+    /// Update entries from fetched results
+    private func updateEntriesFromFetchedResults() {
+        guard let fetchedEntries = entriesFetchedResultsController?.fetchedObjects else { return }
+        
+        // Update entries with pagination
+        let endIndex = min(entriesPerPage, fetchedEntries.count)
+        entries = Array(fetchedEntries[0..<endIndex])
+        hasMoreEntries = fetchedEntries.count > entriesPerPage
+        currentPage = 0
+    }
+    
+    // MARK: - NSFetchedResultsControllerDelegate
+    
+    nonisolated func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        // ✅ AUTO-UPDATE: Core Data cambió, actualizar entries automáticamente
+        // Seguir patrón obligatorio: background → operación pesada → main thread para UI
+        DispatchQueue.main.async { [weak self] in
+            self?.updateEntriesFromFetchedResults()
+        }
+    }
+    
+    deinit {
+        entriesFetchedResultsController?.delegate = nil
     }
 }

@@ -5,6 +5,7 @@ struct EntryRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: EntryRowViewModel
     private let entry: Entry
+    private let groupCurrency: String
     
     private var categoryColor: Color {
         guard let category = entry.category,
@@ -28,8 +29,9 @@ struct EntryRowView: View {
         }
     }
     
-    init(entry: Entry, context: NSManagedObjectContext) {
+    init(entry: Entry, context: NSManagedObjectContext, groupCurrency: String = "USD") {
         self.entry = entry
+        self.groupCurrency = groupCurrency
         let itemService = ItemService(context: context)
         self._viewModel = StateObject(wrappedValue: EntryRowViewModel(entry: entry, itemService: itemService))
     }
@@ -53,7 +55,7 @@ struct EntryRowView: View {
                     if viewModel.isCalculatingTotal {
                         StyledLoadingView(message: "", style: .compact)
                     } else {
-                        Text(viewModel.formatCurrency(viewModel.entryTotal, currency: "USD"))
+                        Text(viewModel.formatCurrency(viewModel.entryTotal, currency: groupCurrency))
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
@@ -87,5 +89,9 @@ struct EntryRowView: View {
 }
 
 #Preview {
-    EntryRowView(entry: Entry(), context: PersistenceController.preview.container.viewContext)
+    EntryRowView(
+        entry: Entry(), 
+        context: PersistenceController.preview.container.viewContext,
+        groupCurrency: "USD"
+    )
 }
