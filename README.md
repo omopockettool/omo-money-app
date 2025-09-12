@@ -36,12 +36,13 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **First User Flow**: Automatic user creation when app is empty
 - **Stability Features**: Protection against multiple operations and infinite loops
 - **Core Data Safety**: Simplified validation trusting Core Data's internal state
+- **PaymentMethod Management**: Complete CRUD operations for payment methods
+- **Entry → ItemList Refactoring**: Semantic clarity improvements with comprehensive renaming
 
 ### 🚧 In Development
 - **Group Management**: Create and manage expense groups
 - **User-Group Relationships**: Role-based permissions
 - **Category Management**: Expense categorization
-- **ItemList Management**: Expense tracking
 - **Item Management**: Individual expense items
 
 ### 📋 Planned
@@ -63,6 +64,7 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Category**: Expense categorization
 - **ItemList**: Main expense item lists with dates and descriptions
 - **Item**: Individual expense items within item lists
+- **PaymentMethod**: Payment method tracking for groups (credit cards, cash, etc.)
 - **UserGroup**: User-group relationships with roles
 
 ### Performance Features

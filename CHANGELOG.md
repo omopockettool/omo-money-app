@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-09-12
+
+### Added
+- **PaymentMethod Entity**: Complete Core Data implementation for payment method tracking
+  - PaymentMethod entity with name, type, isActive, and group relationships
+  - CASCADE deletion rule when group is deleted
+  - NULLIFY relationship with ItemList for payment method references
+- **Entry → ItemList Renaming**: Comprehensive refactoring for better semantic clarity
+  - Renamed Entry entity to ItemList across entire codebase
+  - Updated all file names, class names, and method references
+  - Maintained backward compatibility with existing data
+- **PaymentMethod Service Layer**: Complete service implementation
+  - PaymentMethodServiceProtocol with full CRUD interface
+  - PaymentMethodService with async/await operations
+  - Intelligent caching with CacheManager integration
+  - Background threading for Core Data operations
+  - Group-based and type-based filtering capabilities
+- **PaymentMethod ViewModels**: Full MVVM implementation
+  - PaymentMethodListViewModel for collection management
+  - PaymentMethodPickerViewModel for selection functionality
+  - AddPaymentMethodViewModel for creation and editing forms
+  - Comprehensive validation and error handling
+  - Loading states and reactive UI bindings
+
+### Changed
+- **Data Model Enhancement**: Entry entity renamed to ItemList for better clarity
+- **Relationship Structure**: Added paymentMethod relationship to ItemList entity
+- **Core Data Schema**: Enhanced with payment method tracking capabilities
+- **Service Architecture**: Extended dependency injection pattern for PaymentMethod services
+- **ViewModel Pattern**: Consistent MVVM implementation across all PaymentMethod functionality
+
+### Fixed
+- **Naming Consistency**: Resolved Entry/ItemList naming conflicts throughout codebase
+- **Compilation Errors**: Fixed method signature mismatches from renaming process
+- **Relationship Integrity**: Proper Core Data relationship configuration with delete rules
+
+### Technical Improvements
+- **Schema Evolution**: Clean migration from Entry to ItemList naming
+- **Service Layer Expansion**: PaymentMethod services follow established patterns
+- **MVVM Consistency**: All ViewModels use @MainActor and ObservableObject patterns
+- **Dependency Injection**: PaymentMethod components integrated with existing DI pattern
+- **Background Operations**: Core Data operations properly threaded for UI performance
+- **Validation Framework**: Comprehensive form validation with user-friendly error messages
+
 ## [0.6.1] - 2025-08-25
 
 ### Fixed
