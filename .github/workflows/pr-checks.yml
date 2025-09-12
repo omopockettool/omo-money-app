@@ -77,25 +77,14 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             -only-testing:OMOMoneyTests \
-            -enableCodeCoverage YES \
+            -enableCodeCoverage NO \
+            -enableThreadSanitizer NO \
+            -enableAddressSanitizer NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
             
-      - name: Generate Coverage Report
-        run: |
-          xcrun xccov view --report --json \
-            ~/Library/Developer/Xcode/DerivedData/OMOMoney-*/Logs/Test/*.xcresult \
-            > coverage.json
-            
-      - name: Upload Coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.json
-          retention-days: 7
-          
   # MARK: - Code Quality Check
   code-quality:
     name: Code Quality
