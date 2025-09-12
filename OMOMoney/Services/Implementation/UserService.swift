@@ -180,7 +180,7 @@ class UserService: CoreDataService, UserServiceProtocol {
         }
         
         // For larger batches, use bulk insert
-        let objects = userDataList.map { userData in
+        let objects: [[String: Any]] = userDataList.map { userData in
             return [
                 "id": UUID(),
                 "name": userData.name,

@@ -161,6 +161,13 @@ class CacheManager: ObservableObject {
         expiredCalculationKeys.forEach { clearCalculationCache(for: $0) }
     }
     
+    /// Clean expired cache items asynchronously (for heavy usage scenarios)
+    func cleanExpiredCacheAsync() async {
+        await Task { @MainActor in
+            cleanExpiredCache()
+        }.value
+    }
+    
     // MARK: - Background Cache Management
     
     /// Start automatic cache cleanup timer

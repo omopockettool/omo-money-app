@@ -159,7 +159,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     /// Bulk update group currency
     func bulkUpdateGroupCurrency(groupIds: [UUID], currency: String) async throws {
         let predicate = NSPredicate(format: "id IN %@", groupIds)
-        let properties = ["currency": currency, "lastModifiedAt": Date()]
+        let properties: [String: Any] = ["currency": currency, "lastModifiedAt": Date()]
         
         _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
         
@@ -170,7 +170,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     /// Bulk update group status (assuming groups have an isActive property)
     func bulkUpdateGroupStatus(groupIds: [UUID], isActive: Bool) async throws {
         let predicate = NSPredicate(format: "id IN %@", groupIds)
-        let properties = ["isActive": isActive, "lastModifiedAt": Date()]
+        let properties: [String: Any] = ["isActive": isActive, "lastModifiedAt": Date()]
         
         _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
         
@@ -191,7 +191,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         }
         
         // For larger batches, use bulk insert
-        let objects = groupDataList.map { groupData in
+        let objects: [[String: Any]] = groupDataList.map { groupData in
             return [
                 "id": UUID(),
                 "name": groupData.name,

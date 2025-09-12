@@ -8,6 +8,7 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     // MARK: - Cache Keys
     private enum CacheKeys {
         static let allPaymentMethods = "PaymentMethodService.allPaymentMethods"
+        static let paymentMethodCount = "PaymentMethodService.paymentMethodCount"
         static let groupPaymentMethods = "PaymentMethodService.groupPaymentMethods"
         static let activePaymentMethods = "PaymentMethodService.activePaymentMethods"
         static let typePaymentMethods = "PaymentMethodService.typePaymentMethods"
@@ -61,7 +62,11 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
             paymentMethod.lastModifiedAt = Date()
             
             // Set group by ID
-            if let group = try? self.context.fetch(NSFetchRequest<Group>(entityName: "Group")).first(where: { $0.id == groupId }) {
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            groupRequest.fetchLimit = 1
+            
+            if let group = try self.context.fetch(groupRequest).first {
                 paymentMethod.group = group
             }
             
@@ -76,9 +81,9 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
         return paymentMethod
     }
     
-    /// Update an existing paymentMethod
+    /// Update a paymentMethod
     func updatePaymentMethod(_ paymentMethod: PaymentMethod, name: String?, type: String?, isActive: Bool?) async throws {
-        try await context.perform {
+        await context.perform {
             if let name = name {
                 paymentMethod.name = name
             }
@@ -99,7 +104,7 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     
     /// Delete a paymentMethod
     func deletePaymentMethod(_ paymentMethod: PaymentMethod) async throws {
-        try await context.perform {
+        await context.perform {
             self.context.delete(paymentMethod)
         }
         
@@ -166,7 +171,7 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     
     /// Toggle paymentMethod active status
     func toggleActiveStatus(_ paymentMethod: PaymentMethod) async throws {
-        try await context.perform {
+        await context.perform {
             paymentMethod.isActive.toggle()
             paymentMethod.lastModifiedAt = Date()
         }
@@ -202,12 +207,13 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     
     /// Invalidate all caches related to paymentMethods
     private func invalidateCaches() async {
-        await CacheManager.shared.removeData(for: CacheKeys.allPaymentMethods)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allPaymentMethods)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.paymentMethodCount)
         
-        // Invalidate all group-specific caches (we don't know which group was affected)
-        let cacheManager = CacheManager.shared
-        await cacheManager.removeDataWithPrefix(CacheKeys.groupPaymentMethods)
-        await cacheManager.removeDataWithPrefix(CacheKeys.activePaymentMethods)
-        await cacheManager.removeDataWithPrefix(CacheKeys.typePaymentMethods)
+        // Since we don't have prefix-based clearing, we'll clear the main caches
+        // Group-specific caches will be invalidated as needed when accessed
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupPaymentMethods)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.activePaymentMethods)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.typePaymentMethods)
     }
 }

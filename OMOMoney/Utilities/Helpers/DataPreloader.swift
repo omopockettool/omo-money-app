@@ -56,8 +56,8 @@ class DataPreloader: ObservableObject {
         preloadingStatus = "Preload complete"
         isPreloading = false
         
-        // Clean up any expired cache entries
-        await CacheManager.shared.cleanExpiredCache()
+        // Clean up any expired cache entries asynchronously
+        await CacheManager.shared.cleanExpiredCacheAsync()
     }
     
     /// Preload critical data (users and groups) for faster startup
@@ -186,7 +186,7 @@ class DataPreloader: ObservableObject {
     /// Clear all cached data and reload
     func refreshAllData() async {
         // Clear all caches
-        await CacheManager.shared.clearAllCaches()
+        CacheManager.shared.clearAllCaches()
         
         // Reload critical data
         await preloadCriticalData()
