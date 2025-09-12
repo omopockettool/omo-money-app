@@ -142,4 +142,60 @@ class UserService: CoreDataService, UserServiceProtocol {
         
         return count
     }
+    
+    // MARK: - Batch Operations
+    
+    /// Bulk delete users by IDs for better performance
+    func bulkDeleteUsers(userIds: [UUID]) async throws {
+        let predicate = NSPredicate(format: "id IN %@", userIds)
+        _ = try await batchDelete(User.self, predicate: predicate)
+        
+        // Clear relevant caches
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
+    }
+    
+    /// Bulk update user active status
+    func bulkUpdateUserStatus(userIds: [UUID], isActive: Bool) async throws {
+        let predicate = NSPredicate(format: "id IN %@", userIds)
+        let properties = ["lastModifiedAt": Date()]
+        
+        _ = try await batchUpdate(User.self, predicate: predicate, propertiesToUpdate: properties)
+        
+        // Clear relevant caches
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+    }
+    
+    /// Create multiple users efficiently
+    func createUsers(_ userDataList: [(name: String, email: String?)]) async throws -> [User] {
+        // For small batches, use regular creation for better control
+        if userDataList.count <= 10 {
+            var createdUsers: [User] = []
+            for userData in userDataList {
+                let user = try await createUser(name: userData.name, email: userData.email)
+                createdUsers.append(user)
+            }
+            return createdUsers
+        }
+        
+        // For larger batches, use bulk insert
+        let objects = userDataList.map { userData in
+            return [
+                "id": UUID(),
+                "name": userData.name,
+                "email": userData.email ?? "",
+                "createdAt": Date(),
+                "lastModifiedAt": Date()
+            ]
+        }
+        
+        try await bulkInsert(User.self, objects: objects)
+        
+        // Clear caches and refetch to get proper User objects
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+        
+        return try await fetchUsers()
+    }
 }

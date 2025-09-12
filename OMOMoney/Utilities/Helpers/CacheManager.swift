@@ -38,8 +38,10 @@ class CacheManager: ObservableObject {
             // Cache expired or not found, remove it
             dataCache.removeValue(forKey: key)
             cacheTimestamps.removeValue(forKey: key)
+            recordCacheMiss()
             return nil
         }
+        recordCacheHit()
         return data
     }
     
@@ -157,5 +159,43 @@ class CacheManager: ObservableObject {
             now.timeIntervalSince(timestamp) >= calculationCacheExpiration ? key : nil
         }
         expiredCalculationKeys.forEach { clearCalculationCache(for: $0) }
+    }
+    
+    // MARK: - Background Cache Management
+    
+    /// Start automatic cache cleanup timer
+    func startAutomaticCacheCleanup() {
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.cleanExpiredCache()
+            }
+        }
+    }
+    
+    /// Preload cache with commonly accessed data
+    func preloadCache(with data: [String: Any]) {
+        for (key, value) in data {
+            dataCache[key] = value
+            cacheTimestamps[key] = Date()
+        }
+    }
+    
+    /// Get cache hit ratio for performance monitoring
+    func getCacheHitRatio() -> Double {
+        let totalAccesses = cacheHits + cacheMisses
+        guard totalAccesses > 0 else { return 0.0 }
+        return Double(cacheHits) / Double(totalAccesses)
+    }
+    
+    // MARK: - Cache Performance Tracking
+    private var cacheHits = 0
+    private var cacheMisses = 0
+    
+    private func recordCacheHit() {
+        cacheHits += 1
+    }
+    
+    private func recordCacheMiss() {
+        cacheMisses += 1
     }
 }
