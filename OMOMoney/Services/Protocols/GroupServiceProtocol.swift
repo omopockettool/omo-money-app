@@ -27,4 +27,24 @@ protocol GroupServiceProtocol {
     
     /// Get groups count
     func getGroupsCount() async throws -> Int
+    
+    // MARK: - Batch Operations
+    
+    /// Bulk delete groups by IDs for better performance
+    func bulkDeleteGroups(groupIds: [UUID]) async throws
+    
+    /// Bulk update group currency
+    func bulkUpdateGroupCurrency(groupIds: [UUID], currency: String) async throws
+    
+    /// Bulk update group status (if applicable)
+    func bulkUpdateGroupStatus(groupIds: [UUID], isActive: Bool) async throws
+    
+    /// Create multiple groups efficiently
+    func createGroups(_ groupDataList: [(name: String, currency: String)]) async throws -> [Group]
+    
+    /// Get groups count for specific currency
+    func getGroupsCount(for currency: String) async throws -> Int
+    
+    /// Get group members count
+    func getGroupMembersCount(_ group: Group) async throws -> Int
 }

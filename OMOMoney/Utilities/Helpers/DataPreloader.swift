@@ -132,12 +132,18 @@ class DataPreloader: ObservableObject {
         do {
             // Preload group-specific data
             _ = try await categoryService.getCategories(for: group)
-            preloadingProgress = 0.33
+            preloadingProgress = 0.25
             
             _ = try await paymentMethodService.getPaymentMethods(for: group)
-            preloadingProgress = 0.66
+            preloadingProgress = 0.5
             
             _ = try await groupService.getGroupMembersCount(group)
+            preloadingProgress = 0.75
+            
+            // Preload group statistics
+            if let currency = group.currency {
+                _ = try await groupService.getGroupsCount(for: currency)
+            }
             preloadingProgress = 1.0
             
             preloadingStatus = "Group data loaded"
@@ -146,6 +152,34 @@ class DataPreloader: ObservableObject {
             print("⚠️ Failed to preload group data: \(error.localizedDescription)")
         }
         
+        isPreloading = false
+    }
+    
+    /// Preload data for multiple groups efficiently
+    func preloadMultipleGroupsData(_ groups: [Group]) async {
+        guard !isPreloading else { return }
+        
+        isPreloading = true
+        preloadingProgress = 0.0
+        preloadingStatus = "Loading multiple groups data..."
+        
+        let progressIncrement = 1.0 / Double(groups.count)
+        
+        for (index, group) in groups.enumerated() {
+            preloadingStatus = "Loading group \(index + 1) of \(groups.count)..."
+            
+            do {
+                _ = try await categoryService.getCategories(for: group)
+                _ = try await paymentMethodService.getPaymentMethods(for: group)
+                _ = try await groupService.getGroupMembersCount(group)
+            } catch {
+                print("⚠️ Failed to preload data for group \(group.name ?? "Unknown"): \(error.localizedDescription)")
+            }
+            
+            preloadingProgress += progressIncrement
+        }
+        
+        preloadingStatus = "All groups data loaded"
         isPreloading = false
     }
     

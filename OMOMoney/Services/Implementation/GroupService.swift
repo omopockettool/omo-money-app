@@ -143,6 +143,123 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         return count
     }
     
+    // MARK: - Batch Operations
+    
+    /// Bulk delete groups by IDs for better performance
+    func bulkDeleteGroups(groupIds: [UUID]) async throws {
+        let predicate = NSPredicate(format: "id IN %@", groupIds)
+        _ = try await batchDelete(Group.self, predicate: predicate)
+        
+        // Clear relevant caches
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
+    }
+    
+    /// Bulk update group currency
+    func bulkUpdateGroupCurrency(groupIds: [UUID], currency: String) async throws {
+        let predicate = NSPredicate(format: "id IN %@", groupIds)
+        let properties = ["currency": currency, "lastModifiedAt": Date()]
+        
+        _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
+        
+        // Clear relevant caches
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+    }
+    
+    /// Bulk update group status (assuming groups have an isActive property)
+    func bulkUpdateGroupStatus(groupIds: [UUID], isActive: Bool) async throws {
+        let predicate = NSPredicate(format: "id IN %@", groupIds)
+        let properties = ["isActive": isActive, "lastModifiedAt": Date()]
+        
+        _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
+        
+        // Clear relevant caches
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+    }
+    
+    /// Create multiple groups efficiently
+    func createGroups(_ groupDataList: [(name: String, currency: String)]) async throws -> [Group] {
+        // For small batches, use regular creation for better control
+        if groupDataList.count <= 10 {
+            var createdGroups: [Group] = []
+            for groupData in groupDataList {
+                let group = try await createGroup(name: groupData.name, currency: groupData.currency)
+                createdGroups.append(group)
+            }
+            return createdGroups
+        }
+        
+        // For larger batches, use bulk insert
+        let objects = groupDataList.map { groupData in
+            return [
+                "id": UUID(),
+                "name": groupData.name,
+                "currency": groupData.currency,
+                "createdAt": Date(),
+                "lastModifiedAt": Date()
+            ]
+        }
+        
+        try await bulkInsert(Group.self, objects: objects)
+        
+        // Clear caches and refetch to get proper Group objects
+        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        
+        return try await fetchGroups()
+    }
+    
+    /// Get groups count for specific currency
+    func getGroupsCount(for currency: String) async throws -> Int {
+        let cacheKey = "\(CacheKeys.groupCount)_\(currency)"
+        
+        // Check cache first
+        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cachedCount
+        }
+        
+        // Get from Core Data
+        let request: NSFetchRequest<Group> = Group.fetchRequest()
+        request.predicate = NSPredicate(format: "currency == %@", currency)
+        let count = try await count(request)
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(count, for: cacheKey)
+        
+        return count
+    }
+    
+    /// Get group members count
+    func getGroupMembersCount(_ group: Group) async throws -> Int {
+        guard let groupId = group.id else {
+            throw CoreDataError.invalidObjectID
+        }
+        
+        let cacheKey = "GroupService.membersCount_\(groupId)"
+        
+        // Check cache first
+        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cachedCount
+        }
+        
+        // Get from Core Data through UserGroup relationship
+        let request: NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: "UserGroup")
+        request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+        request.resultType = .countResultType
+        
+        let results = try await context.perform {
+            try self.context.fetch(request)
+        }
+        
+        let count = (results.first as? Int) ?? 0
+        
+        // Cache the result
+        await CacheManager.shared.cacheData(count, for: cacheKey)
+        
+        return count
+    }
+    
     /// Get groups by owner (through UserGroup relationship)
     /// This method requires UserGroupService to work properly
     func getGroups(ownedBy user: User) async throws -> [Group] {
