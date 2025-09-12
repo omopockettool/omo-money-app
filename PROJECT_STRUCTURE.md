@@ -18,14 +18,14 @@ OMOMoney/
 ├── ViewModel/             # Capa de ViewModels (por dominio)
 │   ├── User/
 │   ├── Group/
-│   ├── Entry/
+│   ├── ItemList/
 │   ├── Item/
 │   └── Category/
 │
 ├── View/                  # Capa de Vistas SwiftUI (por dominio)
 │   ├── User/
 │   ├── Group/
-│   ├── Entry/
+│   ├── ItemList/
 │   ├── Base/
 │   ├── MainView.swift
 │   └── SettingsView.swift
@@ -40,7 +40,7 @@ OMOMoney/
 │
 ├── Assets.xcassets/       # Recursos de la aplicación
 ├── ContentView.swift      # Vista principal
-├── OMOMoneyApp.swift      # App entry point
+├── OMOMoneyApp.swift      # App itemList point
 ├── OMOMoney.entitlements  # Entitlements
 └── OMOMoney.xcdatamodeld/ # Modelo de datos Core Data
 ```

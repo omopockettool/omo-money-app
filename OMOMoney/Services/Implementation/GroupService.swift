@@ -61,7 +61,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             return group
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
@@ -83,7 +83,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
@@ -93,7 +93,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         await delete(group)
         try await save()
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)

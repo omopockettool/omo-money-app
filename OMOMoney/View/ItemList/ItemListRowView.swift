@@ -1,14 +1,14 @@
 import CoreData
 import SwiftUI
 
-struct EntryRowView: View {
+struct ItemListRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @StateObject private var viewModel: EntryRowViewModel
-    private let entry: Entry
+    @StateObject private var viewModel: ItemListRowViewModel
+    private let itemList: ItemList
     private let groupCurrency: String
     
     private var categoryColor: Color {
-        guard let category = entry.category,
+        guard let category = itemList.category,
               let colorString = category.color else {
             return .blue
         }
@@ -29,22 +29,22 @@ struct EntryRowView: View {
         }
     }
     
-    init(entry: Entry, context: NSManagedObjectContext, groupCurrency: String = "USD") {
-        self.entry = entry
+    init(itemList: ItemList, context: NSManagedObjectContext, groupCurrency: String = "USD") {
+        self.itemList = itemList
         self.groupCurrency = groupCurrency
         let itemService = ItemService(context: context)
-        self._viewModel = StateObject(wrappedValue: EntryRowViewModel(entry: entry, itemService: itemService))
+        self._viewModel = StateObject(wrappedValue: ItemListRowViewModel(itemList: itemList, itemService: itemService))
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.entryDescription ?? "Sin descripción")
+                    Text(itemList.itemListDescription ?? "Sin descripción")
                         .font(.headline)
                         .foregroundColor(.primary)
                     
-                    Text(viewModel.formatDate(entry.date))
+                    Text(viewModel.formatDate(itemList.date))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -55,7 +55,7 @@ struct EntryRowView: View {
                     if viewModel.isCalculatingTotal {
                         StyledLoadingView(message: "", style: .compact)
                     } else {
-                        Text(viewModel.formatCurrency(viewModel.entryTotal, currency: groupCurrency))
+                        Text(viewModel.formatCurrency(viewModel.itemListTotal, currency: groupCurrency))
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
@@ -67,7 +67,7 @@ struct EntryRowView: View {
                 }
             }
             
-            if let category = entry.category {
+            if let category = itemList.category {
                 HStack {
                     Circle()
                         .fill(categoryColor)
@@ -83,14 +83,14 @@ struct EntryRowView: View {
         }
         .padding(.vertical, 4)
         .task {
-            await viewModel.calculateEntryTotal()
+            await viewModel.calculateItemListTotal()
         }
     }
 }
 
 #Preview {
-    EntryRowView(
-        entry: Entry(), 
+    ItemListRowView(
+        itemList: ItemList(), 
         context: PersistenceController.preview.container.viewContext,
         groupCurrency: "USD"
     )

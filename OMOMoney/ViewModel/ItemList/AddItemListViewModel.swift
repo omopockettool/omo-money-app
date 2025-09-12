@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 
 @MainActor
-final class AddEntryViewModel: ObservableObject {
+final class AddItemListViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var categories: [Category] = []
@@ -13,18 +13,18 @@ final class AddEntryViewModel: ObservableObject {
     @Published var selectedCategory: Category?
     
     // MARK: - Dependencies
-    private let entryService: EntryServiceProtocol
+    private let itemListService: ItemListServiceProtocol
     private let categoryService: CategoryServiceProtocol
     private let itemService: ItemServiceProtocol
     
     // MARK: - Initialization
     
     init(
-        entryService: EntryServiceProtocol,
+        itemListService: ItemListServiceProtocol,
         categoryService: CategoryServiceProtocol,
         itemService: ItemServiceProtocol
     ) {
-        self.entryService = entryService
+        self.itemListService = itemListService
         self.categoryService = categoryService
         self.itemService = itemService
     }
@@ -53,8 +53,8 @@ final class AddEntryViewModel: ObservableObject {
         isLoading = false
     }
     
-    /// Create a new entry with the specified details
-    func createEntry(
+    /// Create a new itemList with the specified details
+    func createItemList(
         description: String,
         date: Date,
         category: Category,
@@ -64,26 +64,26 @@ final class AddEntryViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let entry = try await entryService.createEntry(
+            let itemList = try await itemListService.createItemList(
                 description: description,
                 date: date,
                 categoryId: category.id ?? UUID(),
                 groupId: group.id ?? UUID()
             )
             
-            // Create a default item for the entry
+            // Create a default item for the itemList
             _ = try await itemService.createItem(
                 description: "Item por defecto",
                 amount: NSDecimalNumber(value: 0.0),
                 quantity: 1,
-                entry: entry
+                itemList: itemList
             )
             
             isLoading = false
             return true
             
         } catch {
-            errorMessage = "Error al crear entry: \(error.localizedDescription)"
+            errorMessage = "Error al crear itemList: \(error.localizedDescription)"
             isLoading = false
             return false
         }

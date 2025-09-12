@@ -18,7 +18,7 @@ struct MainView: View {
         let userService = UserService(context: context)
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
-        let entryService = EntryService(context: context)
+        let itemListService = ItemListService(context: context)
         let itemService = ItemService(context: context)
         let categoryService = CategoryService(context: context)
         
@@ -27,7 +27,7 @@ struct MainView: View {
             userService: userService,
             groupService: groupService,
             userGroupService: userGroupService,
-            entryService: entryService,
+            itemListService: itemListService,
             itemService: itemService,
             categoryService: categoryService
         ))
@@ -64,10 +64,10 @@ struct MainView: View {
                         ManageGroupsView(navigationPath: $navigationPath, selectedUser: user)
                     }
                 }
-                .navigationDestination(for: AddEntryDestination.self) { destination in
+                .navigationDestination(for: AddItemListDestination.self) { destination in
                     switch destination {
-                    case .addEntry(let user, let group):
-                        AddEntryView(
+                    case .addItemList(let user, let group):
+                        AddItemListView(
                             user: user,
                             group: group,
                             context: detailedGroupViewModel.context,
@@ -116,8 +116,8 @@ enum SettingsDestination: Hashable {
     case manageGroups(User)
 }
 
-enum AddEntryDestination: Hashable {
-    case addEntry(User, Group)
+enum AddItemListDestination: Hashable {
+    case addItemList(User, Group)
 }
 
 // MARK: - Helper Functions

@@ -35,13 +35,13 @@ class ItemListViewModel: ObservableObject {
         isLoading = false
     }
     
-    /// Load items for a specific entry
-    func loadItems(for entry: Entry) async {
+    /// Load items for a specific itemList
+    func loadItems(for itemList: ItemList) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            items = try await itemService.getItems(for: entry)
+            items = try await itemService.getItems(for: itemList)
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -57,7 +57,7 @@ class ItemListViewModel: ObservableObject {
         do {
             // Get all items and filter by category
             let allItems = try await itemService.fetchItems()
-            items = allItems.filter { $0.entry?.category?.id == category.id }
+            items = allItems.filter { $0.itemList?.category?.id == category.id }
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -73,7 +73,7 @@ class ItemListViewModel: ObservableObject {
         do {
             // Get all items and filter by group
             let allItems = try await itemService.fetchItems()
-            items = allItems.filter { $0.entry?.group?.id == group.id }
+            items = allItems.filter { $0.itemList?.group?.id == group.id }
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -98,12 +98,12 @@ class ItemListViewModel: ObservableObject {
     }
     
     /// Create a new item
-    func createItem(description: String, amount: NSDecimalNumber, quantity: Int32 = 1, entry: Entry) async -> Bool {
+    func createItem(description: String, amount: NSDecimalNumber, quantity: Int32 = 1, itemList: ItemList) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
-            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, entry: entry)
+            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, itemList: itemList)
             items.append(newItem)
             items.sort { ($0.createdAt ?? Date()) < ($1.createdAt ?? Date()) }
             isLoading = false
@@ -151,7 +151,7 @@ class ItemListViewModel: ObservableObject {
     /// Calculate total amount for all items
     func calculateTotalAmount() async -> NSDecimalNumber {
         do {
-            return try await itemService.calculateTotalAmount(for: items.first?.entry?.group ?? Group())
+            return try await itemService.calculateTotalAmount(for: items.first?.itemList?.group ?? Group())
         } catch {
             errorMessage = "Error calculating total: \(error.localizedDescription)"
             return NSDecimalNumber.zero

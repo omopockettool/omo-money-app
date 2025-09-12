@@ -84,27 +84,27 @@ class TestEntityFactory {
         }
     }
     
-    // MARK: - Entry Factory Methods
+    // MARK: - ItemLists Factory Methods
     
-    /// Create a test entry
-    func createEntry(description: String = "Test Entry", date: Date = Date(), category: OMOMoney.Category? = nil, group: Group? = nil) -> Entry {
-        let entry = Entry(context: context)
-        entry.id = UUID()
-        entry.entryDescription = description
-        entry.date = date
-        entry.category = category
-        entry.group = group
-        entry.createdAt = Date()
-        entry.lastModifiedAt = Date()
-        return entry
+    /// Create a test itemLists
+    func createItemLists(description: String = "Test ItemLists", date: Date = Date(), category: OMOMoney.Category? = nil, group: Group? = nil) -> ItemLists {
+        let itemLists = ItemLists(context: context)
+        itemLists.id = UUID()
+        itemLists.itemListDescription = description
+        itemLists.date = date
+        itemLists.category = category
+        itemLists.group = group
+        itemLists.createdAt = Date()
+        itemLists.lastModifiedAt = Date()
+        return itemLists
     }
     
-    /// Create multiple test entries
-    func createEntries(count: Int, prefix: String = "Entry", category: OMOMoney.Category? = nil, group: Group? = nil) -> [Entry] {
+    /// Create multiple test itemLists
+    func createItemLists(count: Int, prefix: String = "ItemLists", category: OMOMoney.Category? = nil, group: Group? = nil) -> [ItemLists] {
         return (0..<count).map { index in
-            createEntry(
+            createItemLists(
                 description: "\(prefix) \(index + 1)",
-                date: Date().addingTimeInterval(TimeInterval(-index * 86400)), // Each entry one day apart
+                date: Date().addingTimeInterval(TimeInterval(-index * 86400)), // Each itemLists one day apart
                 category: category,
                 group: group
             )
@@ -114,26 +114,26 @@ class TestEntityFactory {
     // MARK: - Item Factory Methods
     
     /// Create a test item
-    func createItem(description: String = "Test Item", amount: NSDecimalNumber = NSDecimalNumber(value: 10.0), quantity: Int32 = 1, entry: Entry? = nil) -> Item {
+    func createItem(description: String = "Test Item", amount: NSDecimalNumber = NSDecimalNumber(value: 10.0), quantity: Int32 = 1, itemLists: ItemLists? = nil) -> Item {
         let item = Item(context: context)
         item.id = UUID()
         item.itemDescription = description
         item.amount = amount
         item.quantity = quantity
-        item.entry = entry
+        item.itemList = itemLists
         item.createdAt = Date()
         item.lastModifiedAt = Date()
         return item
     }
     
     /// Create multiple test items
-    func createItems(count: Int, prefix: String = "Item", entry: Entry? = nil) -> [Item] {
+    func createItems(count: Int, prefix: String = "Item", itemLists: ItemLists? = nil) -> [Item] {
         return (0..<count).map { index in
             createItem(
                 description: "\(prefix) \(index + 1)",
                 amount: NSDecimalNumber(value: Double(index + 1) * 5.0),
                 quantity: Int32(index + 1),
-                entry: entry
+                itemLists: itemLists
             )
         }
     }
@@ -165,8 +165,8 @@ class TestEntityFactory {
     
     // MARK: - Complex Scenarios
     
-    /// Create a complete test scenario with users, groups, categories, entries, and items
-    func createCompleteTestScenario() -> (users: [User], groups: [Group], categories: [OMOMoney.Category], entries: [Entry], items: [Item], userGroups: [UserGroup]) {
+    /// Create a complete test scenario with users, groups, categories, itemLists, and items
+    func createCompleteTestScenario() -> (users: [User], groups: [Group], categories: [OMOMoney.Category], itemLists: [ItemLists], items: [Item], userGroups: [UserGroup]) {
         // Create users
         let users = createUsers(count: 3)
         
@@ -180,24 +180,24 @@ class TestEntityFactory {
             allCategories.append(contentsOf: groupCategories)
         }
         
-        // Create entries for each group
-        var allEntries: [Entry] = []
+        // Create itemLists for each group
+        var allItemLists: [ItemLists] = []
         for group in groups {
-            let groupEntries = createEntries(count: 5, group: group)
-            allEntries.append(contentsOf: groupEntries)
+            let groupItemLists = createItemLists(count: 5, group: group)
+            allItemLists.append(contentsOf: groupItemLists)
         }
         
-        // Create items for each entry
+        // Create items for each itemLists
         var allItems: [Item] = []
-        for entry in allEntries {
-            let entryItems = createItems(count: 2, entry: entry)
-            allItems.append(contentsOf: entryItems)
+        for itemLists in allItemLists {
+            let itemListsItems = createItems(count: 2, itemLists: itemLists)
+            allItems.append(contentsOf: itemListsItems)
         }
         
         // Create user group relationships
         let userGroups = createUserGroups(users: users, groups: groups)
         
-        return (users, groups, allCategories, allEntries, allItems, userGroups)
+        return (users, groups, allCategories, allItemLists, allItems, userGroups)
     }
     
     // MARK: - Cleanup

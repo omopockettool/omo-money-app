@@ -30,7 +30,7 @@ Prompt para Cursor:
   - ✅ **Eficiente**: No polling, no notificaciones manuales
 - **Implementación**:
   - ViewModel implementa `NSFetchedResultsControllerDelegate`
-  - `@Published var entries` se actualiza automáticamente
+  - `@Published var itemLists` se actualiza automáticamente
   - SwiftUI re-renderiza cuando `@Published` cambia
   - **NO usar NotificationCenter** para cambios de Core Data
 
@@ -91,13 +91,13 @@ init(service: UserServiceProtocol) {
 - **ViewModels Organization**: 
   - `ViewModel/User/` - ViewModels relacionados con usuarios
   - `ViewModel/Group/` - ViewModels relacionados con grupos
-  - `ViewModel/Entry/` - ViewModels relacionados con entradas
+  - `ViewModel/ItemList/` - ViewModels relacionados con entradas
   - `ViewModel/Item/` - ViewModels relacionados con items
   - `ViewModel/Category/` - ViewModels relacionados con categorías
 - **Views Organization**: 
   - `View/User/` - Vistas relacionadas con usuarios
   - `View/Group/` - Vistas relacionadas con grupos
-  - `View/Entry/` - Vistas relacionadas con entradas
+  - `View/ItemList/` - Vistas relacionadas con entradas
   - `View/Base/` - Componentes reusables (Loading, etc.)
 
 #### ⚡ CONCURRENCIA Y ASINCRONÍA
@@ -142,8 +142,8 @@ init(service: UserServiceProtocol) {
        case settings
    }
    
-   enum AddEntryDestination: Hashable {
-       case addEntry(User, Group)
+   enum AddItemListDestination: Hashable {
+       case addItemList(User, Group)
    }
    ```
 
@@ -169,10 +169,10 @@ init(service: UserServiceProtocol) {
                        SettingsView(navigationPath: $navigationPath)
                    }
                }
-               .navigationDestination(for: AddEntryDestination.self) { destination in
+               .navigationDestination(for: AddItemListDestination.self) { destination in
                    switch destination {
-                   case .addEntry(let user, let group):
-                       AddEntryView(user: user, group: group, navigationPath: $navigationPath)
+                   case .addItemList(let user, let group):
+                       AddItemListView(user: user, group: group, navigationPath: $navigationPath)
                    }
                }
            }
@@ -198,9 +198,9 @@ init(service: UserServiceProtocol) {
                navigationPath.append(SettingsDestination.settings)
            }
            
-           Button("Add Entry") {
+           Button("Add ItemList") {
                if let user = viewModel.selectedUser, let group = viewModel.selectedGroup {
-                   navigationPath.append(AddEntryDestination.addEntry(user, group))
+                   navigationPath.append(AddItemListDestination.addItemList(user, group))
                }
            }
        }
@@ -443,7 +443,7 @@ Genera el modelo de datos de Core Data en Swift usando NSManagedObject para cada
 - **IMPORTANTE**: Las entidades están configuradas con "Codegen: Class Definition" en Xcode
 - **NO crear archivos manuales**: Xcode genera automáticamente las clases Core Data en tiempo de compilación
 - **Verificar configuración**: Cada entidad en .xcdatamodel debe tener "Codegen: Class Definition"
-- **Entidades generadas automáticamente**: User, Group, Entry, Item, Category, UserGroup
+- **Entidades generadas automáticamente**: User, Group, ItemList, Item, Category, UserGroup
 - **Tipos correctos**: UUID?, Date?, NSDecimalNumber?, Int32, String?, Set<Entity>?
 - **Relaciones**: Ya configuradas en .xcdatamodel con delete rules apropiadas
 
@@ -489,10 +489,10 @@ Category
 - createdAt: Date?, optional
 - lastModifiedAt: Date?, optional
 - Relaciones:
-  - entries: Set<Entry>?, to-many, inverse category, delete rule Nullify
+  - itemLists: Set<ItemList>?, to-many, inverse category, delete rule Nullify
   - group: Group?, to-one, inverse categories, delete rule Cascade
 
-Entry
+ItemList
 - id: UUID,
 - description: String?, optional, default ""
 - date: Date,
@@ -501,9 +501,9 @@ Entry
 - categoryId: UUID,
 - groupId: UUID,
 - Relaciones:
-  - category: Category?, to-one, inverse entries, delete rule Nullify
-  - group: Group?, to-one, inverse entries, delete rule Nullify
-  - items: Set<Item>?, to-many, inverse entry, delete rule Cascade
+  - category: Category?, to-one, inverse itemLists, delete rule Nullify
+  - group: Group?, to-one, inverse itemLists, delete rule Nullify
+  - items: Set<Item>?, to-many, inverse itemList, delete rule Cascade
 
 Group
 - id: UUID,
@@ -512,7 +512,7 @@ Group
 - createdAt: Date?, optional auto generated
 - lastModifiedAt: Date?, optional auto generated
 - Relaciones:
-  - entries: Set<Entry>?, to-many, inverse group, delete rule Cascade
+  - itemLists: Set<ItemList>?, to-many, inverse group, delete rule Cascade
   - categories: Set<Category>?, to-many, inverse group, delete rule Cascade
   - userGroups: Set<UserGroup>?, to-many, inverse group, delete rule Cascade
 
@@ -524,7 +524,7 @@ Item
 - createdAt: Date?, optional auto generated
 - lastModifiedAt: Date?, optional auto generated
 - Relaciones:
-  - entry: Entry?, to-one, inverse items, delete rule Nullify
+  - itemList: ItemList?, to-one, inverse items, delete rule Nullify
 
 User
 - id: UUID?, optional
@@ -565,14 +565,14 @@ Services/
 ├── Protocols/              # Protocolos de servicios para DI
 │   ├── UserServiceProtocol.swift
 │   ├── GroupServiceProtocol.swift
-│   ├── EntryServiceProtocol.swift
+│   ├── ItemListServiceProtocol.swift
 │   ├── ItemServiceProtocol.swift
 │   ├── CategoryServiceProtocol.swift
 │   └── UserGroupServiceProtocol.swift
 ├── Implementation/         # Implementaciones concretas
 │   ├── UserService.swift
 │   ├── GroupService.swift
-│   ├── EntryService.swift
+│   ├── ItemListService.swift
 │   ├── ItemService.swift
 │   ├── CategoryService.swift
 │   └── UserGroupService.swift
@@ -584,7 +584,7 @@ Services/
 ViewModel/
 ├── User/                   # ViewModels relacionados con usuarios
 ├── Group/                  # ViewModels relacionados con grupos
-├── Entry/                  # ViewModels relacionados con entradas
+├── ItemList/                  # ViewModels relacionados con entradas
 ├── Item/                   # ViewModels relacionados con items
 └── Category/               # ViewModels relacionados con categorías
 ```
@@ -594,7 +594,7 @@ ViewModel/
 View/
 ├── User/                   # Vistas relacionadas con usuarios
 ├── Group/                  # Vistas relacionadas con grupos
-├── Entry/                  # Vistas relacionadas con entradas
+├── ItemList/                  # Vistas relacionadas con entradas
 └── Base/                   # Componentes reusables (Loading, etc.)
 ```
 

@@ -3,7 +3,7 @@ import Foundation
 import Combine
 
 /// ViewModel for Detailed Group functionality
-/// Handles group detail display, user management, and entry display
+/// Handles group detail display, user management, and itemList display
 @MainActor
 class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
     
@@ -16,17 +16,17 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
     @Published var errorMessage: String?
     @Published var users: [User] = []
     @Published var groups: [Group] = []
-    @Published var entries: [Entry] = []
-    @Published var isLoadingEntries = false
-    @Published var hasMoreEntries = true
+    @Published var itemLists: [ItemList] = []
+    @Published var isLoadingItemLists = false
+    @Published var hasMoreItemLists = true
     @Published var currentPage = 0
-    private let entriesPerPage = 20
+    private let itemListsPerPage = 20
     
     // Flag para evitar múltiples ejecuciones simultáneas
     private var isAutoSelecting = false
     
     // MARK: - NSFetchedResultsController
-    private var entriesFetchedResultsController: NSFetchedResultsController<Entry>?
+    private var itemListsFetchedResultsController: NSFetchedResultsController<ItemList>?
     
     // MARK: - Group Creation State
     @Published var isCreatingGroup = false
@@ -39,25 +39,25 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
     let userService: any UserServiceProtocol
     private let groupService: any GroupServiceProtocol
     private let userGroupService: any UserGroupServiceProtocol
-    private let entryService: any EntryServiceProtocol
+    private let itemListService: any ItemListServiceProtocol
     private let itemService: any ItemServiceProtocol
     private let categoryService: any CategoryServiceProtocol
     
     // MARK: - Initialization
-    init(context: NSManagedObjectContext, userService: any UserServiceProtocol, groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, entryService: any EntryServiceProtocol, itemService: any ItemServiceProtocol, categoryService: any CategoryServiceProtocol) {
+    init(context: NSManagedObjectContext, userService: any UserServiceProtocol, groupService: any GroupServiceProtocol, userGroupService: any UserGroupServiceProtocol, itemListService: any ItemListServiceProtocol, itemService: any ItemServiceProtocol, categoryService: any CategoryServiceProtocol) {
         // ✅ INIT: Inicializar todas las propiedades let antes de super.init()
         self.context = context
         self.userService = userService
         self.groupService = groupService
         self.userGroupService = userGroupService
-        self.entryService = entryService
+        self.itemListService = itemListService
         self.itemService = itemService
         self.categoryService = categoryService
         
         super.init()
         
         // ✅ NSFetchedResultsController: Configurar para reactividad automática
-        setupEntriesFetchedResultsController()
+        setupItemListsFetchedResultsController()
     }
     
     // MARK: - Public Methods
@@ -175,8 +175,8 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
             selectedGroup = firstGroup
             print("✅ Grupo seleccionado automáticamente: \(safeGroupName(firstGroup))")
             
-            // Load entries and calculate total for the selected group
-            await loadEntriesForSelectedGroup()
+            // Load itemLists and calculate total for the selected group
+            await loadItemListsForSelectedGroup()
             await calculateTotalForGroup(firstGroup)
         } else {
             print("⚠️ Usuario seleccionado pero no tiene grupos")
@@ -214,8 +214,8 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
             print("✅ Seleccionando primer grupo para nuevo usuario: \(safeGroupName(firstGroup))")
             selectedGroup = firstGroup
             
-            // Load entries and calculate total for the selected group
-            await loadEntriesForSelectedGroup()
+            // Load itemLists and calculate total for the selected group
+            await loadItemListsForSelectedGroup()
             await calculateTotalForGroup(firstGroup)
         } else {
             print("⚠️ Usuario no tiene grupos disponibles")
@@ -224,14 +224,14 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
     
 
     
-    /// Get entries for a specific group
-    func entries(for group: Group) async -> [Entry] {
+    /// Get itemLists for a specific group
+    func itemLists(for group: Group) async -> [ItemList] {
         guard group.id != nil else { return [] }
         
         do {
-            return try await entryService.getEntries(for: group)
+            return try await itemListService.getItemLists(for: group)
         } catch {
-            errorMessage = "Error loading entries: \(error.localizedDescription)"
+            errorMessage = "Error loading itemLists: \(error.localizedDescription)"
             return []
         }
     }
@@ -265,8 +265,8 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
         
         do {
             groupTotal = try await itemService.calculateTotalAmount(for: group)
-            // ✅ NO sobrescribir entries aquí - mantener la paginación
-            // entries = try await entryService.getEntries(for: group)
+            // ✅ NO sobrescribir itemLists aquí - mantener la paginación
+            // itemLists = try await itemListService.getItemLists(for: group)
         } catch {
             errorMessage = "Error calculating total: \(error.localizedDescription)"
         }
@@ -430,71 +430,71 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
         isCreatingGroup = false
     }
     
-    /// Load entries for the selected group with NSFetchedResultsController
-    func loadEntriesForSelectedGroup() async {
+    /// Load itemLists for the selected group with NSFetchedResultsController
+    func loadItemListsForSelectedGroup() async {
         // ✅ VALIDACIÓN: Verificar que selectedGroup exista
         guard let group = selectedGroup else {
             print("❌ ERROR: No hay grupo seleccionado")
             return
         }
         
-        isLoadingEntries = true
+        isLoadingItemLists = true
         
         // ✅ NSFetchedResultsController: Configurar y ejecutar fetch
-        configureEntriesFetchRequest(for: group)
+        configureItemListsFetchRequest(for: group)
         
-        isLoadingEntries = false
+        isLoadingItemLists = false
     }
     
-    /// Load more entries (next page) with NSFetchedResultsController
-    func loadMoreEntries() async {
-        guard selectedGroup != nil, hasMoreEntries, !isLoadingEntries else { return }
+    /// Load more itemLists (next page) with NSFetchedResultsController
+    func loadMoreItemLists() async {
+        guard selectedGroup != nil, hasMoreItemLists, !isLoadingItemLists else { return }
         
-        isLoadingEntries = true
+        isLoadingItemLists = true
         
-        // ✅ NSFetchedResultsController: Cargar más entries desde los resultados
-        guard let fetchedEntries = entriesFetchedResultsController?.fetchedObjects else {
-            isLoadingEntries = false
+        // ✅ NSFetchedResultsController: Cargar más itemLists desde los resultados
+        guard let fetchedItemLists = itemListsFetchedResultsController?.fetchedObjects else {
+            isLoadingItemLists = false
             return
         }
         
         let nextPage = currentPage + 1
-        let startIndex = nextPage * entriesPerPage
-        let endIndex = min(startIndex + entriesPerPage, fetchedEntries.count)
+        let startIndex = nextPage * itemListsPerPage
+        let endIndex = min(startIndex + itemListsPerPage, fetchedItemLists.count)
         
-        if startIndex < fetchedEntries.count {
-            let newEntries = Array(fetchedEntries[startIndex..<endIndex])
-            entries.append(contentsOf: newEntries)
+        if startIndex < fetchedItemLists.count {
+            let newItemLists = Array(fetchedItemLists[startIndex..<endIndex])
+            itemLists.append(contentsOf: newItemLists)
             currentPage = nextPage
-            hasMoreEntries = endIndex < fetchedEntries.count
+            hasMoreItemLists = endIndex < fetchedItemLists.count
         }
         
-        isLoadingEntries = false
+        isLoadingItemLists = false
     }
     
-    /// Refresh entries (pull to refresh)
-    func refreshEntries() async {
-        await loadEntriesForSelectedGroup()
+    /// Refresh itemLists (pull to refresh)
+    func refreshItemLists() async {
+        await loadItemListsForSelectedGroup()
     }
     
-    /// Refresh entries after adding a new one
-    func refreshEntriesAfterCreation() async {
+    /// Refresh itemLists after adding a new one
+    func refreshItemListsAfterCreation() async {
         guard let group = selectedGroup else { return }
         
-        // ✅ REFRESH: Recargar entries y total en paralelo para mejor performance
-        await loadEntriesForSelectedGroup()
+        // ✅ REFRESH: Recargar itemLists y total en paralelo para mejor performance
+        await loadItemListsForSelectedGroup()
         await calculateTotalForGroup(group)
     }
     
-    /// Force refresh entries (for debugging and immediate updates)
-    func forceRefreshEntries() async {
+    /// Force refresh itemLists (for debugging and immediate updates)
+    func forceRefreshItemLists() async {
         guard let group = selectedGroup else { return }
         
-        // Reset pagination and reload all entries
+        // Reset pagination and reload all itemLists
         currentPage = 0
-        hasMoreEntries = true
+        hasMoreItemLists = true
         
-        await loadEntriesForSelectedGroup()
+        await loadItemListsForSelectedGroup()
         await calculateTotalForGroup(group)
     }
     
@@ -530,71 +530,71 @@ class DetailedGroupViewModel: NSObject, ObservableObject, NSFetchedResultsContro
     // MARK: - NSFetchedResultsController
     
     /// Setup NSFetchedResultsController for automatic Core Data updates
-    private func setupEntriesFetchedResultsController() {
-        let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+    private func setupItemListsFetchedResultsController() {
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         fetchRequest.sortDescriptors = [
-            NSSortDescriptor(keyPath: \Entry.date, ascending: false)
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false)
         ]
         
-        entriesFetchedResultsController = NSFetchedResultsController(
+        itemListsFetchedResultsController = NSFetchedResultsController(
             fetchRequest: fetchRequest,
             managedObjectContext: context,
             sectionNameKeyPath: nil,
             cacheName: nil
         )
         
-        entriesFetchedResultsController?.delegate = self
+        itemListsFetchedResultsController?.delegate = self
     }
     
     /// Configure fetch request for specific group
-    private func configureEntriesFetchRequest(for _: Group) {
+    private func configureItemListsFetchRequest(for _: Group) {
         // ✅ VALIDACIÓN: Verificar que selectedGroup exista
         guard let group = selectedGroup else {
             print("❌ ERROR: No hay grupo seleccionado")
             return
         }
         
-        guard let fetchRequest = entriesFetchedResultsController?.fetchRequest else { return }
+        guard let fetchRequest = itemListsFetchedResultsController?.fetchRequest else { return }
         
         // Filter by group
         fetchRequest.predicate = NSPredicate(format: "group == %@", group)
         
         // Sort by date (most recent first)
         fetchRequest.sortDescriptors = [
-            NSSortDescriptor(keyPath: \Entry.date, ascending: false)
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false)
         ]
         
         // Perform fetch
         do {
-            try entriesFetchedResultsController?.performFetch()
-            updateEntriesFromFetchedResults()
+            try itemListsFetchedResultsController?.performFetch()
+            updateItemListsFromFetchedResults()
         } catch {
-            errorMessage = "Error fetching entries: \(error.localizedDescription)"
+            errorMessage = "Error fetching itemLists: \(error.localizedDescription)"
         }
     }
     
-    /// Update entries from fetched results
-    private func updateEntriesFromFetchedResults() {
-        guard let fetchedEntries = entriesFetchedResultsController?.fetchedObjects else { return }
+    /// Update itemLists from fetched results
+    private func updateItemListsFromFetchedResults() {
+        guard let fetchedItemLists = itemListsFetchedResultsController?.fetchedObjects else { return }
         
-        // Update entries with pagination
-        let endIndex = min(entriesPerPage, fetchedEntries.count)
-        entries = Array(fetchedEntries[0..<endIndex])
-        hasMoreEntries = fetchedEntries.count > entriesPerPage
+        // Update itemLists with pagination
+        let endIndex = min(itemListsPerPage, fetchedItemLists.count)
+        itemLists = Array(fetchedItemLists[0..<endIndex])
+        hasMoreItemLists = fetchedItemLists.count > itemListsPerPage
         currentPage = 0
     }
     
     // MARK: - NSFetchedResultsControllerDelegate
     
     nonisolated func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        // ✅ AUTO-UPDATE: Core Data cambió, actualizar entries automáticamente
+        // ✅ AUTO-UPDATE: Core Data cambió, actualizar itemLists automáticamente
         // Seguir patrón obligatorio: background → operación pesada → main thread para UI
         DispatchQueue.main.async { [weak self] in
-            self?.updateEntriesFromFetchedResults()
+            self?.updateItemListsFromFetchedResults()
         }
     }
     
     deinit {
-        entriesFetchedResultsController?.delegate = nil
+        itemListsFetchedResultsController?.delegate = nil
     }
 }

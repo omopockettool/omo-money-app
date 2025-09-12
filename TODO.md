@@ -83,13 +83,13 @@ init(service: UserServiceProtocol) {
 ### 🎯 **Sistema de Navegación Completo**
 - [x] **Create Group Navigation**: Implementado NavigationDestination para CreateGroupView ✅
 - [x] **Settings Navigation**: Implementado NavigationDestination para SettingsView ✅  
-- [x] **Add Entry Navigation**: Implementado NavigationDestination para AddEntryView ✅
+- [x] **Add ItemList Navigation**: Implementado NavigationDestination para AddItemListView ✅
 - [x] **Navigation Testing**: Verificado que todas las navegaciones funcionen correctamente ✅
 - [x] **Navigation State Management**: Asegurado consistencia del estado de navegación ✅
 
-### 🎯 **Sistema de Entries con Reactividad Automática**
+### 🎯 **Sistema de ItemLists con Reactividad Automática**
 - [x] **NSFetchedResultsController**: Implementado para reactividad automática de Core Data ✅
-- [x] **Lista de Entries**: Entries se muestran automáticamente sin refresh manual ✅
+- [x] **Lista de ItemLists**: ItemLists se muestran automáticamente sin refresh manual ✅
 - [x] **Lazy Loading & Paginación**: Implementado para listas grandes ✅
 - [x] **Validaciones de Seguridad**: Prevención de crashes de runtime ✅
 - [x] **Threading Correcto**: Background → main thread pattern implementado ✅
@@ -115,12 +115,12 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## 🚀 PRÓXIMAS TAREAS
 
-### 🎯 **Funcionalidades de Entries**
-- [ ] **Edit Entry**: Implementar edición de entries existentes
-- [ ] **Delete Entry**: Implementar eliminación de entries con confirmación
-- [ ] **Entry Details**: Vista detallada de entry individual
-- [ ] **Entry Filtering**: Filtros por fecha, categoría, monto
-- [ ] **Entry Search**: Búsqueda en tiempo real de entries
+### 🎯 **Funcionalidades de ItemLists**
+- [ ] **Edit ItemList**: Implementar edición de itemLists existentes
+- [ ] **Delete ItemList**: Implementar eliminación de itemLists con confirmación
+- [ ] **ItemList Details**: Vista detallada de itemList individual
+- [ ] **ItemList Filtering**: Filtros por fecha, categoría, monto
+- [ ] **ItemList Search**: Búsqueda en tiempo real de itemLists
 
 ### 🎯 **Funcionalidades de Categorías**
 - [ ] **Category Management**: CRUD completo para categorías
@@ -171,7 +171,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] Create project structure and configuration files
 - [x] Create Core Data model entities
   - [x] Category entity
-  - [x] Entry entity  
+  - [x] ItemList entity  
   - [x] Group entity
   - [x] Item entity
   - [x] User entity
@@ -197,7 +197,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
     - [x] NavigationPath management for programmatic navigation ✅
 - [x] **Complete Navigation System Implementation** ✅
   - [x] Settings Navigation (Tuerca) to SettingsView ✅
-  - [x] Add Entry Navigation to AddEntryView ✅
+  - [x] Add ItemList Navigation to AddItemListView ✅
   - [x] All NavigationDestination enums defined in MainView ✅
   - [x] Consistent NavigationPath management across all views ✅
   - [x] Type-safe navigation using enums with associated values ✅
@@ -209,8 +209,8 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] **REORGANIZACIÓN COMPLETA DE ARQUITECTURA MVVM** - Mejorar estructura del proyecto ✅
   - [x] Crear nueva estructura de directorios siguiendo mejores prácticas MVVM ✅
   - [x] Implementar capa Services para separar lógica CRUD de ViewModels ✅
-  - [x] Reorganizar ViewModels por funcionalidad (User/, Group/, Entry/) ✅
-  - [x] Reorganizar Views por funcionalidad (User/, Group/, Entry/) ✅
+  - [x] Reorganizar ViewModels por funcionalidad (User/, Group/, ItemList/) ✅
+  - [x] Reorganizar Views por funcionalidad (User/, Group/, ItemList/) ✅
   - [x] Crear Utilities/ para extensiones y helpers ✅
   - [x] Crear Base/ para componentes reusables (Loading, etc.) ✅
   - [x] Reorganizar CoreDataStack/ para mejor gestión de persistencia ✅
@@ -246,7 +246,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 ✅ **COMPLETED**: Phase 2 - Basic UI Structure. All core UI components implemented with MVVM architecture.
 ✅ **COMPLETED**: Phase 2.5 - Complete MVVM Architecture Reorganization with new best practices.
 ✅ **COMPLETED**: Navigation Implementation - CreateGroupView navigation working correctly with NavigationStack.
-✅ **COMPLETED**: Complete Navigation System - Settings, Add Entry, and Create Group all working with NavigationStack.
+✅ **COMPLETED**: Complete Navigation System - Settings, Add ItemList, and Create Group all working with NavigationStack.
 
 **NEXT**: Phase 3 - Business Logic Implementation with complete navigation foundation.
 
@@ -254,15 +254,15 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ### Core Data Entities ✅
 1. **Category** ✅ - Expense categories with color coding and group relationships
-2. **Entry** ✅ - Main expense entries with dates, descriptions, and relationships
+2. **ItemList** ✅ - Main expense item lists with dates, descriptions, and relationships
 3. **Group** ✅ - Expense groups for sharing between users with currency support
-4. **Item** ✅ - Individual items within expense entries with amounts and quantities
+4. **Item** ✅ - Individual items within expense item lists with amounts and quantities
 5. **User** ✅ - App users with authentication and group membership
 6. **UserGroup** ✅ - Junction table for user-group relationships with role management
 
 ### ViewModels ✅
 1. **CategoryViewModel** ✅ - Full CRUD operations with filtering and validation
-2. **EntryViewModel** ✅ - Full CRUD operations with date filtering and total calculations
+2. **ItemListViewModel** ✅ - Full CRUD operations with date filtering and total calculations
 3. **GroupViewModel** ✅ - Full CRUD operations with member counting and sorting
 4. **ItemViewModel** ✅ - Full CRUD operations with amount calculations and filtering
 5. **UserViewModel** ✅ - Full CRUD operations with email validation and role checking
@@ -303,7 +303,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## Commit History
 - ✅ **Commit 1**: Category entity and ViewModel
-- ✅ **Commit 2**: Entry entity and ViewModel  
+- ✅ **Commit 2**: ItemList entity and ViewModel  
 - ✅ **Commit 3**: Group entity and ViewModel
 - ✅ **Commit 4**: Item entity and ViewModel
 - ✅ **Commit 5**: User entity and ViewModel
@@ -465,7 +465,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 #### 2. **Completar Navegación de la Aplicación** 🧭 ✅
 - [x] **Settings Navigation (Tuerca)**: Implementar NavigationDestination para SettingsView ✅
-- [x] **Add Entry Navigation**: Implementar NavigationDestination para AddEntryView ✅
+- [x] **Add ItemList Navigation**: Implementar NavigationDestination para AddItemListView ✅
 - [x] **Navigation Testing**: Verificar que todas las navegaciones funcionen correctamente ✅
 - [x] **Navigation State Management**: Asegurar que el estado de navegación se mantenga consistente ✅
 

@@ -63,7 +63,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             return category
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.categoryCount)
@@ -86,7 +86,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
@@ -97,7 +97,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         await delete(category)
         try await save()
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.categoryCount)

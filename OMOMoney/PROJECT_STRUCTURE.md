@@ -14,14 +14,14 @@ OMOMoney/
 │   ├── Protocols/          # Protocolos de servicios para DI
 │   │   ├── UserServiceProtocol.swift
 │   │   ├── GroupServiceProtocol.swift
-│   │   ├── EntryServiceProtocol.swift
+│   │   ├── ItemListServiceProtocol.swift
 │   │   ├── ItemServiceProtocol.swift
 │   │   ├── CategoryServiceProtocol.swift
 │   │   └── UserGroupServiceProtocol.swift
 │   ├── Implementation/     # Implementaciones concretas
 │   │   ├── UserService.swift
 │   │   ├── GroupService.swift
-│   │   ├── EntryService.swift
+│   │   ├── ItemListService.swift
 │   │   ├── ItemService.swift
 │   │   ├── CategoryService.swift
 │   │   └── UserGroupService.swift
@@ -37,10 +37,11 @@ OMOMoney/
 │   │   ├── CreateGroupViewModel.swift
 │   │   ├── DetailedGroupViewModel.swift
 │   │   └── GroupListViewModel.swift
-│   ├── Entry/              # ViewModels relacionados con entradas
-│   │   ├── EntryListViewModel.swift
-│   │   ├── EntryDetailViewModel.swift
-│   │   └── EntryRowViewModel.swift
+│   ├── ItemList/           # ViewModels relacionados con listas de items
+│   │   ├── ItemListListViewModel.swift
+│   │   ├── ItemListDetailViewModel.swift
+│   │   ├── ItemListRowViewModel.swift
+│   │   └── AddItemListViewModel.swift
 │   ├── Item/               # ViewModels relacionados con items
 │   │   └── ItemListViewModel.swift
 │   └── Category/           # ViewModels relacionados con categorías
@@ -56,10 +57,9 @@ OMOMoney/
 │   │   ├── CreateGroupView.swift
 │   │   ├── DetailedGroupView.swift
 │   │   └── GroupListView.swift
-│   ├── Entry/              # Vistas relacionadas con entradas
-│   │   ├── EntryListView.swift
-│   │   ├── EntryDetailView.swift
-│   │   └── EntryRowView.swift
+│   ├── ItemList/           # Vistas relacionadas con listas de items
+│   │   ├── ItemListRowView.swift
+│   │   └── AddItemListView.swift
 │   ├── Base/               # Componentes reusables
 │   │   └── Loading/
 │   │       └── LoadingView.swift
@@ -127,12 +127,12 @@ SwiftUI   Business      Interface          Concrete      Persistence
 - **CoreDataService.swift**: Clase base para funcionalidad común
 
 ### **ViewModels/**
-- **Organización por dominio**: User/, Group/, Entry/, etc.
+- **Organización por dominio**: User/, Group/, ItemList/, etc.
 - **Un ViewModel por archivo**: Mantener archivos pequeños y enfocados
 - **Protocolos de servicios**: Usar interfaces, no implementaciones concretas
 
 ### **Views/**
-- **Organización por dominio**: User/, Group/, Entry/, etc.
+- **Organización por dominio**: User/, Group/, ItemList/, etc.
 - **Base/**: Componentes reusables (Loading, Error, etc.)
 - **Una vista por archivo**: Mantener archivos pequeños y enfocados
 

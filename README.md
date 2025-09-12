@@ -31,7 +31,7 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **MVVM Architecture**: Clean separation of concerns
 - **Native Performance**: Background operations for smooth UI
 - **Modern Navigation**: NavigationStack + NavigationDestination implementation
-- **Complete Navigation System**: Settings, Create Group, Add Entry all working
+- **Complete Navigation System**: Settings, Create Group, Add ItemList all working
 - **Error Handling**: Comprehensive user feedback
 - **First User Flow**: Automatic user creation when app is empty
 - **Stability Features**: Protection against multiple operations and infinite loops
@@ -41,7 +41,7 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Group Management**: Create and manage expense groups
 - **User-Group Relationships**: Role-based permissions
 - **Category Management**: Expense categorization
-- **Entry Management**: Expense tracking
+- **ItemList Management**: Expense tracking
 - **Item Management**: Individual expense items
 
 ### 📋 Planned
@@ -61,8 +61,8 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **User**: App users with authentication
 - **Group**: Expense groups for sharing
 - **Category**: Expense categorization
-- **Entry**: Main expense records
-- **Item**: Individual expense items
+- **ItemList**: Main expense item lists with dates and descriptions
+- **Item**: Individual expense items within item lists
 - **UserGroup**: User-group relationships with roles
 
 ### Performance Features
@@ -72,7 +72,7 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Memory Management**: Proper Core Data context handling
 - **NSFetchedResultsController**: Automatic Core Data reactivity and UI updates
 - **Lazy Loading**: Efficient pagination for large datasets
-- **Real-time Updates**: Entries list updates automatically without manual refresh
+- **Real-time Updates**: ItemLists list updates automatically without manual refresh
 - **Concurrency Safety**: Protection flags prevent multiple simultaneous operations
 - **Stable State Management**: Consistent Core Data object states
 - **Infinite Loop Prevention**: Robust protection against recursive operations
@@ -122,7 +122,7 @@ OMOMoney/
 │   └── ...                 # Other entity ViewModels
 ├── OMOMoney.xcdatamodeld/  # Core Data model
 ├── Persistence.swift       # Core Data stack
-└── ContentView.swift       # App entry point
+└── ContentView.swift       # App itemList point
 ```
 
 ## 🔧 Development Workflow

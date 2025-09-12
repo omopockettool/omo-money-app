@@ -261,7 +261,7 @@ final class CacheManagerTests: XCTestCase {
         let stats = await cacheManager.getCacheStats()
         
         // Then
-        // Since we just created the cache entries, they shouldn't be expired yet
+        // Since we just created the cache itemLists, they shouldn't be expired yet
         XCTAssertEqual(stats.dataCount, 1)
         XCTAssertEqual(stats.validationCount, 1)
         XCTAssertEqual(stats.calculationCount, 1)

@@ -136,7 +136,7 @@ class CacheManager: ObservableObject {
         cacheTimestamps.removeAll()
     }
     
-    /// Clean expired cache entries
+    /// Clean expired cache itemLists
     func cleanExpiredCache() {
         let now = Date()
         

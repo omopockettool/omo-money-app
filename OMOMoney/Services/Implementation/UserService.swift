@@ -61,7 +61,7 @@ class UserService: CoreDataService, UserServiceProtocol {
             return user
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
@@ -83,7 +83,7 @@ class UserService: CoreDataService, UserServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
@@ -93,7 +93,7 @@ class UserService: CoreDataService, UserServiceProtocol {
         await delete(user)
         try await save()
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)

@@ -1,35 +1,35 @@
 import CoreData
 import Foundation
 
-/// ViewModel for Entry Row functionality
-/// Handles entry row display and calculations
+/// ViewModel for ItemList Row functionality
+/// Handles itemList row display and calculations
 @MainActor
-class EntryRowViewModel: ObservableObject {
+class ItemListRowViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var entryTotal = NSDecimalNumber.zero
+    @Published var itemListTotal = NSDecimalNumber.zero
     @Published var isCalculatingTotal = false
     
     // MARK: - Private Properties
-    private let entry: Entry
+    private let itemList: ItemList
     private let itemService: any ItemServiceProtocol
     
     // MARK: - Initialization
-    init(entry: Entry, itemService: any ItemServiceProtocol) {
-        self.entry = entry
+    init(itemList: ItemList, itemService: any ItemServiceProtocol) {
+        self.itemList = itemList
         self.itemService = itemService
     }
     
     // MARK: - Public Methods
     
-    /// Calculate total for the entry
-    func calculateEntryTotal() async {
+    /// Calculate total for the itemList
+    func calculateItemListTotal() async {
         isCalculatingTotal = true
         
         do {
-            entryTotal = try await itemService.calculateTotalAmount(for: entry)
+            itemListTotal = try await itemService.calculateTotalAmount(for: itemList)
         } catch {
-            entryTotal = NSDecimalNumber.zero
+            itemListTotal = NSDecimalNumber.zero
         }
         
         isCalculatingTotal = false

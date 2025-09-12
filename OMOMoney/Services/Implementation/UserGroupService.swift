@@ -65,7 +65,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
             return userGroup
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)
@@ -87,7 +87,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)
@@ -101,7 +101,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         await delete(userGroup)
         try await save()
         
-        // Invalidate relevant cache entries
+        // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)

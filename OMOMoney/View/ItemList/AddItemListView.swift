@@ -1,14 +1,14 @@
 import SwiftUI
 import CoreData
 
-struct AddEntryView: View {
+struct AddItemListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     let user: User
     let group: Group
     @Binding var navigationPath: NavigationPath
     
-    @StateObject private var viewModel: AddEntryViewModel
+    @StateObject private var viewModel: AddItemListViewModel
     @State private var showingCategoryPicker = false
     
     init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
@@ -16,12 +16,12 @@ struct AddEntryView: View {
         self.group = group
         self._navigationPath = navigationPath
         
-        let entryService = EntryService(context: context)
+        let itemListService = ItemListService(context: context)
         let categoryService = CategoryService(context: context)
         let itemService = ItemService(context: context)
         
-        self._viewModel = StateObject(wrappedValue: AddEntryViewModel(
-            entryService: entryService,
+        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(
+            itemListService: itemListService,
             categoryService: categoryService,
             itemService: itemService
         ))
@@ -29,7 +29,7 @@ struct AddEntryView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Entry Details Form
+            // ItemList Details Form
             VStack(alignment: .leading, spacing: 16) {
                 // Description
                 VStack(alignment: .leading, spacing: 8) {
@@ -105,13 +105,13 @@ struct AddEntryView: View {
             // Save Button
             Button(action: {
                 Task {
-                    await saveEntry()
+                    await saveItemList()
                 }
             }) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title2)
-                    Text("Guardar Entry")
+                    Text("Guardar ItemList")
                         .font(.headline)
                 }
                 .foregroundColor(.white)
@@ -124,7 +124,7 @@ struct AddEntryView: View {
             .padding(.horizontal)
             .padding(.bottom)
         }
-        .navigationTitle("Nuevo Entry")
+        .navigationTitle("Nuevo ItemList")
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancelar") {
@@ -155,10 +155,10 @@ struct AddEntryView: View {
     
     // MARK: - Actions
     
-    private func saveEntry() async {
+    private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
         
-        let success = await viewModel.createEntry(
+        let success = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
             category: category,
@@ -166,7 +166,7 @@ struct AddEntryView: View {
         )
         
         if success {
-            // ✅ SUCCESS: Entry creado exitosamente
+            // ✅ SUCCESS: ItemList creado exitosamente
             // Ahora regresamos a la vista anterior
             navigationPath.removeLast()
         }
@@ -185,5 +185,5 @@ struct AddEntryView: View {
     group.name = "Test Group"
     group.currency = "USD"
     
-    return AddEntryView(user: user, group: group, context: context, navigationPath: .constant(NavigationPath()))
+    return AddItemListView(user: user, group: group, context: context, navigationPath: .constant(NavigationPath()))
 }

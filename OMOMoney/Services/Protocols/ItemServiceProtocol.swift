@@ -14,7 +14,7 @@ protocol ItemServiceProtocol {
     func fetchItem(by id: UUID) async throws -> Item?
     
     /// Create a new item
-    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, entry: Entry) async throws -> Item
+    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemList: ItemList) async throws -> Item
     
     /// Update an existing item
     func updateItem(_ item: Item, description: String?, amount: NSDecimalNumber?, quantity: Int32?) async throws
@@ -22,11 +22,11 @@ protocol ItemServiceProtocol {
     /// Delete an item
     func deleteItem(_ item: Item) async throws
     
-    /// Get items for a specific entry
-    func getItems(for entry: Entry) async throws -> [Item]
+    /// Get items for a specific item list
+    func getItems(for itemList: ItemList) async throws -> [Item]
     
-    /// Calculate total amount for a specific entry
-    func calculateTotalAmount(for entry: Entry) async throws -> NSDecimalNumber
+    /// Calculate total amount for a specific item list
+    func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber
     
     /// Calculate total amount for a specific group
     func calculateTotalAmount(for group: Group) async throws -> NSDecimalNumber

@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **NSFetchedResultsController Integration**: Automatic Core Data reactivity and UI updates
-- **Real-time Entries List**: Entries now appear automatically without manual refresh
+- **Real-time ItemLists List**: ItemLists now appear automatically without manual refresh
 - **Automatic UI Updates**: SwiftUI re-renders automatically when Core Data changes
 - **Lazy Loading & Pagination**: Efficient handling of large datasets with infinite scroll
 - **Comprehensive Group Validation**: Runtime crash prevention with proper Core Data object validation
@@ -72,8 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Complete Navigation System**: Full NavigationStack + NavigationDestination implementation
 - **Settings Navigation**: Tuerca button now navigates to SettingsView
-- **Add Entry Navigation**: Add Entry button now navigates to AddEntryView
-- **Navigation Enums**: SettingsDestination and AddEntryDestination for type-safe navigation
+- **Add ItemList Navigation**: Add ItemList button now navigates to AddItemListView
+- **Navigation Enums**: SettingsDestination and AddItemListDestination for type-safe navigation
 - **Centralized Navigation**: All NavigationDestination definitions in MainView
 - **Programmatic Navigation**: Consistent navigationPath.append() pattern across all views
 
@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Navigation Consistency**: All views now follow the same navigation pattern
-- **Parameter Order**: Corrected AddEntryView init parameter order in MainView
+- **Parameter Order**: Corrected AddItemListView init parameter order in MainView
 - **Navigation State**: Centralized NavigationPath management in MainView
 - **Return Navigation**: Proper navigationPath.removeLast() implementation
 
@@ -153,14 +153,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Core Data Foundation**: Complete data model implementation
   - Category entity with color and group relationships
-  - Entry entity with date and description support
+  - ItemList entity with date and description support
   - Group entity with currency and member management
   - Item entity with amount and quantity tracking
   - User entity with email and name management
   - UserGroup entity with role-based permissions
 - **ViewModels**: Full CRUD operations for all entities
   - CategoryViewModel with filtering and validation
-  - EntryViewModel with date filtering and totals
+  - ItemListViewModel with date filtering and totals
   - GroupViewModel with member counting and sorting
   - ItemViewModel with amount calculations
   - UserViewModel with email validation

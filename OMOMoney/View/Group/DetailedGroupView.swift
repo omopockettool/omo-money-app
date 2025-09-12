@@ -12,7 +12,7 @@ struct DetailedGroupView: View {
         let userService = UserService(context: context)
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
-        let entryService = EntryService(context: context)
+        let itemListService = ItemListService(context: context)
         let itemService = ItemService(context: context)
         let categoryService = CategoryService(context: context)
         
@@ -21,7 +21,7 @@ struct DetailedGroupView: View {
             userService: userService,
             groupService: groupService,
             userGroupService: userGroupService,
-            entryService: entryService,
+            itemListService: itemListService,
             itemService: itemService,
             categoryService: categoryService
         ))
@@ -133,7 +133,7 @@ struct DetailedGroupView: View {
                             if let group = newGroup {
                                 Task {
                                     await viewModel.calculateTotalForGroup(group)
-                                    await viewModel.loadEntriesForSelectedGroup()
+                                    await viewModel.loadItemListsForSelectedGroup()
                                 }
                             }
                         }
@@ -176,21 +176,21 @@ struct DetailedGroupView: View {
                 .onAppear {
                     Task {
                         await viewModel.calculateTotalForGroup(group)
-                        await viewModel.loadEntriesForSelectedGroup()
+                        await viewModel.loadItemListsForSelectedGroup()
                     }
                 }
                 
-                // Add New Entry Button
+                // Add New ItemList Button
                 Button(action: {
-                    // ✅ NAVEGACIÓN REAL: Navegar a AddEntryView con usuario y grupo
+                    // ✅ NAVEGACIÓN REAL: Navegar a AddItemListView con usuario y grupo
                     if let user = viewModel.selectedUser, let group = viewModel.selectedGroup {
-                        navigationPath.append(AddEntryDestination.addEntry(user, group))
+                        navigationPath.append(AddItemListDestination.addItemList(user, group))
                     }
                 }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
-                        Text("Agregar Nuevo Entry")
+                        Text("Agregar Nuevo ItemList")
                             .font(.headline)
                     }
                     .foregroundColor(.white)
@@ -202,7 +202,7 @@ struct DetailedGroupView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
                 
-                // Entries List
+                // ItemLists List
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Gastos del Grupo")
@@ -212,11 +212,11 @@ struct DetailedGroupView: View {
                         Spacer()
                         
                                                 VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(viewModel.entries.count) gastos")
+                            Text("\(viewModel.itemLists.count) gastos")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            if viewModel.hasMoreEntries {
+                            if viewModel.hasMoreItemLists {
                                 Text("+ más disponibles")
                                     .font(.caption2)
                                     .foregroundColor(.blue)
@@ -225,7 +225,7 @@ struct DetailedGroupView: View {
                     }
                     .padding(.horizontal)
                     
-                    if viewModel.isLoadingEntries && viewModel.entries.isEmpty {
+                    if viewModel.isLoadingItemLists && viewModel.itemLists.isEmpty {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .scaleEffect(1.2)
@@ -238,7 +238,7 @@ struct DetailedGroupView: View {
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(12)
                         .padding(.horizontal)
-                    } else if viewModel.entries.isEmpty {
+                    } else if viewModel.itemLists.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "list.bullet.clipboard")
                                 .font(.system(size: 40))
@@ -261,9 +261,9 @@ struct DetailedGroupView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 8) {
-                                ForEach(viewModel.entries, id: \.id) { entry in
-                                    EntryRowView(
-                                        entry: entry, 
+                                ForEach(viewModel.itemLists, id: \.id) { itemList in
+                                    ItemListRowView(
+                                        itemList: itemList, 
                                         context: viewContext, 
                                         groupCurrency: group.currency ?? "USD"
                                     )
@@ -273,7 +273,7 @@ struct DetailedGroupView: View {
                                 }
                                 
                                 // Loading indicator for next page
-                                if viewModel.isLoadingEntries {
+                                if viewModel.isLoadingItemLists {
                                     HStack {
                                         ProgressView()
                                             .scaleEffect(0.8)
@@ -285,10 +285,10 @@ struct DetailedGroupView: View {
                                 }
                                 
                                 // Load more button
-                                if viewModel.hasMoreEntries && !viewModel.isLoadingEntries {
+                                if viewModel.hasMoreItemLists && !viewModel.isLoadingItemLists {
                                     Button(action: {
                                         Task {
-                                            await viewModel.loadMoreEntries()
+                                            await viewModel.loadMoreItemLists()
                                         }
                                     }) {
                                         HStack {
@@ -308,7 +308,7 @@ struct DetailedGroupView: View {
                         }
                         .frame(maxHeight: 400)
                         .refreshable {
-                            await viewModel.refreshEntries()
+                            await viewModel.refreshItemLists()
                         }
                     }
                 }
@@ -330,7 +330,7 @@ struct DetailedGroupView: View {
             // ✅ REFRESH: Refrescar datos cuando la vista aparezca
             Task {
                 await viewModel.loadData()
-                await viewModel.refreshEntriesAfterCreation()
+                await viewModel.refreshItemListsAfterCreation()
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
