@@ -80,6 +80,18 @@ init(service: UserServiceProtocol) {
 
 ## ✅ TRABAJO COMPLETADO
 
+### 🎯 **🆕 v0.8.0 - Arquitectura Simplificada (Sep 13, 2025)**
+- [x] **MainView Simplificado**: Reducido de 174 a 109 líneas eliminando complejidad innecesaria ✅
+- [x] **AppContentView Nuevo**: Vista principal dedicada para usuarios autenticados ✅
+- [x] **Flujo de Primer Usuario**: Sheet modal con redirección automática y cierre inteligente ✅
+- [x] **Async Callbacks**: Implementación moderna con async/await sin Task wrappers innecesarios ✅
+- [x] **Service Architecture**: Eliminado ObservableObject de services, DI pura ✅
+- [x] **Navigation Simplification**: Eliminados enums complejos, navegación directa ✅
+- [x] **Optional Safety**: Manejo seguro de Core Data optionals con nil coalescing ✅
+- [x] **Sheet Management**: Cierre automático con timing perfecto (0.2s delay) ✅
+- [x] **Compilation Clean**: Cero errores, warnings o trailing closure issues ✅
+- [x] **UX Flow Perfected**: App vacía → Modal → Crear usuario → Redirección → Dashboard ✅
+
 ### 🎯 **Sistema de Navegación Completo**
 - [x] **Create Group Navigation**: Implementado NavigationDestination para CreateGroupView ✅
 - [x] **Settings Navigation**: Implementado NavigationDestination para SettingsView ✅  
@@ -136,56 +148,45 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## 🚀 PRÓXIMAS TAREAS
 
-### 🎯 **User Creation Flow Context Synchronization (COMPLETED)**
-- [x] **Core Data Context Unification**: Resolved user creation form showing after successful user creation ✅
-- [x] **CreateFirstUserView Context Injection**: Modified to accept shared NSManagedObjectContext parameter ✅
-- [x] **CreateFirstUserViewModel Context Updates**: Updated initialization to use injected context instead of creating own ✅
-- [x] **MainView Context Passing**: Updated sheet presentation to pass proper context to CreateFirstUserView ✅
-- [x] **Enhanced Cache Invalidation**: Added forced cache invalidation and data reloading after user creation ✅
-- [x] **Reactive UI Updates**: Added onChange listeners for users array changes in DetailedGroupView ✅
-- [x] **Improved Callback Timing**: Enhanced onUserCreated callback with proper sequencing and force reload ✅
-- [x] **Data Consistency**: Ensured all views use same Core Data context preventing synchronization issues ✅
+### 🎯 **🆕 v0.9.0 - AppContentView Features (PRIORIDAD INMEDIATA)**
+- [ ] **Dashboard Implementation**: Implementar dashboard principal con estadísticas básicas
+- [ ] **Quick Actions Integration**: Conectar botones de acción rápida con funcionalidades reales
+- [ ] **Add Expense Flow**: Implementar flujo completo para agregar gastos desde AppContentView
+- [ ] **View Reports Integration**: Conectar con sistema de reportes y gráficos
+- [ ] **Settings Navigation**: Restaurar navegación a settings desde AppContentView
+- [ ] **Group Management Integration**: Implementar gestión de grupos en la nueva arquitectura
+- [ ] **User Profile Access**: Agregar acceso a perfil de usuario desde header
+- [ ] **Recent Activity Feed**: Mostrar actividad reciente en el dashboard
+- [ ] **Category Quick Access**: Acceso rápido a categorías desde dashboard
+- [ ] **Payment Method Integration**: Integrar gestión de métodos de pago
 
-### 🎯 **Batch Operations Extension (PRIORITY)**
+### 🎯 **AppContentView Navigation Architecture**
+- [ ] **Internal Navigation System**: Implementar NavigationStack interno para funcionalidades
+- [ ] **Tab-based Navigation**: Considerar implementación de tabs para organizar funcionalidades
+- [ ] **Modal Presentations**: Sistema de modals para formularios y detalles
+- [ ] **Deep Linking Support**: Navegación directa a funcionalidades específicas
+- [ ] **Navigation State Management**: Gestión de estado de navegación interna
+
+### 🎯 **User Experience Enhancements**
+- [ ] **Loading States**: Implementar loading states en todas las operaciones de AppContentView
+- [ ] **Error Handling**: Sistema de manejo de errores unificado
+- [ ] **Offline Support**: Manejo de estados offline y sincronización
+- [ ] **Pull to Refresh**: Implementar refresh en listas y dashboard
+- [ ] **Search Functionality**: Búsqueda global desde AppContentView
+
+### 🎯 **Batch Operations Extension (SEGUNDA PRIORIDAD)**
 - [ ] **Category Entity Batch Operations**: Implementar bulkDeleteCategories, bulkUpdateCategoryColors, createCategories
 - [ ] **ItemList Entity Batch Operations**: Implementar bulkDeleteItemLists, bulkUpdateItemListDates, createItemLists  
 - [ ] **Item Entity Batch Operations**: Implementar bulkDeleteItems, bulkUpdateItemAmounts, createItems
 - [ ] **PaymentMethod Entity Batch Operations**: Implementar bulkDeletePaymentMethods, bulkUpdatePaymentMethodTypes, createPaymentMethods
 - [ ] **UserGroup Entity Batch Operations**: Implementar bulkUpdateUserRoles, bulkAssignUsersToGroups, bulkRemoveUsersFromGroups
-- [ ] **Cross-Entity Batch Operations**: Operaciones complejas que involucran múltiples entidades
-- [ ] **Batch Operation Performance Testing**: Validar mejoras de rendimiento en datasets grandes
-- [ ] **Batch Operation UI Integration**: Integrar operaciones batch en todas las vistas de lista
 
-### 🎯 **Performance Monitoring & Analytics**
+### 🎯 **Performance Monitoring & Analytics (TERCERA PRIORIDAD)**
 - [ ] **Performance Dashboard View**: Vista de monitoreo de rendimiento en tiempo real
 - [ ] **Cache Analytics**: Análisis de eficiencia de cache y hit ratios
 - [ ] **Operation Analytics**: Análisis de operaciones más lentas y bottlenecks
 - [ ] **Memory Usage Monitoring**: Monitoreo de uso de memoria y optimizaciones
 - [ ] **Performance Alerts**: Sistema de alertas para operaciones lentas
-
-### 🎯 **Advanced Batch Features**
-- [ ] **Scheduled Batch Operations**: Operaciones batch programadas en background
-- [ ] **Batch Operation History**: Historial de operaciones batch ejecutadas
-- [ ] **Batch Operation Rollback**: Sistema de rollback para operaciones batch
-- [ ] **Batch Operation Validation**: Validaciones previas a operaciones batch
-- [ ] **Progress Tracking**: Tracking detallado de progreso en operaciones batch grandes
-
-### 🎯 **Funcionalidades de ItemLists**
-- [ ] **Edit ItemList**: Implementar edición de itemLists existentes
-- [ ] **Delete ItemList**: Implementar eliminación de itemLists con confirmación
-- [ ] **ItemList Details**: Vista detallada de itemList individual
-- [ ] **ItemList Filtering**: Filtros por fecha, categoría, monto
-- [ ] **ItemList Search**: Búsqueda en tiempo real de itemLists
-
-### 🎯 **Funcionalidades de Categorías**
-- [ ] **Category Management**: CRUD completo para categorías
-- [ ] **Category Colors**: Selector de colores personalizados
-- [ ] **Category Icons**: Iconos para cada categoría
-- [ ] **Category Statistics**: Estadísticas de gastos por categoría
-
-### 🎯 **Funcionalidades de Grupos**
-- [ ] **Group Members**: Gestión de miembros del grupo
-- [ ] **Group Invitations**: Sistema de invitaciones
 - [ ] **Group Statistics**: Estadísticas del grupo
 - [ ] **Group Settings**: Configuración del grupo
 

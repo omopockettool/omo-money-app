@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-09-13
+
+### Added
+- **Simplified Application Architecture**: Complete redesign of app initialization flow
+  - New MainView with simplified user detection and sheet management
+  - AppContentView as dedicated main interface for authenticated users
+  - Streamlined first-user creation process with automatic redirection
+  - Clean separation between empty state and main app content
+- **Enhanced User Experience Flow**: Intuitive app onboarding and navigation
+  - Automatic detection of empty sandbox state
+  - Modal sheet for first user creation with seamless dismiss
+  - Immediate redirection to main app after user creation
+  - Loading states and progress indicators for better UX
+- **Async Callback Architecture**: Modern Swift concurrency implementation
+  - Async callbacks for user creation with proper error handling
+  - Background thread operations with main thread UI updates
+  - Elimination of unnecessary Task wrappers and polling
+  - Clean async/await patterns throughout the application
+
+### Changed
+- **MainView Simplification**: Reduced complexity from 174 to 109 lines
+  - Removed complex DetailedGroupView dependencies
+  - Eliminated navigation destinations and path management
+  - Simplified to focus only on user detection and sheet presentation
+  - Clean ZStack-based conditional rendering
+- **Service Architecture Cleanup**: Removed ObservableObject inheritance from services
+  - Services now function as pure data access layers
+  - Eliminated @StateObject usage for services in favor of direct initialization
+  - Better adherence to MVVM architecture principles
+  - Reduced memory overhead and improved performance
+- **Navigation System Refactoring**: Streamlined navigation without complex enums
+  - Removed SettingsDestination and other navigation enums
+  - Simplified button actions with direct callbacks
+  - TODO markers for future navigation implementation
+  - Focus on core functionality over complex routing
+
+### Fixed
+- **Optional Value Handling**: Proper nil coalescing for Core Data optionals
+  - Safe unwrapping of user.name and group.name properties
+  - Fallback values ("User", "Group") for missing data
+  - Eliminated compiler warnings about optional string interpolation
+- **Sheet Dismissal Issues**: Automatic sheet closure after user creation
+  - Explicit sheet dismissal in user creation callback
+  - Proper timing with 0.2-second delay for UI synchronization
+  - Complete redirection flow from empty state to main content
+- **Compilation Errors**: Resolution of trailing closure and type errors
+  - Fixed Group/ZStack nesting issues causing compilation errors
+  - Corrected async callback signatures and implementations
+  - Eliminated all compiler warnings and errors
+
+### Technical Improvements
+- **Code Quality**: Reduced architectural complexity while maintaining functionality
+  - Cleaner separation of concerns between views and business logic
+  - Simplified testing surface with fewer dependencies
+  - More maintainable codebase with clear responsibilities
+- **Performance**: Improved app startup and user creation flow
+  - Faster initial load with simplified view hierarchy
+  - Efficient async operations without unnecessary overhead
+  - Better memory management with simplified object lifecycle
+
 ## [0.7.0] - 2025-09-12
 
 ### Added
