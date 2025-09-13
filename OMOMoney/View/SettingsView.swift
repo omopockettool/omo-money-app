@@ -9,7 +9,8 @@ struct SettingsView: View {
             Section("Configuración") {
                 if let user = selectedUser {
                     Button(action: {
-                        navigationPath.append(SettingsDestination.manageGroups(user))
+                        // TODO: Implement group management navigation
+                        print("Navigate to manage groups for user: \(user.name ?? "Unknown")")
                     }) {
                         HStack {
                             Image(systemName: "person.3.sequence.fill")

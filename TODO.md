@@ -136,6 +136,16 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## 🚀 PRÓXIMAS TAREAS
 
+### 🎯 **User Creation Flow Context Synchronization (COMPLETED)**
+- [x] **Core Data Context Unification**: Resolved user creation form showing after successful user creation ✅
+- [x] **CreateFirstUserView Context Injection**: Modified to accept shared NSManagedObjectContext parameter ✅
+- [x] **CreateFirstUserViewModel Context Updates**: Updated initialization to use injected context instead of creating own ✅
+- [x] **MainView Context Passing**: Updated sheet presentation to pass proper context to CreateFirstUserView ✅
+- [x] **Enhanced Cache Invalidation**: Added forced cache invalidation and data reloading after user creation ✅
+- [x] **Reactive UI Updates**: Added onChange listeners for users array changes in DetailedGroupView ✅
+- [x] **Improved Callback Timing**: Enhanced onUserCreated callback with proper sequencing and force reload ✅
+- [x] **Data Consistency**: Ensured all views use same Core Data context preventing synchronization issues ✅
+
 ### 🎯 **Batch Operations Extension (PRIORITY)**
 - [ ] **Category Entity Batch Operations**: Implementar bulkDeleteCategories, bulkUpdateCategoryColors, createCategories
 - [ ] **ItemList Entity Batch Operations**: Implementar bulkDeleteItemLists, bulkUpdateItemListDates, createItemLists  

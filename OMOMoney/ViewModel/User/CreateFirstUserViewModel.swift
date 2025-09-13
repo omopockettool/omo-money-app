@@ -17,8 +17,8 @@ class CreateFirstUserViewModel: ObservableObject {
     private let userGroupService: any UserGroupServiceProtocol
     private let categoryService: any CategoryServiceProtocol
     
-    init() {
-        self.context = PersistenceController.shared.container.viewContext
+    init(context: NSManagedObjectContext) {
+        self.context = context
         self.userService = UserService(context: context)
         self.groupService = GroupService(context: context)
         self.userGroupService = UserGroupService(context: context)

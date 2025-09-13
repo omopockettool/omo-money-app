@@ -1,0 +1,9 @@
+🔍 MainView: Usuarios encontrados: 0, hasUsers: false
+App is being debugged, do not track this hang
+Hang detected: 1.99s (debugger attached, not reporting)
+Result accumulator timeout: 0.250000, exceeded.
+✅ Usuario, grupo y categorías creados exitosamente
+✅ Usuario creado exitosamente, ejecutando callback
+🔄 Usuario creado, recargando estado...
+🔍 MainView: Usuarios encontrados: 1, hasUsers: true
+✅ AppContentView: Loaded user: Dennis, groups: 1

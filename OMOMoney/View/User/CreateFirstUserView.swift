@@ -1,9 +1,16 @@
 import SwiftUI
+import CoreData
 
 struct CreateFirstUserView: View {
     @Binding var isPresented: Bool
-    @StateObject private var viewModel = CreateFirstUserViewModel()
-    var onUserCreated: (() -> Void)?
+    @StateObject private var viewModel: CreateFirstUserViewModel
+    var onUserCreated: (() async -> Void)?
+    
+    init(isPresented: Binding<Bool>, context: NSManagedObjectContext, onUserCreated: (() async -> Void)? = nil) {
+        self._isPresented = isPresented
+        self._viewModel = StateObject(wrappedValue: CreateFirstUserViewModel(context: context))
+        self.onUserCreated = onUserCreated
+    }
     
     var body: some View {
         NavigationView {
@@ -58,8 +65,8 @@ struct CreateFirstUserView: View {
                     Task {
                         await viewModel.createUser()
                         if viewModel.isSuccess {
-                            onUserCreated?()
-                            isPresented = false
+                            print("✅ Usuario creado exitosamente, ejecutando callback")
+                            await onUserCreated?()
                         }
                     }
                 }) {
@@ -97,5 +104,9 @@ struct CreateFirstUserView: View {
 }
 
 #Preview {
-    CreateFirstUserView(isPresented: .constant(true), onUserCreated: nil)
+    CreateFirstUserView(
+        isPresented: .constant(false), 
+        context: PersistenceController.preview.container.viewContext,
+        onUserCreated: {}
+    )
 }

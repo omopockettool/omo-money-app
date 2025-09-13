@@ -9,129 +9,100 @@ import CoreData
 import SwiftUI
 
 struct MainView: View {
-    @StateObject private var detailedGroupViewModel: DetailedGroupViewModel
-    @State private var navigationPath = NavigationPath()
-    @State private var canAccessSettings = false
     @State private var showingCreateFirstUser = false
+    @State private var hasUsers = false
+    @State private var isLoading = true
+    
+    private let context: NSManagedObjectContext
+    private let userService: UserService
     
     init(context: NSManagedObjectContext) {
-        let userService = UserService(context: context)
-        let groupService = GroupService(context: context)
-        let userGroupService = UserGroupService(context: context)
-        let itemListService = ItemListService(context: context)
-        let itemService = ItemService(context: context)
-        let categoryService = CategoryService(context: context)
-        
-        _detailedGroupViewModel = StateObject(wrappedValue: DetailedGroupViewModel(
-            context: context,
-            userService: userService,
-            groupService: groupService,
-            userGroupService: userGroupService,
-            itemListService: itemListService,
-            itemService: itemService,
-            categoryService: categoryService
-        ))
+        self.context = context
+        self.userService = UserService(context: context)
     }
     
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            DetailedGroupView(
-                context: detailedGroupViewModel.context,
-                navigationPath: $navigationPath,
-                canAccessSettings: canAccessSettings
-            )
-                .navigationDestination(for: User.self) { user in
-                    EditUserView(user: user, context: detailedGroupViewModel.context, navigationPath: $navigationPath)
+        ZStack {
+            if isLoading {
+                // Loading state
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text("Loading...")
+                        .font(.headline)
+                        .padding(.top)
                 }
-                .navigationDestination(for: AddUserDestination.self) { _ in
-                    AddUserView(context: detailedGroupViewModel.context, navigationPath: $navigationPath)
+            } else if hasUsers {
+                // Main app content when users exist
+                AppContentView(context: context)
+            } else {
+                // Empty state - show some placeholder content
+                VStack {
+                    Image(systemName: "plus.circle")
+                        .font(.largeTitle)
+                        .foregroundColor(.accentColor)
+                    Text("Welcome to OMOMoney")
+                        .font(.title)
+                    Text("Create your first user to get started")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-                .navigationDestination(for: CreateGroupDestination.self) { destination in
-                    switch destination {
-                    case .createGroup(let user):
-                        CreateGroupView(
-                            context: detailedGroupViewModel.context, 
-                            user: user,
-                            navigationPath: $navigationPath
-                        )
-                    }
-                }
-                .navigationDestination(for: SettingsDestination.self) { destination in
-                    switch destination {
-                    case .settings:
-                        SettingsView(navigationPath: $navigationPath, selectedUser: detailedGroupViewModel.selectedUser)
-                    case .manageGroups(let user):
-                        ManageGroupsView(navigationPath: $navigationPath, selectedUser: user)
-                    }
-                }
-                .navigationDestination(for: AddItemListDestination.self) { destination in
-                    switch destination {
-                    case .addItemList(let user, let group):
-                        AddItemListView(
-                            user: user,
-                            group: group,
-                            context: detailedGroupViewModel.context,
-                            navigationPath: $navigationPath
-                        )
-                    }
-                }
+            }
         }
         .sheet(isPresented: $showingCreateFirstUser) {
             CreateFirstUserView(
                 isPresented: $showingCreateFirstUser,
+                context: context,
                 onUserCreated: {
-                    Task {
-                        print("🔄 Usuario creado, recargando datos...")
-                        await detailedGroupViewModel.loadData()
-                        print("🔄 Datos recargados, seleccionando usuario automáticamente...")
-                        // Asegurar que se seleccione el usuario recién creado
-                        await detailedGroupViewModel.autoSelectFirstUserAndGroup()
-                        print("🔄 Usuario seleccionado automáticamente completado")
+                    print("🔄 Usuario creado, recargando estado...")
+                    await checkForUsers()
+                    
+                    // Pequeño delay para asegurar que la UI se actualice
+                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                    
+                    // Cerrar el sheet después de recargar
+                    await MainActor.run {
+                        showingCreateFirstUser = false
+                        print("✅ Sheet cerrado, redirigiendo a AppContentView")
                     }
                 }
             )
         }
-        .onChange(of: detailedGroupViewModel.selectedUser) { _, newValue in
-            print("🔄 MainView: selectedUser cambió a: \(newValue?.name ?? "nil")")
-            canAccessSettings = newValue != nil
-            print("🔄 MainView: canAccessSettings = \(canAccessSettings)")
-        }
         .onAppear {
-            checkIfAppIsEmpty()
+            Task {
+                await checkForUsers()
+            }
         }
     }
 }
 
-// MARK: - Navigation Destinations
-struct AddUserDestination: Hashable {
-    let id = UUID()
-}
-
-enum CreateGroupDestination: Hashable {
-    case createGroup(User)
-}
-
-enum SettingsDestination: Hashable {
-    case settings
-    case manageGroups(User)
-}
-
-enum AddItemListDestination: Hashable {
-    case addItemList(User, Group)
-}
-
 // MARK: - Helper Functions
 extension MainView {
-    private func checkIfAppIsEmpty() {
-        Task {
-            // Check if there are any users in the database
-            let users = try? await detailedGroupViewModel.userService.fetchUsers()
-            let isEmpty = users?.isEmpty ?? true
+    private func checkForUsers() async {
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        do {
+            let users = try await userService.fetchUsers()
             
             await MainActor.run {
-                if isEmpty {
+                hasUsers = !users.isEmpty
+                isLoading = false
+                
+                // Si no hay usuarios, mostrar el sheet para crear el primero
+                if !hasUsers {
                     showingCreateFirstUser = true
                 }
+            }
+            
+            print("🔍 MainView: Usuarios encontrados: \(users.count), hasUsers: \(hasUsers)")
+        } catch {
+            print("❌ MainView: Error verificando usuarios: \(error)")
+            await MainActor.run {
+                hasUsers = false
+                isLoading = false
+                showingCreateFirstUser = true
             }
         }
     }
