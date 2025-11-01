@@ -13,30 +13,15 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     
     // MARK: - Cache Keys
     enum CacheKeys {
-        static let allGroups = "GroupService.allGroups"
-        static let groupCount = "GroupService.groupCount"
+        static let userGroups = "GroupService.userGroups"
         static let groupExists = "GroupService.groupExists"
+        static let currencyGroupCount = "GroupService.currencyGroupCount"
     }
     
     // MARK: - Group CRUD Operations
     
-    /// Fetch all groups with caching
-    func fetchGroups() async throws -> [Group] {
-        // Check cache first
-        if let cachedGroups: [Group] = await CacheManager.shared.getCachedData(for: CacheKeys.allGroups) {
-            return cachedGroups
-        }
-        
-        // Fetch from Core Data
-        let request: NSFetchRequest<Group> = Group.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Group.name, ascending: true)]
-        let groups = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(groups, for: CacheKeys.allGroups)
-        
-        return groups
-    }
+    // NOTE: Use UserGroupService.getGroups(for user: User) for user-specific group filtering
+    // This enables dashboard dropdown with user's groups for switching context
     
     /// Fetch group by ID
     func fetchGroup(by id: UUID) async throws -> Group? {
@@ -62,8 +47,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
         
         return group
@@ -84,7 +69,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
     
@@ -94,8 +79,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         try await save()
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
     
@@ -126,23 +111,6 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         return exists
     }
     
-    /// Get groups count with caching
-    func getGroupsCount() async throws -> Int {
-        // Check cache first
-        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: CacheKeys.groupCount) {
-            return cachedCount
-        }
-        
-        // Get from Core Data
-        let request: NSFetchRequest<Group> = Group.fetchRequest()
-        let count = try await count(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(count, for: CacheKeys.groupCount)
-        
-        return count
-    }
-    
     // MARK: - Batch Operations
     
     /// Bulk delete groups by IDs for better performance
@@ -151,8 +119,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         _ = try await batchDelete(Group.self, predicate: predicate)
         
         // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
     
@@ -164,7 +132,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
         
         // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
     }
     
     /// Bulk update group status (assuming groups have an isActive property)
@@ -175,7 +143,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
         
         // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
     }
     
     /// Create multiple groups efficiently
@@ -203,16 +171,17 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         
         try await bulkInsert(Group.self, objects: objects)
         
-        // Clear caches and refetch to get proper Group objects
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCount)
+        // Clear caches - Note: return empty array since fetchGroups() was removed
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         
-        return try await fetchGroups()
+        // TODO: Return created groups properly when getGroups(for user: User) is implemented
+        return []
     }
     
     /// Get groups count for specific currency
     func getGroupsCount(for currency: String) async throws -> Int {
-        let cacheKey = "\(CacheKeys.groupCount)_\(currency)"
+        let cacheKey = "\(CacheKeys.currencyGroupCount)_\(currency)"
         
         // Check cache first
         if let cachedCount: Int = await CacheManager.shared.getCachedData(for: cacheKey) {
@@ -260,11 +229,4 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         return count
     }
     
-    /// Get groups by owner (through UserGroup relationship)
-    /// This method requires UserGroupService to work properly
-    func getGroups(ownedBy user: User) async throws -> [Group] {
-        // This method should be implemented in UserGroupService instead
-        // as Group doesn't have a direct owner relationship
-        throw NSError(domain: "GroupService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Use UserGroupService.getGroups(for:) instead"])
-    }
 }

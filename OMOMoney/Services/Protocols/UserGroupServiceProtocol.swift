@@ -7,9 +7,6 @@ protocol UserGroupServiceProtocol {
     
     // MARK: - UserGroup CRUD Operations
     
-    /// Fetch all user groups
-    func fetchUserGroups() async throws -> [UserGroup]
-    
     /// Fetch user group by ID
     func fetchUserGroup(by id: UUID) async throws -> UserGroup?
     
@@ -36,7 +33,4 @@ protocol UserGroupServiceProtocol {
     
     /// Check if user is member of group
     func isUser(_ user: User, memberOf group: Group) async throws -> Bool
-    
-    /// Get user group count
-    func getUserGroupsCount() async throws -> Int
 }

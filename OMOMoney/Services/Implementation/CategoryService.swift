@@ -7,9 +7,8 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     // MARK: - Cache Keys
     enum CacheKeys {
-        static let allCategories = "CategoryService.allCategories"
         static let groupCategories = "CategoryService.groupCategories"
-        static let categoryCount = "CategoryService.categoryCount"
+        static let userCategories = "CategoryService.userCategories"
         static let categoryExists = "CategoryService.categoryExists"
     }
     
@@ -21,20 +20,23 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     // MARK: - Category CRUD Operations
     
-    /// Fetch all categories with caching
-    func fetchCategories() async throws -> [Category] {
+    /// Get categories for a specific user across all their groups with caching
+    func getCategories(for user: User) async throws -> [Category] {
+        let cacheKey = "\(CacheKeys.userCategories).\(user.id?.uuidString ?? "nil")"
+        
         // Check cache first
-        if let cachedCategories: [Category] = await CacheManager.shared.getCachedData(for: CacheKeys.allCategories) {
+        if let cachedCategories: [Category] = await CacheManager.shared.getCachedData(for: cacheKey) {
             return cachedCategories
         }
         
-        // Fetch from Core Data
+        // Fetch from Core Data through UserGroup relationship
         let request: NSFetchRequest<Category> = Category.fetchRequest()
+        request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Category.name, ascending: true)]
         let categories = try await fetch(request)
         
         // Cache the result
-        await CacheManager.shared.cacheData(categories, for: CacheKeys.allCategories)
+        await CacheManager.shared.cacheData(categories, for: cacheKey)
         
         return categories
     }
@@ -64,9 +66,8 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryCount)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
         
         return category
@@ -87,8 +88,8 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
     }
     
@@ -98,9 +99,8 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         try await save()
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allCategories)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryCount)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
     }
     
@@ -160,27 +160,17 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         return exists
     }
     
-    /// Get categories count with caching
-    func getCategoriesCount() async throws -> Int {
-        // Check cache first
-        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: CacheKeys.categoryCount) {
-            return cachedCount
-        }
-        
-        // Get from Core Data
-        let request: NSFetchRequest<Category> = Category.fetchRequest()
-        let count = try await count(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(count, for: CacheKeys.categoryCount)
-        
-        return count
-    }
-    
     /// Get categories count for a specific group
     func getCategoriesCount(for group: Group) async throws -> Int {
         let request: NSFetchRequest<Category> = Category.fetchRequest()
         request.predicate = NSPredicate(format: "group == %@", group)
+        return try await count(request)
+    }
+    
+    /// Get categories count for a specific user across all their groups
+    func getCategoriesCount(for user: User) async throws -> Int {
+        let request: NSFetchRequest<Category> = Category.fetchRequest()
+        request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
         return try await count(request)
     }
 }

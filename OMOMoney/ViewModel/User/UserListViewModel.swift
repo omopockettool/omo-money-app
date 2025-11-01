@@ -27,19 +27,17 @@ class UserListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all users
+    /// Load users for specific groups (users should be loaded through UserGroupService)
     func loadUsers() async {
         isLoading = true
         errorMessage = nil
         
-        do {
-            allUsers = try await userService.fetchUsers()
-            currentPage = 0
-            users = Array(allUsers.prefix(pageSize))
-            hasMoreUsers = allUsers.count > pageSize
-        } catch {
-            errorMessage = "Error loading users: \(error.localizedDescription)"
-        }
+        // Note: In a multi-user app, users should be loaded through UserGroupService
+        // based on the current user's groups. This global fetch should be removed.
+        allUsers = []
+        users = []
+        hasMoreUsers = false
+        errorMessage = "Users should be loaded through UserGroupService based on current user's groups"
         
         isLoading = false
     }
@@ -127,15 +125,8 @@ class UserListViewModel: ObservableObject {
         }
     }
     
-    /// Get users count
-    func getUsersCount() async -> Int {
-        do {
-            return try await userService.getUsersCount()
-        } catch {
-            errorMessage = "Error getting users count: \(error.localizedDescription)"
-            return 0
-        }
-    }
+    // Note: For users count, use UserGroupService.getUsers(in: group) and then .count
+    // to ensure proper filtering by group context
     
     /// Clear error message
     func clearError() {

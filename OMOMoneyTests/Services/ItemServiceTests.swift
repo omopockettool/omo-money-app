@@ -78,27 +78,6 @@ final class ItemServiceTests: XCTestCase {
     
     // MARK: - Fetch Item Tests
     
-    func testFetchItems_Empty() async throws {
-        // When
-        let items = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertTrue(items.isEmpty)
-    }
-    
-    func testFetchItems_WithData() async throws {
-        // Given
-        _ = testEntityFactory.createItems(count: 3)
-        try mockCoreDataStack.save()
-        
-        // When
-        let fetchedItems = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertEqual(fetchedItems.count, 3)
-        XCTAssertTrue(fetchedItems.allSatisfy { $0.itemDescription?.contains("Item") == true })
-    }
-    
     func testFetchItem_ById() async throws {
         // Given
         let testItem = testEntityFactory.createItem()
@@ -264,25 +243,7 @@ final class ItemServiceTests: XCTestCase {
     
     // MARK: - Caching Tests
     
-    func testFetchItems_Caching() async throws {
-        // Given
-        _ = testEntityFactory.createItems(count: 2)
-        try mockCoreDataStack.save()
-        
-        // When - First fetch (should cache)
-        let firstFetch = try await itemService.fetchItems()
-        
-        // Clear Core Data to simulate cache hit
-        mockCoreDataStack.clearAllData()
-        
-        // Second fetch (should use cache)
-        let secondFetch = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertEqual(firstFetch.count, 2)
-        XCTAssertEqual(secondFetch.count, 2) // Should return cached data
-        XCTAssertEqual(firstFetch.map { $0.id }, secondFetch.map { $0.id })
-    }
+
     
     func testGetItemsForItemList_Caching() async throws {
         // Given
@@ -355,9 +316,6 @@ final class ItemServiceTests: XCTestCase {
         let testItem = testEntityFactory.createItem(description: "Original Item")
         try mockCoreDataStack.save()
         
-        // Prime the cache
-        _ = try await itemService.fetchItems()
-        
         // When
         try await itemService.updateItem(testItem, description: "Updated Item", amount: nil, quantity: nil)
         
@@ -368,17 +326,15 @@ final class ItemServiceTests: XCTestCase {
     
     func testDeleteItem_InvalidatesCache() async throws {
         // Given
-        let testItem = testEntityFactory.createItem()
+        let testItemList = testEntityFactory.createItemList()
+        let testItem = testEntityFactory.createItem(itemList: testItemList)
         try mockCoreDataStack.save()
-        
-        // Prime the cache
-        _ = try await itemService.fetchItems()
         
         // When
         try await itemService.deleteItem(testItem)
         
-        // Then - Cache should be invalidated
-        let allItems = try await itemService.fetchItems()
-        XCTAssertEqual(allItems.count, 0) // Should reflect deletion
+        // Then - Verify deletion by checking items in the itemList
+        let remainingItems = try await itemService.getItems(for: testItemList)
+        XCTAssertEqual(remainingItems.count, 0) // Should reflect deletion
     }
 }

@@ -21,20 +21,6 @@ class PaymentMethodListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all paymentMethods
-    func loadPaymentMethods() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            paymentMethods = try await paymentMethodService.fetchPaymentMethods()
-        } catch {
-            errorMessage = "Error loading paymentMethods: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     /// Load paymentMethods for a specific group
     func loadPaymentMethods(for group: Group) async {
         isLoading = true

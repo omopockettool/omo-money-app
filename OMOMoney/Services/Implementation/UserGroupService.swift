@@ -7,7 +7,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
     
     // MARK: - Cache Keys
     enum CacheKeys {
-        static let allUserGroups = "UserGroupService.allUserGroups"
         static let userUserGroups = "UserGroupService.userUserGroups"
         static let groupUserGroups = "UserGroupService.groupUserGroups"
         static let usersInGroup = "UserGroupService.usersInGroup"
@@ -23,22 +22,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
     
     // MARK: - UserGroup CRUD Operations
     
-    /// Fetch all user groups with caching
-    func fetchUserGroups() async throws -> [UserGroup] {
-        // Check cache first
-        if let cachedUserGroups: [UserGroup] = await CacheManager.shared.getCachedData(for: CacheKeys.allUserGroups) {
-            return cachedUserGroups
-        }
-        
-        // Fetch from Core Data
-        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.joinedAt, ascending: true)]
-        let userGroups = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(userGroups, for: CacheKeys.allUserGroups)
-        
-        return userGroups
     }
     
     /// Fetch user group by ID
@@ -66,7 +49,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.usersInGroup)
@@ -88,7 +70,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.usersInGroup)
@@ -102,7 +83,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         try await save()
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupUserGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.usersInGroup)
@@ -211,11 +191,5 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         await CacheManager.shared.cacheValidation(isMember, for: cacheKey)
         
         return isMember
-    }
-    
-    /// Get user group count
-    func getUserGroupsCount() async throws -> Int {
-        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
-        return try await count(request)
     }
 }

@@ -7,8 +7,7 @@ protocol GroupServiceProtocol {
     
     // MARK: - Group CRUD Operations
     
-    /// Fetch all groups
-    func fetchGroups() async throws -> [Group]
+    // NOTE: Use UserGroupService.getGroups(for user: User) for dashboard group dropdown
     
     /// Fetch group by ID
     func fetchGroup(by id: UUID) async throws -> Group?
@@ -24,9 +23,6 @@ protocol GroupServiceProtocol {
     
     /// Check if group exists by name
     func groupExists(withName name: String, excluding groupId: UUID?) async throws -> Bool
-    
-    /// Get groups count
-    func getGroupsCount() async throws -> Int
     
     // MARK: - Batch Operations
     

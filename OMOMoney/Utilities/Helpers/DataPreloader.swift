@@ -41,8 +41,7 @@ class DataPreloader: ObservableObject {
         let tasks = [
             ("Users", preloadUsers),
             ("Groups", preloadGroups),
-            ("Categories", preloadCategories),
-            ("Payment Methods", preloadPaymentMethods)
+            ("Categories", preloadCategories)
         ]
         
         let progressIncrement = 1.0 / Double(tasks.count)
@@ -81,24 +80,18 @@ class DataPreloader: ObservableObject {
     
     // MARK: - Private Methods
     
-    /// Preload users into cache
+    /// Note: Users are accessed through UserGroupService.getUsers(in: group) for proper filtering
     private func preloadUsers() async {
-        do {
-            _ = try await userService.fetchUsers()
-            _ = try await userService.getUsersCount()
-        } catch {
-            print("⚠️ Failed to preload users: \(error.localizedDescription)")
-        }
+        // Users should not be preloaded globally. They should be accessed 
+        // through UserGroupService based on the current user's groups.
+        print("ℹ️ User preloading skipped - users should be loaded per group context")
     }
     
-    /// Preload groups into cache
+    /// Preload groups into cache (Note: Groups should be loaded per user via UserGroupService)
     private func preloadGroups() async {
-        do {
-            _ = try await groupService.fetchGroups()
-            _ = try await groupService.getGroupsCount()
-        } catch {
-            print("⚠️ Failed to preload groups: \(error.localizedDescription)")
-        }
+        // Groups are now loaded per user through UserGroupService.getGroups(for: user)
+        // This function is kept for compatibility but does nothing
+        print("ℹ️ Groups are loaded per user through UserGroupService")
     }
     
     /// Preload categories into cache
@@ -111,11 +104,11 @@ class DataPreloader: ObservableObject {
         }
     }
     
-    /// Preload payment methods into cache
-    private func preloadPaymentMethods() async {
+    /// Preload payment methods for a specific group into cache
+    private func preloadPaymentMethods(for group: Group) async {
         do {
-            _ = try await paymentMethodService.fetchPaymentMethods()
-            _ = try await paymentMethodService.getPaymentMethodsCount()
+            _ = try await paymentMethodService.getPaymentMethods(for: group)
+            _ = try await paymentMethodService.getPaymentMethodsCount(for: group)
         } catch {
             print("⚠️ Failed to preload payment methods: \(error.localizedDescription)")
         }
@@ -134,7 +127,7 @@ class DataPreloader: ObservableObject {
             _ = try await categoryService.getCategories(for: group)
             preloadingProgress = 0.25
             
-            _ = try await paymentMethodService.getPaymentMethods(for: group)
+            await preloadPaymentMethods(for: group)
             preloadingProgress = 0.5
             
             _ = try await groupService.getGroupMembersCount(group)

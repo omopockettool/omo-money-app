@@ -10,6 +10,7 @@ struct AddItemListView: View {
     
     @StateObject private var viewModel: AddItemListViewModel
     @State private var showingCategoryPicker = false
+    @State private var showingPaymentMethodPicker = false
     
     init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
         self.user = user
@@ -19,11 +20,13 @@ struct AddItemListView: View {
         let itemListService = ItemListService(context: context)
         let categoryService = CategoryService(context: context)
         let itemService = ItemService(context: context)
+        let paymentMethodService = PaymentMethodService(context: context)
         
         self._viewModel = StateObject(wrappedValue: AddItemListViewModel(
             itemListService: itemListService,
             categoryService: categoryService,
-            itemService: itemService
+            itemService: itemService,
+            paymentMethodService: paymentMethodService
         ))
     }
     
@@ -63,6 +66,33 @@ struct AddItemListView: View {
                         HStack {
                             Text(viewModel.selectedCategory?.name ?? "Seleccionar Categoría")
                                 .foregroundColor(viewModel.selectedCategory != nil ? .primary : .secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                // Payment Method
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Método de Pago")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Button(action: {
+                        showingPaymentMethodPicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: paymentMethodIcon(for: viewModel.selectedPaymentMethod?.type ?? ""))
+                                .foregroundColor(paymentMethodColor(for: viewModel.selectedPaymentMethod?.type ?? ""))
+                                .font(.title2)
+                            
+                            Text(viewModel.selectedPaymentMethod?.name ?? "Seleccionar Método de Pago")
+                                .foregroundColor(viewModel.selectedPaymentMethod != nil ? .primary : .secondary)
+                            
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
@@ -139,6 +169,13 @@ struct AddItemListView: View {
                 context: viewContext
             )
         }
+        .sheet(isPresented: $showingPaymentMethodPicker) {
+            PaymentMethodPickerView(
+                selectedPaymentMethod: $viewModel.selectedPaymentMethod,
+                group: group,
+                context: viewContext
+            )
+        }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
                 viewModel.clearError()
@@ -150,6 +187,7 @@ struct AddItemListView: View {
         }
         .task {
             await viewModel.loadCategories(for: group)
+            await viewModel.loadPaymentMethods(for: group)
         }
     }
     
@@ -162,13 +200,46 @@ struct AddItemListView: View {
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
             category: category,
-            group: group
+            group: group,
+            paymentMethod: viewModel.selectedPaymentMethod
         )
         
         if success {
             // ✅ SUCCESS: ItemList creado exitosamente
             // Ahora regresamos a la vista anterior
             navigationPath.removeLast()
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func paymentMethodIcon(for type: String) -> String {
+        switch type.lowercased() {
+        case "card":
+            return "creditcard.fill"
+        case "cash":
+            return "banknote.fill"
+        case "transfer":
+            return "arrow.left.arrow.right"
+        case "digital":
+            return "iphone"
+        default:
+            return "questionmark.circle.fill"
+        }
+    }
+    
+    private func paymentMethodColor(for type: String) -> Color {
+        switch type.lowercased() {
+        case "card":
+            return .blue
+        case "cash":
+            return .green
+        case "transfer":
+            return .orange
+        case "digital":
+            return .purple
+        default:
+            return .gray
         }
     }
 }

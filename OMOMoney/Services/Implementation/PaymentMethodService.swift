@@ -7,8 +7,6 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     
     // MARK: - Cache Keys
     private enum CacheKeys {
-        static let allPaymentMethods = "PaymentMethodService.allPaymentMethods"
-        static let paymentMethodCount = "PaymentMethodService.paymentMethodCount"
         static let groupPaymentMethods = "PaymentMethodService.groupPaymentMethods"
         static let activePaymentMethods = "PaymentMethodService.activePaymentMethods"
         static let typePaymentMethods = "PaymentMethodService.typePaymentMethods"
@@ -21,24 +19,6 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     }
     
     // MARK: - PaymentMethod CRUD Operations
-    
-    /// Fetch all paymentMethods with caching
-    func fetchPaymentMethods() async throws -> [PaymentMethod] {
-        // Check cache first
-        if let cachedPaymentMethods: [PaymentMethod] = await CacheManager.shared.getCachedData(for: CacheKeys.allPaymentMethods) {
-            return cachedPaymentMethods
-        }
-        
-        // Fetch from Core Data
-        let request: NSFetchRequest<PaymentMethod> = PaymentMethod.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentMethod.name, ascending: true)]
-        let paymentMethods = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(paymentMethods, for: CacheKeys.allPaymentMethods)
-        
-        return paymentMethods
-    }
     
     /// Fetch paymentMethod by ID
     func fetchPaymentMethod(by id: UUID) async throws -> PaymentMethod? {
@@ -156,12 +136,6 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
         return paymentMethods
     }
     
-    /// Get paymentMethods count
-    func getPaymentMethodsCount() async throws -> Int {
-        let request: NSFetchRequest<PaymentMethod> = PaymentMethod.fetchRequest()
-        return try await count(request)
-    }
-    
     /// Get paymentMethods count for a specific group
     func getPaymentMethodsCount(for group: Group) async throws -> Int {
         let request: NSFetchRequest<PaymentMethod> = PaymentMethod.fetchRequest()
@@ -207,11 +181,7 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
     
     /// Invalidate all caches related to paymentMethods
     private func invalidateCaches() async {
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allPaymentMethods)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.paymentMethodCount)
-        
-        // Since we don't have prefix-based clearing, we'll clear the main caches
-        // Group-specific caches will be invalidated as needed when accessed
+        // Clear group-specific caches
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupPaymentMethods)
         await CacheManager.shared.clearDataCache(for: CacheKeys.activePaymentMethods)
         await CacheManager.shared.clearDataCache(for: CacheKeys.typePaymentMethods)

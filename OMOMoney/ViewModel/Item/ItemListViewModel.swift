@@ -21,19 +21,7 @@ class ItemListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all items
-    func loadItems() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            items = try await itemService.fetchItems()
-        } catch {
-            errorMessage = "Error loading items: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
+
     
     /// Load items for a specific itemList
     func loadItems(for itemList: ItemList) async {
@@ -49,47 +37,13 @@ class ItemListViewModel: ObservableObject {
         isLoading = false
     }
     
-    /// Load items for a specific category
-    func loadItems(for category: Category) async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            // Get all items and filter by category
-            let allItems = try await itemService.fetchItems()
-            items = allItems.filter { $0.itemList?.category?.id == category.id }
-        } catch {
-            errorMessage = "Error loading items: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     /// Load items for a specific group
     func loadItems(for group: Group) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            // Get all items and filter by group
-            let allItems = try await itemService.fetchItems()
-            items = allItems.filter { $0.itemList?.group?.id == group.id }
-        } catch {
-            errorMessage = "Error loading items: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
-    /// Load items with amount greater than specified value
-    func loadItems(withAmountGreaterThan amount: NSDecimalNumber) async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            // Get all items and filter by amount
-            let allItems = try await itemService.fetchItems()
-            items = allItems.filter { ($0.amount ?? NSDecimalNumber.zero).compare(amount) == .orderedDescending }
+            items = try await itemService.getItems(for: group)
         } catch {
             errorMessage = "Error loading items: \(error.localizedDescription)"
         }
@@ -158,15 +112,8 @@ class ItemListViewModel: ObservableObject {
         }
     }
     
-    /// Get items count
-    func getItemsCount() async -> Int {
-        do {
-            return try await itemService.getItemsCount()
-        } catch {
-            errorMessage = "Error getting items count: \(error.localizedDescription)"
-            return 0
-        }
-    }
+    // Note: For items count, use itemService.getItems(for: itemList) and then .count
+    // to ensure proper filtering by itemList context
     
     /// Clear error message
     func clearError() {

@@ -80,15 +80,8 @@ class GroupListViewModel: ObservableObject {
         }
     }
     
-    /// Get groups count
-    func getGroupsCount() async -> Int {
-        do {
-            return try await groupService.getGroupsCount()
-        } catch {
-            errorMessage = "Error getting groups count: \(error.localizedDescription)"
-            return 0
-        }
-    }
+    // NOTE: Use UserGroupService.getGroups(for: user) to get groups for a specific user
+    // Groups count should be calculated from the filtered results
     
     // MARK: - Batch Operations
     

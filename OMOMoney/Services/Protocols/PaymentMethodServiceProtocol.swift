@@ -7,9 +7,6 @@ protocol PaymentMethodServiceProtocol {
     
     // MARK: - PaymentMethod CRUD Operations
     
-    /// Fetch all paymentMethods
-    func fetchPaymentMethods() async throws -> [PaymentMethod]
-    
     /// Fetch paymentMethod by ID
     func fetchPaymentMethod(by id: UUID) async throws -> PaymentMethod?
     
@@ -27,9 +24,6 @@ protocol PaymentMethodServiceProtocol {
     
     /// Get active paymentMethods for a specific group
     func getActivePaymentMethods(for group: Group) async throws -> [PaymentMethod]
-    
-    /// Get paymentMethods count
-    func getPaymentMethodsCount() async throws -> Int
     
     /// Get paymentMethods count for a specific group
     func getPaymentMethodsCount(for group: Group) async throws -> Int

@@ -7,9 +7,6 @@ protocol ItemServiceProtocol {
     
     // MARK: - Item CRUD Operations
     
-    /// Fetch all items
-    func fetchItems() async throws -> [Item]
-    
     /// Fetch item by ID
     func fetchItem(by id: UUID) async throws -> Item?
     
@@ -25,12 +22,12 @@ protocol ItemServiceProtocol {
     /// Get items for a specific item list
     func getItems(for itemList: ItemList) async throws -> [Item]
     
+    /// Get items for a specific group
+    func getItems(for group: Group) async throws -> [Item]
+    
     /// Calculate total amount for a specific item list
     func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber
     
     /// Calculate total amount for a specific group
     func calculateTotalAmount(for group: Group) async throws -> NSDecimalNumber
-    
-    /// Get items count
-    func getItemsCount() async throws -> Int
 }

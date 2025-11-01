@@ -7,9 +7,6 @@ protocol UserServiceProtocol {
     
     // MARK: - User CRUD Operations
     
-    /// Fetch all users
-    func fetchUsers() async throws -> [User]
-    
     /// Fetch user by ID
     func fetchUser(by id: UUID) async throws -> User?
     
@@ -24,9 +21,6 @@ protocol UserServiceProtocol {
     
     /// Check if user exists by name
     func userExists(withName name: String, excluding userId: UUID?) async throws -> Bool
-    
-    /// Get users count
-    func getUsersCount() async throws -> Int
     
     // MARK: - Batch Operations
     

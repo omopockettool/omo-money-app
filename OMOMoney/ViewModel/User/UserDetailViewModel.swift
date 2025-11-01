@@ -111,10 +111,11 @@ class UserDetailViewModel: ObservableObject {
     
     /// Get groups count for the user
     func getGroupsCount() async -> Int {
-        guard user != nil else { return 0 }
+        guard let user = user else { return 0 }
         
         do {
-            return try await userGroupService.getUserGroupsCount()
+            let userGroups = try await userGroupService.getUserGroups(for: user)
+            return userGroups.count
         } catch {
             errorMessage = "Error getting groups count: \(error.localizedDescription)"
             return 0

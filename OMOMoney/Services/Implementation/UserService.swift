@@ -7,8 +7,6 @@ class UserService: CoreDataService, UserServiceProtocol {
     
     // MARK: - Cache Keys
     private enum CacheKeys {
-        static let allUsers = "UserService.allUsers"
-        static let userCount = "UserService.userCount"
         static let userExists = "UserService.userExists"
     }
     
@@ -19,24 +17,6 @@ class UserService: CoreDataService, UserServiceProtocol {
     }
     
     // MARK: - User CRUD Operations
-    
-    /// Fetch all users with caching
-    func fetchUsers() async throws -> [User] {
-        // Check cache first
-        if let cachedUsers: [User] = await CacheManager.shared.getCachedData(for: CacheKeys.allUsers) {
-            return cachedUsers
-        }
-        
-        // Fetch from Core Data
-        let request: NSFetchRequest<User> = User.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \User.name, ascending: true)]
-        let users = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(users, for: CacheKeys.allUsers)
-        
-        return users
-    }
     
     /// Fetch user by ID
     func fetchUser(by id: UUID) async throws -> User? {
@@ -62,8 +42,6 @@ class UserService: CoreDataService, UserServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
         
         return user
@@ -84,7 +62,6 @@ class UserService: CoreDataService, UserServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
     
@@ -94,8 +71,6 @@ class UserService: CoreDataService, UserServiceProtocol {
         try await save()
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
     
@@ -126,23 +101,6 @@ class UserService: CoreDataService, UserServiceProtocol {
         return exists
     }
     
-    /// Get users count with caching
-    func getUsersCount() async throws -> Int {
-        // Check cache first
-        if let cachedCount: Int = await CacheManager.shared.getCachedData(for: CacheKeys.userCount) {
-            return cachedCount
-        }
-        
-        // Get from Core Data
-        let request: NSFetchRequest<User> = User.fetchRequest()
-        let count = try await count(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(count, for: CacheKeys.userCount)
-        
-        return count
-    }
-    
     // MARK: - Batch Operations
     
     /// Bulk delete users by IDs for better performance
@@ -151,8 +109,6 @@ class UserService: CoreDataService, UserServiceProtocol {
         _ = try await batchDelete(User.self, predicate: predicate)
         
         // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
     }
     
@@ -163,8 +119,7 @@ class UserService: CoreDataService, UserServiceProtocol {
         
         _ = try await batchUpdate(User.self, predicate: predicate, propertiesToUpdate: properties)
         
-        // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
+        // Note: No global cache to clear since users should be accessed through UserGroupService
     }
     
     /// Create multiple users efficiently
@@ -192,10 +147,13 @@ class UserService: CoreDataService, UserServiceProtocol {
         
         try await bulkInsert(User.self, objects: objects)
         
-        // Clear caches and refetch to get proper User objects
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allUsers)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userCount)
+        // Clear validation cache
+        await CacheManager.shared.clearValidationCache(for: CacheKeys.userExists)
         
-        return try await fetchUsers()
+        // Return created users by fetching from context (bulk insert doesn't return objects)
+        let request: NSFetchRequest<User> = User.fetchRequest()
+        let names = userDataList.map { $0.name }
+        request.predicate = NSPredicate(format: "name IN %@", names)
+        return try await fetch(request)
     }
 }

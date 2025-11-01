@@ -122,15 +122,8 @@ class ItemListListViewModel: ObservableObject {
         }
     }
     
-    /// Get itemLists count
-    func getItemListsCount() async -> Int {
-        do {
-            return try await itemListService.getItemListsCount()
-        } catch {
-            errorMessage = "Error getting itemLists count: \(error.localizedDescription)"
-            return 0
-        }
-    }
+    // Note: For itemLists count, use getItemListsCount(for group: Group) or getItemListsCount(for user: User)
+    // to ensure proper filtering by user context
     
     /// Get itemLists count for a specific group
     func getItemListsCount(for group: Group) async -> Int {

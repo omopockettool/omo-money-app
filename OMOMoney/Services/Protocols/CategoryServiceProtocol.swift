@@ -7,8 +7,8 @@ protocol CategoryServiceProtocol {
     
     // MARK: - Category CRUD Operations
     
-    /// Fetch all categories
-    func fetchCategories() async throws -> [Category]
+    /// Get categories for a specific user across all their groups
+    func getCategories(for user: User) async throws -> [Category]
     
     /// Fetch category by ID
     func fetchCategory(by id: UUID) async throws -> Category?
@@ -28,9 +28,9 @@ protocol CategoryServiceProtocol {
     /// Check if category exists by name
     func categoryExists(withName name: String, in group: Group?, excluding categoryId: UUID?) async throws -> Bool
     
-    /// Get categories count
-    func getCategoriesCount() async throws -> Int
-    
     /// Get categories count for a specific group
     func getCategoriesCount(for group: Group) async throws -> Int
+    
+    /// Get categories count for a specific user across all their groups
+    func getCategoriesCount(for user: User) async throws -> Int
 }

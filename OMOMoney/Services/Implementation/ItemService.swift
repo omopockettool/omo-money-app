@@ -7,7 +7,6 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     
     // MARK: - Cache Keys
     enum CacheKeys {
-        static let allItems = "ItemService.allItems"
         static let itemListItems = "ItemService.itemListItems"
         static let groupItems = "ItemService.groupItems"
         static let itemListTotalAmount = "ItemService.itemListTotalAmount"
@@ -21,25 +20,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     }
     
     // MARK: - Item CRUD Operations
-    
-    /// Fetch all items with caching
-    func fetchItems() async throws -> [Item] {
-        // Check cache first
-        if let cachedItems: [Item] = await CacheManager.shared.getCachedData(for: CacheKeys.allItems) {
-            return cachedItems
-        }
-        
-        // Fetch from Core Data
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        let items = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(items, for: CacheKeys.allItems)
-        
-        return items
-    }
-    
+
     /// Fetch item by ID
     func fetchItem(by id: UUID) async throws -> Item? {
         let request: NSFetchRequest<Item> = Item.fetchRequest()
@@ -66,7 +47,6 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
         await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
@@ -93,7 +73,6 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         }
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
         await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
@@ -106,7 +85,6 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         try await save()
         
         // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.allItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
         await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
@@ -195,11 +173,5 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         await CacheManager.shared.cacheCalculation(total, for: cacheKey)
         
         return total
-    }
-    
-    /// Get items count
-    func getItemsCount() async throws -> Int {
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        return try await count(request)
     }
 }
