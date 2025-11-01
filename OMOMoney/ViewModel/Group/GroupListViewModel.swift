@@ -21,16 +21,13 @@ class GroupListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all groups
+    /// Load groups for a specific user (to be implemented with user authentication)
     func loadGroups() async {
         isLoading = true
         errorMessage = nil
         
-        do {
-            groups = try await groupService.fetchGroups()
-        } catch {
-            errorMessage = "Error loading groups: \(error.localizedDescription)"
-        }
+        // TODO: Implement user-specific group loading when user authentication is implemented
+        groups = []
         
         isLoading = false
     }

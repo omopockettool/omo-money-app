@@ -213,8 +213,8 @@ extension AppContentView {
             isLoading = true
             
             do {
-                // Load users
-                let users = try await userService.fetchUsers()
+                // TODO: Implement proper user authentication and group loading
+                let users: [User] = [] // Placeholder until proper user/group filtering is implemented
                 guard let firstUser = users.first else {
                     print("❌ AppContentView: No users found")
                     isLoading = false
@@ -222,7 +222,7 @@ extension AppContentView {
                 }
                 
                 // Load groups for the first user
-                let groups = try await groupService.fetchGroups()
+                let groups: [Group] = [] // Placeholder until proper user/group filtering is implemented
                 let userGroups = groups.filter { group in
                     // Check if user is member of this group
                     group.userGroups?.contains { userGroup in

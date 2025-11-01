@@ -21,20 +21,6 @@ class CategoryListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all categories
-    func loadCategories() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            categories = try await categoryService.fetchCategories()
-        } catch {
-            errorMessage = "Error loading categories: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     /// Load categories for a specific group
     func loadCategories(for group: Group) async {
         isLoading = true
@@ -107,16 +93,6 @@ class CategoryListViewModel: ObservableObject {
         } catch {
             errorMessage = "Error checking category name: \(error.localizedDescription)"
             return false
-        }
-    }
-    
-    /// Get categories count
-    func getCategoriesCount() async -> Int {
-        do {
-            return try await categoryService.getCategoriesCount()
-        } catch {
-            errorMessage = "Error getting categories count: \(error.localizedDescription)"
-            return 0
         }
     }
     

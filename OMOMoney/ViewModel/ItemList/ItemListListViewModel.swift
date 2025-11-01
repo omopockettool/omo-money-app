@@ -21,20 +21,6 @@ class ItemListListViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load all itemLists
-    func loadItemLists() async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            itemLists = try await itemListService.fetchItemLists()
-        } catch {
-            errorMessage = "Error loading itemLists: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     /// Load itemLists for a specific group
     func loadItemLists(for group: Group) async {
         isLoading = true
@@ -93,7 +79,8 @@ class ItemListListViewModel: ObservableObject {
                 description: description, 
                 date: date, 
                 categoryId: categoryId, 
-                groupId: groupId
+                groupId: groupId,
+                paymentMethodId: nil
             )
             itemLists.insert(newItemList, at: 0) // Add at beginning since itemLists are sorted by date desc
             isLoading = false

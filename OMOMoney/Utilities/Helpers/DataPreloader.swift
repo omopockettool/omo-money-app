@@ -95,13 +95,11 @@ class DataPreloader: ObservableObject {
     }
     
     /// Preload categories into cache
+    /// Note: Categories should be loaded per group for proper filtering
     private func preloadCategories() async {
-        do {
-            _ = try await categoryService.fetchCategories()
-            _ = try await categoryService.getCategoriesCount()
-        } catch {
-            print("⚠️ Failed to preload categories: \(error.localizedDescription)")
-        }
+        // Categories are now loaded per group through CategoryService.getCategories(for: group)
+        // This function is kept for compatibility but does nothing
+        print("ℹ️ Categories are loaded per group through CategoryService")
     }
     
     /// Preload payment methods for a specific group into cache

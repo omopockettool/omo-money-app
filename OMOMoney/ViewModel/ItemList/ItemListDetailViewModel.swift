@@ -64,7 +64,7 @@ class ItemListDetailViewModel: ObservableObject {
         }
         
         do {
-            try await itemListService.updateItemList(itemList, description: description, date: date, categoryId: categoryId)
+            try await itemListService.updateItemList(itemList, description: description, date: date, categoryId: categoryId, paymentMethodId: itemList.paymentMethod?.id)
             isLoading = false
             return true
         } catch {

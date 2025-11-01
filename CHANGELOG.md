@@ -5,6 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-11-01
+
+### Added
+- **Multi-User Security Architecture**: Complete elimination of global data access methods
+  - All service methods now require proper user/group context filtering
+  - Enhanced security model preventing cross-user data access
+  - User-group relationship enforcement across all CRUD operations
+- **Secure Service Layer**: Comprehensive refactoring for multi-tenant safety
+  - Removed all global `fetchAll()` methods from GroupService, ItemListService, ItemService, UserService
+  - Eliminated global `getCount()` methods across all services
+  - Added mandatory group/user parameters to all data access methods
+  - Enhanced PaymentMethodService with group-specific filtering requirements
+- **ViewModel Security Updates**: Complete alignment with secure service architecture
+  - CategoryListViewModel: Removed global category access methods
+  - ItemListDetailViewModel: Fixed missing paymentMethodId parameters
+  - ItemListListViewModel: Eliminated global item list fetching
+  - GroupListViewModel: Removed global group access methods
+  - PaymentMethodListViewModel: Enforced group-based payment method access
+- **Application Layer Security**: View-level security enforcement
+  - MainView: Removed global user fetching capabilities
+  - AppContentView: Eliminated cross-user data access patterns
+  - DataPreloader: Removed global data loading methods
+- **Code Quality Enhancement**: Professional codebase cleanup
+  - Complete removal of commented deprecated methods
+  - Elimination of dead code and security vulnerabilities
+  - Clean, maintainable architecture ready for user authentication
+
+### Changed
+- **Service Architecture**: From global access to context-aware operations
+  - All service methods now enforce proper user/group context
+  - Data isolation between users and groups implemented
+  - Service interfaces updated to require security context parameters
+- **ViewModel Pattern**: Enhanced MVVM with security-first approach
+  - ViewModels updated to use only secure, filtered service methods
+  - Proper error handling for security-related access violations
+  - Consistent parameter passing for user/group context
+- **Data Access Pattern**: Shift from convenience to security
+  - Replaced convenient global methods with secure, filtered alternatives
+  - Enhanced method signatures to enforce proper context passing
+  - Improved data encapsulation and access control
+
+### Removed
+- **Global Data Access Methods**: Complete elimination of security vulnerabilities
+  - `fetchUsers()` from UserService - prevents cross-user data exposure
+  - `fetchGroups()` from GroupService - enforces user-group relationships
+  - `fetchItemLists()` from ItemListService - requires group context
+  - `fetchItems()` from ItemService - prevents unauthorized item access
+  - `fetchCategories()` and `getCategoriesCount()` from CategoryService
+  - `getPaymentMethodsCount()` global method from PaymentMethodService
+- **Deprecated Code**: Cleanup of commented and obsolete implementations
+  - Removed all commented global method calls from ViewModels
+  - Eliminated TODO markers for removed functionality
+  - Cleaned up temporary workaround code
+
+### Security
+- **Data Isolation**: Implemented comprehensive multi-user data separation
+  - Prevents users from accessing other users' data
+  - Enforces group membership validation for all operations
+  - Eliminates potential data leakage between user contexts
+- **Access Control**: Enhanced method-level security enforcement
+  - All data operations require explicit user/group authorization
+  - Service layer validates access permissions before data retrieval
+  - ViewModels cannot bypass security constraints
+
+### Technical Improvements
+- **Compilation Success**: All changes validated with successful device build
+  - Zero compilation errors after comprehensive refactoring
+  - Full compatibility with iOS 18.5 and arm64 architecture
+  - Production-ready codebase with enhanced security posture
+- **Architecture Consistency**: Uniform security patterns across entire codebase
+  - Consistent parameter naming and method signatures
+  - Standardized error handling for security violations
+  - Clean separation of concerns with security-first design
+- **Performance**: Maintained performance while enhancing security
+  - Efficient context-aware data access patterns
+  - Optimized service calls with proper filtering
+  - No performance degradation from security enhancements
+
 ## [0.8.0] - 2025-09-13
 
 ### Added

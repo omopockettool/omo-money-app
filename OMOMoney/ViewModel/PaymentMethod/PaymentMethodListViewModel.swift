@@ -161,16 +161,6 @@ class PaymentMethodListViewModel: ObservableObject {
         }
     }
     
-    /// Get paymentMethods count
-    func getPaymentMethodsCount() async -> Int {
-        do {
-            return try await paymentMethodService.getPaymentMethodsCount()
-        } catch {
-            errorMessage = "Error getting paymentMethods count: \(error.localizedDescription)"
-            return 0
-        }
-    }
-    
     /// Get paymentMethods count for a specific group
     func getPaymentMethodsCount(for group: Group) async -> Int {
         do {

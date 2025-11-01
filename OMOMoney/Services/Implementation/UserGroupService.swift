@@ -22,8 +22,6 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
     
     // MARK: - UserGroup CRUD Operations
     
-    }
-    
     /// Fetch user group by ID
     func fetchUserGroup(by id: UUID) async throws -> UserGroup? {
         let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
@@ -35,7 +33,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
     }
     
     /// Create a new user group relationship
-    func createUserGroup(user: User, group: Group, role: String = "member") async throws -> UserGroup {
+    func createUserGroup(user: User, group: Group, role: String) async throws -> UserGroup {
         let userGroup = try await context.perform {
             let userGroup = UserGroup(context: self.context)
             userGroup.id = UUID()
@@ -59,7 +57,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
     }
     
     /// Update an existing user group
-    func updateUserGroup(_ userGroup: UserGroup, role: String? = nil) async throws {
+    func updateUserGroup(_ userGroup: UserGroup, role: String?) async throws {
         try await context.perform {
             if let role = role {
                 userGroup.role = role
@@ -141,7 +139,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
             return cachedUsers
         }
         
-        // Get from Core Data
+        // Get UserGroups for this group and extract users
         let userGroups = try await getUserGroups(for: group)
         let users = userGroups.compactMap { $0.user }
         
@@ -160,7 +158,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
             return cachedGroups
         }
         
-        // Get from Core Data
+        // Get UserGroups for this user and extract groups
         let userGroups = try await getUserGroups(for: user)
         let groups = userGroups.compactMap { $0.group }
         

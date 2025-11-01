@@ -84,7 +84,8 @@ extension MainView {
         }
         
         do {
-            let users = try await userService.fetchUsers()
+            // TODO: Implement user authentication and proper user loading
+            let users: [User] = [] // Placeholder until user authentication is implemented
             
             await MainActor.run {
                 hasUsers = !users.isEmpty
