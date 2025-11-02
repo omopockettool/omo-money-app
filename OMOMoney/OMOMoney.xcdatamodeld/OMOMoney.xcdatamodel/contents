@@ -5,6 +5,8 @@
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="lastModifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="limit" optional="YES" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="limitFrequency" optional="YES" attributeType="String" defaultValueString="monthly"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="itemLists" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemList" inverseName="category" inverseEntity="ItemList"/>
         <relationship name="group" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Group" inverseName="categories" inverseEntity="Group"/>

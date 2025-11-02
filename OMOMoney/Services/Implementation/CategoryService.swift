@@ -52,7 +52,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     }
     
     /// Create a new category
-    func createCategory(name: String, color: String?, group: Group) async throws -> Category {
+    func createCategory(name: String, color: String?, group: Group, limit: Decimal? = nil, limitFrequency: String? = nil) async throws -> Category {
         let category = try await context.perform {
             let category = Category(context: self.context)
             category.id = UUID()
@@ -60,6 +60,14 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             category.color = color ?? "#007AFF"
             category.group = group
             category.createdAt = Date()
+            
+            // Set budget limit and frequency if provided
+            if let limit = limit {
+                category.limit = limit
+            }
+            if let limitFrequency = limitFrequency {
+                category.limitFrequency = limitFrequency
+            }
             
             try self.context.save()
             return category
@@ -74,13 +82,19 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     }
     
     /// Update an existing category
-    func updateCategory(_ category: Category, name: String? = nil, color: String? = nil) async throws {
+    func updateCategory(_ category: Category, name: String? = nil, color: String? = nil, limit: Decimal? = nil, limitFrequency: String? = nil) async throws {
         try await context.perform {
             if let name = name {
                 category.name = name
             }
             if let color = color {
                 category.color = color
+            }
+            if let limit = limit {
+                category.limit = limit
+            }
+            if let limitFrequency = limitFrequency {
+                category.limitFrequency = limitFrequency
             }
             category.lastModifiedAt = Date()
             
@@ -172,5 +186,101 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         let request: NSFetchRequest<Category> = Category.fetchRequest()
         request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
         return try await count(request)
+    }
+    
+    // MARK: - Budget & Limit Operations
+    
+    /// Get spending for a category within the specified frequency period
+    func getSpending(for category: Category, in period: DateInterval) async throws -> Decimal {
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "itemList.category == %@ AND itemList.date >= %@ AND itemList.date <= %@",
+            category,
+            period.start as NSDate,
+            period.end as NSDate
+        )
+        
+        let items = try await fetch(request)
+        return items.reduce(0) { total, item in
+            let itemAmount = item.amount ?? 0
+            let quantity = Decimal(item.quantity)
+            return total + (itemAmount * quantity)
+        }
+    }
+    
+    /// Check if category is over limit for the current period
+    func isOverLimit(_ category: Category, currentDate: Date = Date()) async throws -> Bool {
+        guard let limit = category.limit, limit > 0 else { return false }
+        
+        let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
+        let spending = try await getSpending(for: category, in: period)
+        
+        return spending > limit
+    }
+    
+    /// Get remaining budget for a category in the current period
+    func getRemainingBudget(for category: Category, currentDate: Date = Date()) async throws -> Decimal {
+        guard let limit = category.limit, limit > 0 else { return 0 }
+        
+        let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
+        let spending = try await getSpending(for: category, in: period)
+        
+        return max(0, limit - spending)
+    }
+    
+    /// Get budget status (percentage used) for a category
+    func getBudgetStatus(for category: Category, currentDate: Date = Date()) async throws -> Double {
+        guard let limit = category.limit, limit > 0 else { return 0.0 }
+        
+        let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
+        let spending = try await getSpending(for: category, in: period)
+        
+        let percentage = Double(truncating: spending as NSNumber) / Double(truncating: limit as NSNumber)
+        return min(1.0, max(0.0, percentage)) // Clamp between 0 and 1
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    /// Get the budget period based on frequency
+    private func getBudgetPeriod(for frequency: String?, currentDate: Date) -> DateInterval {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: currentDate)
+        
+        switch frequency?.lowercased() {
+        case "daily":
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return DateInterval(start: startOfDay, end: endOfDay)
+            
+        case "weekly":
+            if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: currentDate) {
+                return weekInterval
+            }
+            // Fallback to monthly if week calculation fails
+            fallthrough
+            
+        case "yearly":
+            if let yearInterval = calendar.dateInterval(of: .year, for: currentDate) {
+                return yearInterval
+            }
+            // Fallback to monthly if year calculation fails
+            fallthrough
+            
+        default: // "monthly" or any invalid frequency
+            if let monthInterval = calendar.dateInterval(of: .month, for: currentDate) {
+                return monthInterval
+            }
+            // Ultimate fallback to current day
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+            return DateInterval(start: startOfDay, end: endOfDay)
+        }
+    }
+    
+    /// Invalidate category-related caches
+    private func invalidateCache(for category: Category) async {
+        let userId = category.group?.userGroups?.first?.user?.id?.uuidString ?? "nil"
+        let groupId = category.group?.id?.uuidString ?? "nil"
+        
+        await CacheManager.shared.invalidateCache(for: "\(CacheKeys.userCategories).\(userId)")
+        await CacheManager.shared.invalidateCache(for: "\(CacheKeys.groupCategories).\(groupId)")
     }
 }
