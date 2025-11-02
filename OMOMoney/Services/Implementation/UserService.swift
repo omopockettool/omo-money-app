@@ -28,6 +28,16 @@ class UserService: CoreDataService, UserServiceProtocol {
         return results.first
     }
     
+    /// Get the current user (there should only be one in a personal app)
+    func getCurrentUser() async throws -> User? {
+        let request: NSFetchRequest<User> = User.fetchRequest()
+        request.fetchLimit = 1
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \User.createdAt, ascending: true)]
+        
+        let results = try await fetch(request)
+        return results.first
+    }
+    
     /// Create a new user
     func createUser(name: String, email: String? = nil) async throws -> User {
         let user = try await context.perform {

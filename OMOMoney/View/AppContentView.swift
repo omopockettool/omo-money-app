@@ -176,6 +176,26 @@ struct AppContentView: View {
                     print("Categories tapped")
                 }
             }
+            
+            // Debug button for logging all entities
+            Button(action: {
+                Task {
+                    await logAllEntities()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.title2)
+                    Text("Debug: Show All Data")
+                        .font(.caption)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(Color.red)
+                .cornerRadius(12)
+            }
+            .padding(.top, 10)
         }
         .padding()
     }
@@ -213,30 +233,24 @@ extension AppContentView {
             isLoading = true
             
             do {
-                // TODO: Implement proper user authentication and group loading
-                let users: [User] = [] // Placeholder until proper user/group filtering is implemented
-                guard let firstUser = users.first else {
+                // Get the current user
+                guard let currentUser = try await userService.getCurrentUser() else {
                     print("❌ AppContentView: No users found")
                     isLoading = false
                     return
                 }
                 
-                // Load groups for the first user
-                let groups: [Group] = [] // Placeholder until proper user/group filtering is implemented
-                let userGroups = groups.filter { group in
-                    // Check if user is member of this group
-                    group.userGroups?.contains { userGroup in
-                        (userGroup as? UserGroup)?.user == firstUser
-                    } ?? false
-                }
+                // Load groups for the current user
+                let userGroupService = UserGroupService(context: context)
+                let userGroups = try await userGroupService.getGroups(for: currentUser)
                 
                 await MainActor.run {
-                    selectedUser = firstUser
+                    selectedUser = currentUser
                     selectedGroup = userGroups.first
                     isLoading = false
                 }
                 
-                print("✅ AppContentView: Loaded user: \(firstUser.name ?? "Unknown"), groups: \(userGroups.count)")
+                print("✅ AppContentView: Loaded user: \(currentUser.name ?? "Unknown"), groups: \(userGroups.count)")
                 
             } catch {
                 print("❌ AppContentView: Error loading data: \(error)")
@@ -245,6 +259,58 @@ extension AppContentView {
                 }
             }
         }
+    }
+    
+    /// Debug function to log all entities in the database
+    @MainActor
+    private func logAllEntities() async {
+        print("\n🔍 =========================")
+        print("🔍 DEBUG: Logging all entities")
+        print("🔍 =========================")
+        
+        do {
+            // 1. Log current user
+            if let currentUser = try await userService.getCurrentUser() {
+                print("\n👤 USUARIO:")
+                print("   ID: \(currentUser.id?.uuidString ?? "N/A")")
+                print("   Nombre: \(currentUser.name ?? "N/A")")
+                print("   Email: \(currentUser.email ?? "N/A")")
+                print("   Creado: \(currentUser.createdAt ?? Date())")
+                
+                // 2. Log user's groups
+                let userGroupService = UserGroupService(context: context)
+                let userGroups = try await userGroupService.getGroups(for: currentUser)
+                
+                print("\n🏢 GRUPOS (\(userGroups.count)):")
+                for (index, group) in userGroups.enumerated() {
+                    print("   \(index + 1). ID: \(group.id?.uuidString ?? "N/A")")
+                    print("      Nombre: \(group.name ?? "N/A")")
+                    print("      Moneda: \(group.currency ?? "N/A")")
+                    print("      Creado: \(group.createdAt ?? Date())")
+                    
+                    // 3. Log categories for each group
+                    let categoryService = CategoryService(context: context)
+                    let categories = try await categoryService.getCategories(for: group)
+                    
+                    print("      📁 CATEGORÍAS (\(categories.count)):")
+                    for (catIndex, category) in categories.enumerated() {
+                        print("         \(catIndex + 1). ID: \(category.id?.uuidString ?? "N/A")")
+                        print("            Nombre: \(category.name ?? "N/A")")
+                        print("            Color: \(category.color ?? "N/A")")
+                        print("            Creado: \(category.createdAt ?? Date())")
+                    }
+                    print("")
+                }
+                
+            } else {
+                print("\n❌ No se encontró usuario actual")
+            }
+            
+        } catch {
+            print("\n❌ ERROR logging entities: \(error.localizedDescription)")
+        }
+        
+        print("🔍 =========================\n")
     }
 }
 

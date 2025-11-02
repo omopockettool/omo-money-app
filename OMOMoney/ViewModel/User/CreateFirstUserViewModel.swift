@@ -71,7 +71,9 @@ class CreateFirstUserViewModel: ObservableObject {
                 _ = try await categoryService.createCategory(
                     name: name,
                     color: color,
-                    group: group
+                    group: group,
+                    limit: nil,
+                    limitFrequency: nil
                 )
             }
             

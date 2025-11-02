@@ -10,6 +10,9 @@ protocol UserServiceProtocol {
     /// Fetch user by ID
     func fetchUser(by id: UUID) async throws -> User?
     
+    /// Get the current user (there should only be one in a personal app)
+    func getCurrentUser() async throws -> User?
+    
     /// Create a new user
     func createUser(name: String, email: String?) async throws -> User
     

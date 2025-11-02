@@ -84,11 +84,11 @@ extension MainView {
         }
         
         do {
-            // TODO: Implement user authentication and proper user loading
-            let users: [User] = [] // Placeholder until user authentication is implemented
+            // Check if there's a current user
+            let currentUser = try await userService.getCurrentUser()
             
             await MainActor.run {
-                hasUsers = !users.isEmpty
+                hasUsers = currentUser != nil
                 isLoading = false
                 
                 // Si no hay usuarios, mostrar el sheet para crear el primero
@@ -97,7 +97,7 @@ extension MainView {
                 }
             }
             
-            print("🔍 MainView: Usuarios encontrados: \(users.count), hasUsers: \(hasUsers)")
+            print("🔍 MainView: Usuario encontrado: \(currentUser?.name ?? "ninguno"), hasUsers: \(hasUsers)")
         } catch {
             print("❌ MainView: Error verificando usuarios: \(error)")
             await MainActor.run {

@@ -63,7 +63,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             
             // Set budget limit and frequency if provided
             if let limit = limit {
-                category.limit = limit
+                category.limit = NSDecimalNumber(decimal: limit)
             }
             if let limitFrequency = limitFrequency {
                 category.limitFrequency = limitFrequency
@@ -91,7 +91,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
                 category.color = color
             }
             if let limit = limit {
-                category.limit = limit
+                category.limit = NSDecimalNumber(decimal: limit)
             }
             if let limitFrequency = limitFrequency {
                 category.limitFrequency = limitFrequency
@@ -202,7 +202,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         
         let items = try await fetch(request)
         return items.reduce(0) { total, item in
-            let itemAmount = item.amount ?? 0
+            let itemAmount = (item.amount ?? NSDecimalNumber.zero).decimalValue
             let quantity = Decimal(item.quantity)
             return total + (itemAmount * quantity)
         }
@@ -210,27 +210,27 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     /// Check if category is over limit for the current period
     func isOverLimit(_ category: Category, currentDate: Date = Date()) async throws -> Bool {
-        guard let limit = category.limit, limit > 0 else { return false }
+        guard let limit = category.limit, limit.decimalValue > 0 else { return false }
         
         let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
         let spending = try await getSpending(for: category, in: period)
         
-        return spending > limit
+        return spending > limit.decimalValue
     }
     
     /// Get remaining budget for a category in the current period
     func getRemainingBudget(for category: Category, currentDate: Date = Date()) async throws -> Decimal {
-        guard let limit = category.limit, limit > 0 else { return 0 }
+        guard let limit = category.limit, limit.decimalValue > 0 else { return 0 }
         
         let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
         let spending = try await getSpending(for: category, in: period)
         
-        return max(0, limit - spending)
+        return max(0, limit.decimalValue - spending)
     }
     
     /// Get budget status (percentage used) for a category
     func getBudgetStatus(for category: Category, currentDate: Date = Date()) async throws -> Double {
-        guard let limit = category.limit, limit > 0 else { return 0.0 }
+        guard let limit = category.limit, limit.decimalValue > 0 else { return 0.0 }
         
         let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
         let spending = try await getSpending(for: category, in: period)
@@ -277,10 +277,10 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     /// Invalidate category-related caches
     private func invalidateCache(for category: Category) async {
-        let userId = category.group?.userGroups?.first?.user?.id?.uuidString ?? "nil"
+        let userId = (category.group?.userGroups?.allObjects as? [UserGroup])?.first?.user?.id?.uuidString ?? "nil"
         let groupId = category.group?.id?.uuidString ?? "nil"
         
-        await CacheManager.shared.invalidateCache(for: "\(CacheKeys.userCategories).\(userId)")
-        await CacheManager.shared.invalidateCache(for: "\(CacheKeys.groupCategories).\(groupId)")
+        await CacheManager.shared.clearDataCache(for: "\(CacheKeys.userCategories).\(userId)")
+        await CacheManager.shared.clearDataCache(for: "\(CacheKeys.groupCategories).\(groupId)")
     }
 }
