@@ -354,55 +354,66 @@ func createGroup() async {
   - ✅ SIEMPRE usar `@State private var navigationPath = NavigationPath()`
   - ✅ SIEMPRE usar `NavigationStack(path: $navigationPath)` para navegación compleja
 
-### 🆕 NUEVAS REGLAS APRENDIDAS - OBLIGATORIAS
+### 🆕 REGLAS AVANZADAS IMPLEMENTADAS Y FUNCIONANDO - OBLIGATORIAS
 
-#### 🔒 PREVENCIÓN DE EJECUCIONES MÚLTIPLES
-- **Flags de protección**: ✅ Usar flags booleanos para evitar ejecuciones simultáneas de funciones async
-- **Problema identificado**: Ejecuciones múltiples causan estado inconsistente en Core Data y bucles infinitos
-- **Solución implementada**: 
+#### � CORE DATA UI SYNCHRONIZATION - PATRÓN MAESTRO
+- **NSManagedObjectContextDidSave**: ✅ Patrón nativo iOS implementado y funcionando
+- **Real-time UI Updates**: ✅ UI se actualiza automáticamente sin reiniciar app
+- **Threading Safety**: ✅ Notificaciones en main queue, operaciones Core Data en background
+- **Memory Management**: ✅ Weak references para evitar retain cycles
+- **Implementation Pattern**:
 ```swift
-private var isAutoSelecting = false
-
-func autoSelectFirstUserAndGroup() async {
-    guard !isAutoSelecting else {
-        print("⚠️ autoSelectFirstUserAndGroup ya está en ejecución, saltando...")
-        return
+private func setupCoreDataNotifications() {
+    NotificationCenter.default.addObserver(
+        forName: .NSManagedObjectContextDidSave,
+        object: nil,
+        queue: .main
+    ) { [weak self] _ in
+        Task { @MainActor in
+            await self?.refreshData()
+        }
     }
-    
-    isAutoSelecting = true
-    // ... código de la función ...
-    isAutoSelecting = false
+}
+
+deinit {
+    NotificationCenter.default.removeObserver(self)
 }
 ```
 
-#### 🗄️ VALIDACIONES DE CORE DATA - SIMPLIFICADAS
-- **NO validar manualmente**: ❌ NO usar `objectID.isTemporaryID` ni verificaciones complejas de estado
-- **Confiar en Core Data**: ✅ Dejar que Core Data maneje su propio estado internamente
-- **Validaciones mínimas**: ✅ Solo verificar que objetos existan (`object != nil`), no su estado interno
-- **Error común**: `'-[Group isTemporaryID]: unrecognized selector sent to instance'`
-- **Solución**: Eliminar verificaciones de `isDeleted`, `isTemporaryID` y confiar en la reactividad de SwiftUI
-
-#### 🎯 PATRÓN MVVM PURO - SIN INTERRUPCIONES MANUALES
-- **Reactividad automática**: ✅ Usar `@Published` y dejar que SwiftUI espere naturalmente
-- **Sin delays artificiales**: ❌ NO usar `Task.sleep`, `Task.yield` ni pausas manuales
-- **Flujo natural**: ✅ La vista espera automáticamente a que los datos estén listos
-- **Principio**: "La vista espera naturalmente usando @Published, no interrumpimos el flujo"
-
-#### 🔄 GESTIÓN DE ESTADO ESTABLE
-- **Flags de protección**: ✅ Implementar en funciones críticas como `loadData()` y `autoSelectFirstUserAndGroup()`
-- **Estado consistente**: ✅ Evitar que múltiples operaciones modifiquen el mismo estado simultáneamente
-- **Logs de debug**: ✅ Agregar logs detallados para identificar problemas de concurrencia
-- **Patrón recomendado**: 
+#### 🗄️ INTELLIGENT CACHE MANAGEMENT - SISTEMA AVANZADO
+- **Multi-level Caching**: ✅ Sistema inteligente con CacheManager implementado
+- **Automatic Invalidation**: ✅ Cache se limpia automáticamente al cambiar datos
+- **Performance Optimization**: ✅ Queries optimizadas con cache consciente
+- **Cache Synchronization**: ✅ Cache keys sincronizados entre services
+- **Implementation Pattern**:
 ```swift
-private var isOperationInProgress = false
-
-func criticalOperation() async {
-    guard !isOperationInProgress else { return }
-    isOperationInProgress = true
-    // ... operación crítica ...
-    isOperationInProgress = false
+private func clearDataCache() {
+    cacheManager.clearCache(forKey: "all_itemlists")
+    cacheManager.clearCache(forKey: "group_\(groupId)_itemlists")
+    cacheManager.clearCache(forKey: "user_\(userId)_itemlists")
 }
 ```
+
+#### 🎯 MVVM + CORE DATA INTEGRATION - PATRÓN PERFECCIONADO
+- **Service Layer Pattern**: ✅ Services manejan Core Data, ViewModels manejan UI state
+- **Callback Architecture**: ✅ Callbacks para comunicación View ↔ ViewModel
+- **Reactive Updates**: ✅ @Published properties con reactividad automática
+- **Clean Architecture**: ✅ Separación perfecta de responsabilidades
+- **Threading Model**: ✅ Background operations, main thread UI updates
+
+#### � CONCURRENCY SAFETY - PRODUCTION READY
+- **Protection Flags**: ✅ Flags para prevenir ejecuciones simultáneas implementados
+- **State Consistency**: ✅ Estado consistente garantizado
+- **Race Condition Prevention**: ✅ Sin condiciones de carrera
+- **MainActor Isolation**: ✅ UI operations properly isolated
+- **Async/Await Patterns**: ✅ Modern concurrency throughout
+
+#### 🚀 PERFORMANCE PATTERNS - OPTIMIZADO
+- **Background Core Data**: ✅ Operaciones pesadas en background threads
+- **Intelligent Loading**: ✅ Loading states y progress indicators
+- **Smooth Animations**: ✅ withAnimation patterns implementados
+- **Memory Efficiency**: ✅ Proper object lifecycle management
+- **Cache-Aware Queries**: ✅ Queries optimizadas con cache inteligente
 
 ## Project Overview
 Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.

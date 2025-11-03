@@ -130,7 +130,7 @@ struct DashboardView: View {
         VStack(spacing: 0) {
             // Expense list
             ExpenseListView(
-                itemLists: viewModel.recentItemLists,
+                itemLists: viewModel.currentMonthItemLists,
                 getFormattedAmount: { itemList in
                     viewModel.getFormattedItemListTotal(itemList)
                 },

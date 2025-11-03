@@ -205,6 +205,14 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             
             if let cachedItemLists: [ItemList] = cacheManager.getCachedData(for: cacheKey) {
                 print("✅ DashboardViewModel: Using cached ItemLists (\(cachedItemLists.count) items)")
+                
+                // 🔍 DEBUG: Print ALL dates from CACHED ItemLists
+                print("🗓️ DashboardViewModel: CACHED ItemList dates found:")
+                for itemList in cachedItemLists {
+                    let dateStr = DateFormatterHelper.formatDate(itemList.date)
+                    print("   - \(itemList.itemListDescription ?? "No desc"): \(dateStr)")
+                }
+                
                 await MainActor.run {
                     itemLists = cachedItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
                     calculateTotalSpent()
@@ -219,6 +227,13 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 print("✅ DashboardViewModel: Loaded \(groupItemLists.count) ItemLists from database")
                 let descriptions = groupItemLists.compactMap { $0.itemListDescription }
                 print("📋 DashboardViewModel: Database ItemList descriptions: \(descriptions)")
+                
+                // 🔍 DEBUG: Print ALL dates from DATABASE ItemLists
+                print("🗓️ DashboardViewModel: DATABASE ItemList dates found:")
+                for itemList in groupItemLists {
+                    let dateStr = DateFormatterHelper.formatDate(itemList.date)
+                    print("   - \(itemList.itemListDescription ?? "No desc"): \(dateStr)")
+                }
                 
                 // Cache the data
                 cacheManager.cacheData(groupItemLists, for: cacheKey)
@@ -462,6 +477,23 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     /// Get recent ItemLists (last 10)
     var recentItemLists: [ItemList] {
         return Array(itemLists.prefix(10))
+    }
+    
+    /// Get ItemLists from current month only
+    var currentMonthItemLists: [ItemList] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        let filtered = itemLists.filter { itemList in
+            guard let itemListDate = itemList.date else { return false }
+            return calendar.isDate(itemListDate, equalTo: now, toGranularity: .month)
+        }
+        
+        print("🗓️ DashboardViewModel: Filtering ItemLists for current month")
+        print("   - Total ItemLists: \(itemLists.count)")
+        print("   - Current month ItemLists: \(filtered.count)")
+        
+        return filtered
     }
     
     /// Format date for display

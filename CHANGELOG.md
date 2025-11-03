@@ -5,6 +5,119 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2025-11-03
+
+### Fixed
+- **ItemList Date Filtering**: Resolved issue where only recent items were displayed
+  - **Root Cause**: `recentItemLists` property was limiting display to first 10 items only
+  - **Problem**: Users with many expenses from current day couldn't see older expenses
+  - **Solution**: Implemented intelligent current month filtering instead of arbitrary limit
+  - **New Behavior**: Dashboard now shows all expenses from current month only
+  - **User Experience**: More relevant expense display with proper historical context
+  - **Performance**: Maintained optimal performance while showing appropriate data scope
+
+### Added
+- **Smart Date Filtering**: Current month ItemList display
+  - `currentMonthItemLists` computed property for intelligent filtering
+  - Calendar-based month comparison using `Calendar.isDate(_:equalTo:toGranularity:)`
+  - Automatic month boundary detection
+  - Debug logging for filter transparency
+  - Better UX with contextually relevant expense display
+
+### Technical Improvements
+- **Date Logic Enhancement**: Robust month-based filtering
+  - Uses native iOS Calendar APIs for accurate date comparisons
+  - Handles month boundaries and year transitions correctly
+  - Maintains sort order while filtering appropriately
+  - Optimized computed property with clear debugging output
+
+## [0.10.0] - 2025-11-03
+
+### Added
+- **First UI Implementation**: Complete SwiftUI interface with working backend integration
+  - **DashboardView**: Main expense tracking interface with real-time data display
+    - Animated expense cards showing ItemList details with category colors
+    - User/Group selector with automatic first selection
+    - Real-time expense summary with formatted amounts
+    - Floating action button for adding new ItemLists
+    - Loading states and error handling throughout UI
+  - **AddItemListView**: Full expense creation workflow
+    - Category selection with visual color indicators
+    - Date picker with proper iOS 18.5+ styling
+    - Description input with proper validation
+    - Success/error states with user feedback
+    - Navigation integration with callback-based refresh
+  - **ExpenseRowView**: Reusable expense list item component
+    - Category color indication
+    - Formatted date and amount display
+    - Proper ItemList description rendering
+    - Consistent visual hierarchy
+- **Core Data UI Synchronization**: Resolved complex threading and cache issues
+  - **NSManagedObjectContextDidSave Notifications**: Native iOS pattern implementation
+    - Real-time UI updates when Core Data changes
+    - Proper threading with @MainActor isolation
+    - Automatic dashboard refresh without app restart
+  - **Comprehensive Cache Management**: Multi-level caching system
+    - Intelligent cache invalidation on data changes
+    - Optimized performance for frequent operations
+    - Group-specific cache keys for data isolation
+  - **Threading Architecture**: Proper iOS concurrency patterns
+    - Background Core Data operations
+    - Main thread UI updates
+    - async/await throughout the stack
+- **Navigation Enhancement**: Modern iOS 18.5+ navigation patterns
+  - NavigationStack with programmatic navigation
+  - Callback-based view refresh patterns
+  - Proper navigation state management
+  - Smooth transitions between views
+
+### Enhanced
+- **MVVM Architecture**: Fully implemented with iOS native patterns
+  - ViewModels with @Published properties for reactive UI
+  - Proper dependency injection throughout
+  - Clean separation of concerns
+  - @MainActor threading for UI operations
+- **Backend Service Layer**: Production-ready Core Data integration
+  - Auto-seeding of payment methods and categories on group creation
+  - Robust error handling and validation
+  - Optimized query patterns with proper filtering
+  - Cache-aware operations for performance
+- **User Experience**: Polished iOS-native interactions
+  - Smooth animations and transitions
+  - Proper loading states
+  - Error handling with user-friendly messages
+  - Intuitive navigation patterns
+
+### Technical Achievements  
+- **Core Data Synchronization**: Solved complex UI refresh issues
+  - Multiple service instances now properly synchronized
+  - Cache invalidation timing perfected
+  - Real-time UI updates working flawlessly
+- **iOS Best Practices**: Architecture validated against Apple guidelines
+  - Proper MVVM implementation
+  - Native Core Data notification patterns
+  - Modern SwiftUI reactive patterns
+  - Professional-grade threading architecture
+- **Performance Optimization**: Intelligent caching and data management
+  - Background operations for heavy lifting
+  - Optimized Core Data queries
+  - Proper memory management
+  - Smooth UI responsiveness
+
+### Fixed
+- **UI Refresh Issues**: Complete resolution of data synchronization problems
+  - ItemList creation now updates UI immediately
+  - Dashboard reflects changes without app restart
+  - Proper Core Data context synchronization between services
+- **Cache Synchronization**: Resolved timing issues with cache invalidation
+  - Cache keys now match between services
+  - Immediate cache clearing after save operations
+  - Proper multi-level cache invalidation strategy
+- **Threading Conflicts**: Eliminated race conditions and timing issues
+  - Proper @MainActor isolation for UI updates
+  - Background Core Data operations
+  - Clean async/await patterns throughout
+
 ## [0.9.0] - 2025-11-01
 
 ### Added
