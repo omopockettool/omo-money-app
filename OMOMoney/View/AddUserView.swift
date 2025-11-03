@@ -17,14 +17,14 @@ struct AddUserView: View {
     
     init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
         let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService))
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService, context: context))
         self._navigationPath = navigationPath
     }
     
     // For use in sheets where navigation is not needed
     init(context: NSManagedObjectContext) {
         let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService))
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService, context: context))
         self._navigationPath = .constant(NavigationPath())
     }
     

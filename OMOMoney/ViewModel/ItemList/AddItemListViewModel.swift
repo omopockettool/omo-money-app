@@ -19,7 +19,6 @@ final class AddItemListViewModel: ObservableObject {
     private let categoryService: CategoryServiceProtocol
     private let itemService: ItemServiceProtocol
     private let paymentMethodService: PaymentMethodServiceProtocol
-    
     // MARK: - Initialization
     
     init(
@@ -32,6 +31,8 @@ final class AddItemListViewModel: ObservableObject {
         self.categoryService = categoryService
         self.itemService = itemService
         self.paymentMethodService = paymentMethodService
+        
+        print("🔄 AddItemListViewModel: Initialized")
     }
     
     // MARK: - Computed Properties
@@ -85,6 +86,7 @@ final class AddItemListViewModel: ObservableObject {
         errorMessage = nil
         
         do {
+            print("🔄 AddItemListViewModel: Creating ItemList...")
             let itemList = try await itemListService.createItemList(
                 description: description,
                 date: date,
@@ -93,13 +95,8 @@ final class AddItemListViewModel: ObservableObject {
                 paymentMethodId: paymentMethod?.id
             )
             
-            // Create a default item for the itemList
-            _ = try await itemService.createItem(
-                description: "Item por defecto",
-                amount: NSDecimalNumber(value: 0.0),
-                quantity: 1,
-                itemList: itemList
-            )
+            print("✅ AddItemListViewModel: ItemList created successfully: \(itemList.itemListDescription ?? "No description")")
+            print("✅ AddItemListViewModel: ItemList creation completed, callback will handle refresh")
             
             isLoading = false
             return true

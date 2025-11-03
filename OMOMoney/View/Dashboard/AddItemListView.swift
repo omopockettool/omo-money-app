@@ -7,20 +7,24 @@ struct AddItemListView: View {
     let user: User
     let group: Group
     @Binding var navigationPath: NavigationPath
+    let onItemListCreated: () -> Void
     
     @StateObject private var viewModel: AddItemListViewModel
     @State private var showingCategoryPicker = false
     @State private var showingPaymentMethodPicker = false
     
-    init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
+    init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping () -> Void) {
         self.user = user
         self.group = group
         self._navigationPath = navigationPath
+        self.onItemListCreated = onItemListCreated
         
         let itemListService = ItemListService(context: context)
         let categoryService = CategoryService(context: context)
         let itemService = ItemService(context: context)
         let paymentMethodService = PaymentMethodService(context: context)
+        
+        print("🔄 AddItemListView: Initializing with callback approach")
         
         self._viewModel = StateObject(wrappedValue: AddItemListViewModel(
             itemListService: itemListService,
@@ -206,8 +210,14 @@ struct AddItemListView: View {
         
         if success {
             // ✅ SUCCESS: ItemList creado exitosamente
-            // Ahora regresamos a la vista anterior
-            navigationPath.removeLast()
+            print("🔄 AddItemListView: Calling onItemListCreated callback...")
+            onItemListCreated()
+            print("✅ AddItemListView: Callback executed, navigating back...")
+            
+            // Delay navigation slightly to avoid NavigationRequestObserver conflicts
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                navigationPath.removeLast()
+            }
         }
     }
     
@@ -215,11 +225,11 @@ struct AddItemListView: View {
     
     private func paymentMethodIcon(for type: String) -> String {
         switch type.lowercased() {
-        case "card":
+        case "card_debit", "card_credit", "card":
             return "creditcard.fill"
         case "cash":
             return "banknote.fill"
-        case "transfer":
+        case "bank_transfer", "transfer":
             return "arrow.left.arrow.right"
         case "digital":
             return "iphone"
@@ -230,11 +240,11 @@ struct AddItemListView: View {
     
     private func paymentMethodColor(for type: String) -> Color {
         switch type.lowercased() {
-        case "card":
+        case "card_debit", "card_credit", "card":
             return .blue
         case "cash":
             return .green
-        case "transfer":
+        case "bank_transfer", "transfer":
             return .orange
         case "digital":
             return .purple
@@ -246,6 +256,8 @@ struct AddItemListView: View {
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
+    
+    // Create test data
     let user = User(context: context)
     user.id = UUID()
     user.name = "Test User"
@@ -256,5 +268,11 @@ struct AddItemListView: View {
     group.name = "Test Group"
     group.currency = "USD"
     
-    return AddItemListView(user: user, group: group, context: context, navigationPath: .constant(NavigationPath()))
+    return AddItemListView(
+        user: user, 
+        group: group, 
+        context: context, 
+        navigationPath: .constant(NavigationPath()), 
+        onItemListCreated: {}
+    )
 }

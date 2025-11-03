@@ -48,7 +48,7 @@ struct CategoryPickerView: View {
                                 HStack {
                                     // Category color indicator
                                     Circle()
-                                        .fill(Color(hex: category.color ?? "#8E8E93"))
+                                        .fill(Color(hex: category.color ?? "#8E8E93") ?? Color.gray)
                                         .frame(width: 20, height: 20)
                                     
                                     // Category name

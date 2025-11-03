@@ -54,7 +54,8 @@ class BudgetHelper {
         frequency: String,
         currency: String = "USD"
     ) -> String {
-        let percentage = Double(truncating: spending as NSNumber) / Double(truncating: limit as NSNumber)
+        let limitDouble = Double(truncating: limit as NSNumber)
+        let percentage = limitDouble > 0 ? Double(truncating: spending as NSNumber) / limitDouble : 0.0
         let remainingAmount = max(0, limit - spending)
         
         let formatter = NumberFormatter()
@@ -107,7 +108,9 @@ class BudgetHelper {
     /// Get progress percentage for UI display
     static func getProgressPercentage(spending: Decimal, limit: Decimal) -> Double {
         guard limit > 0 else { return 0.0 }
-        let percentage = Double(truncating: spending as NSNumber) / Double(truncating: limit as NSNumber)
+        let limitDouble = Double(truncating: limit as NSNumber)
+        guard limitDouble > 0 else { return 0.0 }
+        let percentage = Double(truncating: spending as NSNumber) / limitDouble
         return min(1.0, max(0.0, percentage))
     }
     

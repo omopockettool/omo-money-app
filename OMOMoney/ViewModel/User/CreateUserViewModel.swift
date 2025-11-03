@@ -15,10 +15,25 @@ class CreateUserViewModel: ObservableObject {
     
     // MARK: - Services
     private let userService: any UserServiceProtocol
+    private let groupService: any GroupServiceProtocol
+    private let userGroupService: any UserGroupServiceProtocol
+    private let context: NSManagedObjectContext
     
     // MARK: - Initialization
+    init(userService: any UserServiceProtocol, context: NSManagedObjectContext) {
+        self.userService = userService
+        self.context = context
+        self.groupService = GroupService(context: context)
+        self.userGroupService = UserGroupService(context: context)
+    }
+    
+    // Legacy initializer for backward compatibility
     init(userService: any UserServiceProtocol) {
         self.userService = userService
+        // This will cause a runtime error if used, but maintains compatibility
+        self.context = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+        self.groupService = GroupService(context: context)
+        self.userGroupService = UserGroupService(context: context)
     }
     
     // MARK: - Public Methods
@@ -44,7 +59,14 @@ class CreateUserViewModel: ObservableObject {
             
             // Create the user
             let emailToUse = email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : email.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = try await userService.createUser(name: name.trimmingCharacters(in: .whitespacesAndNewlines), email: emailToUse)
+            let user = try await userService.createUser(name: name.trimmingCharacters(in: .whitespacesAndNewlines), email: emailToUse)
+            
+            // Create a personal group for the new user (this will automatically create default categories and payment methods)
+            let groupName = "\(name.trimmingCharacters(in: .whitespacesAndNewlines)) - Personal"
+            let group = try await groupService.createGroup(name: groupName, currency: AppConstants.defaultCurrency)
+            
+            // Link user to group as owner
+            _ = try await userGroupService.createUserGroup(user: user, group: group, role: "owner")
             
             isLoading = false
             shouldNavigateBack = true

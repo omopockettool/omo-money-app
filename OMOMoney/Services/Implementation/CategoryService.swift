@@ -235,7 +235,9 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         let period = getBudgetPeriod(for: category.limitFrequency, currentDate: currentDate)
         let spending = try await getSpending(for: category, in: period)
         
-        let percentage = Double(truncating: spending as NSNumber) / Double(truncating: limit as NSNumber)
+        let limitDouble = Double(truncating: limit as NSNumber)
+        guard limitDouble > 0 else { return 0.0 }
+        let percentage = Double(truncating: spending as NSNumber) / limitDouble
         return min(1.0, max(0.0, percentage)) // Clamp between 0 and 1
     }
     

@@ -56,6 +56,7 @@ class UserService: CoreDataService, UserServiceProtocol {
         
         return user
     }
+
     
     /// Update an existing user
     func updateUser(_ user: User, name: String? = nil, email: String? = nil) async throws {

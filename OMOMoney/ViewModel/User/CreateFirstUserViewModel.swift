@@ -15,14 +15,12 @@ class CreateFirstUserViewModel: ObservableObject {
     private let userService: any UserServiceProtocol
     private let groupService: any GroupServiceProtocol
     private let userGroupService: any UserGroupServiceProtocol
-    private let categoryService: any CategoryServiceProtocol
     
     init(context: NSManagedObjectContext) {
         self.context = context
         self.userService = UserService(context: context)
         self.groupService = GroupService(context: context)
         self.userGroupService = UserGroupService(context: context)
-        self.categoryService = CategoryService(context: context)
     }
     
     var isFormValid: Bool {
@@ -57,27 +55,7 @@ class CreateFirstUserViewModel: ObservableObject {
                 role: "owner"
             )
             
-            // Crear categorías por defecto
-            let defaultCategories = [
-                ("Comida", "#FF6B6B"),
-                ("Transporte", "#4ECDC4"),
-                ("Entretenimiento", "#45B7D1"),
-                ("Compras", "#96CEB4"),
-                ("Salud", "#FFEAA7"),
-                ("Otros", "#DDA0DD")
-            ]
-            
-            for (name, color) in defaultCategories {
-                _ = try await categoryService.createCategory(
-                    name: name,
-                    color: color,
-                    group: group,
-                    limit: nil,
-                    limitFrequency: nil
-                )
-            }
-            
-            print("✅ Usuario, grupo y categorías creados exitosamente")
+            print("✅ Usuario, grupo, categorías y métodos de pago creados exitosamente")
             isSuccess = true
             
         } catch {

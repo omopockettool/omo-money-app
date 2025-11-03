@@ -46,6 +46,54 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             return group
         }
         
+        // Create default payment methods and categories for the new group
+        do {
+            let paymentMethodService = PaymentMethodService(context: context)
+            let categoryService = CategoryService(context: context)
+            
+            // Create default payment methods
+            let defaultPaymentMethods: [(String, String)] = [
+                ("Efectivo", "cash"),
+                ("Tarjeta Débito", "card_debit"),
+                ("Tarjeta Crédito", "card_credit"),
+                ("Transferencia", "bank_transfer")
+            ]
+            
+            if let groupId = group.id {
+                for (pmName, pmType) in defaultPaymentMethods {
+                    try await paymentMethodService.createPaymentMethod(
+                        name: pmName,
+                        type: pmType,
+                        isActive: true,
+                        groupId: groupId
+                    )
+                }
+            }
+            
+            // Create default categories
+            let defaultCategories = [
+                ("Alimentos", "#FF6B6B"),
+                ("Transporte", "#4ECDC4"),
+                ("Hogar", "#45B7D1"),
+                ("Entretenimiento", "#96CEB4"),
+                ("Salud", "#FFEAA7"),
+                ("Compras", "#DDA0DD"),
+                ("Otros", "#BDC3C7")
+            ]
+            
+            for (categoryName, color) in defaultCategories {
+                try await categoryService.createCategory(
+                    name: categoryName,
+                    color: color,
+                    group: group
+                )
+            }
+            
+        } catch {
+            // Don't fail group creation if seeding defaults fails — just log
+            print("[GroupService] Warning: failed to create default payment methods/categories: \(error.localizedDescription)")
+        }
+        
         // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)

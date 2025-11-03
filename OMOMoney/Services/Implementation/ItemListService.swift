@@ -36,6 +36,9 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     
     /// Create a new itemList
     func createItemList(description: String?, date: Date, categoryId: UUID, groupId: UUID, paymentMethodId: UUID?) async throws -> ItemList {
+        print("🔄 ItemListService: Creating ItemList with description: \(description ?? "nil")")
+        print("🔄 ItemListService: GroupId: \(groupId), CategoryId: \(categoryId)")
+        
         let itemList = try await context.perform {
             let itemList = ItemList(context: self.context)
             itemList.id = UUID()
@@ -43,30 +46,62 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             itemList.date = date
             itemList.createdAt = Date()
             
+            print("🔄 ItemListService: ItemList created with ID: \(itemList.id?.uuidString ?? "nil")")
+            
             // Set group by ID
             if let group = try? self.context.fetch(NSFetchRequest<Group>(entityName: "Group")).first(where: { $0.id == groupId }) {
                 itemList.group = group
+                print("✅ ItemListService: Group assigned: \(group.name ?? "Unknown")")
+            } else {
+                print("❌ ItemListService: Failed to find group with ID: \(groupId)")
             }
             
             // Set category by ID
             if let category = try? self.context.fetch(NSFetchRequest<Category>(entityName: "Category")).first(where: { $0.id == categoryId }) {
                 itemList.category = category
+                print("✅ ItemListService: Category assigned: \(category.name ?? "Unknown")")
+            } else {
+                print("❌ ItemListService: Failed to find category with ID: \(categoryId)")
             }
             
             // Set payment method by ID
             if let paymentMethodId = paymentMethodId,
                let paymentMethod = try? self.context.fetch(NSFetchRequest<PaymentMethod>(entityName: "PaymentMethod")).first(where: { $0.id == paymentMethodId }) {
                 itemList.paymentMethod = paymentMethod
+                print("✅ ItemListService: PaymentMethod assigned: \(paymentMethod.name ?? "Unknown")")
+            } else {
+                print("⚠️ ItemListService: No payment method assigned (ID: \(paymentMethodId?.uuidString ?? "nil"))")
             }
             
+            print("🔄 ItemListService: Attempting to save context...")
             try self.context.save()
+            print("✅ ItemListService: Context saved successfully")
+            
+            // Verify the ItemList was saved with correct relationships
+            print("🔍 ItemListService: Verifying saved ItemList:")
+            print("   - ID: \(itemList.id?.uuidString ?? "nil")")
+            print("   - Description: \(itemList.itemListDescription ?? "nil")")
+            print("   - Group: \(itemList.group?.name ?? "nil") (ID: \(itemList.group?.id?.uuidString ?? "nil"))")
+            print("   - Category: \(itemList.category?.name ?? "nil") (ID: \(itemList.category?.id?.uuidString ?? "nil"))")
+            print("   - PaymentMethod: \(itemList.paymentMethod?.name ?? "nil") (ID: \(itemList.paymentMethod?.id?.uuidString ?? "nil"))")
+            
             return itemList
         }
         
-        // Invalidate relevant cache itemLists
+        // Invalidate relevant cache itemLists IMMEDIATELY after save
+        print("🔄 ItemListService: Clearing all caches...")
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupItemLists)
         await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
         await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
+        
+        // Also clear the specific group cache used by getItemLists
+        if let groupId = itemList.group?.id?.uuidString {
+            let specificCacheKey = "\(CacheKeys.groupItemLists).\(groupId)"
+            await CacheManager.shared.clearDataCache(for: specificCacheKey)
+            print("🔄 ItemListService: Cleared specific group cache: \(specificCacheKey)")
+        }
+        
+        print("✅ ItemListService: All caches cleared")
         
         return itemList
     }
@@ -121,8 +156,11 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     func getItemLists(for group: Group) async throws -> [ItemList] {
         let cacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
         
+        print("🔍 ItemListService: getItemLists for group: \(group.name ?? "nil") (ID: \(group.id?.uuidString ?? "nil"))")
+        
         // Check cache first
         if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            print("✅ ItemListService: Using cached ItemLists (\(cachedItemLists.count) items)")
             return cachedItemLists
         }
         
@@ -130,7 +168,15 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "group == %@", group)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
+        print("🔍 ItemListService: Executing Core Data query with predicate: \(request.predicate?.description ?? "nil")")
+        
         let itemLists = try await fetch(request)
+        print("✅ ItemListService: Core Data returned \(itemLists.count) ItemLists")
+        
+        // Log each ItemList found
+        for itemList in itemLists {
+            print("   - \(itemList.itemListDescription ?? "No description") (ID: \(itemList.id?.uuidString ?? "nil"))")
+        }
         
         // Cache the result
         await CacheManager.shared.cacheData(itemLists, for: cacheKey)
