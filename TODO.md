@@ -11,6 +11,54 @@
 - **Threading Architecture**: async/await + @MainActor patterns correctos
 - **MVVM Architecture**: Implementación completa siguiendo best practices iOS
 
+## 🔧 SOLUCIÓN CORE DATA NAVIGATION CONTEXT - DOCUMENTADA
+
+### 🎯 **PROBLEMA RESUELTO: Diferentes Contextos en Navigation**
+**Síntoma**: Dashboard no se actualiza después de crear ItemList via NavigationStack
+**Causa**: Vista hija usa contexto diferente al padre, Core Data no sincroniza automáticamente
+**Solución Implementada**: **Callback-based refresh pattern**
+
+### ✅ **PATRÓN CALLBACK-BASED REFRESH - FUNCIONANDO**
+```swift
+// 1. Vista padre (DashboardView) pasa callback onItemListCreated
+.navigationDestination(for: String.self) { destination in
+    AddItemListView(
+        user: user,
+        group: group,
+        context: context,  // ✅ MISMO CONTEXTO
+        navigationPath: $navigationPath,
+        onItemListCreated: {  // ✅ CALLBACK PATTERN
+            Task {
+                await viewModel.refreshData()  // ✅ REFRESH MANUAL
+            }
+        }
+    )
+}
+
+// 2. Vista hija (AddItemListView) ejecuta callback después de crear
+private func saveItemList() async {
+    let success = await viewModel.createItemList(...)
+    if success {
+        onItemListCreated()  // ✅ TRIGGER REFRESH
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            navigationPath.removeLast()  // ✅ NAVIGATE BACK
+        }
+    }
+}
+```
+
+### 🚨 **REGLA CRÍTICA PARA NAVIGATION + CORE DATA**
+- **USAR MISMO CONTEXTO**: Vista padre e hija deben usar mismo NSManagedObjectContext
+- **CALLBACK REFRESH**: Vista padre implementa callback que refrezca datos después de cambios
+- **TIMING**: Delay mínimo (0.1s) antes de navegación para evitar conflictos
+- **PATTERN**: `context.perform` → callback → `await refreshData()` → navigate back
+
+### 📝 **APLICAR EN FUTURAS IMPLEMENTACIONES**
+- ✅ Usar este patrón para cualquier navegación que modifique Core Data
+- ✅ Pasar siempre mismo contexto y callback de refresh
+- ✅ NO confiar solo en NSManagedObjectContextDidSave para navigation
+- ✅ Implementar delay mínimo antes de navegación programática
+
 ## 🎯 PRÓXIMO OBJETIVO: ItemList Delete Functionality
 
 ### � EN DESARROLLO
@@ -95,7 +143,7 @@
 
 ## ✅ TRABAJO COMPLETADO
 
-### 🎯 **🆕 v1.0.0 - First UI Implementation (Nov 3, 2025) - MILESTONE MAYOR**
+### 🎯 **🆕 v0.10.0 - First UI Implementation (Nov 3, 2025) - MILESTONE MAYOR**
 - [x] **DashboardView Completo**: UI principal con integración backend totalmente funcional ✅
 - [x] **AddItemListView Funcional**: Flujo completo de creación de gastos working ✅
 - [x] **ExpenseRowView Component**: Componente reutilizable con colores de categoría ✅
@@ -767,14 +815,14 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] Code cleanup and professional standards
 - [x] Build validation on physical device
 
-### 🔄 **EN PROGRESO (v1.0.0)**
+### 🔄 **EN PROGRESO (v0.10.0)**
 - [ ] Authentication system implementation
 - [ ] Repository pattern architecture
 - [ ] Network monitoring service
 - [ ] Sync engine development
 - [ ] Domain model separation
 
-### 📋 **PENDIENTE (v1.1.0+)**
+### 📋 **PENDIENTE (v0.11.0+)**
 - [ ] Real-time synchronization
 - [ ] Advanced business logic
 - [ ] Analytics and reporting

@@ -73,10 +73,17 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             return category
         }
         
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
+        // Invalidate relevant cache itemLists - only for the specific group
+        let groupCacheKey = "\(CacheKeys.groupCategories).\(group.id?.uuidString ?? "nil")"
+        print("🧹 CategoryService: Invalidating cache after creating category '\(name)'")
+        print("🧹 CategoryService: Group cache key: \(groupCacheKey)")
+        await CacheManager.shared.clearDataCache(for: groupCacheKey)
+        
+        // For user categories, we need to clear for all users in this group
+        // This is more complex, so for now we keep the broad invalidation
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
+        print("✅ CategoryService: Cache invalidated successfully")
         
         return category
     }
@@ -101,19 +108,34 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
+        // Invalidate relevant cache itemLists - only for the specific group
+        if let group = category.group {
+            let groupCacheKey = "\(CacheKeys.groupCategories).\(group.id?.uuidString ?? "nil")"
+            await CacheManager.shared.clearDataCache(for: groupCacheKey)
+        }
+        
+        // For user categories, we need to clear for all users in this group
+        // This is more complex, so for now we keep the broad invalidation
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
     }
     
     /// Delete a category
     func deleteCategory(_ category: Category) async throws {
+        // Get the group before deleting the category
+        let group = category.group
+        
         await delete(category)
         try await save()
         
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupCategories)
+        // Invalidate relevant cache itemLists - only for the specific group
+        if let group = group {
+            let groupCacheKey = "\(CacheKeys.groupCategories).\(group.id?.uuidString ?? "nil")"
+            await CacheManager.shared.clearDataCache(for: groupCacheKey)
+        }
+        
+        // For user categories, we need to clear for all users in this group
+        // This is more complex, so for now we keep the broad invalidation
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
     }
@@ -122,10 +144,16 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     func getCategories(for group: Group) async throws -> [Category] {
         let cacheKey = "\(CacheKeys.groupCategories).\(group.id?.uuidString ?? "nil")"
         
+        print("🔍 CategoryService: Getting categories for group '\(group.name ?? "Unknown")'")
+        print("🔍 CategoryService: Cache key: \(cacheKey)")
+        
         // Check cache first
         if let cachedCategories: [Category] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            print("🟢 CategoryService: ✅ Categories found in CACHE (\(cachedCategories.count) items)")
             return cachedCategories
         }
+        
+        print("🔄 CategoryService: Cache miss - fetching from Core Data...")
         
         // Fetch from Core Data
         let request: NSFetchRequest<Category> = Category.fetchRequest()
@@ -135,6 +163,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         
         // Cache the result
         await CacheManager.shared.cacheData(categories, for: cacheKey)
+        print("🟡 CategoryService: ✅ Categories fetched from DATABASE and cached (\(categories.count) items)")
         
         return categories
     }

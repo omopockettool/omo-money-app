@@ -127,6 +127,36 @@ init(service: UserServiceProtocol) {
 - **NavigationLink**: ✅ Usar NavigationLink para navegación declarativa
 - **Navegación Programática**: ✅ Implementar `navigationPath.append()` para navegación dinámica
 
+### 🔧 CORE DATA + NAVIGATION - PATRÓN CALLBACK OBLIGATORIO
+- **Problema**: NavigationStack con Core Data puede usar diferentes contextos
+- **Síntoma**: Vista padre no se actualiza después de cambios en vista hija
+- **Solución OBLIGATORIA**: **Callback-based refresh pattern**
+- **Implementación**:
+  ```swift
+  // Vista padre pasa mismo contexto + callback
+  .navigationDestination(for: DestinationType.self) { destination in
+      ChildView(context: context, onDataChanged: {
+          Task { await parentViewModel.refreshData() }
+      })
+  }
+  
+  // Vista hija ejecuta callback después de cambios
+  private func saveData() async {
+      let success = await service.save(...)
+      if success {
+          onDataChanged()  // ✅ Trigger parent refresh
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+              navigationPath.removeLast()  // ✅ Navigate back
+          }
+      }
+  }
+  ```
+- **Reglas**:
+  - ✅ MISMO contexto entre padre e hija
+  - ✅ CALLBACK obligatorio para cambios Core Data
+  - ✅ DELAY mínimo (0.1s) antes de navegación
+  - ✅ REFRESH manual en vista padre via callback
+
 ### 🎯 MEJORES PRÁCTICAS DE NAVEGACIÓN APRENDIDAS
 
 #### 📋 **IMPLEMENTACIÓN COMPLETA PASO A PASO**

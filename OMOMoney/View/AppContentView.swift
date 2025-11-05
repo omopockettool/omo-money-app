@@ -28,7 +28,7 @@ struct AppContentView: View {
         NavigationStack(path: $navigationPath) {
             if isLoading {
                 loadingView
-            } else if let user = selectedUser, let group = selectedGroup {
+            } else if let _ = selectedUser, let _ = selectedGroup {
                 // Use the new DashboardView
                 DashboardView(context: context)
                     .navigationBarHidden(true)

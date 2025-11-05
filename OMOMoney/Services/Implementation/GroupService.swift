@@ -61,7 +61,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             
             if let groupId = group.id {
                 for (pmName, pmType) in defaultPaymentMethods {
-                    try await paymentMethodService.createPaymentMethod(
+                    let _ = try await paymentMethodService.createPaymentMethod(
                         name: pmName,
                         type: pmType,
                         isActive: true,
@@ -82,7 +82,7 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             ]
             
             for (categoryName, color) in defaultCategories {
-                try await categoryService.createCategory(
+                let _ = try await categoryService.createCategory(
                     name: categoryName,
                     color: color,
                     group: group

@@ -12,6 +12,7 @@ struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
     @State private var showingAddItemList = false
+    @State private var showingQuickExpense = false
     
     private let context: NSManagedObjectContext
     
@@ -84,6 +85,16 @@ struct DashboardView: View {
                 await viewModel.loadDashboardData()
             }
         }
+        .sheet(isPresented: $showingQuickExpense) {
+            if let user = viewModel.currentUser,
+               let group = viewModel.currentGroup {
+                QuickExpenseView(
+                    user: user,
+                    group: group,
+                    context: context
+                )
+            }
+        }
     }
     
     // MARK: - Private Views
@@ -148,7 +159,7 @@ struct DashboardView: View {
             TotalSpentCardView(
                 totalAmount: viewModel.formattedTotalSpent,
                 onAddExpense: {
-                    navigationPath.append("addItemList")
+                    showingQuickExpense = true
                 }
             )
             .padding(AppConstants.UserInterface.padding)
@@ -165,8 +176,7 @@ struct DashboardView: View {
         print("🔍 DEBUG: Logging all entities")
         print("🔍 =========================")
         
-        do {
-            if let currentUser = viewModel.currentUser {
+        if let currentUser = viewModel.currentUser {
                 print("\n👤 USUARIO:")
                 print("   ID: \(currentUser.id?.uuidString ?? "N/A")")
                 print("   Nombre: \(currentUser.name ?? "N/A")")
@@ -191,12 +201,8 @@ struct DashboardView: View {
                 
                 print("\n💰 TOTAL GASTADO: \(viewModel.formattedTotalSpent)")
                 
-            } else {
-                print("\n❌ No se encontró usuario actual")
-            }
-            
-        } catch {
-            print("\n❌ ERROR logging entities: \(error.localizedDescription)")
+        } else {
+            print("\n❌ No se encontró usuario actual")
         }
         
         print("🔍 =========================\n")
