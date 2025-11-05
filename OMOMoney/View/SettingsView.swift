@@ -53,6 +53,29 @@ struct SettingsView: View {
                     .disabled(true)
                 }
                 
+                // Test Data Generator (for development/testing)
+                NavigationLink(destination: TestDataView()) {
+                    HStack {
+                        Image(systemName: "hammer.fill")
+                            .foregroundColor(.orange)
+                            .font(.title2)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Generar Datos de Prueba")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text("Para pruebas de rendimiento")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
                 // Otros ajustes futuros aquí
             }
         }

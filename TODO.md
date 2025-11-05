@@ -59,9 +59,24 @@ private func saveItemList() async {
 - ✅ NO confiar solo en NSManagedObjectContextDidSave para navigation
 - ✅ Implementar delay mínimo antes de navegación programática
 
-## 🎯 PRÓXIMO OBJETIVO: ItemList Delete Functionality
+## 🚀 BACKLOG: MEJORAS DE RENDIMIENTO
 
-### � EN DESARROLLO
+### 📊 Cache Optimization - Advanced Features
+- **Paginación de datos**: Implementar lazy loading por páginas (ej: 50 items por página)
+- **Invalidación granular por fecha**: 
+  - Cache por mes: `ItemListService.month.2025-11` 
+  - Cache por día: `ItemListService.day.2025-11-05`
+  - Al insertar ItemList del 5 Nov, solo invalidar cache del día/mes afectado
+  - Beneficio: evitar reloads de 630 items al insertar 1 item
+- **Cache híbrida**: 
+  - Memoria: datos del mes actual (acceso rápido)
+  - Disco: meses anteriores (persistencia)
+- **Prefetch inteligente**: cargar mes siguiente/anterior en background
+- **Métricas de rendimiento**: logs de tiempo de fetch, hit rate de cache
+
+## 🎯 PRÓXIMAS TAREAS PRIORIZADAS
+
+### 🎨 UI/UX IMPROVEMENTS - Next Sprint
 - **Delete ItemList**: Implementar borrado de gastos desde el dashboard
   - Swipe-to-delete gesture en ExpenseRowView
   - Confirmación de borrado con alert nativo

@@ -88,20 +88,18 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             return itemList
         }
         
-        // Invalidate relevant cache itemLists IMMEDIATELY after save
-        print("🔄 ItemListService: Clearing all caches...")
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItemLists)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
-        
-        // Also clear the specific group cache used by getItemLists
-        if let groupId = itemList.group?.id?.uuidString {
-            let specificCacheKey = "\(CacheKeys.groupItemLists).\(groupId)"
+        // Invalidate relevant cache itemLists - only for the specific group
+        if let group = itemList.group {
+            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
+            print("🧹 ItemListService: Clearing cache for group '\(group.name ?? "Unknown")'")
+            print("🧹 ItemListService: Cache key: \(specificCacheKey)")
             await CacheManager.shared.clearDataCache(for: specificCacheKey)
-            print("🔄 ItemListService: Cleared specific group cache: \(specificCacheKey)")
+            print("✅ ItemListService: Group-specific cache cleared")
         }
         
-        print("✅ ItemListService: All caches cleared")
+        // For broader caches that are more complex to make granular, keep for now
+        await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
+        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
         
         return itemList
     }
@@ -135,19 +133,34 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItemLists)
+        // Invalidate relevant cache itemLists - only for the specific group
+        if let group = itemList.group {
+            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
+            print("🧹 ItemListService: Clearing cache after update for group '\(group.name ?? "Unknown")'")
+            await CacheManager.shared.clearDataCache(for: specificCacheKey)
+        }
+        
+        // For broader caches that are more complex to make granular, keep for now
         await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
         await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
     }
     
     /// Delete an itemList
     func deleteItemList(_ itemList: ItemList) async throws {
+        // Get the group before deleting the itemList
+        let group = itemList.group
+        
         await delete(itemList)
         try await save()
         
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItemLists)
+        // Invalidate relevant cache itemLists - only for the specific group
+        if let group = group {
+            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
+            print("🧹 ItemListService: Clearing cache after delete for group '\(group.name ?? "Unknown")'")
+            await CacheManager.shared.clearDataCache(for: specificCacheKey)
+        }
+        
+        // For broader caches that are more complex to make granular, keep for now
         await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
         await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
     }
@@ -156,30 +169,37 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     func getItemLists(for group: Group) async throws -> [ItemList] {
         let cacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
         
-        print("🔍 ItemListService: getItemLists for group: \(group.name ?? "nil") (ID: \(group.id?.uuidString ?? "nil"))")
+        print("🔍 ItemListService: Getting ItemLists for group '\(group.name ?? "Unknown")'")
+        print("🔍 ItemListService: Cache key: \(cacheKey)")
         
         // Check cache first
         if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey) {
-            print("✅ ItemListService: Using cached ItemLists (\(cachedItemLists.count) items)")
+            print("🟢 ItemListService: ✅ ItemLists found in CACHE (\(cachedItemLists.count) items)")
             return cachedItemLists
         }
+        
+        print("🔄 ItemListService: Cache miss - fetching from Core Data...")
         
         // Fetch from Core Data
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "group == %@", group)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
-        print("🔍 ItemListService: Executing Core Data query with predicate: \(request.predicate?.description ?? "nil")")
         
         let itemLists = try await fetch(request)
-        print("✅ ItemListService: Core Data returned \(itemLists.count) ItemLists")
         
-        // Log each ItemList found
-        for itemList in itemLists {
+        // Log each ItemList found (only first few to avoid spam)
+        let maxLogItems = 5
+        let loggedItems = itemLists.prefix(maxLogItems)
+        for itemList in loggedItems {
             print("   - \(itemList.itemListDescription ?? "No description") (ID: \(itemList.id?.uuidString ?? "nil"))")
+        }
+        if itemLists.count > maxLogItems {
+            print("   - (...and \(itemLists.count - maxLogItems) more...)")
         }
         
         // Cache the result
         await CacheManager.shared.cacheData(itemLists, for: cacheKey)
+        print("🟡 ItemListService: ✅ ItemLists fetched from DATABASE and cached (\(itemLists.count) items)")
         
         return itemLists
     }

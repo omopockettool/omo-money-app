@@ -256,16 +256,122 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
     }
     
+    /// Load dashboard data optimized for massive datasets (500+ items)
+    func loadDashboardDataMassive(limit: Int = 100) async {
+        print("🚀 DashboardViewModel: loadDashboardDataMassive() starting with limit: \(limit)")
+        
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+        
+        do {
+            // 1. Get current user and group
+            guard let user = try await userService.getCurrentUser(),
+                  let userGroups = try? await userGroupService.getGroups(for: user),
+                  let group = userGroups.first else {
+                await MainActor.run {
+                    errorMessage = "User or group not found"
+                    isLoading = false
+                }
+                return
+            }
+            
+            // 2. Update context
+            await MainActor.run {
+                currentUser = user
+                currentGroup = group
+            }
+            
+            // 3. Check cache with timestamp validation
+            let cacheKey = "dashboard_items_massive_\(group.id?.uuidString ?? "unknown")"
+            let cacheTimestampKey = "\(cacheKey)_timestamp"
+            
+            if let cachedItemLists: [ItemList] = cacheManager.getCachedData(for: cacheKey),
+               let timestamp: Date = cacheManager.getCachedData(for: cacheTimestampKey) {
+                
+                // Check if cache is still fresh (10 minutes for massive data)
+                let cacheAge = Date().timeIntervalSince(timestamp)
+                if cacheAge < 600 { // 10 minutes
+                    print("🟢 DashboardViewModel: Using FRESH massive cache (\(cachedItemLists.count) items, age: \(Int(cacheAge))s)")
+                    
+                    await MainActor.run {
+                        itemLists = cachedItemLists
+                        calculateTotalSpent()
+                        isLoading = false
+                    }
+                    return
+                } else {
+                    print("🟡 DashboardViewModel: Cache EXPIRED (age: \(Int(cacheAge))s), refreshing...")
+                }
+            }
+            
+            // 4. Load limited data from database
+            print("🔄 DashboardViewModel: Loading RECENT \(limit) ItemLists from database...")
+            let allItemLists = try await itemListService.getItemLists(for: group)
+            
+            // Sort by date and take most recent
+            let recentItemLists = allItemLists
+                .sorted { ($0.date ?? Date.distantPast) > ($1.date ?? Date.distantPast) }
+                .prefix(limit)
+                .map { $0 }
+            
+            print("🟡 DashboardViewModel: Loaded \(recentItemLists.count) recent ItemLists from \(allItemLists.count) total")
+            
+            // 5. Cache the limited data with timestamp
+            cacheManager.cacheData(recentItemLists, for: cacheKey)
+            cacheManager.cacheData(Date(), for: cacheTimestampKey)
+            
+            await MainActor.run {
+                itemLists = recentItemLists
+                calculateTotalSpent()
+                isLoading = false
+                print("✅ DashboardViewModel: UI updated with recent items only")
+            }
+            
+        } catch {
+            print("❌ DashboardViewModel: Error in massive load: \(error.localizedDescription)")
+            await MainActor.run {
+                errorMessage = "Error loading dashboard: \(error.localizedDescription)"
+                isLoading = false
+            }
+        }
+    }
+    
     /// Add a new expense - triggers navigation to AddItemListView
     func addExpense() {
         // Navigation will be handled by the view using navigationPath
         print("Add expense tapped - navigating to AddItemListView")
     }
     
-    /// Navigate to settings
+    /// Generate test data (temporary - triggered by gear button)
     func openSettings() {
-        // TODO: Implement navigation to settings
-        print("Settings tapped - navigation to be implemented")
+        print("🔧 DashboardViewModel: Generating test data...")
+        print("🏠 DashboardViewModel: Active group - ID: \(currentGroup?.id?.uuidString ?? "nil"), Name: '\(currentGroup?.name ?? "No Group")'")
+        
+        Task {
+            do {
+                // Get the context from one of the services
+                guard let context = (itemListService as? ItemListService)?.context else {
+                    print("❌ DashboardViewModel: Could not get Core Data context")
+                    return
+                }
+                
+                let generator = TestDataGenerator(context: context)
+                
+                // Generate 200 ItemLists with 2 items each = 400 total items
+                // Pass the currentGroup to ensure data is created for the correct group
+                try await generator.generateMassiveTestData(itemListCount: 200, itemsPerList: 2, targetGroup: currentGroup)
+                
+                print("✅ DashboardViewModel: Test data generation completed!")
+                
+                // Refresh the dashboard to show new data
+                await refreshData()
+                
+            } catch {
+                print("❌ DashboardViewModel: Error generating test data: \(error)")
+            }
+        }
     }
     
     /// Add new ItemList to the dashboard using cache optimization
