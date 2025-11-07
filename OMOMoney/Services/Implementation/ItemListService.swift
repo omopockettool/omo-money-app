@@ -88,18 +88,11 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             return itemList
         }
         
-        // Invalidate relevant cache itemLists - only for the specific group
-        if let group = itemList.group {
-            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
-            print("🧹 ItemListService: Clearing cache for group '\(group.name ?? "Unknown")'")
-            print("🧹 ItemListService: Cache key: \(specificCacheKey)")
-            await CacheManager.shared.clearDataCache(for: specificCacheKey)
-            print("✅ ItemListService: Group-specific cache cleared")
-        }
-        
-        // For broader caches that are more complex to make granular, keep for now
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
+        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
+        // The ViewModel will handle incremental cache updates
+        // This avoids unnecessary full reloads from Core Data
+        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache")
+        print("   ViewModel will add this item to its cache incrementally")
         
         return itemList
     }
@@ -133,36 +126,28 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             try self.context.save()
         }
         
-        // Invalidate relevant cache itemLists - only for the specific group
-        if let group = itemList.group {
-            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
-            print("🧹 ItemListService: Clearing cache after update for group '\(group.name ?? "Unknown")'")
-            await CacheManager.shared.clearDataCache(for: specificCacheKey)
-        }
-        
-        // For broader caches that are more complex to make granular, keep for now
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
+        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
+        // The ViewModel will handle incremental cache updates
+        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache after update")
     }
     
     /// Delete an itemList
     func deleteItemList(_ itemList: ItemList) async throws {
         // Get the group before deleting the itemList
         let group = itemList.group
+        let itemListDescription = itemList.itemListDescription ?? "Unknown"
+        
+        print("🗑️ ItemListService: Deleting ItemList '\(itemListDescription)'")
         
         await delete(itemList)
         try await save()
         
-        // Invalidate relevant cache itemLists - only for the specific group
-        if let group = group {
-            let specificCacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
-            print("🧹 ItemListService: Clearing cache after delete for group '\(group.name ?? "Unknown")'")
-            await CacheManager.shared.clearDataCache(for: specificCacheKey)
-        }
+        print("✅ ItemListService: ItemList deleted from Core Data")
         
-        // For broader caches that are more complex to make granular, keep for now
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userItemLists)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.categoryItemLists)
+        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
+        // The ViewModel already removed it from cache before calling this
+        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache after delete")
+        print("   ViewModel already updated its cache optimistically")
     }
     
     /// Get itemLists for a specific group with caching

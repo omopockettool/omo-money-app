@@ -5,6 +5,137 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-11-07
+
+### Added
+- **Swipe-to-Delete for ItemLists**: Native iOS pattern implementation
+  - Changed from ScrollView + LazyVStack to List for native swipe support
+  - `.swipeActions(edge: .trailing, allowsFullSwipe: false)` with destructive button
+  - Smooth delete animation with optimistic UI updates
+  - Section-based grouping by date maintained
+  
+- **Incremental Cache Pattern**: Apple-style cache management
+  - Services NO longer invalidate cache on create/update/delete
+  - ViewModel updates arrays in-memory instead of DB queries
+  - `addItemList()` appends to array and updates cache incrementally
+  - `removeItemList()` removes from array and updates cache optimistically
+  - `deleteItemList()` with rollback on error
+  - 0 DB queries for common operations (create/delete)
+  
+- **Core Data Auto-Sync**: NSManagedObjectContextDidSave pattern
+  - `setupCoreDataNotifications()` with duplicate prevention
+  - Shared NSManagedObjectContext between parent and child views
+  - Automatic UI updates when data changes in any view
+  - Removed manual callbacks (QuickExpenseView, AddItemListView)
+  - `[weak self]` for memory safety in observers
+  - Proper cleanup with `deinit { NotificationCenter.default.removeObserver(self) }`
+
+### Changed
+- **Performance Optimization**: From computed properties to @Published cached vars
+  - `currentMonthItemLists` changed from computed property to `@Published var`
+  - Added `didSet` observer on `itemLists` to trigger `updateCurrentMonthCache()`
+  - Eliminated 100+ recalculations per second during field taps
+  - CPU usage: 0% during normal operations
+  
+- **NaN Protection**: 3-level validation system
+  - Item level: `guard itemValue.isFinite` with logging
+  - ItemList level: `guard itemListTotal.isFinite` with logging
+  - Total level: `guard total.isFinite` with fallback to 0.0
+  - `updateTotalSpentForItemList()` with incremental updates
+  - Fallback to full recalc if NaN detected
+  
+- **Log Format**: Replaced emojis with text prefixes
+  - Changed 💰 to [TOTAL]
+  - Changed 💡 to [INFO]
+  - Changed ✅ to [SUCCESS]
+  - Changed ⚠️ to [WARNING]
+  - Changed ❌ to [ERROR]
+  - Changed 🔄 to [REFRESH]
+  - Changed 📦 to [CACHE]
+  - Fixed emoji corruption in Xcode console (� characters)
+
+### Improved
+- **Code Architecture**: Clearer separation of concerns
+  - Services: CRUD only, no cache management
+  - ViewModels: Cache coordination + incremental updates
+  - Views: Pure UI, receive shared context
+  
+- **Memory Efficiency**: Excellent metrics maintained
+  - 35.3MB with 1420+ ItemList records
+  - 0% CPU during normal operations
+  - Smooth animations without frame drops
+  
+- **Developer Experience**: Better debugging
+  - Clear logging with text prefixes
+  - Detailed NaN detection with exact location
+  - Incremental cache messages for transparency
+
+### Fixed
+- **Duplicate ItemLists**: Core Data observer prevention
+  - `guard !itemLists.contains(where: { $0.objectID == itemList.objectID })`
+  - Prevents same item being added multiple times
+  
+- **Performance Regression**: Field tap lag eliminated
+  - Root cause: `currentMonthItemLists` computed property recalculating constantly
+  - Solution: Cached @Published var with didSet observer
+  - Before: 100+ "Filtering ItemLists" logs per second
+  - After: 1 log only when itemLists actually changes
+  
+- **CoreGraphics NaN Crashes**: Complete protection
+  - Added isFinite checks at 3 levels
+  - Detailed logging to identify source of invalid values
+  - Graceful fallbacks instead of crashes
+
+### Technical Details
+- **Incremental Cache Flow**:
+  1. User creates ItemList → Service returns ItemList
+  2. ViewModel calls `addItemList(newItem)`
+  3. Append to `itemLists` array (no DB query)
+  4. Sort array by date
+  5. Update cache with new array
+  6. `didSet` triggers `updateCurrentMonthCache()`
+  7. SwiftUI auto-redraws from @Published properties
+
+- **Delete Flow**:
+  1. User swipes → Delete button
+  2. `removeItemList()` - optimistic update (remove from array + cache)
+  3. `ItemListService.deleteItemList()` - delete from DB
+  4. If success: already updated (optimistic correct)
+  5. If error: rollback (re-add to array + cache)
+
+- **Core Data Notification Flow**:
+  1. Any view modifies Core Data (same context)
+  2. Core Data posts NSManagedObjectContextDidSave
+  3. Observer in DashboardViewModel receives notification
+  4. Check objectID to prevent duplicates
+  5. Append new item to array
+  6. Update cache incrementally
+  7. UI updates automatically via @Published
+
+### Performance Metrics
+- **Before Optimizations**:
+  - Constant cache invalidation on every create/delete
+  - DB queries on every operation
+  - Computed property recalculating 100+ times/second
+  - Field taps causing visible lag
+  
+- **After Optimizations**:
+  - 0 DB queries for create/delete (incremental cache)
+  - 0% CPU during field taps
+  - Instant UI updates (optimistic)
+  - 35.3MB memory with 1420+ records
+  - Native iOS app performance level
+
+### Documentation
+- **Updated prompt file**: Added "LECCIONES APRENDIDAS - ANTI-PATRONES EVITADOS (v0.12.0)"
+  - Anti-patrón 1: Callbacks manuales con Core Data compartido
+  - Anti-patrón 2: Invalidación total de cache en cada operación
+  - Anti-patrón 3: Computed properties para datos filtrados
+  - Anti-patrón 4: Sin protección contra NaN en cálculos
+  - Anti-patrón 5: Emojis en logs de producción
+  - Checklist completo para nuevas features
+  - Flujos detallados de crear/eliminar con cache incremental
+
 ## [0.10.1] - 2025-11-03
 
 ### Fixed

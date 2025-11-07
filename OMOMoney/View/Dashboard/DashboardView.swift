@@ -68,12 +68,14 @@ struct DashboardView: View {
                         group: group,
                         context: context,
                         navigationPath: $navigationPath,
-                        onItemListCreated: {
+                        onItemListCreated: { createdItemList in
                             print("🔄 DashboardView: onItemListCreated callback triggered")
+                            print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription ?? "Unknown")'")
+                            
                             Task {
-                                print("🔄 DashboardView: Starting refresh...")
-                                await viewModel.refreshData()
-                                print("✅ DashboardView: Refresh completed")
+                                print("⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)")
+                                await viewModel.addItemList(createdItemList)
+                                print("✅ DashboardView: Incremental update completed - UI updated instantly!")
                             }
                         }
                     )
@@ -151,6 +153,9 @@ struct DashboardView: View {
                 },
                 onRefresh: {
                     await viewModel.refreshData()
+                },
+                onDelete: { itemList in
+                    await viewModel.deleteItemList(itemList)
                 }
             )
             .frame(maxHeight: geometry.size.height - 120) // Reserve space for total card

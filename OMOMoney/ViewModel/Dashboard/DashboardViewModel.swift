@@ -13,7 +13,13 @@ import SwiftUI
 class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     
     // MARK: - Published Properties
-    @Published var itemLists: [ItemList] = []
+    @Published var itemLists: [ItemList] = [] {
+        didSet {
+            // Update cached current month items whenever itemLists changes
+            updateCurrentMonthCache()
+        }
+    }
+    @Published var currentMonthItemLists: [ItemList] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -56,12 +62,26 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         ) { [weak self] notification in
             guard let self = self else { return }
             
-            // Check if the notification contains ItemList changes
-            if let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject>,
-               insertedObjects.contains(where: { $0 is ItemList }) {
-                print("📢 DashboardViewModel: Detected new ItemList insertion, refreshing data")
-                Task {
-                    await self.refreshData()
+            // 🎯 INCREMENTAL UPDATE: Handle ItemList insertions incrementally
+            if let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject> {
+                let insertedItemLists = insertedObjects.compactMap { $0 as? ItemList }
+                
+                if !insertedItemLists.isEmpty {
+                    print("📢 DashboardViewModel: Detected \(insertedItemLists.count) new ItemList insertion(s)")
+                    
+                    Task { @MainActor in
+                        // Add each new ItemList incrementally (no DB query)
+                        for itemList in insertedItemLists {
+                            // Skip if already in our list (prevents duplicates)
+                            guard !self.itemLists.contains(where: { $0.objectID == itemList.objectID }) else {
+                                print("⚠️ DashboardViewModel: ItemList already in list, skipping duplicate add")
+                                continue
+                            }
+                            
+                            print("⚡️ DashboardViewModel: Adding ItemList incrementally: '\(itemList.itemListDescription ?? "Unknown")'")
+                            await self.addItemList(itemList)
+                        }
+                    }
                 }
             }
         }
@@ -149,11 +169,16 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     }
     
     /// Refresh dashboard data by clearing cache and reloading
+    /// ⚠️ Use sparingly - invalidates entire cache
+    /// Prefer using addItemList/removeItemList for incremental updates
     func refreshData() async {
         print("🔄 DashboardViewModel: refreshData() called")
+        print("⚠️ DashboardViewModel: This will INVALIDATE cache and query Core Data")
+        
         // Clear cache to ensure fresh data
         await clearCache()
         await loadDashboardDataOptimized()
+        
         print("✅ DashboardViewModel: refreshData() completed")
     }
     
@@ -203,47 +228,42 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             // 4. Try to get ItemLists from cache first
             let cacheKey = "dashboard_items_\(group.id?.uuidString ?? "unknown")"
             
+            print("🔍 DashboardViewModel: Checking cache with key: \(cacheKey)")
+            
             if let cachedItemLists: [ItemList] = cacheManager.getCachedData(for: cacheKey) {
-                print("✅ DashboardViewModel: Using cached ItemLists (\(cachedItemLists.count) items)")
-                
-                // 🔍 DEBUG: Print ALL dates from CACHED ItemLists
-                print("🗓️ DashboardViewModel: CACHED ItemList dates found:")
-                for itemList in cachedItemLists {
-                    let dateStr = DateFormatterHelper.formatDate(itemList.date)
-                    print("   - \(itemList.itemListDescription ?? "No desc"): \(dateStr)")
-                }
+                print("🎯 DashboardViewModel: ✅ CACHE HIT! Using cached ItemLists (\(cachedItemLists.count) items)")
+                print("� DashboardViewModel: No database query needed - ultra fast load!")
                 
                 await MainActor.run {
                     itemLists = cachedItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
                     calculateTotalSpent()
                     isLoading = false
                     print("✅ DashboardViewModel: UI updated with cached data")
+                    print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
+                    print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
                 }
             } else {
                 // 5. Load from database if not in cache
-                print("🔄 DashboardViewModel: Cache miss, loading from database...")
+                print("❌ DashboardViewModel: CACHE MISS - loading from Core Data...")
+                print("⚠️ DashboardViewModel: This should only happen on first load or after cache clear")
+                
                 let groupItemLists = try await itemListService.getItemLists(for: group)
                 let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+                
                 print("✅ DashboardViewModel: Loaded \(groupItemLists.count) ItemLists from database")
-                let descriptions = groupItemLists.compactMap { $0.itemListDescription }
-                print("📋 DashboardViewModel: Database ItemList descriptions: \(descriptions)")
                 
-                // 🔍 DEBUG: Print ALL dates from DATABASE ItemLists
-                print("🗓️ DashboardViewModel: DATABASE ItemList dates found:")
-                for itemList in groupItemLists {
-                    let dateStr = DateFormatterHelper.formatDate(itemList.date)
-                    print("   - \(itemList.itemListDescription ?? "No desc"): \(dateStr)")
-                }
-                
-                // Cache the data
+                // Cache the data for future use
                 cacheManager.cacheData(groupItemLists, for: cacheKey)
-                print("✅ DashboardViewModel: ItemLists cached for future use")
+                print("✅ DashboardViewModel: ItemLists cached with key: \(cacheKey)")
+                print("💡 DashboardViewModel: Next load will use cache (no DB query)")
                 
                 await MainActor.run {
                     itemLists = sortedItemLists
                     calculateTotalSpent()
                     isLoading = false
                     print("✅ DashboardViewModel: UI updated with database data")
+                    print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
+                    print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
                 }
             }
             
@@ -376,8 +396,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     
     /// Add new ItemList to the dashboard using cache optimization
     func addItemList(_ itemList: ItemList) async {
-        print("➕ DashboardViewModel: Adding new ItemList to dashboard with cache optimization...")
-        print("🔍 DashboardViewModel: New ItemList description: \(itemList.itemListDescription ?? "No description")")
+        let itemListDesc = itemList.itemListDescription ?? "No description"
+        print("➕ DashboardViewModel: Adding new ItemList to dashboard with INCREMENTAL cache...")
+        print("🔍 DashboardViewModel: New ItemList: '\(itemListDesc)'")
         
         // Background validation
         guard isItemListInCurrentContext(itemList) else {
@@ -390,22 +411,27 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             (itemLists, currentGroup?.id?.uuidString)
         }
         
+        print("📊 DashboardViewModel: Current itemLists count BEFORE add: \(currentItemLists.count)")
+        
         // Check for duplicates
         if currentItemLists.contains(where: { $0.objectID == itemList.objectID }) {
             print("⚠️ DashboardViewModel: ItemList already exists in dashboard")
             return
         }
         
-        // Calculate insert position
+        // Calculate insert position (sorted by date)
         let sortedItemLists = (currentItemLists + [itemList]).sorted { 
             ($0.date ?? Date()) > ($1.date ?? Date()) 
         }
         
-        // Update cache
+        print("📊 DashboardViewModel: New itemLists count AFTER add: \(sortedItemLists.count)")
+        
+        // 🎯 INCREMENTAL CACHE UPDATE: Update cache with new array
         if let groupId = groupId {
             let cacheKey = "dashboard_items_\(groupId)"
             cacheManager.cacheData(sortedItemLists, for: cacheKey)
-            print("✅ DashboardViewModel: Cache updated with new ItemList")
+            print("✅ DashboardViewModel: Cache UPDATED incrementally (not invalidated)")
+            print("💡 DashboardViewModel: Cache now contains \(sortedItemLists.count) items")
         }
         
         // Update UI on main thread
@@ -413,8 +439,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             itemLists = sortedItemLists
             updateTotalSpentForItemList(itemList, operation: .add)
             
-            print("✅ DashboardViewModel: ItemList added successfully. Total items: \(itemLists.count)")
-            print("🔍 DashboardViewModel: Updated itemLists descriptions: \(itemLists.map { $0.itemListDescription ?? "No desc" })")
+            print("✅ DashboardViewModel: ItemList added successfully")
+            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
+            print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
             
             // Force UI refresh
             objectWillChange.send()
@@ -423,27 +450,36 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     
     /// Remove ItemList from the dashboard using cache optimization
     func removeItemList(_ itemList: ItemList) async {
-        print("➖ DashboardViewModel: Removing ItemList from dashboard with cache optimization...")
+        let itemListDesc = itemList.itemListDescription ?? "Unknown"
+        print("➖ DashboardViewModel: Removing ItemList from dashboard with INCREMENTAL cache...")
+        print("🔍 DashboardViewModel: Removing: '\(itemListDesc)'")
         
         // Get current state
         let (currentItemLists, groupId) = await MainActor.run { 
             (itemLists, currentGroup?.id?.uuidString)
         }
         
+        print("📊 DashboardViewModel: Current itemLists count BEFORE remove: \(currentItemLists.count)")
+        
         guard let index = currentItemLists.firstIndex(where: { $0.objectID == itemList.objectID }) else {
             print("⚠️ DashboardViewModel: ItemList not found in current list")
             return
         }
         
+        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
+        
         // Create updated list
         var updatedItemLists = currentItemLists
         updatedItemLists.remove(at: index)
         
-        // Update cache
+        print("📊 DashboardViewModel: New itemLists count AFTER remove: \(updatedItemLists.count)")
+        
+        // 🎯 INCREMENTAL CACHE UPDATE: Update cache with new array
         if let groupId = groupId {
             let cacheKey = "dashboard_items_\(groupId)"
             cacheManager.cacheData(updatedItemLists, for: cacheKey)
-            print("✅ DashboardViewModel: Cache updated after removal")
+            print("✅ DashboardViewModel: Cache UPDATED incrementally (not invalidated)")
+            print("💡 DashboardViewModel: Cache now contains \(updatedItemLists.count) items")
         }
         
         // Update UI on main thread
@@ -451,8 +487,45 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             updateTotalSpentForItemList(itemList, operation: .remove)
             itemLists = updatedItemLists
             
-            print("✅ DashboardViewModel: ItemList removed successfully. Total items: \(itemLists.count)")
+            print("✅ DashboardViewModel: ItemList removed successfully")
+            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
+            print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
+            
             objectWillChange.send()
+        }
+    }
+    
+    /// Delete an ItemList (swipe-to-delete action)
+    func deleteItemList(_ itemList: ItemList) async {
+        let itemListDesc = itemList.itemListDescription ?? "Unknown"
+        print("🗑️ DashboardViewModel: deleteItemList() called for: \(itemListDesc)")
+        
+        do {
+            // 1. Remove from UI immediately with animation (optimistic update)
+            print("⚡️ DashboardViewModel: Optimistic update - removing from UI and cache")
+            await removeItemList(itemList)
+            
+            // 2. Delete from Core Data in background
+            print("🔄 DashboardViewModel: Deleting from Core Data...")
+            try await itemListService.deleteItemList(itemList)
+            print("✅ DashboardViewModel: ItemList deleted from Core Data successfully")
+            
+            // 🎯 INCREMENTAL CACHE: NO clearCache() needed!
+            // Cache was already updated in removeItemList()
+            print("💡 DashboardViewModel: Cache already updated incrementally - no refresh needed")
+            print("📊 DashboardViewModel: Current itemLists count: \(await itemLists.count)")
+            
+        } catch {
+            print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")
+            
+            // Rollback UI change by reloading data
+            await MainActor.run {
+                errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
+            }
+            
+            // Reload to restore correct state
+            print("🔄 DashboardViewModel: Rolling back - reloading from database")
+            await loadDashboardDataOptimized()
         }
     }
     
@@ -526,11 +599,24 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     /// Update total spent for a specific ItemList (incremental calculation)
     private func updateTotalSpentForItemList(_ itemList: ItemList, operation: TotalSpentOperation) {
         let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-        let itemListTotal = itemsArray.reduce(0) { itemTotal, item in
+        let itemListTotal = itemsArray.reduce(0.0) { itemTotal, item in
             let amount = item.amount as Decimal? ?? 0
             let quantity = Decimal(item.quantity)
             let itemValue = NSDecimalNumber(decimal: amount * quantity).doubleValue
+            
+            // Protect against NaN or infinite values
+            guard itemValue.isFinite else {
+                print("⚠️ DashboardViewModel: Invalid item value in incremental update, skipping")
+                return itemTotal
+            }
+            
             return itemTotal + itemValue
+        }
+        
+        // Protect against NaN
+        guard itemListTotal.isFinite else {
+            print("⚠️ DashboardViewModel: Invalid itemList total in incremental update, skipping")
+            return
         }
         
         switch operation {
@@ -540,8 +626,13 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             totalSpent -= itemListTotal
         }
         
-        // Ensure totalSpent never goes negative due to floating point precision
-        totalSpent = max(0, totalSpent)
+        // Ensure totalSpent is valid and non-negative
+        if !totalSpent.isFinite {
+            print("❌ DashboardViewModel: Total spent became NaN/Infinite, recalculating from scratch")
+            calculateTotalSpent()
+        } else {
+            totalSpent = max(0, totalSpent)
+        }
     }
     
     /// Verify if an ItemList belongs to the current dashboard context
@@ -557,15 +648,37 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     
     /// Calculate total spent amount from all ItemLists (full recalculation)
     private func calculateTotalSpent() {
-        totalSpent = itemLists.reduce(0) { total, itemList in
+        let newTotal = itemLists.reduce(0.0) { total, itemList in
             let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-            let itemListTotal = itemsArray.reduce(0) { itemTotal, item in
+            let itemListTotal = itemsArray.reduce(0.0) { itemTotal, item in
                 let amount = item.amount as Decimal? ?? 0
                 let quantity = Decimal(item.quantity)
                 let itemValue = NSDecimalNumber(decimal: amount * quantity).doubleValue
+                
+                // Protect against NaN or infinite values
+                guard itemValue.isFinite else {
+                    print("⚠️ DashboardViewModel: Invalid item value detected (NaN/Infinite), skipping")
+                    return itemTotal
+                }
+                
                 return itemTotal + itemValue
             }
+            
+            // Protect against NaN or infinite values
+            guard itemListTotal.isFinite else {
+                print("⚠️ DashboardViewModel: Invalid itemList total detected (NaN/Infinite), skipping")
+                return total
+            }
+            
             return total + itemListTotal
+        }
+        
+        // Final protection against NaN
+        if newTotal.isFinite {
+            totalSpent = max(0, newTotal)  // Ensure non-negative
+        } else {
+            print("❌ DashboardViewModel: Total spent calculation resulted in NaN/Infinite, setting to 0")
+            totalSpent = 0.0
         }
     }
     
@@ -573,11 +686,25 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     
     /// Get formatted total spent string
     var formattedTotalSpent: String {
+        // Protect against NaN before formatting
+        guard totalSpent.isFinite else {
+            print("❌ DashboardViewModel: formattedTotalSpent called with NaN/Infinite value!")
+            return "€0.00"
+        }
+        
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currentGroup?.currency ?? "EUR"
         formatter.locale = Locale(identifier: "es_ES") // Spanish locale for Euro formatting
-        return formatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
+        
+        let formattedValue = formatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
+        
+        // Debug: Verify the formatted string is valid
+        if formattedValue.contains("�") || formattedValue.contains("NaN") {
+            print("⚠️ DashboardViewModel: Formatted value contains invalid characters: \(formattedValue)")
+        }
+        
+        return formattedValue
     }
     
     /// Get recent ItemLists (last 10)
@@ -585,8 +712,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         return Array(itemLists.prefix(10))
     }
     
-    /// Get ItemLists from current month only
-    var currentMonthItemLists: [ItemList] {
+    /// Update cached current month ItemLists
+    /// ✅ Called automatically when itemLists changes (via didSet)
+    private func updateCurrentMonthCache() {
         let calendar = Calendar.current
         let now = Date()
         
@@ -595,11 +723,13 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             return calendar.isDate(itemListDate, equalTo: now, toGranularity: .month)
         }
         
-        print("🗓️ DashboardViewModel: Filtering ItemLists for current month")
-        print("   - Total ItemLists: \(itemLists.count)")
-        print("   - Current month ItemLists: \(filtered.count)")
-        
-        return filtered
+        // Only update if different to avoid unnecessary redraws
+        if currentMonthItemLists.count != filtered.count {
+            print("🗓️ DashboardViewModel: Updating current month cache")
+            print("   - Total ItemLists: \(itemLists.count)")
+            print("   - Current month ItemLists: \(filtered.count)")
+            currentMonthItemLists = filtered
+        }
     }
     
     /// Format date for display
@@ -615,16 +745,40 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     /// Get display amount for an ItemList
     func getItemListTotal(_ itemList: ItemList) -> Double {
         let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-        return itemsArray.reduce(0.0) { total, item in
+        let total = itemsArray.reduce(0.0) { total, item in
             let amount = item.amount?.doubleValue ?? 0.0
             let quantity = Double(item.quantity)
-            return total + (amount * quantity)
+            let itemValue = amount * quantity
+            
+            // Detect NaN at item level
+            guard itemValue.isFinite else {
+                print("❌ DashboardViewModel: getItemListTotal - Invalid item value detected!")
+                print("   Item: \(item.itemDescription ?? "Unknown"), Amount: \(amount), Quantity: \(quantity)")
+                return total
+            }
+            
+            return total + itemValue
         }
+        
+        // Detect NaN at total level
+        guard total.isFinite else {
+            print("❌ DashboardViewModel: getItemListTotal - Total is NaN for ItemList: \(itemList.itemListDescription ?? "Unknown")")
+            return 0.0
+        }
+        
+        return total
     }
     
     /// Get formatted amount for an ItemList
     func getFormattedItemListTotal(_ itemList: ItemList) -> String {
         let total = getItemListTotal(itemList)
+        
+        // Extra protection
+        guard total.isFinite else {
+            print("❌ DashboardViewModel: getFormattedItemListTotal - Attempted to format NaN!")
+            return "€0.00"
+        }
+        
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currentGroup?.currency ?? "EUR"

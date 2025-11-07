@@ -7,13 +7,13 @@ struct AddItemListView: View {
     let user: User
     let group: Group
     @Binding var navigationPath: NavigationPath
-    let onItemListCreated: () -> Void
+    let onItemListCreated: (ItemList) -> Void
     
     @StateObject private var viewModel: AddItemListViewModel
     @State private var showingCategoryPicker = false
     @State private var showingPaymentMethodPicker = false
     
-    init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping () -> Void) {
+    init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping (ItemList) -> Void) {
         self.user = user
         self.group = group
         self._navigationPath = navigationPath
@@ -200,24 +200,30 @@ struct AddItemListView: View {
     private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
         
-        let success = await viewModel.createItemList(
+        print("🔄 AddItemListView: Creating ItemList...")
+        
+        if let createdItemList = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
             category: category,
             group: group,
             paymentMethod: viewModel.selectedPaymentMethod
-        )
-        
-        if success {
-            // ✅ SUCCESS: ItemList creado exitosamente
-            print("🔄 AddItemListView: Calling onItemListCreated callback...")
-            onItemListCreated()
+        ) {
+            // ✅ SUCCESS: ItemList created successfully
+            print("✅ AddItemListView: ItemList created: '\(createdItemList.itemListDescription ?? "Unknown")'")
+            print("🔄 AddItemListView: Calling onItemListCreated callback with ItemList...")
+            
+            // Pass the created ItemList to the callback for incremental cache update
+            onItemListCreated(createdItemList)
+            
             print("✅ AddItemListView: Callback executed, navigating back...")
             
             // Delay navigation slightly to avoid NavigationRequestObserver conflicts
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 navigationPath.removeLast()
             }
+        } else {
+            print("❌ AddItemListView: Failed to create ItemList")
         }
     }
     
@@ -273,6 +279,6 @@ struct AddItemListView: View {
         group: group, 
         context: context, 
         navigationPath: .constant(NavigationPath()), 
-        onItemListCreated: {}
+        onItemListCreated: { _ in }
     )
 }

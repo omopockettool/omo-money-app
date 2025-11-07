@@ -49,7 +49,7 @@ private func saveItemList() async {
 
 ### 🚨 **REGLA CRÍTICA PARA NAVIGATION + CORE DATA**
 - **USAR MISMO CONTEXTO**: Vista padre e hija deben usar mismo NSManagedObjectContext
-- **CALLBACK REFRESH**: Vista padre implementa callback que refrezca datos después de cambios
+- **CALLBACK REFRESH**: Vista padre implementa callback que refresca datos después de cambios
 - **TIMING**: Delay mínimo (0.1s) antes de navegación para evitar conflictos
 - **PATTERN**: `context.perform` → callback → `await refreshData()` → navigate back
 
@@ -245,7 +245,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 
 ## 🚀 PRÓXIMAS TAREAS - ROADMAP ACTUALIZADO
 
-### 🎯 **INMEDIATO: Delete ItemList Functionality (v1.1.0)**
+### 🎯 **INMEDIATO: Delete ItemList Functionality (v0.11.0)**
 - [ ] **Swipe-to-Delete Gesture**: Implementar en ExpenseRowView con SwiftUI nativo
 - [ ] **Delete Confirmation**: Alert nativo iOS con opciones Cancelar/Eliminar
 - [ ] **Delete Service Method**: Agregar deleteItemList() a ItemListService
@@ -254,15 +254,7 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [ ] **Animation**: Smooth delete animation con withAnimation
 - [ ] **Testing**: Verificar que borrado actualice dashboard inmediatamente
 
-### 🎯 **SIGUIENTE: Enhanced UI Components (v1.2.0)**
-- [ ] **Edit ItemList**: Funcionalidad para editar gastos existentes
-- [ ] **Item Management**: CRUD completo para items dentro de ItemList
-- [ ] **Search & Filter**: Buscar y filtrar gastos por fecha, categoría, monto
-- [ ] **Statistics View**: Gráficos y resúmenes de gastos
-- [ ] **Export Feature**: Exportar datos a CSV/PDF
-
-### 🎯 **FUTURO: Sincronización y Multi-Device (v2.0.0)**
-
+Futuro
 #### 🔐 **1. SISTEMA DE AUTENTICACIÓN (PREREQUISITO)**
 - [ ] **Authentication Service Protocol**: Crear AuthServiceProtocol con login/logout/register
 - [ ] **User Session Management**: Gestión de sesión de usuario con tokens seguros
@@ -829,23 +821,3 @@ Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) wit
 - [x] ViewModel security updates  
 - [x] Code cleanup and professional standards
 - [x] Build validation on physical device
-
-### 🔄 **EN PROGRESO (v0.10.0)**
-- [ ] Authentication system implementation
-- [ ] Repository pattern architecture
-- [ ] Network monitoring service
-- [ ] Sync engine development
-- [ ] Domain model separation
-
-### 📋 **PENDIENTE (v0.11.0+)**
-- [ ] Real-time synchronization
-- [ ] Advanced business logic
-- [ ] Analytics and reporting
-- [ ] Export functionality
-- [ ] Push notifications
-
----
-
-**ESTADO ACTUAL: ✅ v0.9.0 COMPLETADO - Security refactoring + Service cleanup**
-
-**PRÓXIMO OBJETIVO: 🔐 v1.0.0 AUTHENTICATION + SYNC ARCHITECTURE**

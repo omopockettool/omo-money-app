@@ -75,13 +75,14 @@ final class AddItemListViewModel: ObservableObject {
     }
     
     /// Create a new itemList with the specified details
+    /// Returns the created ItemList if successful, nil otherwise
     func createItemList(
         description: String,
         date: Date,
         category: Category,
         group: Group,
         paymentMethod: PaymentMethod?
-    ) async -> Bool {
+    ) async -> ItemList? {
         isLoading = true
         errorMessage = nil
         
@@ -96,15 +97,16 @@ final class AddItemListViewModel: ObservableObject {
             )
             
             print("✅ AddItemListViewModel: ItemList created successfully: \(itemList.itemListDescription ?? "No description")")
-            print("✅ AddItemListViewModel: ItemList creation completed, callback will handle refresh")
+            print("💡 AddItemListViewModel: Returning ItemList for incremental cache update")
             
             isLoading = false
-            return true
+            return itemList
             
         } catch {
             errorMessage = "Error al crear itemList: \(error.localizedDescription)"
+            print("❌ AddItemListViewModel: Error creating ItemList: \(error.localizedDescription)")
             isLoading = false
-            return false
+            return nil
         }
     }
     

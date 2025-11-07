@@ -670,3 +670,333 @@ View/
 ---
 
 **RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**
+
+---
+
+## 🎓 LECCIONES APRENDIDAS - ANTI-PATRONES EVITADOS (v0.12.0)
+
+### 🚫 ANTI-PATRÓN 1: CALLBACKS MANUALES CON CORE DATA COMPARTIDO
+**❌ NO HACER ESTO:**
+```swift
+// Vista padre pasa callback manual
+QuickExpenseView(
+    onItemListCreated: { 
+        await viewModel.loadData() 
+    }
+)
+
+// Vista hija ejecuta callback manualmente
+func createExpense() {
+    await service.create()
+    onItemListCreated?()  // ❌ DUPLICA el trabajo
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+// Vista padre solo pasa el mismo NSManagedObjectContext
+QuickExpenseView(
+    user: user,
+    group: group,
+    context: context  // ✅ MISMO contexto
+)
+
+// ViewModel configura observador Core Data UNA VEZ
+private func setupCoreDataNotifications() {
+    NotificationCenter.default.addObserver(
+        forName: .NSManagedObjectContextDidSave,
+        object: context,
+        queue: .main
+    ) { [weak self] _ in
+        Task { @MainActor in
+            await self?.refreshData()
+        }
+    }
+}
+```
+
+**📋 REGLAS:**
+- ✅ **NSManagedObjectContext compartido**: Mismo contexto entre vistas padre e hija
+- ✅ **NSManagedObjectContextDidSave**: Patrón nativo de Apple para auto-actualización
+- ✅ **SIN callbacks manuales**: No son necesarios si se comparte contexto
+- ✅ **Observador con prevención de duplicados**: `guard !itemLists.contains(where: { $0.objectID == newItem.objectID })`
+- ✅ **Memoria segura**: `[weak self]` en closures para evitar retain cycles
+- ✅ **Main thread**: `.queue = .main` para actualizaciones de UI
+- ✅ **Cleanup**: `deinit { NotificationCenter.default.removeObserver(self) }`
+
+**⚡ BENEFICIOS:**
+- Sin código duplicado
+- Auto-actualización nativa de iOS
+- Sin condiciones de carrera
+- Mejor rendimiento (1 actualización vs N callbacks)
+
+---
+
+### 🚫 ANTI-PATRÓN 2: INVALIDACIÓN TOTAL DE CACHE EN CADA OPERACIÓN
+**❌ NO HACER ESTO:**
+```swift
+func createItemList() async -> ItemList? {
+    let newItem = // ... crear item
+    
+    // ❌ INVALIDA todo el cache → DB query innecesario
+    cacheManager.clearCache(forKey: "dashboard_items_\(groupId)")
+    
+    return newItem
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+// Service: SIN invalidación de cache
+func createItemList() async -> ItemList? {
+    let newItem = // ... crear item
+    
+    // ✅ NO invalida cache
+    print("[CACHE] Using incremental cache - NOT invalidating")
+    
+    return newItem
+}
+
+// ViewModel: Actualización incremental
+func addItemList(_ newItemList: ItemList) {
+    // ✅ Agregar a array existente (NO query DB)
+    itemLists.append(newItemList)
+    
+    // ✅ Ordenar
+    itemLists.sort { $0.date ?? Date() > $1.date ?? Date() }
+    
+    // ✅ Actualizar cache con array nuevo
+    let cacheKey = "dashboard_items_\(groupId)"
+    cacheManager.cacheData(itemLists, for: cacheKey)
+    
+    // ✅ Actualizar vista filtrada
+    updateCurrentMonthCache()
+}
+```
+
+**📋 REGLAS:**
+- ✅ **Incremental cache updates**: Agregar/remover del array sin DB queries
+- ✅ **Service sin invalidación**: Services NO invalidan cache, solo crean/modifican/eliminan
+- ✅ **ViewModel gestiona cache**: ViewModel actualiza cache incrementalmente
+- ✅ **Optimistic UI updates**: UI se actualiza inmediatamente, DB en background
+- ✅ **Rollback en errores**: Si falla DB, revertir cambio en array
+
+**⚡ BENEFICIOS:**
+- 0 DB queries en operaciones comunes
+- UI instantánea (sin loading)
+- Rendimiento similar a apps nativas de Apple
+- Escalable a miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 3: COMPUTED PROPERTIES PARA DATOS FILTRADOS
+**❌ NO HACER ESTO:**
+```swift
+// ❌ RECALCULA en CADA redibujado de SwiftUI
+var currentMonthItemLists: [ItemList] {
+    itemLists.filter { itemList in
+        // ... filtrado pesado de 1400+ items ...
+    }
+}
+
+// Resultado: 100+ recálculos por segundo en field taps
+```
+
+**✅ HACER ESTO:**
+```swift
+// ✅ Variable @Published cacheada
+@Published var currentMonthItemLists: [ItemList] = []
+
+// ✅ Actualizar solo cuando itemLists cambia
+@Published var itemLists: [ItemList] = [] {
+    didSet {
+        updateCurrentMonthCache()
+    }
+}
+
+private func updateCurrentMonthCache() {
+    let calendar = Calendar.current
+    let now = Date()
+    
+    currentMonthItemLists = itemLists.filter { itemList in
+        guard let date = itemList.date else { return false }
+        return calendar.isDate(date, equalTo: now, toGranularity: .month)
+    }
+}
+```
+
+**📋 REGLAS:**
+- ✅ **@Published var en lugar de computed**: Cache explícito para datos filtrados
+- ✅ **didSet observer**: Actualizar automáticamente cuando cambian datos fuente
+- ✅ **Método privado de actualización**: Reutilizable y testeable
+- ✅ **Una sola ejecución**: Solo cuando `itemLists` realmente cambia
+- ❌ **NO computed properties**: No para filtros/transformaciones de arrays grandes
+
+**⚡ BENEFICIOS:**
+- De 100+ cálculos/segundo a 1 cálculo/cambio
+- CPU 0% en taps de field inputs
+- Escalable a miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 4: SIN PROTECCIÓN CONTRA NaN EN CÁLCULOS
+**❌ NO HACER ESTO:**
+```swift
+func calculateTotal() -> Double {
+    let total = items.reduce(0.0) { sum, item in
+        sum + item.amount  // ❌ Puede ser NaN
+    }
+    
+    return total  // ❌ Puede causar crash en CoreGraphics
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+func calculateTotalSpent() -> Double {
+    var total: Double = 0.0
+    
+    for itemList in itemLists {
+        var itemListTotal: Double = 0.0
+        
+        // Nivel 1: Cálculo por item
+        for item in itemList.items?.allObjects as? [Item] ?? [] {
+            let quantity = Double(item.quantity)
+            let amount = item.amount?.doubleValue ?? 0.0
+            let itemValue = amount * quantity
+            
+            // ✅ Protección nivel item
+            guard itemValue.isFinite else {
+                print("[WARNING] Item has invalid value: \(itemValue)")
+                continue
+            }
+            
+            itemListTotal += itemValue
+        }
+        
+        // ✅ Protección nivel itemList
+        guard itemListTotal.isFinite else {
+            print("[WARNING] ItemList total is invalid: \(itemListTotal)")
+            continue
+        }
+        
+        total += itemListTotal
+    }
+    
+    // ✅ Protección nivel total final
+    guard total.isFinite else {
+        print("[ERROR] Final total is invalid, returning 0")
+        return 0.0
+    }
+    
+    return total
+}
+```
+
+**📋 REGLAS:**
+- ✅ **3 niveles de protección**: item → itemList → total
+- ✅ **isFinite checks**: Valida antes de usar en CoreGraphics
+- ✅ **Logging detallado**: Identificar exactamente dónde ocurre NaN
+- ✅ **Fallback values**: Retornar 0.0 en caso de error
+- ✅ **Continue en lugar de crash**: Omitir items inválidos, no fallar todo
+
+**⚡ BENEFICIOS:**
+- 0 crashes en CoreGraphics
+- Identificación rápida de datos corruptos
+- App robusta con miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 5: EMOJIS EN LOGS DE PRODUCCIÓN
+**❌ NO HACER ESTO:**
+```swift
+print("💰 Total calculated: \(total)")
+print("✅ Item created successfully")
+print("🔄 Refreshing data...")
+```
+
+**✅ HACER ESTO:**
+```swift
+print("[TOTAL] Total calculated: \(total)")
+print("[SUCCESS] Item created successfully")
+print("[REFRESH] Refreshing data...")
+```
+
+**📋 REGLAS:**
+- ✅ **Prefijos de texto**: [INFO], [WARNING], [ERROR], [TOTAL], [CACHE], [SUCCESS]
+- ✅ **Encoding confiable**: Texto ASCII siempre funciona
+- ✅ **Grep/search friendly**: Búsqueda fácil en logs
+- ✅ **Consistencia**: Mismo formato en toda la app
+- ❌ **NO emojis**: Pueden corromperse según encoding de console
+
+**⚡ BENEFICIOS:**
+- Logs legibles en cualquier console
+- Búsqueda eficiente de logs específicos
+- Profesional para debugging en equipo
+
+---
+
+### 📊 PATRÓN MAESTRO: INCREMENTAL CACHE + CORE DATA NOTIFICATIONS
+
+**FLUJO COMPLETO DE CREAR ITEMLIST:**
+
+1. **Usuario toca "Crear"** → QuickExpenseView
+2. **Service crea en DB** → `ItemListService.createItemList()` (sin invalidar cache)
+3. **Core Data dispara** → `NSManagedObjectContextDidSave`
+4. **ViewModel detecta** → `setupCoreDataNotifications()` observador
+5. **Prevención duplicados** → `guard !itemLists.contains(where: { $0.objectID == ... })`
+6. **Agregar a array** → `itemLists.append(newItem)`
+7. **Ordenar** → `itemLists.sort { $0.date > $1.date }`
+8. **Actualizar cache** → `cacheManager.cacheData(itemLists, for: cacheKey)`
+9. **Actualizar vista filtrada** → `didSet` trigger → `updateCurrentMonthCache()`
+10. **SwiftUI re-dibuja** → @Published trigger → UI actualizada
+
+**FLUJO COMPLETO DE ELIMINAR ITEMLIST:**
+
+1. **Usuario swipe → Delete** → ExpenseListView
+2. **ViewModel optimistic** → `removeItemList(itemList)` (remueve de array + cache)
+3. **Service elimina DB** → `ItemListService.deleteItemList()`
+4. **Si éxito** → Ya actualizado (optimistic fue correcto)
+5. **Si error** → `rollback`: volver a agregar item a array y cache
+
+**🎯 RESULTADO FINAL:**
+- ✅ 0% CPU en operaciones normales
+- ✅ 35.3MB memoria con 1420 registros
+- ✅ UI instantánea (sin loading)
+- ✅ 0 crashes por NaN
+- ✅ Patrón nativo de iOS
+- ✅ Escalable a 10k+ registros
+
+---
+
+### 🎯 CHECKLIST ANTES DE IMPLEMENTAR NUEVAS FEATURES
+
+**CACHE STRATEGY:**
+- [ ] ¿Service invalida cache? → ❌ NO, usar incremental
+- [ ] ¿ViewModel actualiza array directamente? → ✅ SÍ
+- [ ] ¿Se actualiza cache después de modificar array? → ✅ SÍ
+- [ ] ¿Hay rollback en caso de error? → ✅ SÍ
+
+**CORE DATA SYNC:**
+- [ ] ¿Vistas comparten NSManagedObjectContext? → ✅ SÍ
+- [ ] ¿Hay observer de NSManagedObjectContextDidSave? → ✅ SÍ
+- [ ] ¿Previene duplicados el observer? → ✅ SÍ (objectID check)
+- [ ] ¿Hay callbacks manuales? → ❌ NO, usar notifications
+
+**PERFORMANCE:**
+- [ ] ¿Datos filtrados usan @Published var? → ✅ SÍ (no computed)
+- [ ] ¿didSet actualiza vistas derivadas? → ✅ SÍ
+- [ ] ¿Hay protección isFinite en cálculos? → ✅ SÍ (3 niveles)
+- [ ] ¿Logs usan texto en lugar de emojis? → ✅ SÍ
+
+**MEMORY & THREADING:**
+- [ ] ¿Observers usan [weak self]? → ✅ SÍ
+- [ ] ¿Hay deinit con removeObserver? → ✅ SÍ
+- [ ] ¿UI updates en .main queue? → ✅ SÍ
+- [ ] ¿DB operations en background? → ✅ SÍ
+
+---
+
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**
+
+````

@@ -12,19 +12,18 @@ struct ExpenseListView: View {
     let getFormattedAmount: (ItemList) -> String
     let onItemTap: (ItemList) -> Void
     let onRefresh: () async -> Void
+    let onDelete: (ItemList) async -> Void
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: AppConstants.UserInterface.smallPadding) {
-                if itemLists.isEmpty {
-                    emptyStateView
-                } else {
-                    ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
-                        if let itemListsForDate = groupedItemLists[date] {
-                            // Date section header
-                            sectionHeader(for: date)
-                            
-                            // Items for this date
+        List {
+            if itemLists.isEmpty {
+                emptyStateView
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
+                    if let itemListsForDate = groupedItemLists[date] {
+                        Section {
                             ForEach(itemListsForDate, id: \.objectID) { itemList in
                                 ExpenseRowView(
                                     itemList: itemList,
@@ -33,14 +32,33 @@ struct ExpenseListView: View {
                                         onItemTap(itemList)
                                     }
                                 )
-                                .padding(.horizontal, AppConstants.UserInterface.padding)
+                                .listRowInsets(EdgeInsets(
+                                    top: AppConstants.UserInterface.smallPadding / 2,
+                                    leading: AppConstants.UserInterface.padding,
+                                    bottom: AppConstants.UserInterface.smallPadding / 2,
+                                    trailing: AppConstants.UserInterface.padding
+                                ))
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            await onDelete(itemList)
+                                        }
+                                    } label: {
+                                        Label("Eliminar", systemImage: "trash")
+                                    }
+                                }
                             }
+                        } header: {
+                            sectionHeader(for: date)
                         }
                     }
                 }
             }
-            .padding(.top, AppConstants.UserInterface.smallPadding)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .refreshable {
             await onRefresh()
         }
@@ -67,17 +85,11 @@ struct ExpenseListView: View {
     }
     
     private func sectionHeader(for date: Date) -> some View {
-        HStack {
-            Text(formatSectionDate(date))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-            
-            Spacer()
-        }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.top, AppConstants.UserInterface.padding)
+        Text(formatSectionDate(date))
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+            .textCase(.uppercase)
     }
     
     // MARK: - Helper Methods
@@ -117,7 +129,8 @@ struct ExpenseListView: View {
         itemLists: [],
         getFormattedAmount: { _ in "12.89 €" },
         onItemTap: { _ in },
-        onRefresh: { }
+        onRefresh: { },
+        onDelete: { _ in }
     )
     .background(Color.black)
 }

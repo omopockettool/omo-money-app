@@ -350,11 +350,12 @@ struct QuickExpenseView: View {
     // MARK: - Private Methods
     
     private func createQuickExpense() async {
-        let success = await viewModel.createQuickExpense(group: group)
+        print("🔄 QuickExpenseView: Creating quick expense...")
         
-        if success {
-            print("✅ QuickExpenseView: Quick expense created successfully")
-            // Dismiss handled by onChange of expenseCreatedSuccessfully
+        if let createdItemList = await viewModel.createQuickExpense(group: group) {
+            print("✅ QuickExpenseView: Quick expense created: '\(createdItemList.itemListDescription ?? "Unknown")'")
+            print("[INFO] QuickExpenseView: Core Data notification will trigger DashboardViewModel update")
+            // No callback needed - NSManagedObjectContextDidSave notification handles it
         } else {
             print("❌ QuickExpenseView: Failed to create quick expense")
         }

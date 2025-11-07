@@ -131,19 +131,19 @@ final class QuickExpenseViewModel: ObservableObject {
     }
     
     /// Create quick expense - ItemList + optional automatic Item
-    /// Logic: If price is empty → only ItemList, if price has value → ItemList + Item
+    /// Returns the created ItemList if successful, nil otherwise
     func createQuickExpense(
         group: Group
-    ) async -> Bool {
+    ) async -> ItemList? {
         guard canSave && isPriceValid else {
             errorMessage = "Formulario incompleto o precio inválido"
-            return false
+            return nil
         }
         
         guard let category = selectedCategory,
               let paymentMethod = selectedPaymentMethod else {
             errorMessage = "Selecciona categoría y método de pago"
-            return false
+            return nil
         }
         
         isLoading = true
@@ -187,19 +187,20 @@ final class QuickExpenseViewModel: ObservableObject {
             }
             
             print("✅ QuickExpenseViewModel: Quick expense creation completed")
+            print("💡 QuickExpenseViewModel: Returning ItemList for incremental cache update")
             
             // Clear cache to ensure fresh data on next load (in case categories/payment methods were modified elsewhere)
             clearCacheForGroup(group)
             
             expenseCreatedSuccessfully = true
             isLoading = false
-            return true
+            return itemList
             
         } catch {
             errorMessage = "Error al crear gasto: \(error.localizedDescription)"
             print("❌ QuickExpenseViewModel: Error creating quick expense: \(error)")
             isLoading = false
-            return false
+            return nil
         }
     }
     

@@ -23,6 +23,15 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - Simplified validation trusting Core Data's internal state
 - Infinite loop prevention and concurrency safety
 
+**Phase 3: Dashboard & Swipe-to-Delete** ✅ **COMPLETED**
+- Dashboard with expense list view
+- Native iOS swipe-to-delete pattern (List with swipeActions)
+- Incremental cache pattern (Apple-style)
+- Core Data NSManagedObjectContextDidSave notifications
+- Optimized performance (0% CPU, 35.3MB with 1420+ records)
+- NaN protection in calculations (3-level isFinite checks)
+- @Published cached properties instead of computed
+
 ## ✨ Features
 
 ### ✅ Completed
@@ -38,6 +47,13 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Core Data Safety**: Simplified validation trusting Core Data's internal state
 - **PaymentMethod Management**: Complete CRUD operations for payment methods
 - **Entry → ItemList Refactoring**: Semantic clarity improvements with comprehensive renaming
+- **Dashboard UI**: Display expense lists grouped by date
+- **Swipe-to-Delete**: Native iOS pattern for deleting ItemLists
+- **Quick Expense Creation**: Modal for fast expense tracking
+- **Incremental Cache**: Apple-style cache updates without DB queries
+- **Real-time Sync**: Core Data notifications for auto-updates
+- **Performance Optimized**: 0% CPU, handles 1000+ records smoothly
+- **NaN Protection**: 3-level validation in calculations
 
 ### 🚧 In Development
 - **Group Management**: Create and manage expense groups
@@ -78,6 +94,11 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Concurrency Safety**: Protection flags prevent multiple simultaneous operations
 - **Stable State Management**: Consistent Core Data object states
 - **Infinite Loop Prevention**: Robust protection against recursive operations
+- **Incremental Cache Pattern**: Updates in-memory arrays instead of invalidating cache
+- **Core Data Notifications**: NSManagedObjectContextDidSave for auto-sync
+- **Optimized Computed Properties**: @Published cached vars instead of recomputing
+- **NaN Protection**: isFinite validation at item, itemList, and total levels
+- **Duplicate Prevention**: ObjectID checks in Core Data observers
 
 ## 🛠️ Technical Requirements
 
@@ -197,6 +218,7 @@ For development questions or issues:
 
 ---
 
-**Last Updated**: December 19, 2024  
-**Current Version**: 0.6.1  
-**Development Phase**: Phase 2.5 - Architecture & Stability
+**Last Updated**: November 7, 2025  
+**Current Version**: 0.12.0  
+**Development Phase**: Phase 3 - Dashboard & Swipe-to-Delete (COMPLETED)
+
