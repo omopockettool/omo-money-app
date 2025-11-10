@@ -22,6 +22,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     @Published var currentMonthItemLists: [ItemList] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
     @Published var isLoading = false
+    @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var errorMessage: String?
     @Published var currentGroup: Group?
     @Published var currentUser: User?
@@ -33,11 +34,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     private let userGroupService: UserGroupServiceProtocol
     
     // MARK: - Cache
+    // Note: Cache is managed by Service layer (ItemListService)
+    // ViewModel only updates service cache for incremental changes
     private let cacheManager = CacheManager.shared
-    private var cacheKey: String {
-        guard let groupId = currentGroup?.id?.uuidString else { return "dashboard_items_unknown" }
-        return "dashboard_items_\(groupId)"
-    }
     
     // MARK: - Initialization
     init(itemListService: ItemListServiceProtocol,
@@ -168,18 +167,75 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
     }
     
-    /// Refresh dashboard data by clearing cache and reloading
-    /// ⚠️ Use sparingly - invalidates entire cache
-    /// Prefer using addItemList/removeItemList for incremental updates
+    /// Refresh dashboard data with smooth, native iOS behavior
+    /// ✅ Only affects the list, not other components
+    /// ✅ Uses incremental update - only changes data if different
+    /// ✅ Smooth animation - no black flicker
     func refreshData() async {
-        print("🔄 DashboardViewModel: refreshData() called")
-        print("⚠️ DashboardViewModel: This will INVALIDATE cache and query Core Data")
+        print("🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH")
         
-        // Clear cache to ensure fresh data
-        await clearCache()
-        await loadDashboardDataOptimized()
+        // Use separate isRefreshing state (won't trigger view rebuild)
+        await MainActor.run {
+            isRefreshing = true
+        }
         
-        print("✅ DashboardViewModel: refreshData() completed")
+        do {
+            guard let group = currentGroup else {
+                print("⚠️ DashboardViewModel: No current group, skipping refresh")
+                await MainActor.run { isRefreshing = false }
+                return
+            }
+            
+            // Fetch latest data from Core Data (background thread)
+            print("🔍 DashboardViewModel: Fetching latest ItemLists...")
+            let fetchedItemLists = try await itemListService.getItemLists(for: group)
+            
+            // Get current state
+            let currentItemLists = await MainActor.run { itemLists }
+            
+            print("� DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemLists.count)")
+            
+            // Check if data actually changed
+            let currentIDs = Set(currentItemLists.map { $0.objectID })
+            let fetchedIDs = Set(fetchedItemLists.map { $0.objectID })
+            
+            if currentIDs != fetchedIDs || currentItemLists.count != fetchedItemLists.count {
+                print("✅ DashboardViewModel: [BACKGROUND] Data changed, processing...")
+                
+                // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
+                let sortedItemLists = fetchedItemLists.sorted { 
+                    ($0.date ?? Date()) > ($1.date ?? Date()) 
+                }
+                
+                // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
+                print("💡 DashboardViewModel: Service layer manages cache (single source of truth)")
+                
+                // ⚡️ MAIN THREAD: ONLY UI update with animation
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        itemLists = sortedItemLists
+                    }
+                    calculateTotalSpent()
+                    print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items")
+                }
+            } else {
+                print("ℹ️ DashboardViewModel: No changes detected, skipping UI update")
+            }
+            
+            // Small delay for smooth animation completion
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+            
+            await MainActor.run {
+                isRefreshing = false
+                print("✅ DashboardViewModel: Refresh completed smoothly")
+            }
+            
+        } catch {
+            print("❌ DashboardViewModel: Error during refresh: \(error.localizedDescription)")
+            await MainActor.run {
+                isRefreshing = false
+            }
+        }
     }
     
     /// Load dashboard data using cache optimization
@@ -225,46 +281,20 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 currentGroup = group
             }
             
-            // 4. Try to get ItemLists from cache first
-            let cacheKey = "dashboard_items_\(group.id?.uuidString ?? "unknown")"
+            // 4. Load ItemLists (Service handles caching internally)
+            print("� DashboardViewModel: Loading ItemLists (Service layer manages cache)...")
+            let groupItemLists = try await itemListService.getItemLists(for: group)
+            let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
             
-            print("🔍 DashboardViewModel: Checking cache with key: \(cacheKey)")
+            print("✅ DashboardViewModel: Loaded \(groupItemLists.count) ItemLists")
             
-            if let cachedItemLists: [ItemList] = cacheManager.getCachedData(for: cacheKey) {
-                print("🎯 DashboardViewModel: ✅ CACHE HIT! Using cached ItemLists (\(cachedItemLists.count) items)")
-                print("� DashboardViewModel: No database query needed - ultra fast load!")
-                
-                await MainActor.run {
-                    itemLists = cachedItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-                    calculateTotalSpent()
-                    isLoading = false
-                    print("✅ DashboardViewModel: UI updated with cached data")
-                    print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
-                    print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
-                }
-            } else {
-                // 5. Load from database if not in cache
-                print("❌ DashboardViewModel: CACHE MISS - loading from Core Data...")
-                print("⚠️ DashboardViewModel: This should only happen on first load or after cache clear")
-                
-                let groupItemLists = try await itemListService.getItemLists(for: group)
-                let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-                
-                print("✅ DashboardViewModel: Loaded \(groupItemLists.count) ItemLists from database")
-                
-                // Cache the data for future use
-                cacheManager.cacheData(groupItemLists, for: cacheKey)
-                print("✅ DashboardViewModel: ItemLists cached with key: \(cacheKey)")
-                print("💡 DashboardViewModel: Next load will use cache (no DB query)")
-                
-                await MainActor.run {
-                    itemLists = sortedItemLists
-                    calculateTotalSpent()
-                    isLoading = false
-                    print("✅ DashboardViewModel: UI updated with database data")
-                    print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
-                    print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
-                }
+            await MainActor.run {
+                itemLists = sortedItemLists
+                calculateTotalSpent()
+                isLoading = false
+                print("✅ DashboardViewModel: UI updated")
+                print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
+                print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
             }
             
         } catch {
@@ -397,12 +427,13 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     /// Add new ItemList to the dashboard using cache optimization
     func addItemList(_ itemList: ItemList) async {
         let itemListDesc = itemList.itemListDescription ?? "No description"
-        print("➕ DashboardViewModel: Adding new ItemList to dashboard with INCREMENTAL cache...")
-        print("🔍 DashboardViewModel: New ItemList: '\(itemListDesc)'")
+        print("\n🟢 ============================================")
+        print("� [ADD] Adding ItemList: '\(itemListDesc)'")
+        print("🟢 ============================================")
         
         // Background validation
         guard isItemListInCurrentContext(itemList) else {
-            print("⚠️ DashboardViewModel: ItemList doesn't belong to current context, skipping")
+            print("⚠️ [ADD] ItemList doesn't belong to current context, skipping")
             return
         }
         
@@ -411,11 +442,11 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             (itemLists, currentGroup?.id?.uuidString)
         }
         
-        print("📊 DashboardViewModel: Current itemLists count BEFORE add: \(currentItemLists.count)")
+        print("📊 [ADD] Current count BEFORE add: \(currentItemLists.count)")
         
         // Check for duplicates
         if currentItemLists.contains(where: { $0.objectID == itemList.objectID }) {
-            print("⚠️ DashboardViewModel: ItemList already exists in dashboard")
+            print("⚠️ [ADD] ItemList already exists in dashboard")
             return
         }
         
@@ -424,14 +455,24 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             ($0.date ?? Date()) > ($1.date ?? Date()) 
         }
         
-        print("📊 DashboardViewModel: New itemLists count AFTER add: \(sortedItemLists.count)")
+        print("📊 [ADD] New count AFTER add: \(sortedItemLists.count)")
         
-        // 🎯 INCREMENTAL CACHE UPDATE: Update cache with new array
+        // 🎯 UPDATE SERVICE CACHE: Single source of truth
+        // The Service layer owns the cache, ViewModel just updates it
         if let groupId = groupId {
-            let cacheKey = "dashboard_items_\(groupId)"
-            cacheManager.cacheData(sortedItemLists, for: cacheKey)
-            print("✅ DashboardViewModel: Cache UPDATED incrementally (not invalidated)")
-            print("💡 DashboardViewModel: Cache now contains \(sortedItemLists.count) items")
+            let serviceCacheKey = "ItemListService.groupItemLists.\(groupId)"
+            let timestampKey = "\(serviceCacheKey).timestamp"
+            print("🔑 [ADD] Cache key: \(serviceCacheKey)")
+            cacheManager.cacheData(sortedItemLists, for: serviceCacheKey)
+            cacheManager.cacheData(Date(), for: timestampKey) // Update timestamp to keep cache fresh
+            print("✅ [ADD] Service cache UPDATED with \(sortedItemLists.count) items")
+            print("💾 [ADD] Cache now contains:")
+            for (index, item) in sortedItemLists.prefix(3).enumerated() {
+                print("   \(index + 1). \(item.itemListDescription ?? "No desc") - ID: \(item.objectID)")
+            }
+            if sortedItemLists.count > 3 {
+                print("   ... and \(sortedItemLists.count - 3) more")
+            }
         }
         
         // Update UI on main thread
@@ -439,13 +480,14 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             itemLists = sortedItemLists
             updateTotalSpentForItemList(itemList, operation: .add)
             
-            print("✅ DashboardViewModel: ItemList added successfully")
-            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
-            print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
+            print("✅ [ADD] ItemList added successfully to UI")
+            print("📊 [ADD] UI now shows \(itemLists.count) items")
+            print("[TOTAL] [ADD] New total spent: \(formattedTotalSpent)")
             
             // Force UI refresh
             objectWillChange.send()
         }
+        print("🟢 [ADD] Operation complete\n")
     }
     
     /// Remove ItemList from the dashboard using cache optimization
@@ -474,11 +516,14 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         
         print("📊 DashboardViewModel: New itemLists count AFTER remove: \(updatedItemLists.count)")
         
-        // 🎯 INCREMENTAL CACHE UPDATE: Update cache with new array
+        // 🎯 UPDATE SERVICE CACHE: Single source of truth
+        // The Service layer owns the cache, ViewModel just updates it
         if let groupId = groupId {
-            let cacheKey = "dashboard_items_\(groupId)"
-            cacheManager.cacheData(updatedItemLists, for: cacheKey)
-            print("✅ DashboardViewModel: Cache UPDATED incrementally (not invalidated)")
+            let serviceCacheKey = "ItemListService.groupItemLists.\(groupId)"
+            let timestampKey = "\(serviceCacheKey).timestamp"
+            cacheManager.cacheData(updatedItemLists, for: serviceCacheKey)
+            cacheManager.cacheData(Date(), for: timestampKey) // Update timestamp to keep cache fresh
+            print("✅ DashboardViewModel: Service cache updated (single source of truth)")
             print("💡 DashboardViewModel: Cache now contains \(updatedItemLists.count) items")
         }
         

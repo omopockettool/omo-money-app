@@ -59,6 +59,7 @@ struct ExpenseListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .animation(.easeInOut(duration: 0.2), value: itemLists.count)  // ✅ Smooth animation for data changes
         .refreshable {
             await onRefresh()
         }

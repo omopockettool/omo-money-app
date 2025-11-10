@@ -153,14 +153,41 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     /// Get itemLists for a specific group with caching
     func getItemLists(for group: Group) async throws -> [ItemList] {
         let cacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
+        let timestampKey = "\(cacheKey).timestamp"
         
         print("🔍 ItemListService: Getting ItemLists for group '\(group.name ?? "Unknown")'")
         print("🔍 ItemListService: Cache key: \(cacheKey)")
         
-        // Check cache first
-        if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey) {
-            print("🟢 ItemListService: ✅ ItemLists found in CACHE (\(cachedItemLists.count) items)")
-            return cachedItemLists
+        // Check cache first with TTL validation
+        if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey),
+           let timestamp: Date = await CacheManager.shared.getCachedData(for: timestampKey) {
+            
+            // Validate cache freshness
+            // TTL: 30 minutes (local-only app, will reduce to 5 min when cloud sync is added)
+            let cacheAge = Date().timeIntervalSince(timestamp)
+            let cacheTTL: TimeInterval = 1800 // 30 minutes (30 * 60)
+            
+            let minutesOld = Int(cacheAge / 60)
+            let secondsOld = Int(cacheAge.truncatingRemainder(dividingBy: 60))
+            
+            if cacheAge < cacheTTL {
+                print("🟢 [TTL CHECK] CACHE HIT - Data is FRESH ✅")
+                print("   📊 Cache Age: \(minutesOld)m \(secondsOld)s old")
+                print("   ⏰ TTL Limit: 30 minutes (1800 seconds)")
+                print("   ✅ Status: VALID (age < TTL)")
+                print("   📦 Items: \(cachedItemLists.count)")
+                print("   🎯 Source: IN-MEMORY CACHE")
+                return cachedItemLists
+            } else {
+                print("🔴 [TTL CHECK] CACHE EXPIRED - Data is STALE ❌")
+                print("   📊 Cache Age: \(minutesOld)m \(secondsOld)s old")
+                print("   ⏰ TTL Limit: 30 minutes (1800 seconds)")
+                print("   ❌ Status: EXPIRED (age >= TTL)")
+                print("   🔄 Action: Fetching from Core Data...")
+            }
+        } else {
+            print("⚪️ [TTL CHECK] NO CACHE - First time fetch")
+            print("   🔄 Action: Fetching from Core Data...")
         }
         
         print("🔄 ItemListService: Cache miss - fetching from Core Data...")
@@ -182,9 +209,13 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             print("   - (...and \(itemLists.count - maxLogItems) more...)")
         }
         
-        // Cache the result
+        // Cache the result with timestamp
         await CacheManager.shared.cacheData(itemLists, for: cacheKey)
-        print("🟡 ItemListService: ✅ ItemLists fetched from DATABASE and cached (\(itemLists.count) items)")
+        await CacheManager.shared.cacheData(Date(), for: timestampKey)
+        print("💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅")
+        print("   📦 Items: \(itemLists.count)")
+        print("   ⏰ Cache valid for: 30 minutes")
+        print("   🎯 Source: CORE DATA (SQLite)")
         
         return itemLists
     }

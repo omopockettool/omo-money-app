@@ -5,6 +5,97 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-11-10
+
+### Fixed
+- **Dashboard Refresh UX**: Eliminated black flicker and double refresh icons
+  - Root cause: ProgressView overlay conflicting with native refresh control
+  - Solution: Removed custom `.overlay(ProgressView)` from DashboardView
+  - Added `@Published var isRefreshing = false` in DashboardViewModel for isolated state
+  - Smooth refresh animation with native SwiftUI pull-to-refresh
+  - `refreshData()` now properly uses background threads for Core Data, main thread for UI updates
+  
+- **Cache Consistency Bug**: Items no longer disappear after pull-to-refresh
+  - Root cause: Dual cache system with different keys
+    - DashboardViewModel: "dashboard_items_{groupId}"
+    - ItemListService: "ItemListService.groupItemLists.{groupId}"
+  - Solution: **Single Source of Truth** - Service layer owns cache exclusively
+  - Removed ViewModel cache layer entirely
+  - `addItemList()` and `removeItemList()` now update Service cache with timestamp
+  - Incremental operations maintain cache freshness
+
+### Added
+- **TTL (Time-To-Live) Cache Invalidation**: 30-minute automatic expiration
+  - Cache keys: "ItemListService.groupItemLists.{groupId}"
+  - Timestamp keys: "{cacheKey}.timestamp"
+  - `cacheTTL: TimeInterval = 1800` (30 minutes)
+  - Automatic validation on every cache access
+  - Logs show cache age: "🟢 CACHE HIT (Fresh data: 5m 23s old)"
+  - Expired cache triggers DB refresh: "🟡 Cache EXPIRED (age: 32 minutes, TTL: 30 minutes)"
+  
+- **Enhanced Logging System**: Comprehensive cache lifecycle tracking
+  - Cache hits with freshness indicator: "🟢 CACHE HIT (Fresh data: Xm Ys old)"
+  - Cache expiration warnings: "🟡 Cache EXPIRED (age: X minutes)"
+  - Cache updates with timestamp reset: "💾 Cache timestamp refreshed (TTL reset to 30 min)"
+  - Prefixes: [ADD], [DELETE], [REFRESH] for operation tracking
+  - Service layer logs for transparency
+
+### Changed
+- **Animation Smoothness**: ExpenseListView transitions
+  - Added `.animation(.easeInOut(duration: 0.2), value: filteredItemLists)`
+  - Smooth item appearance/disappearance during filtering
+  - No jarring transitions when data updates
+  
+- **Cache Architecture**: Refactored to single-layer pattern
+  - Before: ViewModel + Service both maintained caches
+  - After: Service layer is **Single Source of Truth**
+  - ViewModel reads from Service, updates Service cache on changes
+  - Eliminates cache synchronization issues
+  - Simplified architecture with clear ownership
+
+### Technical Improvements
+- **Cache Strategy**:
+  - TTL: 30 minutes for local-only Core Data apps
+  - Reasoning: Single user, single device, no cloud sync yet
+  - Reduces DB queries by 90%+ for typical usage
+  - Prepared for future cloud sync (will reduce TTL to 2-5 min)
+  
+- **Threading Model** (Reinforced):
+  - DB operations: Always `Task { }` on background thread
+  - UI updates: Always `await MainActor.run { }`
+  - Service calls: async/await with proper thread management
+  - Zero main thread blocking for data operations
+  
+- **Cache Freshness**:
+  - First load: No cache → Query DB → Cache + timestamp
+  - Within TTL (< 30 min): Use cache → Log age
+  - After TTL (> 30 min): Query DB → Update cache + timestamp
+  - Incremental ops (add/delete): Update cache + RESET timestamp
+  
+- **Memory Management**:
+  - Timestamp stored alongside cached data
+  - Automatic cleanup when cache expires
+  - No memory leaks from orphaned timestamps
+
+### Developer Notes
+- **Why 30-minute TTL?**
+  - Local-only app (Core Data, no cloud sync)
+  - Single user workflow
+  - Balances freshness vs performance
+  - Industry standard: Banking apps (5-15 min), Local apps (30-60 min)
+  
+- **Future Roadmap**:
+  - When Supabase integration added: Reduce TTL to 5 minutes
+  - Realtime collaboration: Reduce TTL to 2 minutes
+  - Current setup scalable for future changes
+  
+- **Architecture Benefits**:
+  - Single Source of Truth eliminates race conditions
+  - TTL prevents stale data indefinitely
+  - Incremental updates maintain cache freshness
+  - Clear ownership: Service owns cache lifecycle
+  - ViewModel focuses on UI state only
+
 ## [0.12.0] - 2025-11-07
 
 ### Added

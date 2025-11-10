@@ -141,7 +141,7 @@ struct DashboardView: View {
     
     private func mainContentView(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Expense list
+            // Expense list - ONLY this component has refresh behavior
             ExpenseListView(
                 itemLists: viewModel.currentMonthItemLists,
                 getFormattedAmount: { itemList in
@@ -158,9 +158,8 @@ struct DashboardView: View {
                     await viewModel.deleteItemList(itemList)
                 }
             )
-            .frame(maxHeight: geometry.size.height - 120) // Reserve space for total card
             
-            // Total spent card at bottom
+            // Total spent card at bottom - ISOLATED from list refresh, easy thumb access
             TotalSpentCardView(
                 totalAmount: viewModel.formattedTotalSpent,
                 onAddExpense: {
@@ -169,6 +168,7 @@ struct DashboardView: View {
             )
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
+            .id("totalSpentCard")  // Stable identity, won't refresh
         }
     }
     
