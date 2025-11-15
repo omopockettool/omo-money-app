@@ -27,6 +27,8 @@ struct ExpenseRowView: View {
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
+
+                    Spacer()
                     
                     // Category tag
                     if let category = getFirstCategory() {

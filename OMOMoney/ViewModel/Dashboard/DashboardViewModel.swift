@@ -26,6 +26,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     @Published var errorMessage: String?
     @Published var currentGroup: Group?
     @Published var currentUser: User?
+    @Published var availableGroups: [Group] = []  // ✅ Grupos disponibles para selector
     
     // MARK: - Services
     private let itemListService: ItemListServiceProtocol
@@ -130,7 +131,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 }
                 return
             }
-            print("✅ DashboardViewModel: Found group: \(group.name ?? "Unknown")")
+            print("✅ DashboardViewModel: Found \(userGroups.count) group(s), using: \(group.name ?? "Unknown")")
             
             // 3. Load ItemLists for the group (background thread)
             print("🔄 DashboardViewModel: Getting ItemLists for group...")
@@ -155,6 +156,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 
                 currentUser = user
                 currentGroup = group
+                availableGroups = userGroups  // ✅ Guardar todos los grupos disponibles
                 itemLists = sortedItemLists
                 
                 print("   - itemLists count after assignment: \(itemLists.count)")
@@ -404,6 +406,101 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     func addExpense() {
         // Navigation will be handled by the view using navigationPath
         print("Add expense tapped - navigating to AddItemListView")
+    }
+    
+    // MARK: - Group Management
+    
+    /// Cambiar el grupo activo y recargar los ItemLists
+    func changeGroup(to newGroup: Group) async {
+        guard newGroup.objectID != currentGroup?.objectID else {
+            print("⚠️ DashboardViewModel: Grupo ya seleccionado, ignorando cambio")
+            return
+        }
+        
+        print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name ?? "Unknown")")
+        
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        do {
+            // Cargar ItemLists del nuevo grupo
+            let groupItemLists = try await itemListService.getItemLists(for: newGroup)
+            let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+            
+            await MainActor.run {
+                currentGroup = newGroup
+                itemLists = sortedItemLists
+                calculateTotalSpent()
+                isLoading = false
+                
+                print("✅ DashboardViewModel: Grupo cambiado exitosamente")
+                print("📋 DashboardViewModel: Cargados \(groupItemLists.count) ItemLists")
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Error al cambiar de grupo: \(error.localizedDescription)"
+                isLoading = false
+            }
+            print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
+        }
+    }
+    
+    /// Recargar la lista de grupos disponibles (después de crear uno nuevo)
+    func refreshAvailableGroups() async {
+        guard let user = currentUser else {
+            print("⚠️ DashboardViewModel: No hay usuario actual, no se pueden recargar grupos")
+            return
+        }
+        
+        print("🔄 DashboardViewModel: Recargando grupos disponibles...")
+        
+        do {
+            let userGroups = try await userGroupService.getGroups(for: user)
+            
+            await MainActor.run {
+                availableGroups = userGroups
+                print("✅ DashboardViewModel: Grupos recargados. Total: \(userGroups.count)")
+            }
+        } catch {
+            print("❌ DashboardViewModel: Error recargando grupos: \(error)")
+        }
+    }
+    
+    /// Agregar un grupo nuevo incrementalmente (sin query a BD)
+    func addGroup(_ newGroup: Group) {
+        print("➕ [DashboardVM] addGroup() llamado")
+        print("➕ [DashboardVM] Grupo nuevo: '\(newGroup.name ?? "Sin nombre")' (ObjectID: \(newGroup.objectID))")
+        print("➕ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
+        
+        guard !availableGroups.contains(where: { $0.objectID == newGroup.objectID }) else {
+            print("⚠️ [DashboardVM] Grupo ya existe en lista - SKIP")
+            return
+        }
+        
+        availableGroups.append(newGroup)
+        print("➕ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
+        print("➕ [DashboardVM] Enviando objectWillChange...")
+        objectWillChange.send()
+        print("✅ [DashboardVM] addGroup() completado")
+    }
+    
+    /// Eliminar un grupo incrementalmente
+    func removeGroup(_ group: Group) {
+        print("🗑️ [DashboardVM] removeGroup() llamado")
+        print("🗑️ [DashboardVM] Grupo a eliminar: '\(group.name ?? "Sin nombre")' (ObjectID: \(group.objectID))")
+        print("🗑️ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
+        print("🗑️ [DashboardVM] availableGroups ANTES: \(availableGroups.map { ($0.name ?? "Sin nombre", $0.objectID) })")
+        print("🗑️ [DashboardVM] currentGroup: '\(currentGroup?.name ?? "nil")' (ObjectID: \(currentGroup?.objectID.debugDescription ?? "nil"))")
+        print("🗑️ [DashboardVM] currentUser: '\(currentUser?.name ?? "nil")' (ObjectID: \(currentUser?.objectID.debugDescription ?? "nil"))")
+        
+        availableGroups.removeAll { $0.objectID == group.objectID }
+        
+        print("🗑️ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
+        print("🗑️ [DashboardVM] availableGroups DESPUÉS: \(availableGroups.map { $0.name ?? "Sin nombre" })")
+        print("🗑️ [DashboardVM] Enviando objectWillChange...")
+        objectWillChange.send()
+        print("✅ [DashboardVM] removeGroup() completado")
     }
     
     /// Generate test data (temporary - triggered by gear button)

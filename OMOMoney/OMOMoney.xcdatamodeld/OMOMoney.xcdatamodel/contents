@@ -69,7 +69,7 @@
         <attribute name="joinedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="role" optional="YES" attributeType="String" defaultValueString="owner"/>
         <attribute name="userId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <relationship name="group" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Group" inverseName="userGroups" inverseEntity="Group"/>
-        <relationship name="user" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="User" inverseName="userGroups" inverseEntity="User"/>
+        <relationship name="group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Group" inverseName="userGroups" inverseEntity="Group"/>
+        <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="userGroups" inverseEntity="User"/>
     </entity>
 </model>

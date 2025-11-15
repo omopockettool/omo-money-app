@@ -123,13 +123,28 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     
     /// Delete a group
     func deleteGroup(_ group: Group) async throws {
+        print("🔥 [GroupService] deleteGroup() iniciado")
+        print("🔥 [GroupService] Grupo a eliminar: '\(group.name ?? "Sin nombre")' (ObjectID: \(group.objectID))")
+        print("🔥 [GroupService] UUID: \(group.id?.uuidString ?? "nil")")
+        
+        // Verificar si el grupo tiene relaciones antes de eliminar
+        let userGroupsCount = group.userGroups?.count ?? 0
+        let itemListsCount = group.itemLists?.count ?? 0
+        
+        print("🔥 [GroupService] UserGroups relacionados: \(userGroupsCount)")
+        print("🔥 [GroupService] ItemLists relacionados: \(itemListsCount)")
+        
         await delete(group)
+        print("🔥 [GroupService] delete(group) ejecutado")
+        
         try await save()
+        print("🔥 [GroupService] save() ejecutado")
         
         // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
+        print("✅ [GroupService] Caches limpiados, deleteGroup() completado")
     }
     
     /// Check if group exists by name with caching

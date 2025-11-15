@@ -42,7 +42,6 @@ struct DashboardView: View {
                     } else if let errorMessage = viewModel.errorMessage {
                         // Header + Error view
                         DashboardHeaderView(
-                            groupName: viewModel.currentGroup?.name ?? "Mis gastos",
                             onSettingsTap: {
                                 viewModel.openSettings()
                             },
@@ -58,7 +57,6 @@ struct DashboardView: View {
                     } else {
                         // Header + Main content
                         DashboardHeaderView(
-                            groupName: viewModel.currentGroup?.name ?? "Mis gastos",
                             onSettingsTap: {
                                 viewModel.openSettings()
                             },
@@ -173,16 +171,42 @@ struct DashboardView: View {
                 }
             )
             
-            // Total spent card at bottom - ISOLATED from list refresh, easy thumb access
-            TotalSpentCardView(
-                totalAmount: viewModel.formattedTotalSpent,
-                onAddExpense: {
-                    showingQuickExpense = true
+            // Bottom controls - NEAR UX
+            VStack(alignment: .leading, spacing: AppConstants.UserInterface.padding) {
+                // Total spent card
+                TotalSpentCardView(
+                    totalAmount: viewModel.formattedTotalSpent,
+                    onAddExpense: {
+                        showingQuickExpense = true
+                    }
+                )
+                
+                // Chip selector pegado a la izquierda (debajo del Total)
+                if let currentGroup = viewModel.currentGroup,
+                   let userId = viewModel.currentUser?.id {
+                    GroupSelectorChipView(
+                        currentGroup: currentGroup,
+                        availableGroups: viewModel.availableGroups,
+                        context: context,
+                        userId: userId,
+                        onGroupChange: { newGroup in
+                            Task {
+                                await viewModel.changeGroup(to: newGroup)
+                            }
+                        },
+                        onGroupCreated: { newGroup in
+                            // Incremental update sin query
+                            viewModel.addGroup(newGroup)
+                        },
+                        onGroupDeleted: { deletedGroup in
+                            // Incremental delete
+                            viewModel.removeGroup(deletedGroup)
+                        }
+                    )
                 }
-            )
+            }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
-            .id("totalSpentCard")  // Stable identity, won't refresh
         }
     }
     

@@ -8,23 +8,21 @@
 import SwiftUI
 
 struct DashboardHeaderView: View {
-    let groupName: String
     let onSettingsTap: () -> Void
     let onDebugTap: (() -> Void)?
     
     @State private var debugTapCount = 0
     
-    init(groupName: String, onSettingsTap: @escaping () -> Void, onDebugTap: (() -> Void)? = nil) {
-        self.groupName = groupName
+    init(onSettingsTap: @escaping () -> Void, onDebugTap: (() -> Void)? = nil) {
         self.onSettingsTap = onSettingsTap
         self.onDebugTap = onDebugTap
     }
     
     var body: some View {
         HStack {
-            // Group name with tap gesture for debug access
-            Text(groupName)
-                .font(.title2)
+            // App title with tap gesture for debug access
+            Text("OMOMoney")
+                .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
                 .onTapGesture {
@@ -33,10 +31,10 @@ struct DashboardHeaderView: View {
             
             Spacer()
             
-            // Settings button
+            // Settings button (debug/test data)
             Button(action: onSettingsTap) {
                 Image(systemName: "gearshape.fill")
-                    .font(.title2)
+                    .font(.title3)
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
@@ -70,7 +68,6 @@ struct DashboardHeaderView: View {
 #Preview {
     VStack {
         DashboardHeaderView(
-            groupName: "Compras Ahorramas",
             onSettingsTap: {
                 print("Settings tapped")
             },

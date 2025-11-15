@@ -21,6 +21,7 @@ struct ExpenseListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
+                // Lista normal - lo más reciente arriba
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
                         Section {
@@ -59,7 +60,7 @@ struct ExpenseListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .animation(.easeInOut(duration: 0.2), value: itemLists.count)  // ✅ Smooth animation for data changes
+        .animation(.easeInOut(duration: 0.2), value: itemLists.count)
         .refreshable {
             await onRefresh()
         }
