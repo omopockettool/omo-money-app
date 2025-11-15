@@ -24,14 +24,8 @@ struct MainView: View {
     var body: some View {
         ZStack {
             if isLoading {
-                // Loading state
-                VStack {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                    Text("Loading...")
-                        .font(.headline)
-                        .padding(.top)
-                }
+                // Splash screen unificado con logo OMOMoney
+                SplashView()
             } else if hasUsers {
                 // Main app content when users exist
                 AppContentView(context: context)
@@ -41,9 +35,9 @@ struct MainView: View {
                     Image(systemName: "plus.circle")
                         .font(.largeTitle)
                         .foregroundColor(.accentColor)
-                    Text("Welcome to OMOMoney")
+                    Text("Bienvenido a OMOMoney")
                         .font(.title)
-                    Text("Create your first user to get started")
+                    Text("Crea tu primer usuario para comenzar")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -83,9 +77,20 @@ extension MainView {
             isLoading = true
         }
         
+        // Delay mínimo para mostrar el splash screen (mejor UX para branding)
+        let startTime = Date()
+        
         do {
             // Check if there's a current user
             let currentUser = try await userService.getCurrentUser()
+            
+            // Calcular tiempo transcurrido y esperar si fue muy rápido
+            let elapsed = Date().timeIntervalSince(startTime)
+            let minimumDisplayTime: TimeInterval = 2.0 // 2 segundos mínimo
+            
+            if elapsed < minimumDisplayTime {
+                try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
+            }
             
             await MainActor.run {
                 hasUsers = currentUser != nil

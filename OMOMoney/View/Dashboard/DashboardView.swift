@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var navigationPath = NavigationPath()
     @State private var showingAddItemList = false
     @State private var showingQuickExpense = false
+    @State private var contentOpacity: Double = 0.0
     
     private let context: NSManagedObjectContext
     
@@ -35,28 +36,44 @@ struct DashboardView: View {
         NavigationStack(path: $navigationPath) {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
-                    // Header
-                    DashboardHeaderView(
-                        groupName: viewModel.currentGroup?.name ?? "Mis gastos",
-                        onSettingsTap: {
-                            viewModel.openSettings()
-                        },
-                        onDebugTap: {
-                            Task {
-                                await logAllEntities()
-                            }
-                        }
-                    )
-                        .background(Color(.systemBackground))
-                    
                     if viewModel.isLoading {
+                        // Solo mostrar splash, sin header
                         loadingView
                     } else if let errorMessage = viewModel.errorMessage {
+                        // Header + Error view
+                        DashboardHeaderView(
+                            groupName: viewModel.currentGroup?.name ?? "Mis gastos",
+                            onSettingsTap: {
+                                viewModel.openSettings()
+                            },
+                            onDebugTap: {
+                                Task {
+                                    await logAllEntities()
+                                }
+                            }
+                        )
+                        .background(Color(.systemBackground))
+                        
                         errorView(errorMessage)
                     } else {
+                        // Header + Main content
+                        DashboardHeaderView(
+                            groupName: viewModel.currentGroup?.name ?? "Mis gastos",
+                            onSettingsTap: {
+                                viewModel.openSettings()
+                            },
+                            onDebugTap: {
+                                Task {
+                                    await logAllEntities()
+                                }
+                            }
+                        )
+                        .background(Color(.systemBackground))
+                        
                         mainContentView(geometry: geometry)
                     }
                 }
+                .opacity(viewModel.isLoading ? 1.0 : contentOpacity)
             }
             .background(Color(.systemBackground))
             .navigationDestination(for: String.self) { destination in
@@ -85,6 +102,11 @@ struct DashboardView: View {
         .onAppear {
             Task {
                 await viewModel.loadDashboardData()
+                // Fade in suave del contenido después de cargar - SOLO UNA VEZ
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seg para asegurar render
+                withAnimation(.easeIn(duration: 0.5)) {
+                    contentOpacity = 1.0
+                }
             }
         }
         .sheet(isPresented: $showingQuickExpense) {
@@ -102,15 +124,7 @@ struct DashboardView: View {
     // MARK: - Private Views
     
     private var loadingView: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            ProgressView()
-                .scaleEffect(1.5)
-            
-            Text("Cargando gastos...")
-                .font(.headline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        SplashView()
     }
     
     private func errorView(_ message: String) -> some View {

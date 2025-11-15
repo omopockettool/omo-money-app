@@ -95,6 +95,10 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     /// Load initial dashboard data
     func loadDashboardData() async {
         print("🔄 DashboardViewModel: loadDashboardData() starting...")
+        
+        // Delay mínimo para mostrar el splash screen (mejor UX para branding)
+        let startTime = Date()
+        
         // Update UI on main thread
         await MainActor.run {
             print("🔄 DashboardViewModel: Setting isLoading = true")
@@ -134,6 +138,14 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
             print("✅ DashboardViewModel: Found \(groupItemLists.count) ItemLists")
             print("📋 DashboardViewModel: ItemList descriptions: \(groupItemLists.map { $0.itemListDescription ?? "No desc" })")
+            
+            // Calcular tiempo transcurrido y esperar si fue muy rápido
+            let elapsed = Date().timeIntervalSince(startTime)
+            let minimumDisplayTime: TimeInterval = 1.0 // 1 segundo mínimo
+            
+            if elapsed < minimumDisplayTime {
+                try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
+            }
             
             // 4. Update UI on main thread
             await MainActor.run {

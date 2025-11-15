@@ -46,13 +46,7 @@ struct AppContentView: View {
     
     // MARK: - Loading View
     private var loadingView: some View {
-        VStack {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text("Loading your data...")
-                .font(.headline)
-                .padding(.top)
-        }
+        SplashView()
     }
     
     // MARK: - Setup Required View
@@ -62,15 +56,15 @@ struct AppContentView: View {
                 .font(.largeTitle)
                 .foregroundColor(.orange)
             
-            Text("Setup Required")
+            Text("Configuración requerida")
                 .font(.title)
             
-            Text("Please create a user and group to continue")
+            Text("Por favor crea un usuario y grupo para continuar")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             
-            Button("Go to Settings") {
+            Button("Ir a Configuración") {
                 // TODO: Navigate to settings or user management
                 print("Navigate to settings")
             }
@@ -93,6 +87,9 @@ extension AppContentView {
         Task {
             isLoading = true
             
+            // Delay mínimo para mostrar el splash screen (mejor UX para branding)
+            let startTime = Date()
+            
             do {
                 // Get the current user
                 guard let currentUser = try await userService.getCurrentUser() else {
@@ -104,6 +101,14 @@ extension AppContentView {
                 // Load groups for the current user
                 let userGroupService = UserGroupService(context: context)
                 let userGroups = try await userGroupService.getGroups(for: currentUser)
+                
+                // Calcular tiempo transcurrido y esperar si fue muy rápido
+                let elapsed = Date().timeIntervalSince(startTime)
+                let minimumDisplayTime: TimeInterval = 1.5 // 1.5 segundos mínimo
+                
+                if elapsed < minimumDisplayTime {
+                    try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
+                }
                 
                 await MainActor.run {
                     selectedUser = currentUser
