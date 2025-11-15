@@ -15,6 +15,7 @@ struct GroupSelectorChipView: View {
     let availableGroups: [Group]
     let context: NSManagedObjectContext
     let userId: UUID
+    let isChangingGroup: Bool  // ✅ Estado de carga del cambio de grupo
     let onGroupChange: (Group) -> Void
     let onGroupCreated: (Group) -> Void
     let onGroupDeleted: (Group) -> Void
@@ -51,12 +52,15 @@ struct GroupSelectorChipView: View {
                 availableGroups: availableGroups,
                 context: context,
                 userId: userId,
+                isChangingGroup: isChangingGroup,
+                showingPicker: $showingPicker,  // ✅ Binding para cerrar el sheet
                 onGroupChange: onGroupChange,
                 onGroupCreated: onGroupCreated,
                 onGroupDeleted: onGroupDeleted
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+            .interactiveDismissDisabled(isChangingGroup)  // ✅ No permitir cerrar mientras carga
         }
     }
 }
@@ -67,16 +71,21 @@ struct GroupPickerSheet: View {
     @State private var availableGroups: [Group]
     let context: NSManagedObjectContext
     let userId: UUID
+    let isChangingGroup: Bool  // ✅ Estado de carga
+    @Binding var showingPicker: Bool  // ✅ Para cerrar el sheet
     let onGroupChange: (Group) -> Void
     let onGroupCreated: (Group) -> Void
     let onGroupDeleted: (Group) -> Void
     
     @State private var showingCreateGroup = false
+    @State private var selectedGroupID: NSManagedObjectID?  // ✅ Track del grupo siendo cargado
     
     init(currentGroup: Group,
          availableGroups: [Group],
          context: NSManagedObjectContext,
          userId: UUID,
+         isChangingGroup: Bool,
+         showingPicker: Binding<Bool>,
          onGroupChange: @escaping (Group) -> Void,
          onGroupCreated: @escaping (Group) -> Void,
          onGroupDeleted: @escaping (Group) -> Void) {
@@ -84,6 +93,8 @@ struct GroupPickerSheet: View {
         self._availableGroups = State(initialValue: availableGroups)
         self.context = context
         self.userId = userId
+        self.isChangingGroup = isChangingGroup
+        self._showingPicker = showingPicker
         self.onGroupChange = onGroupChange
         self.onGroupCreated = onGroupCreated
         self.onGroupDeleted = onGroupDeleted
@@ -94,6 +105,8 @@ struct GroupPickerSheet: View {
             List {
                 ForEach(availableGroups, id: \.objectID) { group in
                     Button {
+                        // Marcar el grupo como seleccionado y llamar al callback
+                        selectedGroupID = group.objectID
                         onGroupChange(group)
                     } label: {
                         HStack {
@@ -109,13 +122,20 @@ struct GroupPickerSheet: View {
                             
                             Spacer()
                             
-                            if group.objectID == currentGroup.objectID {
+                            // Mostrar spinner si es el grupo seleccionado Y está cargando
+                            if group.objectID == selectedGroupID && isChangingGroup {
+                                ProgressView()
+                                    .scaleEffect(0.9)
+                            }
+                            // Mostrar checkmark si es el grupo actual Y NO está cargando
+                            else if group.objectID == currentGroup.objectID {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.accentColor)
                             }
                         }
                         .contentShape(Rectangle())
                     }
+                    .disabled(isChangingGroup)  // ✅ Deshabilitar tap mientras carga
                     // Solo permitir eliminar si no es el último grupo
                     .deleteDisabled(availableGroups.count <= 1)
                 }
@@ -131,8 +151,9 @@ struct GroupPickerSheet: View {
                         showingCreateGroup = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(isChangingGroup ? .gray : .accentColor)
                     }
+                    .disabled(isChangingGroup)  // ✅ Deshabilitar mientras carga
                 }
             }
             .sheet(isPresented: $showingCreateGroup) {
@@ -148,6 +169,16 @@ struct GroupPickerSheet: View {
                 )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+            }
+            .onChange(of: isChangingGroup) { oldValue, newValue in
+                // ✅ Cuando termina de cargar (false), cerrar el sheet
+                if oldValue == true && newValue == false && selectedGroupID != nil {
+                    // Esperar un poquito para que el usuario vea el cambio
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showingPicker = false
+                        selectedGroupID = nil  // Reset
+                    }
+                }
             }
         }
     }
@@ -228,6 +259,7 @@ struct GroupPickerSheet: View {
                 availableGroups: [Group(), Group()],
                 context: context,
                 userId: UUID(),
+                isChangingGroup: false,
                 onGroupChange: { _ in },
                 onGroupCreated: { _ in },
                 onGroupDeleted: { _ in }

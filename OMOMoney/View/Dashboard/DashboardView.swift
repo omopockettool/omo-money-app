@@ -72,6 +72,25 @@ struct DashboardView: View {
                     }
                 }
                 .opacity(viewModel.isLoading ? 1.0 : contentOpacity)
+                
+                // Overlay sutil para cambio de grupo (NO splash completo)
+                if viewModel.isChangingGroup {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .overlay {
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(.white)
+                                
+                                Text("Cambiando grupo...")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.isChangingGroup)
+                }
             }
             .background(Color(.systemBackground))
             .navigationDestination(for: String.self) { destination in
@@ -189,6 +208,7 @@ struct DashboardView: View {
                         availableGroups: viewModel.availableGroups,
                         context: context,
                         userId: userId,
+                        isChangingGroup: viewModel.isChangingGroup,  // ✅ Pasar estado de carga
                         onGroupChange: { newGroup in
                             Task {
                                 await viewModel.changeGroup(to: newGroup)

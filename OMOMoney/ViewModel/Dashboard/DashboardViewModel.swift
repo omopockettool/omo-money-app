@@ -23,6 +23,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     @Published var totalSpent: Double = 0.0
     @Published var isLoading = false
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
+    @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
     @Published var errorMessage: String?
     @Published var currentGroup: Group?
     @Published var currentUser: User?
@@ -420,10 +421,13 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name ?? "Unknown")")
         
         await MainActor.run {
-            isLoading = true
+            isChangingGroup = true  // ✅ Usa loading sutil, no el splash
         }
         
         do {
+            // ✅ Delay de 0.3 segundos para mostrar el spinner en acción
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 segundos
+            
             // Cargar ItemLists del nuevo grupo
             let groupItemLists = try await itemListService.getItemLists(for: newGroup)
             let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
@@ -432,7 +436,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 currentGroup = newGroup
                 itemLists = sortedItemLists
                 calculateTotalSpent()
-                isLoading = false
+                isChangingGroup = false
                 
                 print("✅ DashboardViewModel: Grupo cambiado exitosamente")
                 print("📋 DashboardViewModel: Cargados \(groupItemLists.count) ItemLists")
@@ -440,7 +444,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         } catch {
             await MainActor.run {
                 errorMessage = "Error al cambiar de grupo: \(error.localizedDescription)"
-                isLoading = false
+                isChangingGroup = false
             }
             print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
         }
