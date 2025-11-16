@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-11-16
+
+### Added
+- **Custom Alert Component**: Created reusable alert system for the entire app
+  - Modular `CustomAlertView` component with smooth animations
+  - Located in `/Base/View/Alert/` directory following MVVM architecture
+  - Supports three button styles: `.default`, `.cancel`, `.destructive`
+  - Spring animation with fade, scale, and offset effects
+  - Optional message support and backdrop dismiss
+  - View extension `.customAlert()` for easy implementation
+  - Complete documentation in README.md
+
+### Changed
+- **Group Deletion Flow**: Enhanced delete experience with better UX
+  - Swipe-to-reveal action (no accidental deletion on full swipe)
+  - `allowsFullSwipe: false` prevents accidental triggers
+  - Explicit "Delete" button must be tapped after swipe
+  - Confirmation alert with custom styling before deletion
+  - Loading overlay with spinner during group deletion (1.5s visible)
+  - Can now delete currently selected group (auto-switches to first available)
+  - UI fully blocked during deletion to prevent conflicts
+  - Smooth animations throughout the entire flow
+
+### Fixed
+- **Alert Animations**: All dismiss actions now use smooth fade-out
+  - Tap outside: Smooth fade-out ✓
+  - Cancel button: Smooth fade-out (previously abrupt) ✓
+  - Delete button: Smooth fade-out ✓
+  - Consistent 0.25s ease-out animation across all interactions
+
 ## [0.14.0] - 2025-11-15
 
 ### Added
