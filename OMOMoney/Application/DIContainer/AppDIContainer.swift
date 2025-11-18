@@ -1,0 +1,88 @@
+//
+//  AppDIContainer.swift
+//  OMOMoney
+//
+//  Created on 11/18/25.
+//
+
+import Foundation
+import CoreData
+
+/// Main Dependency Injection Container for the application
+/// Centralizes the creation and management of dependencies
+final class AppDIContainer {
+    
+    // MARK: - Singleton
+    
+    static let shared = AppDIContainer()
+    
+    private init() {}
+    
+    // MARK: - Core Data Stack
+    
+    lazy var persistenceController: PersistenceController = {
+        return PersistenceController.shared
+    }()
+    
+    private var viewContext: NSManagedObjectContext {
+        persistenceController.container.viewContext
+    }
+    
+    // MARK: - Services
+    
+    lazy var userService: UserServiceProtocol = {
+        return UserService(context: viewContext)
+    }()
+    
+    lazy var groupService: GroupServiceProtocol = {
+        return GroupService(context: viewContext)
+    }()
+    
+    lazy var categoryService: CategoryServiceProtocol = {
+        return CategoryService(context: viewContext)
+    }()
+    
+    lazy var paymentMethodService: PaymentMethodServiceProtocol = {
+        return PaymentMethodService(context: viewContext)
+    }()
+    
+    lazy var itemListService: ItemListServiceProtocol = {
+        return ItemListService(context: viewContext)
+    }()
+    
+    lazy var itemService: ItemServiceProtocol = {
+        return ItemService(context: viewContext)
+    }()
+    
+    lazy var userGroupService: UserGroupServiceProtocol = {
+        return UserGroupService(context: viewContext)
+    }()
+    
+    // MARK: - Repositories
+    
+    lazy var userRepository: UserRepository = {
+        return DefaultUserRepository(userService: userService)
+    }()
+    
+    lazy var groupRepository: GroupRepository = {
+        return DefaultGroupRepository(groupService: groupService)
+    }()
+    
+    // MARK: - Scene DIContainers
+    
+    func makeUserSceneDIContainer() -> UserSceneDIContainer {
+        let dependencies = UserSceneDIContainer.Dependencies(
+            userRepository: userRepository,
+            groupRepository: groupRepository
+        )
+        return UserSceneDIContainer(dependencies: dependencies)
+    }
+    
+    func makeGroupSceneDIContainer() -> GroupSceneDIContainer {
+        let dependencies = GroupSceneDIContainer.Dependencies(
+            groupRepository: groupRepository,
+            userRepository: userRepository
+        )
+        return GroupSceneDIContainer(dependencies: dependencies)
+    }
+}
