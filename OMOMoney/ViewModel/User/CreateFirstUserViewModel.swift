@@ -84,7 +84,7 @@ class CreateFirstUserViewModel: ObservableObject {
             print("✅ Personal group created: \(groupDomain.name)")
             
             // Use Case 3: Create UserGroup relationship
-            let userGroupDomain = try await createUserGroupUseCase.execute(
+            _ = try await createUserGroupUseCase.execute(
                 userId: userDomain.id,
                 groupId: groupDomain.id,
                 role: "owner"

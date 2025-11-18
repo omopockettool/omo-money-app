@@ -671,7 +671,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             // 🎯 INCREMENTAL CACHE: NO clearCache() needed!
             // Cache was already updated in removeItemList()
             print("💡 DashboardViewModel: Cache already updated incrementally - no refresh needed")
-            print("📊 DashboardViewModel: Current itemLists count: \(await itemLists.count)")
+            print("📊 DashboardViewModel: Current itemLists count: \(itemLists.count)")
             
         } catch {
             print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")

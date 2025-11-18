@@ -133,9 +133,8 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     
     /// Delete an itemList
     func deleteItemList(_ itemList: ItemList) async throws {
-        // Get the group before deleting the itemList
-        let group = itemList.group
-        let itemListDescription = itemList.itemListDescription ?? "Unknown"
+    // Get the group before deleting the itemList (removed unused 'group' to resolve warning)
+    let itemListDescription = itemList.itemListDescription ?? "Unknown"
         
         print("🗑️ ItemListService: Deleting ItemList '\(itemListDescription)'")
         

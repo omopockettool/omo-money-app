@@ -32,7 +32,7 @@ class TestDataGenerator {
             group = fetchedGroup
         }
         
-        guard let user = try await getOrCreateTestUser() else {
+        guard (try await getOrCreateTestUser()) != nil else {
             throw TestDataError.missingRequiredData
         }
         

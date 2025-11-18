@@ -105,7 +105,7 @@ struct AddItemListView: View {
                             .foregroundColor(.blue)
                             .font(.caption)
                         
-                        Text(group.name ?? "Sin nombre")
+                        Text(group.name)
                             .foregroundColor(.primary)
                         
                         Spacer()
