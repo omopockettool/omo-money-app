@@ -59,6 +59,27 @@ final class AppDIContainer {
     }()
     
     // MARK: - Repositories
+
+    lazy var itemListRepository: ItemListRepository = {
+        return DefaultItemListRepository(itemListService: itemListService)
+    }()
+
+    // MARK: - ItemList Use Cases
+    func makeCreateItemListUseCase() -> CreateItemListUseCase {
+        DefaultCreateItemListUseCase(itemListRepository: itemListRepository)
+    }
+    func makeFetchItemListsUseCase() -> FetchItemListsUseCase {
+        DefaultFetchItemListsUseCase(itemListRepository: itemListRepository)
+    }
+    func makeUpdateItemListUseCase() -> UpdateItemListUseCase {
+        DefaultUpdateItemListUseCase(itemListRepository: itemListRepository)
+    }
+    func makeDeleteItemListUseCase() -> DeleteItemListUseCase {
+        DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
+    }
+    func makeBulkInsertItemListsUseCase() -> BulkInsertItemListsUseCase {
+        DefaultBulkInsertItemListsUseCase(itemListRepository: itemListRepository)
+    }
     
     lazy var userRepository: UserRepository = {
         return DefaultUserRepository(userService: userService)

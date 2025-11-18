@@ -36,4 +36,9 @@ protocol ItemListServiceProtocol {
     
     /// Get itemLists count for a specific user across all their groups
     func getItemListsCount(for user: User) async throws -> Int
+
+    /// Bulk insert multiple item lists
+    /// - Parameter itemLists: Array of ItemListDomain objects to insert
+    /// - Returns: Array of inserted ItemList objects
+    func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemList]
 }

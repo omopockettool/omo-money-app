@@ -2,36 +2,23 @@ import SwiftUI
 import CoreData
 
 struct AddItemListView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    let user: User
-    let group: Group
+    let user: UserDomain
+    let group: GroupDomain
     @Binding var navigationPath: NavigationPath
-    let onItemListCreated: (ItemList) -> Void
-    
+    let onItemListCreated: (ItemListDomain) -> Void
+
+    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: AddItemListViewModel
     @State private var showingCategoryPicker = false
     @State private var showingPaymentMethodPicker = false
-    
-    init(user: User, group: Group, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping (ItemList) -> Void) {
+
+    init(user: UserDomain, group: GroupDomain, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping (ItemListDomain) -> Void) {
         self.user = user
         self.group = group
         self._navigationPath = navigationPath
         self.onItemListCreated = onItemListCreated
-        
-        let itemListService = ItemListService(context: context)
-        let categoryService = CategoryService(context: context)
-        let itemService = ItemService(context: context)
-        let paymentMethodService = PaymentMethodService(context: context)
-        
-        print("🔄 AddItemListView: Initializing with callback approach")
-        
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(
-            itemListService: itemListService,
-            categoryService: categoryService,
-            itemService: itemService,
-            paymentMethodService: paymentMethodService
-        ))
+        print("🔄 AddItemListView: Initializing with Clean Architecture DI")
+        self._viewModel = StateObject(wrappedValue: AddItemListViewModel())
     }
     
     var body: some View {
@@ -169,14 +156,14 @@ struct AddItemListView: View {
         .sheet(isPresented: $showingCategoryPicker) {
             CategoryPickerView(
                 selectedCategory: $viewModel.selectedCategory,
-                group: group,
+                group: group.toCoreData(context: viewContext),
                 context: viewContext
             )
         }
         .sheet(isPresented: $showingPaymentMethodPicker) {
             PaymentMethodPickerView(
                 selectedPaymentMethod: $viewModel.selectedPaymentMethod,
-                group: group,
+                group: group.toCoreData(context: viewContext),
                 context: viewContext
             )
         }
@@ -190,8 +177,9 @@ struct AddItemListView: View {
             }
         }
         .task {
-            await viewModel.loadCategories(for: group)
-            await viewModel.loadPaymentMethods(for: group)
+            let groupCD = group.toCoreData(context: viewContext)
+            await viewModel.loadCategories(for: groupCD)
+            await viewModel.loadPaymentMethods(for: groupCD)
         }
     }
     
@@ -206,14 +194,14 @@ struct AddItemListView: View {
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
             category: category,
-            group: group,
+            group: group.toCoreData(context: viewContext),
             paymentMethod: viewModel.selectedPaymentMethod
         ) {
             // ✅ SUCCESS: ItemList created successfully
-            print("✅ AddItemListView: ItemList created: '\(createdItemList.itemListDescription ?? "Unknown")'")
+            print("✅ AddItemListView: ItemList created: '\(createdItemList.itemListDescription)'")
             print("🔄 AddItemListView: Calling onItemListCreated callback with ItemList...")
             
-            // Pass the created ItemList to the callback for incremental cache update
+            // Pass the created ItemListDomain to the callback for incremental cache update
             onItemListCreated(createdItemList)
             
             print("✅ AddItemListView: Callback executed, navigating back...")
@@ -261,24 +249,20 @@ struct AddItemListView: View {
 }
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    
-    // Create test data
-    let user = User(context: context)
-    user.id = UUID()
-    user.name = "Test User"
-    user.email = "test@example.com"
-    
-    let group = Group(context: context)
-    group.id = UUID()
-    group.name = "Test Group"
-    group.currency = "USD"
-    
-    return AddItemListView(
-        user: user, 
-        group: group, 
-        context: context, 
-        navigationPath: .constant(NavigationPath()), 
+    let user = UserDomain(
+        id: UUID(),
+        name: "Test User",
+        email: "test@example.com"
+    )
+    let group = GroupDomain(
+        id: UUID(),
+        name: "Test Group",
+        currency: "USD"
+    )
+    AddItemListView(
+        user: user,
+        group: group,
+        navigationPath: .constant(NavigationPath()),
         onItemListCreated: { _ in }
     )
 }

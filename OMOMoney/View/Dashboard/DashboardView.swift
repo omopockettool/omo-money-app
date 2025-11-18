@@ -98,17 +98,16 @@ struct DashboardView: View {
                    let user = viewModel.currentUser,
                    let group = viewModel.currentGroup {
                     AddItemListView(
-                        user: user,
-                        group: group,
-                        context: context,
+                        user: user.toDomain(),
+                        group: group.toDomain(),
                         navigationPath: $navigationPath,
                         onItemListCreated: { createdItemList in
                             print("🔄 DashboardView: onItemListCreated callback triggered")
-                            print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription ?? "Unknown")'")
-                            
+                            print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
                             Task {
                                 print("⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)")
-                                await viewModel.addItemList(createdItemList)
+                                let itemList = createdItemList.toCoreData(context: context)
+                                await viewModel.addItemList(itemList)
                                 print("✅ DashboardView: Incremental update completed - UI updated instantly!")
                             }
                         }

@@ -283,4 +283,27 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
         return try await count(request)
     }
+
+        /// Bulk insert multiple item lists
+    /// - Parameter itemLists: Array of ItemListDomain objects to insert
+    /// - Returns: Array of inserted ItemList objects
+    func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemList] {
+        var inserted: [ItemList] = []
+        for domain in itemLists {
+            // Best practice: Ensure required IDs are present before proceeding
+            guard let categoryId = domain.categoryId, let groupId = domain.groupId else {
+                // Optionally log or collect skipped items for reporting
+                continue
+            }
+            let itemList = try await createItemList(
+                description: domain.itemListDescription,
+                date: domain.date,
+                categoryId: categoryId,
+                groupId: groupId,
+                paymentMethodId: domain.paymentMethodId
+            )
+            inserted.append(itemList)
+        }
+        return inserted
+    }
 }
