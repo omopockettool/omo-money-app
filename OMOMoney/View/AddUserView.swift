@@ -15,16 +15,14 @@ struct AddUserView: View {
     @State private var name = ""
     @State private var email = ""
     
-    init(context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
-        let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService, context: context))
+    init(navigationPath: Binding<NavigationPath>) {
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel())
         self._navigationPath = navigationPath
     }
     
     // For use in sheets where navigation is not needed
-    init(context: NSManagedObjectContext) {
-        let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel(userService: userService, context: context))
+    init() {
+        self._viewModel = StateObject(wrappedValue: CreateUserViewModel())
         self._navigationPath = .constant(NavigationPath())
     }
     
@@ -107,7 +105,6 @@ struct AddUserView: View {
 #Preview {
     NavigationStack {
         AddUserView(
-            context: PersistenceController.preview.container.viewContext,
             navigationPath: .constant(NavigationPath())
         )
     }

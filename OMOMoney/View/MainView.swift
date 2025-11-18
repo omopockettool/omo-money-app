@@ -46,7 +46,6 @@ struct MainView: View {
         .sheet(isPresented: $showingCreateFirstUser) {
             CreateFirstUserView(
                 isPresented: $showingCreateFirstUser,
-                context: context,
                 onUserCreated: {
                     print("🔄 Usuario creado, recargando estado...")
                     await checkForUsers()

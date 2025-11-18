@@ -65,7 +65,19 @@ final class AppDIContainer {
     }()
     
     lazy var groupRepository: GroupRepository = {
-        return DefaultGroupRepository(groupService: groupService)
+        return DefaultGroupRepository(
+            groupService: groupService,
+            userGroupService: userGroupService,
+            userService: userService
+        )
+    }()
+    
+    lazy var userGroupRepository: UserGroupRepository = {
+        return DefaultUserGroupRepository(
+            userGroupService: userGroupService,
+            userService: userService,
+            groupService: groupService
+        )
     }()
     
     // MARK: - Scene DIContainers
@@ -73,7 +85,8 @@ final class AppDIContainer {
     func makeUserSceneDIContainer() -> UserSceneDIContainer {
         let dependencies = UserSceneDIContainer.Dependencies(
             userRepository: userRepository,
-            groupRepository: groupRepository
+            groupRepository: groupRepository,
+            userGroupRepository: userGroupRepository
         )
         return UserSceneDIContainer(dependencies: dependencies)
     }

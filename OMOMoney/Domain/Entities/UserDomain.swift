@@ -62,6 +62,7 @@ enum ValidationError: LocalizedError {
     case emptyItemDescription
     case emptyCategoryName
     case emptyPaymentMethodName
+    case invalidRole
     
     var errorDescription: String? {
         switch self {
@@ -81,6 +82,8 @@ enum ValidationError: LocalizedError {
             return "Category name cannot be empty"
         case .emptyPaymentMethodName:
             return "Payment method name cannot be empty"
+        case .invalidRole:
+            return "Role cannot be empty"
         }
     }
 }

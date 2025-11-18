@@ -16,6 +16,7 @@ final class UserSceneDIContainer {
     struct Dependencies {
         let userRepository: UserRepository
         let groupRepository: GroupRepository
+        let userGroupRepository: UserGroupRepository
     }
     
     private let dependencies: Dependencies
@@ -46,6 +47,10 @@ final class UserSceneDIContainer {
     
     func makeSearchUsersUseCase() -> SearchUsersUseCase {
         return DefaultSearchUsersUseCase(userRepository: dependencies.userRepository)
+    }
+    
+    func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
+        return DefaultCreateUserGroupUseCase(userGroupRepository: dependencies.userGroupRepository)
     }
     
     // MARK: - ViewModels (for future use)

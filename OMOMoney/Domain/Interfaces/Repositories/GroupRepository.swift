@@ -10,11 +10,6 @@ import Foundation
 /// Repository protocol for Group domain operations
 /// Abstracts the data source implementation from business logic
 protocol GroupRepository {
-    /// Fetch all groups
-    /// - Returns: Array of GroupDomain objects
-    /// - Throws: Repository errors
-    func fetchGroups() async throws -> [GroupDomain]
-    
     /// Fetch a specific group by ID
     /// - Parameter id: Group UUID
     /// - Returns: GroupDomain object if found

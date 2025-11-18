@@ -33,7 +33,7 @@ struct UserListView: View {
                 }
             }
             .sheet(isPresented: $showingAddUser) {
-                AddUserView(context: viewContext)
+                AddUserView()
                     .transition(.move(edge: .bottom))
                     .animation(AnimationHelper.slide, value: showingAddUser)
             }

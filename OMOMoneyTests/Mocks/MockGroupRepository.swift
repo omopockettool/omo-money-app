@@ -13,7 +13,6 @@ final class MockGroupRepository: GroupRepository {
     
     // MARK: - Tracking Properties
     
-    var fetchGroupsCalled = false
     var fetchGroupCalled = false
     var createGroupCalled = false
     var updateGroupCalled = false
@@ -33,16 +32,6 @@ final class MockGroupRepository: GroupRepository {
     var errorToThrow: Error?
     
     // MARK: - GroupRepository Implementation
-    
-    func fetchGroups() async throws -> [GroupDomain] {
-        fetchGroupsCalled = true
-        
-        if let error = errorToThrow {
-            throw error
-        }
-        
-        return groupsToReturn
-    }
     
     func fetchGroup(id: UUID) async throws -> GroupDomain? {
         fetchGroupCalled = true

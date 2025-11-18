@@ -6,9 +6,9 @@ struct CreateFirstUserView: View {
     @StateObject private var viewModel: CreateFirstUserViewModel
     var onUserCreated: (() async -> Void)?
     
-    init(isPresented: Binding<Bool>, context: NSManagedObjectContext, onUserCreated: (() async -> Void)? = nil) {
+    init(isPresented: Binding<Bool>, onUserCreated: (() async -> Void)? = nil) {
         self._isPresented = isPresented
-        self._viewModel = StateObject(wrappedValue: CreateFirstUserViewModel(context: context))
+        self._viewModel = StateObject(wrappedValue: CreateFirstUserViewModel())
         self.onUserCreated = onUserCreated
     }
     
@@ -106,7 +106,6 @@ struct CreateFirstUserView: View {
 #Preview {
     CreateFirstUserView(
         isPresented: .constant(false), 
-        context: PersistenceController.preview.container.viewContext,
         onUserCreated: {}
     )
 }
