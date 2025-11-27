@@ -5,6 +5,82 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2025-11-27
+
+### Changed
+- **🏗️ MAJOR REFACTOR: Clean Architecture Implementation**
+  - **Complete project reorganization** following Clean Architecture principles
+  - **Single source of truth** for all protocols consolidated in `Domain/Protocols/`
+  - **5-Layer Architecture**:
+    - `Application/` - App entry point, DI containers, configuration
+    - `Domain/` - Pure business logic (Entities, Protocols, UseCases, Errors)
+    - `Data/` - Persistence & data access (CoreData, Repositories, Services)
+    - `Presentation/` - UI layer organized by feature (Scenes, Common components)
+    - `Infrastructure/` - Cross-cutting concerns (Cache, Helpers, Utils, Extensions)
+
+- **Domain Layer Improvements**:
+  - Renamed `Domain/Interfaces/` → `Domain/Protocols/` for consistency
+  - Moved all service protocols from `Services/Protocols/` → `Domain/Protocols/Services/`
+  - Organized repository protocols in `Domain/Protocols/Repositories/`
+  - Use cases organized by feature: User, Group, ItemList, UserGroup
+  - 7 domain entities, 7 repository protocols, 7 service protocols
+
+- **Data Layer Consolidation**:
+  - Moved service implementations to `Data/Services/` (8 services)
+  - Consolidated Core Data files into `Data/CoreData/`
+  - Core Data entity mappings in `Data/CoreData/Entities/`
+  - Repository implementations in `Data/Repositories/` (4 repositories)
+  - Persistence controller and .xcdatamodeld properly organized
+
+- **Presentation Layer Organization**:
+  - Feature-based organization in `Presentation/Scenes/`:
+    - Dashboard, User, Group, ItemList, Category, PaymentMethod, Item
+  - Common components in `Presentation/Common/Views/` and `Components/`
+  - Moved all View and ViewModel files to their respective feature folders
+  - Alert and Loading components properly organized
+
+- **Infrastructure Cleanup**:
+  - Utilities reorganized into logical subfolders:
+    - `Cache/` - CacheManager
+    - `Helpers/` - 6 helper classes
+    - `Utils/` - DashboardUpdateManager, TestDataGenerator
+    - `Extensions/` - Color+Hex, String+Localization
+    - `Constants/` - AppConstants
+
+- **Removed Directories**:
+  - Eliminated `View/`, `ViewModel/`, `Utilities/`, `Services/`, `Base/`, `CoreDataStack/`
+  - Cleaned up scattered protocol files
+  - Removed duplicate and empty directories
+
+### Added
+- **Comprehensive Documentation**:
+  - `ARCHITECTURE_DIAGRAMS.md` - Visual architecture diagrams and flows
+  - `CLEAN_ARCHITECTURE_GUIDE.md` - Complete architecture explanation
+  - `IMPLEMENTATION_GUIDE.md` - Step-by-step reorganization guide
+  - `PROJECT_REORGANIZATION_PLAN.md` - Detailed migration plan
+  - `QUICK_START.md` - Quick reference for the new structure
+  - `REORGANIZATION_CHECKLIST.md` - Phase-by-phase checklist
+
+### Fixed
+- **Build System**: Project builds successfully with new structure (exit code 0)
+- **File References**: All file references properly updated in Xcode project
+- **Module Organization**: Clear dependency flow (outer layers → Domain)
+
+### Technical Details
+- **43 directories** organized in clean hierarchy
+- **Zero breaking changes** - app functionality fully preserved
+- **Improved scalability** - easy to add new features
+- **Better testability** - clear layer separation
+- **Team-friendly** - intuitive structure for collaboration
+
+### Migration Notes
+- All files moved using filesystem operations
+- Xcode project references automatically updated
+- No code changes required - purely organizational
+- Full backward compatibility maintained
+
+---
+
 ## [0.15.0] - 2025-11-16
 
 ### Added

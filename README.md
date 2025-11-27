@@ -69,10 +69,42 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 
 ## 🏗️ Architecture
 
-### MVVM Pattern
-- **Models**: Core Data entities with proper relationships
-- **ViewModels**: Business logic and data management
-- **Views**: Pure UI components with no business logic
+### Clean Architecture (5-Layer Structure)
+Following Clean Architecture principles with strict separation of concerns:
+
+#### 📱 Application Layer
+- App entry point and configuration
+- Dependency Injection containers
+- App-wide setup and initialization
+
+#### 🎯 Domain Layer (Pure Business Logic)
+- **Entities**: 7 domain models (UserDomain, GroupDomain, etc.)
+- **Protocols**: Single source of truth for all contracts
+  - Repository protocols (7)
+  - Service protocols (7)
+- **Use Cases**: Business operations organized by feature
+  - User, Group, ItemList, UserGroup
+- **Errors**: Domain-specific error types
+- **Zero framework dependencies** - Pure Swift
+
+#### 💾 Data Layer (Implementation Details)
+- **Core Data**: Persistence layer with entity mappings
+- **Repositories**: 4 repository implementations
+- **Services**: 8 service implementations
+- **DTOs**: Data transfer objects and mapping logic
+
+#### 🎨 Presentation Layer (UI)
+- **Scenes**: Feature-based organization
+  - Dashboard, User, Group, ItemList, Category, PaymentMethod, Item
+- **ViewModels**: Presentation logic (MVVM pattern)
+- **Common**: Reusable views and components
+- **@MainActor** for UI thread safety
+
+#### 🔧 Infrastructure Layer (Cross-Cutting)
+- Cache management
+- Helpers and utilities
+- Extensions
+- Constants
 
 ### Core Data Entities
 - **User**: App users with authentication
@@ -82,6 +114,13 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 - **Item**: Individual expense items within item lists
 - **PaymentMethod**: Payment method tracking for groups (credit cards, cash, etc.)
 - **UserGroup**: User-group relationships with roles
+
+### Architecture Benefits
+- ✅ **Testability**: Each layer independently testable
+- ✅ **Scalability**: Easy to add features without affecting existing code
+- ✅ **Maintainability**: Changes isolated to specific layers
+- ✅ **Team Collaboration**: Clear boundaries for parallel work
+- ✅ **Flexibility**: Can swap implementations (e.g., Core Data → Realm)
 
 ### Performance Features
 - **Background Queues**: Core Data operations don't block UI
@@ -134,19 +173,71 @@ A native iOS personal expense tracker app built with SwiftUI, following strict M
 
 ```
 OMOMoney/
-├── View/                    # SwiftUI Views
-│   ├── MainView.swift      # Root navigation
-│   ├── UserListView.swift  # User list display
-│   ├── AddUserView.swift   # User creation form
-│   └── EditUserView.swift  # User editing form
-├── ViewModel/              # MVVM ViewModels
-│   ├── UserViewModel.swift # User business logic
-│   ├── GroupViewModel.swift # Group business logic
-│   └── ...                 # Other entity ViewModels
-├── OMOMoney.xcdatamodeld/  # Core Data model
-├── Persistence.swift       # Core Data stack
-└── ContentView.swift       # App itemList point
+├── Application/              # App entry & DI
+│   ├── OMOMoneyApp.swift
+│   ├── ContentView.swift
+│   └── DIContainer/
+│       ├── AppDIContainer.swift
+│       ├── UserSceneDIContainer.swift
+│       └── GroupSceneDIContainer.swift
+│
+├── Domain/                   # Pure business logic
+│   ├── Entities/            # 7 domain models
+│   │   ├── UserDomain.swift
+│   │   ├── GroupDomain.swift
+│   │   ├── ItemListDomain.swift
+│   │   └── ...
+│   ├── Protocols/           # ⭐ Single source of truth
+│   │   ├── Repositories/    # 7 repository protocols
+│   │   └── Services/        # 7 service protocols
+│   ├── UseCases/            # Business operations
+│   │   ├── User/
+│   │   ├── Group/
+│   │   ├── ItemList/
+│   │   └── UserGroup/
+│   └── Errors/              # Domain errors
+│
+├── Data/                     # Persistence & data access
+│   ├── CoreData/
+│   │   ├── Persistence.swift
+│   │   ├── OMOMoney.xcdatamodeld
+│   │   └── Entities/        # 7 entity mappings
+│   ├── Repositories/        # 4 repository implementations
+│   └── Services/            # 8 service implementations
+│
+├── Presentation/             # UI layer
+│   ├── Scenes/              # Feature-based organization
+│   │   ├── Dashboard/
+│   │   ├── User/
+│   │   ├── Group/
+│   │   ├── ItemList/
+│   │   ├── Category/
+│   │   ├── PaymentMethod/
+│   │   └── Item/
+│   └── Common/
+│       ├── Views/           # Shared views
+│       └── Components/      # Reusable components
+│
+├── Infrastructure/           # Cross-cutting concerns
+│   ├── Cache/
+│   ├── Helpers/
+│   ├── Utils/
+│   ├── Extensions/
+│   └── Constants/
+│
+├── Resources/                # Localization & assets
+│   ├── en.lproj/
+│   └── es.lproj/
+│
+└── Assets.xcassets/         # App assets
 ```
+
+For detailed architecture documentation, see:
+- **[📚 Documentation Hub](docs/README.md)** - Complete documentation index
+- **[🏗️ Clean Architecture Guide](docs/architecture/CLEAN_ARCHITECTURE_GUIDE.md)** - Complete architecture explanation
+- **[📊 Architecture Diagrams](docs/architecture/ARCHITECTURE_DIAGRAMS.md)** - Visual diagrams and flows
+- **[⚡ Quick Start](docs/architecture/QUICK_START.md)** - Quick reference guide
+- **[📁 Project Structure](docs/architecture/PROJECT_STRUCTURE.md)** - Detailed file organization
 
 ## 🔧 Development Workflow
 
@@ -212,13 +303,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For development questions or issues:
+- **[📚 Browse Documentation](docs/README.md)** - Complete documentation hub
 - Review the [TODO.md](TODO.md) for current development status
 - Check [CHANGELOG.md](CHANGELOG.md) for recent changes
 - Ensure you're testing on a physical device
 
 ---
 
-**Last Updated**: November 7, 2025  
-**Current Version**: 0.12.0  
+**Last Updated**: November 27, 2025
+**Current Version**: 0.16.0
 **Development Phase**: Phase 3 - Dashboard & Swipe-to-Delete (COMPLETED)
+**Architecture**: Clean Architecture (5-Layer Structure)
 
