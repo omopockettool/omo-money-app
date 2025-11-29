@@ -143,12 +143,13 @@ struct GroupPickerSheet: View {
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             // Solo mostrar botón de eliminar si no es el último grupo
                             if availableGroups.count > 1 && !isDeletingGroup {
-                                Button(role: .destructive) {
+                                Button {
                                     groupToDelete = group
                                     showingDeleteAlert = true
                                 } label: {
                                     Label("Eliminar", systemImage: "trash")
                                 }
+                                .tint(.red)  // 🔧 Manual red styling instead of role: .destructive
                                 .disabled(isDeletingGroup)
                             }
                         }
@@ -263,36 +264,35 @@ struct GroupPickerSheet: View {
         
         // ✅ Activar estado de eliminación
         isDeletingGroup = true
-        
+
+        // 🔧 FIX: Eliminar de la lista local PRIMERO (optimistic update)
+        // Esto previene el parpadeo visual del grupo desapareciendo y reapareciendo
+        print("🔄 [GroupPicker] Eliminando de lista local ANTES de DB...")
+        print("🔄 [GroupPicker] availableGroups.count ANTES de removeAll: \(availableGroups.count)")
+        availableGroups.removeAll { $0.objectID == groupToDelete.objectID }
+        print("🔄 [GroupPicker] availableGroups.count DESPUÉS de removeAll: \(availableGroups.count)")
+        print("🔄 [GroupPicker] availableGroups DESPUÉS: \(availableGroups.map { $0.name ?? "Sin nombre" })")
+
         Task {
             let groupService = GroupService(context: context)
-            
+
             do {
                 print("🔥 [GroupPicker] Llamando a groupService.deleteGroup()...")
-                // Eliminar SOLO este grupo por su ObjectID
+                // Eliminar de Core Data (ya eliminado de la UI)
                 try await groupService.deleteGroup(groupToDelete)
                 print("✅ [GroupPicker] groupService.deleteGroup() completado")
-                
+
                 await MainActor.run {
-                    print("🔄 [GroupPicker] MainActor - Actualizando listas locales...")
-                    print("🔄 [GroupPicker] availableGroups.count ANTES de removeAll: \(availableGroups.count)")
-                    
-                    // Eliminar de la lista local por ObjectID
-                    availableGroups.removeAll { $0.objectID == groupToDelete.objectID }
-                    
-                    print("🔄 [GroupPicker] availableGroups.count DESPUÉS de removeAll: \(availableGroups.count)")
-                    print("🔄 [GroupPicker] availableGroups DESPUÉS: \(availableGroups.map { $0.name ?? "Sin nombre" })")
-                    
                     print("📤 [GroupPicker] Llamando a onGroupDeleted callback...")
                     // Notificar al ViewModel
                     onGroupDeleted(groupToDelete)
-                    
+
                     // Si eliminamos el grupo actual, cambiar al nuevo grupo
                     if isDeletingCurrentGroup, let newGroup = newGroupToSelect {
                         print("🔄 [GroupPicker] Cambiando al nuevo grupo: '\(newGroup.name ?? "Sin nombre")'")
                         onGroupChange(newGroup)
                     }
-                    
+
                     // ✅ Desactivar estado de eliminación con delay para mejor feedback visual
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         isDeletingGroup = false
@@ -301,7 +301,12 @@ struct GroupPickerSheet: View {
                 }
             } catch {
                 await MainActor.run {
-                    // ✅ Desactivar estado de eliminación en caso de error
+                    // 🔧 En caso de error, RE-AGREGAR el grupo a la lista (rollback)
+                    print("❌ [GroupPicker] Error en eliminación, restaurando grupo a la lista")
+                    availableGroups.append(groupToDelete)
+                    availableGroups.sort { ($0.name ?? "") < ($1.name ?? "") }
+
+                    // ✅ Desactivar estado de eliminación
                     isDeletingGroup = false
                 }
                 print("❌ [GroupPicker] Error eliminando grupo '\(groupToDelete.name ?? "Unknown")': \(error)")
