@@ -4,168 +4,114 @@ import CoreData
 struct AddItemListView: View {
     let user: UserDomain
     let group: GroupDomain
-    @Binding var navigationPath: NavigationPath
     let onItemListCreated: (ItemListDomain) -> Void
+    let onCancel: () -> Void
 
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: AddItemListViewModel
-    @State private var showingCategoryPicker = false
-    @State private var showingPaymentMethodPicker = false
 
-    init(user: UserDomain, group: GroupDomain, navigationPath: Binding<NavigationPath>, onItemListCreated: @escaping (ItemListDomain) -> Void) {
+    init(user: UserDomain, group: GroupDomain, onItemListCreated: @escaping (ItemListDomain) -> Void, onCancel: @escaping () -> Void) {
         self.user = user
         self.group = group
-        self._navigationPath = navigationPath
         self.onItemListCreated = onItemListCreated
+        self.onCancel = onCancel
         print("🔄 AddItemListView: Initializing with Clean Architecture DI")
         self._viewModel = StateObject(wrappedValue: AddItemListViewModel())
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            // ItemList Details Form
-            VStack(alignment: .leading, spacing: 16) {
-                // Description
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Descripción")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    TextField("Descripción del gasto", text: $viewModel.description)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+        Form {
+            Section("Detalles del Gasto") {
+                TextField("Descripción", text: $viewModel.description)
+
+                TextField("Precio (opcional)", text: $viewModel.price)
+                    .keyboardType(.decimalPad)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(viewModel.isPriceValid ? Color.clear : Color.red, lineWidth: 1)
+                    )
+
+                if !viewModel.price.isEmpty && !viewModel.isPriceValid {
+                    Text("Precio inválido")
+                        .font(.caption)
+                        .foregroundColor(.red)
                 }
-                
-                // Date
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Fecha")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    DatePicker("Fecha", selection: $viewModel.date, displayedComponents: .date)
-                        .datePickerStyle(CompactDatePickerStyle())
-                }
-                
-                // Category
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Categoría")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Button(action: {
-                        showingCategoryPicker = true
-                    }) {
-                        HStack {
-                            Text(viewModel.selectedCategory?.name ?? "Seleccionar Categoría")
-                                .foregroundColor(viewModel.selectedCategory != nil ? .primary : .secondary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
-                    }
-                }
-                
-                // Payment Method
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Método de Pago")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Button(action: {
-                        showingPaymentMethodPicker = true
-                    }) {
-                        HStack {
-                            Image(systemName: paymentMethodIcon(for: viewModel.selectedPaymentMethod?.type ?? ""))
-                                .foregroundColor(paymentMethodColor(for: viewModel.selectedPaymentMethod?.type ?? ""))
-                                .font(.title2)
-                            
-                            Text(viewModel.selectedPaymentMethod?.name ?? "Seleccionar Método de Pago")
-                                .foregroundColor(viewModel.selectedPaymentMethod != nil ? .primary : .secondary)
-                            
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
-                    }
-                }
-                
-                // Group Selection
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Grupo")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    HStack {
-                        Image(systemName: "person.3.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                        
-                        Text(group.name)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        Text("(No se puede cambiar)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(.tertiarySystemBackground))
-                    .cornerRadius(8)
-                }
+
+                DatePicker("Fecha", selection: $viewModel.date, displayedComponents: .date)
             }
-            .padding(.horizontal)
-            
-            Spacer()
-            
-            // Save Button
-            Button(action: {
-                Task {
-                    await saveItemList()
+            .listRowSeparator(.visible)
+
+            Section("Categoría") {
+                Picker("Categoría", selection: $viewModel.selectedCategory) {
+                    Text("Seleccionar Categoría").tag(nil as Category?)
+                    ForEach(viewModel.categories, id: \.id) { category in
+                        HStack {
+                            Circle()
+                                .fill(Color(hex: category.color ?? "#8E8E93") ?? Color.gray)
+                                .frame(width: 12, height: 12)
+                            Text(category.name ?? "Sin nombre")
+                        }
+                        .tag(category as Category?)
+                    }
                 }
-            }) {
+                .pickerStyle(.navigationLink)
+            }
+
+            Section("Método de Pago") {
+                Picker("Método de Pago", selection: $viewModel.selectedPaymentMethod) {
+                    Text("Seleccionar Método de Pago").tag(nil as PaymentMethod?)
+                    ForEach(viewModel.paymentMethods, id: \.id) { paymentMethod in
+                        HStack {
+                            Image(systemName: paymentMethodIcon(for: paymentMethod.type ?? ""))
+                                .foregroundColor(paymentMethodColor(for: paymentMethod.type ?? ""))
+                            Text(paymentMethod.name ?? "Sin nombre")
+                        }
+                        .tag(paymentMethod as PaymentMethod?)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+            }
+
+            Section("Grupo") {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title2)
-                    Text("Guardar ItemList")
-                        .font(.headline)
+                    Image(systemName: "person.3.fill")
+                        .foregroundColor(.blue)
+
+                    Text(group.name)
+                        .foregroundColor(.primary)
+
+                    Spacer()
+
+                    Text("(No editable)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(viewModel.canSave ? Color.blue : Color.gray)
-                .cornerRadius(12)
             }
-            .disabled(!viewModel.canSave)
-            .padding(.horizontal)
-            .padding(.bottom)
+
+            if let error = viewModel.errorMessage {
+                Section {
+                    Text(error)
+                        .foregroundColor(.red)
+                }
+            }
         }
-        .navigationTitle("Nuevo ItemList")
+        .navigationTitle("Nuevo Gasto")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button("Cancelar") {
-                    navigationPath.removeLast()
+                    onCancel()
                 }
             }
-        }
-        .sheet(isPresented: $showingCategoryPicker) {
-            CategoryPickerView(
-                selectedCategory: $viewModel.selectedCategory,
-                group: group.toCoreData(context: viewContext),
-                context: viewContext
-            )
-        }
-        .sheet(isPresented: $showingPaymentMethodPicker) {
-            PaymentMethodPickerView(
-                selectedPaymentMethod: $viewModel.selectedPaymentMethod,
-                group: group.toCoreData(context: viewContext),
-                context: viewContext
-            )
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Guardar") {
+                    Task {
+                        await saveItemList()
+                    }
+                }
+                .disabled(!viewModel.canSave)
+            }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
@@ -177,9 +123,21 @@ struct AddItemListView: View {
             }
         }
         .task {
-            let groupCD = group.toCoreData(context: viewContext)
-            await viewModel.loadCategories(for: groupCD)
-            await viewModel.loadPaymentMethods(for: groupCD)
+            // Fetch existing Group from Core Data by ID (don't create new one)
+            let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
+            fetchRequest.fetchLimit = 1
+
+            do {
+                if let existingGroup = try viewContext.fetch(fetchRequest).first {
+                    await viewModel.loadCategories(for: existingGroup)
+                    await viewModel.loadPaymentMethods(for: existingGroup)
+                } else {
+                    print("❌ AddItemListView: Could not find Group with ID: \(group.id)")
+                }
+            } catch {
+                print("❌ AddItemListView: Error fetching group: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -187,14 +145,24 @@ struct AddItemListView: View {
     
     private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
-        
+
         print("🔄 AddItemListView: Creating ItemList...")
-        
+
+        // Fetch existing Group from Core Data by ID (don't create new one)
+        let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
+        fetchRequest.fetchLimit = 1
+
+        guard let existingGroup = try? viewContext.fetch(fetchRequest).first else {
+            print("❌ AddItemListView: Could not find Group with ID: \(group.id)")
+            return
+        }
+
         if let createdItemList = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
             category: category,
-            group: group.toCoreData(context: viewContext),
+            group: existingGroup,
             paymentMethod: viewModel.selectedPaymentMethod
         ) {
             // ✅ SUCCESS: ItemList created successfully
@@ -203,13 +171,8 @@ struct AddItemListView: View {
             
             // Pass the created ItemListDomain to the callback for incremental cache update
             onItemListCreated(createdItemList)
-            
-            print("✅ AddItemListView: Callback executed, navigating back...")
-            
-            // Delay navigation slightly to avoid NavigationRequestObserver conflicts
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                navigationPath.removeLast()
-            }
+
+            print("✅ AddItemListView: Callback executed")
         } else {
             print("❌ AddItemListView: Failed to create ItemList")
         }
@@ -262,7 +225,7 @@ struct AddItemListView: View {
     AddItemListView(
         user: user,
         group: group,
-        navigationPath: .constant(NavigationPath()),
-        onItemListCreated: { _ in }
+        onItemListCreated: { _ in },
+        onCancel: { }
     )
 }

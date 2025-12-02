@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.18.0] - 2025-12-02
+
+### Added
+- **✨ Consolidated ItemList Creation Flow**
+  - **Single unified view** for creating ItemLists (removed duplicate QuickExpenseView)
+  - **Optional price field**: Users can optionally enter a price to auto-create an Item
+  - **Auto-Item creation**: When price is provided, automatically creates first Item with same description
+  - **Modern iOS UI**: Sheet-based modal presentation with Form layout
+  - **Native pickers**: Using Apple-recommended `Picker` component with `.navigationLink` style
+  - **Visual enhancements**: Color circles for categories, icons for payment methods
+
+### Changed
+- **🔧 AddItemListView Improvements**
+  - **UI Modernization**: Converted to Form-based layout matching Item creation view
+  - **Sheet presentation**: Modal sheet instead of push navigation for better UX
+  - **Save button in toolbar**: Moved from bottom button to toolbar for consistency
+  - **Native pickers**: Replaced sheet-based custom pickers with standard `Picker` components
+  - **Callback-based navigation**: Using `onCancel` and `onItemListCreated` callbacks instead of NavigationPath
+
+- **🔧 AddItemListViewModel Enhancements**
+  - **Price validation**: Added `isPriceValid` computed property with decimal validation
+  - **Price conversion**: Added `priceAsDecimal` to safely convert string to Decimal
+  - **CreateItemUseCase integration**: Auto-creates Item when price is provided
+  - **Two-step creation**: Creates ItemList first, then optional Item
+  - **Proper error handling**: Validates price format, handles creation failures
+
+### Fixed
+- **🐛 Core Data Group Fetching**
+  - **Critical fix**: `group.toCoreData(context:)` was creating NEW Group entities instead of fetching existing ones
+  - **Zero categories/payment methods bug**: Groups appeared empty because new entities had no relationships
+  - **Proper fetch by ID**: Now fetches existing Group from Core Data using UUID before loading data
+  - **Fixed in two locations**: `.task` modifier and `saveItemList()` method
+
+- **🐛 Navigation Crashes**
+  - **Fatal error on cancel**: Removed NavigationPath binding that caused crash when dismissing sheet
+  - **Callback-based dismissal**: Using closures to properly dismiss modal sheets
+  - **No more path errors**: Eliminated "attempting to remove 1 items from path with 0 items" crash
+
+- **🐛 UI Warnings**
+  - **UIReparentingView warnings**: Eliminated by switching from Menu to Picker components
+  - **Native iOS patterns**: Using Apple-recommended components for Forms
+
+### Removed
+- **QuickExpenseView** and **QuickExpenseViewModel** - Functionality merged into AddItemListView
+- **Menu-based pickers** - Replaced with standard Picker components
+- **NavigationPath binding** in AddItemListView - Using callbacks instead
+
+### Technical Details
+- **Pattern**: `Picker` with `.navigationLink` style for native iOS experience
+- **Domain-first**: Fetch Core Data entities by ID, never create duplicates
+- **Clean separation**: Category/PaymentMethod loading happens in `.task` modifier
+- **Incremental updates**: Maintains existing cache update pattern for new ItemLists
+- **Optional Item creation**: `if let priceDecimal = priceAsDecimal { createItem() }`
+
+---
+
 ## [0.17.0] - 2025-12-02
 
 ### Changed

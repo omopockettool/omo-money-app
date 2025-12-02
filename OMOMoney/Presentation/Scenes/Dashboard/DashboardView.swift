@@ -11,10 +11,9 @@ import CoreData
 struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
-    @State private var showingAddItemList = false
-    @State private var showingQuickExpense = false
     @State private var contentOpacity: Double = 0.0
     @State private var hasLoadedInitialData = false  // Track if we've loaded data already
+    @State private var showingAddItemList = false
 
     private let context: NSManagedObjectContext
     
@@ -112,29 +111,33 @@ struct DashboardView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationDestination(for: String.self) { destination in
-                if destination == "addItemList",
-                   let user = viewModel.currentUser,
-                   let group = viewModel.currentGroup {
-                    AddItemListView(
-                        user: user.toDomain(),
-                        group: group.toDomain(),
-                        navigationPath: $navigationPath,
-                        onItemListCreated: { createdItemList in
-                            print("🔄 DashboardView: onItemListCreated callback triggered")
-                            print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
-                            Task {
-                                print("⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)")
-                                let itemList = createdItemList.toCoreData(context: context)
-                                await viewModel.addItemList(itemList)
-                                print("✅ DashboardView: Incremental update completed - UI updated instantly!")
-                            }
-                        }
-                    )
-                }
-            }
             .navigationDestination(for: ItemList.self) { itemList in
                 ItemListDetailView(itemList: itemList, context: context)
+            }
+            .sheet(isPresented: $showingAddItemList) {
+                if let user = viewModel.currentUser,
+                   let group = viewModel.currentGroup {
+                    NavigationStack {
+                        AddItemListView(
+                            user: user.toDomain(),
+                            group: group.toDomain(),
+                            onItemListCreated: { createdItemList in
+                                print("🔄 DashboardView: onItemListCreated callback triggered")
+                                print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
+                                Task {
+                                    print("⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)")
+                                    let itemList = createdItemList.toCoreData(context: context)
+                                    await viewModel.addItemList(itemList)
+                                    print("✅ DashboardView: Incremental update completed - UI updated instantly!")
+                                }
+                                showingAddItemList = false
+                            },
+                            onCancel: {
+                                showingAddItemList = false
+                            }
+                        )
+                    }
+                }
             }
         }
         .onAppear {
@@ -154,16 +157,6 @@ struct DashboardView: View {
                 withAnimation(.easeIn(duration: 0.5)) {
                     contentOpacity = 1.0
                 }
-            }
-        }
-        .sheet(isPresented: $showingQuickExpense) {
-            if let user = viewModel.currentUser,
-               let group = viewModel.currentGroup {
-                QuickExpenseView(
-                    user: user,
-                    group: group,
-                    context: context
-                )
             }
         }
     }
@@ -225,7 +218,7 @@ struct DashboardView: View {
                 TotalSpentCardView(
                     totalAmount: viewModel.formattedTotalSpent,
                     onAddExpense: {
-                        showingQuickExpense = true
+                        showingAddItemList = true
                     }
                 )
                 
