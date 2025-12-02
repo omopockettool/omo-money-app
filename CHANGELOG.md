@@ -7,7 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [0.17.0] - 2025-12-02
-### Refactor
+
+### Changed
+- **🏗️ Item Management Architecture Refinement**
+  - **Aligned Item CRUD with ItemList pattern** for architectural consistency
+  - **Domain-First Approach**: ViewModels now return Domain models instead of Core Data entities
+  - **AddItemViewModel**: Returns `ItemDomain` (previously returned Core Data `Item` entity)
+  - **ItemListDetailViewModel**: Added `addItemFromDomain()` and `updateItemFromDomain()` methods
+  - **Proper Domain → Core Data conversion**: ViewModel handles conversion via fetch requests
+  - **Eliminated context refresh issues**: Using fetch after save ensures data consistency
+
+### Improved
+- **Incremental Cache Updates**:
+  - Create item: Updates cache immediately without database query
+  - Update item: Replaces item in local array and updates cache atomically
+  - Delete item: Optimistic delete with rollback on failure
+  - All operations: Service cache updated as single source of truth
+
+- **Clean Separation of Concerns**:
+  - `AddItemViewModel` → Business logic, returns Domain models
+  - `AddItemView` → UI presentation, passes Domain models to callbacks
+  - `ItemListDetailViewModel` → Data conversion, cache management
+
+### Fixed
+- **Threading Issues**: Resolved potential race conditions with context refresh on updates
+- **Data Consistency**: Fetch after save guarantees latest Core Data state
+- **Architecture Consistency**: Item operations now follow same pattern as ItemList operations
+
+### Technical Details
+- Pattern: `ViewModel → ItemDomain → Callback → Fetch Core Data → Update Cache`
+- Zero database queries after create/update operations (incremental updates only)
+- Cache coherence maintained across all item operations
+- Proper error handling with rollback support on delete failures
+
+---
 
 ## [0.16.0] - 2025-11-27
 

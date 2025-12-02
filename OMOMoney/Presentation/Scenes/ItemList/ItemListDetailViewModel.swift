@@ -86,57 +86,82 @@ class ItemListDetailViewModel: ObservableObject {
 
     // MARK: - Item Operations
 
-    /// Add new item (incremental update pattern)
-    func addItem(_ newItem: Item) async {
-        print("➕ [ADD] Adding new item incrementally: '\(newItem.itemDescription ?? "Unknown")'")
+    /// Add new item from ItemDomain (incremental update pattern)
+    /// Converts ItemDomain to Core Data entity and updates cache
+    func addItemFromDomain(_ itemDomain: ItemDomain) async {
+        print("➕ [ADD] Adding new item from domain: '\(itemDomain.itemDescription)'")
         print("📊 [ADD] Current count BEFORE add: \(items.count)")
 
-        // Add to local array
-        items.append(newItem)
-        items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
-        print("📊 [ADD] New count AFTER add: \(items.count)")
+        // Fetch the Core Data entity that was created by the Use Case/Service
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", itemDomain.id as CVarArg)
 
-        // 🎯 UPDATE SERVICE CACHE: Single source of truth
-        await cacheManager.cacheData(items, for: serviceCacheKey)
-        await cacheManager.cacheData(Date(), for: timestampKey)
-        print("✅ [ADD] Service cache updated with \(items.count) items")
+        do {
+            guard let newItem = try context.fetch(fetchRequest).first else {
+                print("❌ [ADD] Could not find Core Data entity for item: \(itemDomain.id)")
+                return
+            }
 
-        // Clear calculation cache
-        await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+            // Add to local array
+            items.append(newItem)
+            items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
+            print("📊 [ADD] New count AFTER add: \(items.count)")
 
-        // 🔄 Refresh ItemList context so dashboard sees updated total
-        refreshItemListContext()
+            // 🎯 UPDATE SERVICE CACHE: Single source of truth
+            await cacheManager.cacheData(items, for: serviceCacheKey)
+            await cacheManager.cacheData(Date(), for: timestampKey)
+            print("✅ [ADD] Service cache updated with \(items.count) items")
 
-        print("🎉 [ADD] Incremental update complete - NO DB query!")
+            // Clear calculation cache
+            await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+
+            // 🔄 Refresh ItemList context so dashboard sees updated total
+            refreshItemListContext()
+
+            print("🎉 [ADD] Incremental update complete - NO DB query!")
+        } catch {
+            print("❌ [ADD] Error fetching item: \(error.localizedDescription)")
+        }
     }
 
-    /// Update existing item (incremental update pattern)
-    func updateItem(_ savedItem: Item) async {
-        print("✏️ [EDIT] Updating item incrementally: '\(savedItem.itemDescription ?? "Unknown")'")
+    /// Update existing item from ItemDomain (incremental update pattern)
+    /// Converts ItemDomain to Core Data entity and updates cache
+    func updateItemFromDomain(_ itemDomain: ItemDomain) async {
+        print("✏️ [EDIT] Updating item from domain: '\(itemDomain.itemDescription)'")
 
-        // Refresh the object from context to get latest values
-        context.refresh(savedItem, mergeChanges: true)
+        // Fetch the updated Core Data entity
+        let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", itemDomain.id as CVarArg)
 
-        // Find and update the item in the local array
-        if let index = items.firstIndex(where: { $0.objectID == savedItem.objectID }) {
-            print("📊 [EDIT] Found item at index \(index), updating...")
-            items[index] = savedItem
-            items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
-            print("✅ [EDIT] Item updated in local array")
+        do {
+            guard let updatedItem = try context.fetch(fetchRequest).first else {
+                print("❌ [EDIT] Could not find Core Data entity for item: \(itemDomain.id)")
+                return
+            }
+
+            // Find and update the item in the local array
+            if let index = items.firstIndex(where: { $0.id == itemDomain.id }) {
+                print("📊 [EDIT] Found item at index \(index), updating...")
+                items[index] = updatedItem
+                items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
+                print("✅ [EDIT] Item updated in local array")
+            }
+
+            // 🎯 UPDATE SERVICE CACHE: Single source of truth
+            await cacheManager.cacheData(items, for: serviceCacheKey)
+            await cacheManager.cacheData(Date(), for: timestampKey)
+            print("✅ [EDIT] Service cache updated with \(items.count) items")
+
+            // Clear calculation cache
+            await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+
+            // 🔄 Refresh ItemList context so dashboard sees updated total
+            refreshItemListContext()
+
+            print("🎉 [EDIT] Incremental update complete - NO DB query!")
+        } catch {
+            print("❌ [EDIT] Error fetching item: \(error.localizedDescription)")
         }
-
-        // 🎯 UPDATE SERVICE CACHE: Single source of truth
-        await cacheManager.cacheData(items, for: serviceCacheKey)
-        await cacheManager.cacheData(Date(), for: timestampKey)
-        print("✅ [EDIT] Service cache updated with \(items.count) items")
-
-        // Clear calculation cache
-        await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
-
-        // 🔄 Refresh ItemList context so dashboard sees updated total
-        refreshItemListContext()
-
-        print("🎉 [EDIT] Incremental update complete - NO DB query!")
     }
 
     /// Delete item (optimistic delete pattern)

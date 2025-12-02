@@ -85,9 +85,10 @@ struct ItemListDetailView: View {
                     itemList: itemList,
                     context: context,
                     itemToEdit: nil,
-                    onItemSaved: { newItem in
+                    onItemSaved: { itemDomain in
                         Task {
-                            await viewModel.addItem(newItem)
+                            // Convert ItemDomain to Core Data entity
+                            await viewModel.addItemFromDomain(itemDomain)
                         }
                     },
                     createItemUseCase: createItemUseCase,
@@ -98,9 +99,10 @@ struct ItemListDetailView: View {
                     itemList: itemList,
                     context: context,
                     itemToEdit: item,
-                    onItemSaved: { savedItem in
+                    onItemSaved: { itemDomain in
                         Task {
-                            await viewModel.updateItem(savedItem)
+                            // Convert ItemDomain to Core Data entity
+                            await viewModel.updateItemFromDomain(itemDomain)
                         }
                     },
                     createItemUseCase: createItemUseCase,
@@ -267,64 +269,51 @@ struct ItemRowView: View {
 // MARK: - Add/Edit Item View
 
 struct AddItemView: View {
-    let itemList: ItemList
-    let context: NSManagedObjectContext
-    let itemToEdit: Item?
-    let onItemSaved: (Item) -> Void
+    let onItemSaved: (ItemDomain) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var description = ""
-    @State private var amount = ""
-    @State private var quantity = "1"
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-
-    private let createItemUseCase: CreateItemUseCase
-    private let updateItemUseCase: UpdateItemUseCase
-    private var isEditMode: Bool { itemToEdit != nil }
+    @StateObject private var viewModel: AddItemViewModel
 
     init(
         itemList: ItemList,
         context: NSManagedObjectContext,
         itemToEdit: Item? = nil,
-        onItemSaved: @escaping (Item) -> Void,
+        onItemSaved: @escaping (ItemDomain) -> Void,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
-        self.itemList = itemList
-        self.context = context
-        self.itemToEdit = itemToEdit
         self.onItemSaved = onItemSaved
-        self.createItemUseCase = createItemUseCase
-        self.updateItemUseCase = updateItemUseCase
-
-        // Pre-populate fields if editing
-        if let item = itemToEdit {
-            _description = State(initialValue: item.itemDescription ?? "")
-            _amount = State(initialValue: item.amount?.stringValue ?? "")
-            _quantity = State(initialValue: String(item.quantity))
-        }
+        self._viewModel = StateObject(wrappedValue: AddItemViewModel(
+            itemList: itemList,
+            context: context,
+            itemToEdit: itemToEdit,
+            createItemUseCase: createItemUseCase,
+            updateItemUseCase: updateItemUseCase
+        ))
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Detalles del Item") {
-                    TextField("Descripción", text: $description)
-                    TextField("Cantidad", text: $amount)
+                    TextField("Descripción", text: $viewModel.description)
+                    TextField("Cantidad", text: $viewModel.amount)
                         .keyboardType(.decimalPad)
-                    TextField("Unidades", text: $quantity)
+                        .onChange(of: viewModel.amount) { oldValue, newValue in
+                            viewModel.validateAndCorrectAmount()
+                        }
+                    TextField("Unidades", text: $viewModel.quantity)
                         .keyboardType(.numberPad)
                 }
 
-                if let error = errorMessage {
+                if let error = viewModel.errorMessage {
                     Section {
                         Text(error)
                             .foregroundColor(.red)
                     }
                 }
             }
-            .navigationTitle(isEditMode ? "Editar Item" : "Nuevo Item")
+            .navigationTitle(viewModel.isEditMode ? "Editar Item" : "Nuevo Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -336,67 +325,16 @@ struct AddItemView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") {
                         Task {
-                            await saveItem()
+                            if let itemDomain = await viewModel.saveItem() {
+                                print("✅ AddItemView: Item saved, calling callback with ItemDomain")
+                                onItemSaved(itemDomain)
+                                dismiss()
+                            }
                         }
                     }
-                    .disabled(isSaving || description.isEmpty || amount.isEmpty)
+                    .disabled(!viewModel.canSave)
                 }
             }
-        }
-    }
-
-    @MainActor
-    private func saveItem() async {
-        guard let amountDecimal = Decimal(string: amount),
-              let quantityInt = Int32(quantity),
-              let itemListId = itemList.id else {
-            errorMessage = "Cantidad o unidades inválidas"
-            return
-        }
-
-        isSaving = true
-        errorMessage = nil
-
-        do {
-            if let existingItem = itemToEdit, let itemId = existingItem.id {
-                // Edit mode - use Update Use Case
-                let itemDomain = ItemDomain(
-                    id: itemId,
-                    itemDescription: description,
-                    amount: amountDecimal,
-                    quantity: quantityInt,
-                    itemListId: itemListId,
-                    createdAt: existingItem.createdAt ?? Date(),
-                    lastModifiedAt: Date()
-                )
-                try await updateItemUseCase.execute(itemDomain)
-
-                // Refresh the existing item from context
-                context.refresh(existingItem, mergeChanges: true)
-                onItemSaved(existingItem)
-            } else {
-                // Create mode - use Create Use Case
-                let itemDomain = try await createItemUseCase.execute(
-                    description: description,
-                    amount: amountDecimal,
-                    quantity: quantityInt,
-                    itemListId: itemListId
-                )
-
-                // Fetch the created Core Data entity
-                let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "id == %@", itemDomain.id as CVarArg)
-                guard let savedItem = try context.fetch(fetchRequest).first else {
-                    throw RepositoryError.notFound
-                }
-
-                onItemSaved(savedItem)
-            }
-
-            dismiss()
-        } catch {
-            errorMessage = "Error al guardar item: \(error.localizedDescription)"
-            isSaving = false
         }
     }
 }
