@@ -6,19 +6,22 @@
 //
 
 import Foundation
+import CoreData
 
 final class DefaultItemListRepository: ItemListRepository {
     private let itemListService: ItemListServiceProtocol
-    
-    init(itemListService: ItemListServiceProtocol) {
+    private let context: NSManagedObjectContext
+
+    init(itemListService: ItemListServiceProtocol, context: NSManagedObjectContext) {
         self.itemListService = itemListService
+        self.context = context
     }
     
     func fetchItemLists() async throws -> [ItemListDomain] {
-        // This implementation assumes you want all item lists for all groups or users.
-        // You may want to adjust this logic based on your app's needs.
-        // For now, we'll throw a fatalError to force explicit usage.
-        fatalError("fetchItemLists() is not implemented. Use fetchItemLists(forGroupId:) or fetchItemLists(forCategoryId:) or implement as needed.")
+        // Fetch all ItemLists from Core Data
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+        let itemLists = try context.fetch(fetchRequest)
+        return itemLists.map { $0.toDomain() }
     }
     
     func fetchItemList(id: UUID) async throws -> ItemListDomain? {
@@ -27,15 +30,25 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func fetchItemLists(forGroupId groupId: UUID) async throws -> [ItemListDomain] {
-        // You need to fetch the Group object by groupId. This requires a context or a service method.
-        // For now, we'll throw a fatalError to force explicit usage.
-        fatalError("fetchItemLists(forGroupId:) requires fetching Group by ID. Use getItemLists(for:) with a Group instance.")
+        // Fetch the Group from Core Data
+        let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+
+        guard let group = try context.fetch(fetchRequest).first else {
+            throw RepositoryError.notFound
+        }
+
+        // Get item lists using service
+        let itemLists = try await itemListService.getItemLists(for: group)
+        return itemLists.map { $0.toDomain() }
     }
     
     func fetchItemLists(forCategoryId categoryId: UUID) async throws -> [ItemListDomain] {
-        // You need to fetch the Category object by categoryId. This requires a context or a service method.
-        // For now, we'll throw a fatalError to force explicit usage.
-        fatalError("fetchItemLists(forCategoryId:) requires fetching Category by ID. Use getItemLists(for:) with a Category instance.")
+        // Fetch ItemLists by category from Core Data
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
+        let itemLists = try context.fetch(fetchRequest)
+        return itemLists.map { $0.toDomain() }
     }
     
     func fetchItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemListDomain] {
@@ -65,13 +78,34 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func updateItemList(_ itemList: ItemListDomain) async throws {
-        // You need to fetch the ItemList object and update it. This requires a context or a service method.
-        fatalError("updateItemList(_:) requires mapping ItemListDomain to ItemList. Implement as needed.")
+        // Fetch the Core Data ItemList entity
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", itemList.id as CVarArg)
+
+        guard let coreDataItemList = try context.fetch(fetchRequest).first else {
+            throw RepositoryError.notFound
+        }
+
+        // Update the entity
+        coreDataItemList.itemListDescription = itemList.itemListDescription
+        coreDataItemList.date = itemList.date
+        coreDataItemList.lastModifiedAt = Date()
+
+        // Save context
+        try context.save()
     }
     
     func deleteItemList(id: UUID) async throws {
-        // You need to fetch the ItemList object by id. This requires a context or a service method.
-        fatalError("deleteItemList(id:) requires fetching ItemList by ID. Implement as needed.")
+        // Fetch the ItemList from Core Data
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+
+        guard let itemList = try context.fetch(fetchRequest).first else {
+            throw RepositoryError.notFound
+        }
+
+        // Delete using service
+        try await itemListService.deleteItemList(itemList)
     }
     
     func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemListDomain] {

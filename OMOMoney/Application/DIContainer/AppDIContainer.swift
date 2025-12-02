@@ -61,7 +61,7 @@ final class AppDIContainer {
     // MARK: - Repositories
 
     lazy var itemListRepository: ItemListRepository = {
-        return DefaultItemListRepository(itemListService: itemListService)
+        return DefaultItemListRepository(itemListService: itemListService, context: viewContext)
     }()
 
     // MARK: - ItemList Use Cases

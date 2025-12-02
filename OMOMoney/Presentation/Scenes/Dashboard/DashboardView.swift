@@ -14,21 +14,40 @@ struct DashboardView: View {
     @State private var showingAddItemList = false
     @State private var showingQuickExpense = false
     @State private var contentOpacity: Double = 0.0
-    
+    @State private var hasLoadedInitialData = false  // Track if we've loaded data already
+
     private let context: NSManagedObjectContext
     
     init(context: NSManagedObjectContext) {
         self.context = context
+
+        // Create services
         let itemListService = ItemListService(context: context)
         let userService = UserService(context: context)
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
-        
-        self._viewModel = StateObject(wrappedValue: DashboardViewModel(
-            itemListService: itemListService,
-            userService: userService,
+
+        // Create repositories
+        let itemListRepository = DefaultItemListRepository(itemListService: itemListService, context: context)
+        let userRepository = DefaultUserRepository(userService: userService)
+        let groupRepository = DefaultGroupRepository(
             groupService: groupService,
-            userGroupService: userGroupService
+            userGroupService: userGroupService,
+            userService: userService
+        )
+
+        // Create use cases
+        let fetchItemListsUseCase = DefaultFetchItemListsUseCase(itemListRepository: itemListRepository)
+        let deleteItemListUseCase = DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
+        let getCurrentUserUseCase = DefaultGetCurrentUserUseCase(userRepository: userRepository)
+        let fetchGroupsForUserUseCase = DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
+
+        self._viewModel = StateObject(wrappedValue: DashboardViewModel(
+            fetchItemListsUseCase: fetchItemListsUseCase,
+            deleteItemListUseCase: deleteItemListUseCase,
+            getCurrentUserUseCase: getCurrentUserUseCase,
+            fetchGroupsForUserUseCase: fetchGroupsForUserUseCase,
+            context: context
         ))
     }
     
@@ -114,8 +133,20 @@ struct DashboardView: View {
                     )
                 }
             }
+            .navigationDestination(for: ItemList.self) { itemList in
+                ItemListDetailView(itemList: itemList, context: context)
+            }
         }
         .onAppear {
+            // Only load data on first appearance to avoid splash on navigation back
+            guard !hasLoadedInitialData else {
+                print("📍 DashboardView: Navigated back, refreshing ItemList contexts...")
+                // 🔄 Refresh ItemList Core Data objects to get updated item totals
+                viewModel.refreshItemListContexts()
+                return
+            }
+
+            hasLoadedInitialData = true
             Task {
                 await viewModel.loadDashboardData()
                 // Fade in suave del contenido después de cargar - SOLO UNA VEZ
@@ -178,8 +209,7 @@ struct DashboardView: View {
                     viewModel.getFormattedItemListTotal(itemList)
                 },
                 onItemTap: { itemList in
-                    // TODO: Navigate to expense detail
-                    print("Navigate to expense detail: \(itemList.objectID)")
+                    navigationPath.append(itemList)
                 },
                 onRefresh: {
                     await viewModel.refreshData()

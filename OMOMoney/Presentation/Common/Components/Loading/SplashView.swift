@@ -16,11 +16,10 @@ import SwiftUI
 /// 3. Dar sensación de proceso completo y profesional
 ///
 /// **Tiempos de delay mínimos** (configurados en cada View):
-/// - MainView: 2.0 segundos (primera impresión del usuario)
-/// - AppContentView: 1.5 segundos (carga de configuración)
-/// - DashboardView: 1.0 segundo (carga de datos)
+/// - DashboardView: 0.3 segundos (carga de datos) - Solo en primera carga
 ///
-/// **Total**: ~4.5 segundos en primera carga completa (solo si la carga real es más rápida)
+/// **Nota**: Splash solo se muestra en la primera carga.
+/// Navegación posterior usa datos en cache sin mostrar splash.
 struct SplashView: View {
     var body: some View {
         ZStack {

@@ -10,7 +10,7 @@ import CoreData
 import SwiftUI
 
 @MainActor
-class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
+class DashboardViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var itemLists: [ItemList] = [] {
@@ -29,27 +29,32 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
     @Published var currentUser: User?
     @Published var availableGroups: [Group] = []  // ✅ Grupos disponibles para selector
     
-    // MARK: - Services
-    private let itemListService: ItemListServiceProtocol
-    private let userService: UserServiceProtocol
-    private let groupService: GroupServiceProtocol
-    private let userGroupService: UserGroupServiceProtocol
-    
+    // MARK: - Use Cases
+    private let fetchItemListsUseCase: FetchItemListsUseCase
+    private let deleteItemListUseCase: DeleteItemListUseCase
+    private let getCurrentUserUseCase: GetCurrentUserUseCase
+    private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+    private let context: NSManagedObjectContext  // ✅ For Core Data operations
+
     // MARK: - Cache
     // Note: Cache is managed by Service layer (ItemListService)
     // ViewModel only updates service cache for incremental changes
     private let cacheManager = CacheManager.shared
-    
+
     // MARK: - Initialization
-    init(itemListService: ItemListServiceProtocol,
-         userService: UserServiceProtocol,
-         groupService: GroupServiceProtocol,
-         userGroupService: UserGroupServiceProtocol) {
-        self.itemListService = itemListService
-        self.userService = userService
-        self.groupService = groupService
-        self.userGroupService = userGroupService
-        
+    init(
+        fetchItemListsUseCase: FetchItemListsUseCase,
+        deleteItemListUseCase: DeleteItemListUseCase,
+        getCurrentUserUseCase: GetCurrentUserUseCase,
+        fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
+        context: NSManagedObjectContext
+    ) {
+        self.fetchItemListsUseCase = fetchItemListsUseCase
+        self.deleteItemListUseCase = deleteItemListUseCase
+        self.getCurrentUserUseCase = getCurrentUserUseCase
+        self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
+        self.context = context
+
         // Listen for Core Data context changes
         setupCoreDataNotifications()
     }
@@ -109,9 +114,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
         
         do {
-            // 1. Get current user (background thread)
+            // 1. Get current user using Use Case
             print("🔄 DashboardViewModel: Getting current user...")
-            guard let user = try await userService.getCurrentUser() else {
+            guard let userDomain = try await getCurrentUserUseCase.execute() else {
                 print("❌ DashboardViewModel: No user found")
                 await MainActor.run {
                     errorMessage = "No user found. Please create a user first."
@@ -119,12 +124,24 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 }
                 return
             }
-            print("✅ DashboardViewModel: Found user: \(user.name ?? "Unknown")")
-            
-            // 2. Get user's groups (background thread)
+            print("✅ DashboardViewModel: Found user: \(userDomain.name)")
+
+            // Fetch Core Data user entity
+            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
+            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
+            guard let user = try context.fetch(userFetchRequest).first else {
+                print("❌ DashboardViewModel: User Core Data entity not found")
+                await MainActor.run {
+                    errorMessage = "User not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            // 2. Get user's groups using Use Case
             print("🔄 DashboardViewModel: Getting user groups...")
-            let userGroups = try await userGroupService.getGroups(for: user)
-            guard let group = userGroups.first else {
+            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
+            guard let firstGroupDomain = groupDomains.first else {
                 print("❌ DashboardViewModel: No groups found")
                 await MainActor.run {
                     errorMessage = "No groups found. Please create a group first."
@@ -132,19 +149,38 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 }
                 return
             }
-            print("✅ DashboardViewModel: Found \(userGroups.count) group(s), using: \(group.name ?? "Unknown")")
-            
-            // 3. Load ItemLists for the group (background thread)
+            print("✅ DashboardViewModel: Found \(groupDomains.count) group(s), using: \(firstGroupDomain.name)")
+
+            // Fetch Core Data group entities
+            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            let groupIds = groupDomains.map { $0.id }
+            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
+            let userGroups = try context.fetch(groupFetchRequest)
+            guard let group = userGroups.first else {
+                print("❌ DashboardViewModel: Group Core Data entity not found")
+                await MainActor.run {
+                    errorMessage = "Group not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            // 3. Load ItemLists for the group using Use Case
             print("🔄 DashboardViewModel: Getting ItemLists for group...")
-            let groupItemLists = try await itemListService.getItemLists(for: group)
-            let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-            print("✅ DashboardViewModel: Found \(groupItemLists.count) ItemLists")
+            let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: firstGroupDomain.id)
+            print("✅ DashboardViewModel: Found \(itemListDomains.count) ItemLists")
+
+            // Fetch Core Data ItemList entities
+            let itemListFetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            itemListFetchRequest.predicate = NSPredicate(format: "group == %@", group)
+            itemListFetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            let groupItemLists = try context.fetch(itemListFetchRequest)
             print("📋 DashboardViewModel: ItemList descriptions: \(groupItemLists.map { $0.itemListDescription ?? "No desc" })")
             
             // Calcular tiempo transcurrido y esperar si fue muy rápido
             let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 1.0 // 1 segundo mínimo
-            
+            let minimumDisplayTime: TimeInterval = 0.3 // 0.3 segundos mínimo (reducido para mejor UX)
+
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
@@ -153,22 +189,22 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             await MainActor.run {
                 print("🔄 DashboardViewModel: Updating UI with new data...")
                 print("   - Current itemLists count before: \(itemLists.count)")
-                print("   - New itemLists count: \(sortedItemLists.count)")
-                
+                print("   - New itemLists count: \(groupItemLists.count)")
+
                 currentUser = user
                 currentGroup = group
                 availableGroups = userGroups  // ✅ Guardar todos los grupos disponibles
-                itemLists = sortedItemLists
-                
+                itemLists = groupItemLists
+
                 print("   - itemLists count after assignment: \(itemLists.count)")
                 print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription ?? "No desc" })")
-                
+
                 // Calculate total spent
                 calculateTotalSpent()
-                
+
                 isLoading = false
                 print("✅ DashboardViewModel: UI update completed, isLoading = false")
-                
+
                 // Force UI refresh
                 objectWillChange.send()
                 print("🔄 DashboardViewModel: objectWillChange.send() called")
@@ -201,12 +237,24 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 return
             }
             
-            // Fetch latest data from Core Data (background thread)
+            // Fetch latest data using Use Case
             print("🔍 DashboardViewModel: Fetching latest ItemLists...")
-            let fetchedItemLists = try await itemListService.getItemLists(for: group)
-            
-            // Get current state
+            guard let groupId = group.id else {
+                print("⚠️ DashboardViewModel: Invalid group ID")
+                await MainActor.run { isRefreshing = false }
+                return
+            }
+            // Get current state on main actor first (before async call)
             let currentItemLists = await MainActor.run { itemLists }
+
+            // Execute use case
+            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+
+            // Fetch Core Data entities
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "group == %@", group)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            let fetchedItemLists = try context.fetch(fetchRequest)
             
             print("� DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemLists.count)")
             
@@ -252,7 +300,28 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             }
         }
     }
-    
+
+    /// Refresh ItemList objects' Core Data relationships
+    /// Call this when navigating back to dashboard to get updated item totals
+    /// This is LIGHTWEIGHT - only refreshes objects, no DB query
+    func refreshItemListContexts() {
+        print("🔄 DashboardViewModel: Refreshing ItemList Core Data contexts...")
+
+        // Refresh each ItemList object to reload its items relationship from Core Data
+        for itemList in itemLists {
+            // mergeChanges: true preserves any unsaved changes
+            context.refresh(itemList, mergeChanges: true)
+        }
+
+        print("✅ DashboardViewModel: Refreshed \(itemLists.count) ItemList contexts")
+
+        // Recalculate totals since items relationships are now fresh
+        calculateTotalSpent()
+
+        // Force UI update
+        objectWillChange.send()
+    }
+
     /// Load dashboard data using cache optimization
     func loadDashboardDataOptimized() async {
         print("🔄 DashboardViewModel: loadDashboardDataOptimized() starting...")
@@ -265,9 +334,9 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
         
         do {
-            // 1. Get current user (background thread)
+            // 1. Get current user using Use Case
             print("🔄 DashboardViewModel: Getting current user...")
-            guard let user = try await userService.getCurrentUser() else {
+            guard let userDomain = try await getCurrentUserUseCase.execute() else {
                 print("❌ DashboardViewModel: No user found")
                 await MainActor.run {
                     errorMessage = "No user found. Please create a user first."
@@ -275,11 +344,29 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 }
                 return
             }
-            print("✅ DashboardViewModel: Found user: \(user.name ?? "Unknown")")
-            
-            // 2. Get user's groups (background thread)
+            print("✅ DashboardViewModel: Found user: \(userDomain.name)")
+
+            // Fetch Core Data user entity
+            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
+            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
+            guard let user = try context.fetch(userFetchRequest).first else {
+                print("❌ DashboardViewModel: User Core Data entity not found")
+                await MainActor.run {
+                    errorMessage = "User not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            // 2. Get user's groups using Use Case
             print("🔄 DashboardViewModel: Getting user groups...")
-            let userGroups = try await userGroupService.getGroups(for: user)
+            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
+
+            // Fetch Core Data group entities
+            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            let groupIds = groupDomains.map { $0.id }
+            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
+            let userGroups = try context.fetch(groupFetchRequest)
             guard let group = userGroups.first else {
                 print("❌ DashboardViewModel: No groups found")
                 await MainActor.run {
@@ -294,14 +381,23 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             await MainActor.run {
                 currentUser = user
                 currentGroup = group
+                availableGroups = userGroups
             }
-            
-            // 4. Load ItemLists (Service handles caching internally)
+
+            // 4. Load ItemLists using Use Case
             print("� DashboardViewModel: Loading ItemLists (Service layer manages cache)...")
-            let groupItemLists = try await itemListService.getItemLists(for: group)
-            let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+            guard let groupId = group.id else {
+                throw ValidationError.invalidGroup
+            }
+            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+
+            // Fetch Core Data ItemList entities
+            let itemListFetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            itemListFetchRequest.predicate = NSPredicate(format: "group == %@", group)
+            itemListFetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            let sortedItemLists = try context.fetch(itemListFetchRequest)
             
-            print("✅ DashboardViewModel: Loaded \(groupItemLists.count) ItemLists")
+            print("✅ DashboardViewModel: Loaded \(sortedItemLists.count) ItemLists")
             
             await MainActor.run {
                 itemLists = sortedItemLists
@@ -331,10 +427,40 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
         
         do {
-            // 1. Get current user and group
-            guard let user = try await userService.getCurrentUser(),
-                  let userGroups = try? await userGroupService.getGroups(for: user),
-                  let group = userGroups.first else {
+            // 1. Get current user and group using Use Cases
+            guard let userDomain = try await getCurrentUserUseCase.execute() else {
+                await MainActor.run {
+                    errorMessage = "User not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
+            guard let firstGroupDomain = groupDomains.first else {
+                await MainActor.run {
+                    errorMessage = "Group not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            // Fetch Core Data entities
+            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
+            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
+            guard let user = try context.fetch(userFetchRequest).first else {
+                await MainActor.run {
+                    errorMessage = "User not found"
+                    isLoading = false
+                }
+                return
+            }
+
+            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            let groupIds = groupDomains.map { $0.id }
+            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
+            let userGroups = try context.fetch(groupFetchRequest)
+            guard let group = userGroups.first else {
                 await MainActor.run {
                     errorMessage = "User or group not found"
                     isLoading = false
@@ -371,9 +497,17 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 }
             }
             
-            // 4. Load limited data from database
+            // 4. Load limited data from database using Use Case
             print("🔄 DashboardViewModel: Loading RECENT \(limit) ItemLists from database...")
-            let allItemLists = try await itemListService.getItemLists(for: group)
+            guard let groupId = group.id else {
+                throw ValidationError.invalidGroup
+            }
+            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+
+            // Fetch Core Data ItemList entities
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "group == %@", group)
+            let allItemLists = try context.fetch(fetchRequest)
             
             // Sort by date and take most recent
             let recentItemLists = allItemLists
@@ -427,10 +561,18 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         do {
             // ✅ Delay de 0.3 segundos para mostrar el spinner en acción
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 segundos
-            
-            // Cargar ItemLists del nuevo grupo
-            let groupItemLists = try await itemListService.getItemLists(for: newGroup)
-            let sortedItemLists = groupItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+
+            // Load ItemLists using Use Case
+            guard let groupId = newGroup.id else {
+                throw ValidationError.invalidGroup
+            }
+            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+
+            // Fetch Core Data entities
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "group == %@", newGroup)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            let sortedItemLists = try context.fetch(fetchRequest)
             
             await MainActor.run {
                 currentGroup = newGroup
@@ -439,7 +581,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
                 isChangingGroup = false
                 
                 print("✅ DashboardViewModel: Grupo cambiado exitosamente")
-                print("📋 DashboardViewModel: Cargados \(groupItemLists.count) ItemLists")
+                print("📋 DashboardViewModel: Cargados \(sortedItemLists.count) ItemLists")
             }
         } catch {
             await MainActor.run {
@@ -458,10 +600,21 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         }
         
         print("🔄 DashboardViewModel: Recargando grupos disponibles...")
-        
+
         do {
-            let userGroups = try await userGroupService.getGroups(for: user)
-            
+            guard let userId = user.id else {
+                print("⚠️ DashboardViewModel: Invalid user ID")
+                return
+            }
+
+            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userId)
+
+            // Fetch Core Data group entities
+            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            let groupIds = groupDomains.map { $0.id }
+            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
+            let userGroups = try context.fetch(groupFetchRequest)
+
             await MainActor.run {
                 availableGroups = userGroups
                 print("✅ DashboardViewModel: Grupos recargados. Total: \(userGroups.count)")
@@ -514,12 +667,7 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
         
         Task {
             do {
-                // Get the context from one of the services
-                guard let context = (itemListService as? ItemListService)?.context else {
-                    print("❌ DashboardViewModel: Could not get Core Data context")
-                    return
-                }
-                
+                // Use the context we already have
                 let generator = TestDataGenerator(context: context)
                 
                 // Generate 200 ItemLists with 2 items each = 400 total items
@@ -663,9 +811,12 @@ class DashboardViewModel: ObservableObject, DashboardUpdateProtocol {
             print("⚡️ DashboardViewModel: Optimistic update - removing from UI and cache")
             await removeItemList(itemList)
             
-            // 2. Delete from Core Data in background
+            // 2. Delete from Core Data using Use Case
             print("🔄 DashboardViewModel: Deleting from Core Data...")
-            try await itemListService.deleteItemList(itemList)
+            guard let itemListId = itemList.id else {
+                throw ValidationError.invalidItemList
+            }
+            try await deleteItemListUseCase.execute(id: itemListId)
             print("✅ DashboardViewModel: ItemList deleted from Core Data successfully")
             
             // 🎯 INCREMENTAL CACHE: NO clearCache() needed!

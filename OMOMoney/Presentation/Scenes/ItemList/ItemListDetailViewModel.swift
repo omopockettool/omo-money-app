@@ -1,0 +1,227 @@
+//
+//  ItemListDetailViewModel.swift
+//  OMOMoney
+//
+//  Created by System on 29/11/25.
+//
+
+import Foundation
+import CoreData
+import SwiftUI
+
+@MainActor
+class ItemListDetailViewModel: ObservableObject {
+
+    // MARK: - Published Properties
+    @Published var items: [Item] = []
+    @Published var isLoading = true
+    @Published var errorMessage: String?
+
+    // MARK: - Use Cases
+    private let fetchItemsUseCase: FetchItemsUseCase
+    private let createItemUseCase: CreateItemUseCase
+    private let updateItemUseCase: UpdateItemUseCase
+    private let deleteItemUseCase: DeleteItemUseCase
+
+    // MARK: - Context & Cache
+    private let context: NSManagedObjectContext
+    private let itemList: ItemList
+    private let cacheManager = CacheManager.shared
+
+    // MARK: - Cache Keys
+    private var serviceCacheKey: String {
+        "ItemService.itemListItems.\(itemList.id?.uuidString ?? "nil")"
+    }
+
+    private var timestampKey: String {
+        "\(serviceCacheKey).timestamp"
+    }
+
+    // MARK: - Initialization
+    init(
+        itemList: ItemList,
+        context: NSManagedObjectContext,
+        fetchItemsUseCase: FetchItemsUseCase,
+        createItemUseCase: CreateItemUseCase,
+        updateItemUseCase: UpdateItemUseCase,
+        deleteItemUseCase: DeleteItemUseCase
+    ) {
+        self.itemList = itemList
+        self.context = context
+        self.fetchItemsUseCase = fetchItemsUseCase
+        self.createItemUseCase = createItemUseCase
+        self.updateItemUseCase = updateItemUseCase
+        self.deleteItemUseCase = deleteItemUseCase
+    }
+
+    // MARK: - Data Loading
+
+    /// Load items for the current ItemList
+    func loadItems() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            guard let itemListId = itemList.id else {
+                errorMessage = "ItemList ID no válido"
+                isLoading = false
+                return
+            }
+
+            // Use case returns Domain models
+            let itemDomains = try await fetchItemsUseCase.execute(forItemListId: itemListId)
+
+            // Fetch Core Data entities from context (they were already persisted by the repository/service)
+            let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "itemList == %@", itemList)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+
+            items = try context.fetch(fetchRequest)
+            isLoading = false
+        } catch {
+            errorMessage = "No se pudieron cargar los items: \(error.localizedDescription)"
+            isLoading = false
+        }
+    }
+
+    // MARK: - Item Operations
+
+    /// Add new item (incremental update pattern)
+    func addItem(_ newItem: Item) async {
+        print("➕ [ADD] Adding new item incrementally: '\(newItem.itemDescription ?? "Unknown")'")
+        print("📊 [ADD] Current count BEFORE add: \(items.count)")
+
+        // Add to local array
+        items.append(newItem)
+        items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
+        print("📊 [ADD] New count AFTER add: \(items.count)")
+
+        // 🎯 UPDATE SERVICE CACHE: Single source of truth
+        await cacheManager.cacheData(items, for: serviceCacheKey)
+        await cacheManager.cacheData(Date(), for: timestampKey)
+        print("✅ [ADD] Service cache updated with \(items.count) items")
+
+        // Clear calculation cache
+        await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+
+        // 🔄 Refresh ItemList context so dashboard sees updated total
+        refreshItemListContext()
+
+        print("🎉 [ADD] Incremental update complete - NO DB query!")
+    }
+
+    /// Update existing item (incremental update pattern)
+    func updateItem(_ savedItem: Item) async {
+        print("✏️ [EDIT] Updating item incrementally: '\(savedItem.itemDescription ?? "Unknown")'")
+
+        // Refresh the object from context to get latest values
+        context.refresh(savedItem, mergeChanges: true)
+
+        // Find and update the item in the local array
+        if let index = items.firstIndex(where: { $0.objectID == savedItem.objectID }) {
+            print("📊 [EDIT] Found item at index \(index), updating...")
+            items[index] = savedItem
+            items.sort { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
+            print("✅ [EDIT] Item updated in local array")
+        }
+
+        // 🎯 UPDATE SERVICE CACHE: Single source of truth
+        await cacheManager.cacheData(items, for: serviceCacheKey)
+        await cacheManager.cacheData(Date(), for: timestampKey)
+        print("✅ [EDIT] Service cache updated with \(items.count) items")
+
+        // Clear calculation cache
+        await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+
+        // 🔄 Refresh ItemList context so dashboard sees updated total
+        refreshItemListContext()
+
+        print("🎉 [EDIT] Incremental update complete - NO DB query!")
+    }
+
+    /// Delete item (optimistic delete pattern)
+    func deleteItem(_ item: Item, at index: Int) async {
+        guard let itemId = item.id else {
+            errorMessage = "Item ID no válido"
+            return
+        }
+
+        let itemDesc = item.itemDescription ?? "Unknown"
+
+        print("🗑️ [DELETE] Removing item: '\(itemDesc)'")
+        print("📊 [DELETE] Current count BEFORE delete: \(items.count)")
+
+        // Optimistic delete - remove from UI first
+        items.remove(at: index)
+        print("📊 [DELETE] New count AFTER delete: \(items.count)")
+
+        // 🎯 UPDATE SERVICE CACHE: Single source of truth
+        await cacheManager.cacheData(items, for: serviceCacheKey)
+        await cacheManager.cacheData(Date(), for: timestampKey)
+        print("✅ [DELETE] Service cache updated with \(items.count) items")
+
+        // Delete from DB in background using Use Case
+        do {
+            try await deleteItemUseCase.execute(id: itemId)
+            print("✅ [DELETE] Item deleted from DB")
+
+            // Clear calculation cache
+            await cacheManager.clearCalculationCache(for: "ItemService.itemListTotalAmount")
+
+            // 🔄 Refresh ItemList context so dashboard sees updated total
+            refreshItemListContext()
+
+            print("🎉 [DELETE] Optimistic delete complete!")
+        } catch {
+            // Rollback on error - add item back
+            print("❌ [DELETE] Error deleting item, rolling back...")
+            items.insert(item, at: index)
+
+            // Rollback cache
+            await cacheManager.cacheData(items, for: serviceCacheKey)
+            await cacheManager.cacheData(Date(), for: timestampKey)
+
+            // Refresh ItemList to restore original state
+            refreshItemListContext()
+
+            errorMessage = "Error al eliminar item: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Formatting Helpers
+
+    /// Get formatted total for all items in this ItemList
+    func getFormattedTotal() -> String {
+        let total = items.reduce(NSDecimalNumber.zero) { result, item in
+            let itemTotal = item.amount?.multiplying(by: NSDecimalNumber(value: item.quantity))
+            return result.adding(itemTotal ?? .zero)
+        }
+
+        let currencyCode = itemList.group?.currency ?? "USD"
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+
+        return formatter.string(from: total) ?? "\(total) \(currencyCode)"
+    }
+
+    /// Get formatted amount for a specific item
+    func getFormattedAmount(_ item: Item) -> String {
+        let itemTotal = item.amount?.multiplying(by: NSDecimalNumber(value: item.quantity)) ?? .zero
+
+        let currencyCode = itemList.group?.currency ?? "USD"
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+
+        return formatter.string(from: itemTotal) ?? "\(itemTotal) \(currencyCode)"
+    }
+
+    // MARK: - Private Helpers
+
+    /// Refresh ItemList's items relationship from Core Data
+    private func refreshItemListContext() {
+        context.refresh(itemList, mergeChanges: true)
+        print("🔄 [REFRESH] ItemList context refreshed with latest items")
+    }
+}
