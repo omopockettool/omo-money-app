@@ -14,6 +14,7 @@ struct ItemListDetailView: View {
 
     @StateObject private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?  // UI state only
+    @State private var hasLoadedInitialData = false  // Track if we've loaded data already
 
     // MARK: - Sheet Mode (UI State)
     enum ItemSheetMode: Identifiable {
@@ -68,6 +69,15 @@ struct ItemListDetailView: View {
         .navigationTitle(itemList.itemListDescription ?? "Detalle")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            // Only load data on first appearance to avoid DB query on sheet dismiss
+            guard !hasLoadedInitialData else {
+                print("📍 ItemListDetailView: Sheet dismissed, refreshing Item contexts...")
+                // 🔄 Refresh Item Core Data objects to get updated values (instant, no DB query)
+                viewModel.refreshItemContexts()
+                return
+            }
+
+            hasLoadedInitialData = true
             Task {
                 await viewModel.loadItems()
             }
@@ -154,17 +164,20 @@ struct ItemListDetailView: View {
                 ))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-            }
-            .onDelete { indexSet in
-                Task {
-                    for index in indexSet {
-                        let item = viewModel.items[index]
-                        await viewModel.deleteItem(item, at: index)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task {
+                            await viewModel.deleteItem(item, at: index)
+                        }
+                    } label: {
+                        Label("Eliminar", systemImage: "trash")
                     }
                 }
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.items.count)
         .refreshable {
             await viewModel.loadItems()
         }

@@ -58,7 +58,16 @@ class ItemListDetailViewModel: ObservableObject {
 
     /// Load items for the current ItemList
     func loadItems() async {
-        isLoading = true
+        // Only show loading spinner if we don't have data yet (initial load)
+        // During refresh (pull-to-refresh), keep the existing list visible
+        let isInitialLoad = items.isEmpty
+
+        if isInitialLoad {
+            print("📊 [LOAD] Initial load - showing spinner")
+            isLoading = true
+        } else {
+            print("🔄 [REFRESH] Pull-to-refresh - keeping list visible")
+        }
         errorMessage = nil
 
         do {
@@ -68,8 +77,12 @@ class ItemListDetailViewModel: ObservableObject {
                 return
             }
 
+            print("🔍 [LOAD] Fetching items for ItemList: \(itemList.itemListDescription ?? "Unknown")")
+
             // Use case returns Domain models
             let itemDomains = try await fetchItemsUseCase.execute(forItemListId: itemListId)
+
+            print("📦 [LOAD] Fetched \(itemDomains.count) items from Use Case")
 
             // Fetch Core Data entities from context (they were already persisted by the repository/service)
             let fetchRequest: NSFetchRequest<Item> = Item.fetchRequest()
@@ -77,8 +90,10 @@ class ItemListDetailViewModel: ObservableObject {
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
 
             items = try context.fetch(fetchRequest)
+            print("✅ [LOAD] Successfully loaded \(items.count) items")
             isLoading = false
         } catch {
+            print("❌ [LOAD] Error loading items: \(error.localizedDescription)")
             errorMessage = "No se pudieron cargar los items: \(error.localizedDescription)"
             isLoading = false
         }
@@ -213,6 +228,32 @@ class ItemListDetailViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Context Refresh
+
+    /// Refresh Item Core Data objects from context without DB query
+    /// This is called when returning from AddItemView sheet to instantly reflect changes
+    /// Pattern: Same as DashboardViewModel.refreshItemListContexts()
+    func refreshItemContexts() {
+        print("🔄 [CONTEXT-REFRESH] Refreshing \(items.count) Item objects from Core Data context...")
+
+        for item in items {
+            context.refresh(item, mergeChanges: true)
+        }
+
+        // Also refresh the parent ItemList to update totals
+        refreshItemListContext()
+
+        print("✅ [CONTEXT-REFRESH] All Item objects refreshed - NO DB query!")
+    }
+
+    /// Refresh the ItemList Core Data object from context without DB query
+    /// This is useful when the ItemList itself is edited (description, date, category, etc.)
+    /// and you want to instantly reflect changes in the navigation title or other UI elements
+    func refreshItemListContext() {
+        context.refresh(itemList, mergeChanges: true)
+        print("🔄 [ITEMLIST-REFRESH] ItemList context refreshed with latest properties")
+    }
+
     // MARK: - Formatting Helpers
 
     /// Get formatted total for all items in this ItemList
@@ -240,13 +281,5 @@ class ItemListDetailViewModel: ObservableObject {
         formatter.currencyCode = currencyCode
 
         return formatter.string(from: itemTotal) ?? "\(itemTotal) \(currencyCode)"
-    }
-
-    // MARK: - Private Helpers
-
-    /// Refresh ItemList's items relationship from Core Data
-    private func refreshItemListContext() {
-        context.refresh(itemList, mergeChanges: true)
-        print("🔄 [REFRESH] ItemList context refreshed with latest items")
     }
 }
