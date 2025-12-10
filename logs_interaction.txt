@@ -1,9 +1,73 @@
-🔍 MainView: Usuarios encontrados: 0, hasUsers: false
-App is being debugged, do not track this hang
-Hang detected: 1.99s (debugger attached, not reporting)
-Result accumulator timeout: 0.250000, exceeded.
-✅ Usuario, grupo y categorías creados exitosamente
-✅ Usuario creado exitosamente, ejecutando callback
-🔄 Usuario creado, recargando estado...
-🔍 MainView: Usuarios encontrados: 1, hasUsers: true
-✅ AppContentView: Loaded user: Dennis, groups: 1
+
+i found a bug when creating a new item list the cuantity is zero but i inserted a value of 5000! 
+
+🟢 ============================================
+� [ADD] Adding ItemList: 'Hh'
+🟢 ============================================
+✅ AddItemListViewModel: ItemList created successfully: Hh
+🔄 AddItemListViewModel: Creating automatic Item with price: 5000
+📊 [ADD] Current count BEFORE add: 0
+📊 [ADD] New count AFTER add: 1
+🔑 [ADD] Cache key: ItemListService.groupItemLists.E0476ADB-0486-4E6F-8759-DD3619EEC3AA
+✅ [ADD] Service cache UPDATED with 1 items
+💾 [ADD] Cache now contains:
+   1. Hh - ID: 0xa3922fcf9a028261 <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p12215>
+🗓️ DashboardViewModel: Updating current month cache
+   - Total ItemLists: 1
+   - Current month ItemLists: 1
+✅ [ADD] ItemList added successfully to UI
+📊 [ADD] UI now shows 1 items
+[TOTAL] [ADD] New total spent: 0,00 €
+🟢 [ADD] Operation complete
+
+🔄 AddItemListView: Initializing with Clean Architecture DI
+✅ AddItemListViewModel: Automatic Item created successfully
+💡 AddItemListViewModel: Returning ItemListDomain for incremental cache update
+✅ AddItemListView: ItemList created: 'Hh'
+🔄 AddItemListView: Calling onItemListCreated callback with ItemList...
+🔄 DashboardView: onItemListCreated callback triggered
+✅ DashboardView: Received new ItemList: 'Hh'
+✅ AddItemListView: Callback executed
+⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)
+
+🟢 ============================================
+� [ADD] Adding ItemList: 'Hh'
+🟢 ============================================
+⚠️ [ADD] ItemList doesn't belong to current context, skipping
+✅ DashboardView: Incremental update completed - UI updated instantly!
+
+
+🟢 ============================================
+� [ADD] Adding ItemList: 'Hh'
+🟢 ============================================
+✅ AddItemListViewModel: ItemList created successfully: Hh
+🔄 AddItemListViewModel: Creating automatic Item with price: 5000
+📊 [ADD] Current count BEFORE add: 0
+📊 [ADD] New count AFTER add: 1
+🔑 [ADD] Cache key: ItemListService.groupItemLists.E0476ADB-0486-4E6F-8759-DD3619EEC3AA
+✅ [ADD] Service cache UPDATED with 1 items
+💾 [ADD] Cache now contains:
+   1. Hh - ID: 0xa3922fcf9a028261 <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p12215>
+🗓️ DashboardViewModel: Updating current month cache
+   - Total ItemLists: 1
+   - Current month ItemLists: 1
+✅ [ADD] ItemList added successfully to UI
+📊 [ADD] UI now shows 1 items
+[TOTAL] [ADD] New total spent: 0,00 €
+🟢 [ADD] Operation complete
+
+🔄 AddItemListView: Initializing with Clean Architecture DI
+✅ AddItemListViewModel: Automatic Item created successfully
+💡 AddItemListViewModel: Returning ItemListDomain for incremental cache update
+✅ AddItemListView: ItemList created: 'Hh'
+🔄 AddItemListView: Calling onItemListCreated callback with ItemList...
+🔄 DashboardView: onItemListCreated callback triggered
+✅ DashboardView: Received new ItemList: 'Hh'
+✅ AddItemListView: Callback executed
+⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)
+
+🟢 ============================================
+� [ADD] Adding ItemList: 'Hh'
+🟢 ============================================
+⚠️ [ADD] ItemList doesn't belong to current context, skipping
+✅ DashboardView: Incremental update completed - UI updated instantly!

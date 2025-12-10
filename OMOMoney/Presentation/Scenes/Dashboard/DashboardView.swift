@@ -26,8 +26,12 @@ struct DashboardView: View {
         let groupService = GroupService(context: context)
         let userGroupService = UserGroupService(context: context)
 
+        // Create services
+        let itemService = ItemService(context: context)
+
         // Create repositories
         let itemListRepository = DefaultItemListRepository(itemListService: itemListService, context: context)
+        let itemRepository = DefaultItemRepository(itemService: itemService, context: context)
         let userRepository = DefaultUserRepository(userService: userService)
         let groupRepository = DefaultGroupRepository(
             groupService: groupService,
@@ -37,12 +41,14 @@ struct DashboardView: View {
 
         // Create use cases
         let fetchItemListsUseCase = DefaultFetchItemListsUseCase(itemListRepository: itemListRepository)
+        let fetchItemsUseCase = DefaultFetchItemsUseCase(itemRepository: itemRepository)
         let deleteItemListUseCase = DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
         let getCurrentUserUseCase = DefaultGetCurrentUserUseCase(userRepository: userRepository)
         let fetchGroupsForUserUseCase = DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
 
         self._viewModel = StateObject(wrappedValue: DashboardViewModel(
             fetchItemListsUseCase: fetchItemListsUseCase,
+            fetchItemsUseCase: fetchItemsUseCase,
             deleteItemListUseCase: deleteItemListUseCase,
             getCurrentUserUseCase: getCurrentUserUseCase,
             fetchGroupsForUserUseCase: fetchGroupsForUserUseCase,
@@ -111,7 +117,10 @@ struct DashboardView: View {
                 }
             }
             .background(Color(.systemBackground))
-            .navigationDestination(for: ItemList.self) { itemList in
+            .navigationDestination(for: ItemListDomain.self) { itemListDomain in
+                // TODO: ItemListDetailView needs to be updated to work with Domain models
+                // For now, convert back to Core Data for navigation
+                let itemList = itemListDomain.toCoreData(context: context)
                 ItemListDetailView(itemList: itemList, context: context)
             }
             .sheet(isPresented: $showingAddItemList) {
@@ -125,9 +134,8 @@ struct DashboardView: View {
                                 print("🔄 DashboardView: onItemListCreated callback triggered")
                                 print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
                                 Task {
-                                    print("⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)")
-                                    let itemList = createdItemList.toCoreData(context: context)
-                                    await viewModel.addItemList(itemList)
+                                    print("⚡️ DashboardView: Using INCREMENTAL cache update")
+                                    await viewModel.addItemListFromDomain(createdItemList)
                                     print("✅ DashboardView: Incremental update completed - UI updated instantly!")
                                 }
                                 showingAddItemList = false
@@ -143,9 +151,11 @@ struct DashboardView: View {
         .onAppear {
             // Only load data on first appearance to avoid splash on navigation back
             guard !hasLoadedInitialData else {
-                print("📍 DashboardView: Navigated back, refreshing ItemList contexts...")
-                // 🔄 Refresh ItemList Core Data objects to get updated item totals
-                viewModel.refreshItemListContexts()
+                print("📍 DashboardView: Navigated back, refreshing data...")
+                // 🔄 Refresh data to get updated totals
+                Task {
+                    await viewModel.refreshData()
+                }
                 return
             }
 
@@ -199,7 +209,16 @@ struct DashboardView: View {
             ExpenseListView(
                 itemLists: viewModel.currentMonthItemLists,
                 getFormattedAmount: { itemList in
-                    viewModel.getFormattedItemListTotal(itemList)
+                    // ✅ Use cached total from itemListTotals dictionary
+                    if let total = viewModel.itemListTotals[itemList.id] {
+                        let formatter = NumberFormatter()
+                        formatter.numberStyle = .currency
+                        formatter.currencyCode = viewModel.currentGroup?.currency ?? "EUR"
+                        formatter.locale = Locale(identifier: "es_ES")
+                        return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
+                    } else {
+                        return "€0.00"
+                    }
                 },
                 onItemTap: { itemList in
                     navigationPath.append(itemList)
@@ -207,8 +226,9 @@ struct DashboardView: View {
                 onRefresh: {
                     await viewModel.refreshData()
                 },
-                onDelete: { itemList in
-                    await viewModel.deleteItemList(itemList)
+                onDelete: { itemListDomain in
+                    // ✅ Clean Architecture: Use Domain method directly
+                    await viewModel.deleteItemListDomain(itemListDomain)
                 }
             )
             
@@ -278,10 +298,11 @@ struct DashboardView: View {
                 
                 print("\n📋 ITEM LISTS (\(viewModel.itemLists.count)):")
                 for (index, itemList) in viewModel.itemLists.enumerated() {
-                    print("   \(index + 1). ID: \(itemList.id?.uuidString ?? "N/A")")
-                    print("      Descripción: \(itemList.itemListDescription ?? "N/A")")
-                    print("      Fecha: \(itemList.date ?? Date())")
-                    print("      Total: \(viewModel.getFormattedItemListTotal(itemList))")
+                    print("   \(index + 1). ID: \(itemList.id.uuidString)")
+                    print("      Descripción: \(itemList.itemListDescription)")
+                    print("      Fecha: \(itemList.date)")
+                    // TODO: getFormattedItemListTotal is async - need to calculate totals separately
+                    print("      Total: (async calculation needed)")
                 }
                 
                 print("\n💰 TOTAL GASTADO: \(viewModel.formattedTotalSpent)")

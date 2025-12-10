@@ -6,6 +6,143 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.23.0] - 2025-12-10
+
+### Fixed
+- **🐛 Bug Fix: ItemList totals now display correctly in Dashboard**
+  - **Problem**: All ItemLists showed "0.00 €" instead of the sum of their items
+  - **Root Cause**: DashboardView had hardcoded placeholder instead of using calculated totals
+  - **Solution**:
+    - Added `@Published var itemListTotals: [UUID: Double]` cache in DashboardViewModel
+    - Modified `calculateTotalSpent()` to populate the totals cache concurrently
+    - Updated DashboardView to read from `itemListTotals` dictionary
+    - Totals now calculated once during data load and refresh
+  - **Benefits**:
+    - ✅ Correct totals displayed for each ItemList
+    - ✅ Performance: Totals cached, no recalculation on UI render
+    - ✅ Reactive: UI updates automatically when totals change
+    - ✅ Concurrent: All ItemList totals calculated in parallel using `withTaskGroup`
+
+### Technical Details
+- **Total Calculation Flow**:
+  1. `loadDashboardData()` / `refreshData()` → calls `calculateTotalSpent()`
+  2. `calculateTotalSpent()` uses `withTaskGroup` to fetch items for all ItemLists concurrently
+  3. Results stored in `itemListTotals: [UUID: Double]` dictionary
+  4. DashboardView reads from cache in `getFormattedAmount` closure
+- **Currency Formatting**: Uses `NumberFormatter` with Spanish locale (es_ES) for Euro display
+
+## [0.22.0] - 2025-12-10
+
+### Changed
+- **🏗️ Architecture: Item CRUD Refactor to Domain Models (Clean Architecture)**
+  - **Goal**: Extend Domain refactor to Item CRUD operations in ItemListDetailViewModel
+  - **Status**: ✅ Completed
+  - **Files Modified**:
+    - `ItemListDetailViewModel.swift` - Full Domain migration
+    - `ItemListDetailView.swift` - Updated to use Domain models
+    - `AddItemViewModel.swift` - Migrated to accept ItemDomain
+    - `ItemRowView` component - Updated to render ItemDomain
+  - **Changes**:
+    - `@Published var items` changed from `[Item]` (Core Data) to `[ItemDomain]`
+    - `loadItems()` - Uses `fetchItemsUseCase` directly, returns Domain models
+    - `addItemFromDomain()` - Works with Domain models only (no Core Data conversion)
+    - `updateItemFromDomain()` - Works with Domain models only
+    - `deleteItem()` - Accepts ItemDomain parameter
+    - `getFormattedTotal()` - Fixed to use Decimal operators instead of NSDecimalNumber
+    - `getFormattedAmount()` - Fixed to use Decimal operators
+    - `ItemSheetMode` enum - Changed from `edit(Item)` to `edit(ItemDomain)`
+    - ForEach ID - Changed from `.objectID` to `.id`
+    - `AddItemViewModel.itemToEdit` - Changed from `Item?` to `ItemDomain?`
+  - **Benefits**:
+    - ✅ ItemListDetailViewModel now 100% Domain-driven
+    - ✅ No Core Data entity manipulation in ViewModel
+    - ✅ Consistent pattern with DashboardViewModel refactor
+    - ✅ Type-safe Decimal operations instead of NSDecimalNumber
+    - ✅ Clean separation of concerns maintained
+
+### Technical Details
+- **Pattern Consistency**: Item CRUD now follows same Domain pattern as ItemList CRUD
+- **Decimal Handling**: Changed from NSDecimalNumber to native Decimal operators (`*`, `+`)
+- **Build Status**: ✅ Build succeeded - all compilation errors fixed
+
+## [0.21.0] - 2025-12-10
+
+### Changed
+- **🏗️ Architecture: Major Domain ViewModel Refactor (Clean Architecture)**
+  - **Goal**: Complete migration of DashboardViewModel from Core Data entities to Domain models
+  - **Status**: ✅ Core functionality complete
+  - **Completed**:
+    - `loadDashboardData()` - Now uses `fetchItemListsUseCase.execute()` to get Domain models
+    - `refreshData()` - Refactored to work with `[ItemListDomain]` instead of Core Data entities
+    - `updateCurrentMonthCache()` - Already working with Domain models (verified)
+    - `deleteItemListDomain()` - New Domain method using Use Case only
+    - `removeItemListDomain()` - Helper method for optimistic UI updates
+    - `updateItemListDomain()` - Update ItemList in UI cache with Domain models
+    - `isItemListInCurrentContext(ItemListDomain)` - Domain version of context check
+    - `getCurrentMonthItemLists()` - Return type updated to `[ItemListDomain]`
+    - **DashboardView.swift**: Updated delete action to call `deleteItemListDomain()` directly
+  - **Benefits**:
+    - ✅ ViewModel now works entirely with Domain models for ItemLists
+    - ✅ No more `.objectID` comparisons - uses UUID `.id` instead
+    - ✅ Cleaner code - no optional chaining on Domain model properties
+    - ✅ Better separation of concerns - Use Cases handle all data access
+    - ✅ Follows Clean Architecture principles perfectly
+
+### Technical Details
+- **Domain CRUD Pattern**: All CRUD operations now have Domain versions that use Use Cases
+- **Optimistic Updates**: UI updates immediately, then syncs with persistence layer
+- **Error Handling**: Rollback UI changes on persistence failures by reloading data
+- **Total Calculation**: Always recalculates totals after changes (no incremental updates)
+
+## [0.20.0] - 2025-12-09
+
+### Fixed
+- **🐛 Critical: ItemList Total Shows 0,00 € with Automatic Item**
+  - **Issue**: Creating ItemList with price field showed 0,00 € instead of actual amount
+  - **Root cause**: Using `.toCoreData()` created new ItemList object without items relationship loaded
+  - **Solution**: Added `addItemListFromDomain()` that fetches ItemList by ID with relationships prefetched
+  - **Result**: Dashboard now correctly displays total (e.g., 630,00 € instead of 0,00 €)
+
+- **🐛 Duplicate ItemList Addition Attempts**
+  - **Issue**: ItemList was being added twice (notification handler + explicit callback)
+  - **Root cause**: Core Data notification handler competed with explicit callback pattern
+  - **Async timing**: Notification handler's `Task { }` ran after Item creation, creating race condition
+  - **Solution**: Removed automatic notification handler in favor of explicit callbacks only
+  - **Benefits**: Single source of truth, no race conditions, predictable timing
+
+### Changed
+- **🎯 DashboardView: Explicit Domain-to-CoreData Conversion**
+  - **Before**: `let itemList = createdItemList.toCoreData(context:)` → no relationships loaded
+  - **After**: `await viewModel.addItemListFromDomain(createdItemList)` → full object with items
+  - **Pattern**: View delegates to ViewModel for Core Data operations (Clean Architecture)
+
+- **🏗️ Architecture: Begin Domain ViewModel Migration (WIP)**
+  - **Goal**: Migrate DashboardViewModel from Core Data entities to Domain models
+  - **Status**: In Progress - Core methods refactored, 15+ compilation errors remaining
+  - **Completed**:
+    - `addItemListFromDomain()` - Pure Clean Architecture, no `context.perform()`
+    - `getItemListTotal(ItemListDomain)` - Async, fetches items via Use Case
+    - `getFormattedItemListTotal(ItemListDomain)` - Async formatting
+    - `calculateTotalSpent()` - Now async with **concurrent** item fetching (performance boost!)
+    - ViewModel storage changed: `[ItemList]` → `[ItemListDomain]`
+    - View components updated: ExpenseListView, ExpenseRowView use Domain models
+  - **Next**: Fix remaining Core Data-dependent methods (see docs/DOMAIN_REFACTOR_TODO.md)
+
+- **🏗️ DashboardViewModel: Streamlined ItemList Addition**
+  - **Removed**: Automatic Core Data notification handler for ItemList insertions
+  - **Reason**: All ItemList creation uses explicit callbacks for better control
+  - **Added**: `addItemListFromDomain(_ itemListDomain:)` method
+  - **Implementation**: Uses NSFetchRequest with `relationshipKeyPathsForPrefetching: ["items"]`
+
+### Technical Details
+- **NSFetchRequest Pattern**: Fetches ItemList by UUID with eager loading of items relationship
+- **Clean Architecture**: ViewModel handles all Core Data logic, View only triggers actions
+- **Explicit Callback Flow**: AddItemListView → Item created → callback → fetch with relationships → add to UI
+- **No Race Conditions**: Single, predictable code path for ItemList addition
+- **Comprehensive Logging**: `[ADD-DOMAIN]` tags show fetch operations and item counts
+
+---
+
 ## [0.19.0] - 2025-12-03
 
 ### Added

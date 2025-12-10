@@ -31,15 +31,18 @@ final class DefaultItemRepository: ItemRepository {
     }
 
     func fetchItems(forItemListId itemListId: UUID) async throws -> [ItemDomain] {
-        // Fetch ItemList first
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
+        // Fetch ItemList first on background thread
+        let itemList = try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
+            return try self.context.fetch(fetchRequest).first
+        }
 
-        guard let itemList = try context.fetch(fetchRequest).first else {
+        guard let itemList = itemList else {
             throw RepositoryError.notFound
         }
 
-        // Get items using service
+        // Get items using service (already uses context.perform internally)
         let items = try await itemService.getItems(for: itemList)
         return items.map { $0.toDomain() }
     }
@@ -54,15 +57,18 @@ final class DefaultItemRepository: ItemRepository {
             throw ValidationError.invalidItemList
         }
 
-        // Fetch ItemList
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
+        // Fetch ItemList on background thread
+        let itemList = try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
+            return try self.context.fetch(fetchRequest).first
+        }
 
-        guard let itemList = try context.fetch(fetchRequest).first else {
+        guard let itemList = itemList else {
             throw RepositoryError.notFound
         }
 
-        // Create item using service
+        // Create item using service (already uses context.perform internally)
         let item = try await itemService.createItem(
             description: description,
             amount: NSDecimalNumber(decimal: amount),

@@ -13,14 +13,16 @@ import SwiftUI
 class DashboardViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var itemLists: [ItemList] = [] {
+    // ✅ Clean Architecture: Store Domain models, not Core Data entities
+    @Published var itemLists: [ItemListDomain] = [] {
         didSet {
             // Update cached current month items whenever itemLists changes
             updateCurrentMonthCache()
         }
     }
-    @Published var currentMonthItemLists: [ItemList] = []  // ✅ Cached version
+    @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
+    @Published var itemListTotals: [UUID: Double] = [:]  // ✅ Cache for individual ItemList totals
     @Published var isLoading = false
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
@@ -31,6 +33,7 @@ class DashboardViewModel: ObservableObject {
     
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
+    private let fetchItemsUseCase: FetchItemsUseCase
     private let deleteItemListUseCase: DeleteItemListUseCase
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
@@ -44,12 +47,14 @@ class DashboardViewModel: ObservableObject {
     // MARK: - Initialization
     init(
         fetchItemListsUseCase: FetchItemListsUseCase,
+        fetchItemsUseCase: FetchItemsUseCase,
         deleteItemListUseCase: DeleteItemListUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
         context: NSManagedObjectContext
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
+        self.fetchItemsUseCase = fetchItemsUseCase
         self.deleteItemListUseCase = deleteItemListUseCase
         self.getCurrentUserUseCase = getCurrentUserUseCase
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
@@ -59,42 +64,12 @@ class DashboardViewModel: ObservableObject {
         setupCoreDataNotifications()
     }
     
-    // MARK: - Core Data Notifications
     private func setupCoreDataNotifications() {
-        NotificationCenter.default.addObserver(
-            forName: .NSManagedObjectContextDidSave,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            
-            // 🎯 INCREMENTAL UPDATE: Handle ItemList insertions incrementally
-            if let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject> {
-                let insertedItemLists = insertedObjects.compactMap { $0 as? ItemList }
-                
-                if !insertedItemLists.isEmpty {
-                    print("📢 DashboardViewModel: Detected \(insertedItemLists.count) new ItemList insertion(s)")
-                    
-                    Task { @MainActor in
-                        // Add each new ItemList incrementally (no DB query)
-                        for itemList in insertedItemLists {
-                            // Skip if already in our list (prevents duplicates)
-                            guard !self.itemLists.contains(where: { $0.objectID == itemList.objectID }) else {
-                                print("⚠️ DashboardViewModel: ItemList already in list, skipping duplicate add")
-                                continue
-                            }
-                            
-                            print("⚡️ DashboardViewModel: Adding ItemList incrementally: '\(itemList.itemListDescription ?? "Unknown")'")
-                            await self.addItemList(itemList)
-                        }
-                    }
-                }
-            }
-        }
+        // Reserved for future use if needed
     }
-    
+
     deinit {
-        NotificationCenter.default.removeObserver(self)
+        // No observers to remove
     }
     
     // MARK: - Public Methods
@@ -169,14 +144,8 @@ class DashboardViewModel: ObservableObject {
             print("🔄 DashboardViewModel: Getting ItemLists for group...")
             let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: firstGroupDomain.id)
             print("✅ DashboardViewModel: Found \(itemListDomains.count) ItemLists")
+            print("📋 DashboardViewModel: ItemList descriptions: \(itemListDomains.map { $0.itemListDescription })")
 
-            // Fetch Core Data ItemList entities
-            let itemListFetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            itemListFetchRequest.predicate = NSPredicate(format: "group == %@", group)
-            itemListFetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-            let groupItemLists = try context.fetch(itemListFetchRequest)
-            print("📋 DashboardViewModel: ItemList descriptions: \(groupItemLists.map { $0.itemListDescription ?? "No desc" })")
-            
             // Calcular tiempo transcurrido y esperar si fue muy rápido
             let elapsed = Date().timeIntervalSince(startTime)
             let minimumDisplayTime: TimeInterval = 0.3 // 0.3 segundos mínimo (reducido para mejor UX)
@@ -184,24 +153,26 @@ class DashboardViewModel: ObservableObject {
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
-            
+
             // 4. Update UI on main thread
             await MainActor.run {
                 print("🔄 DashboardViewModel: Updating UI with new data...")
                 print("   - Current itemLists count before: \(itemLists.count)")
-                print("   - New itemLists count: \(groupItemLists.count)")
+                print("   - New itemLists count: \(itemListDomains.count)")
 
                 currentUser = user
                 currentGroup = group
                 availableGroups = userGroups  // ✅ Guardar todos los grupos disponibles
-                itemLists = groupItemLists
+                itemLists = itemListDomains  // ✅ Use Domain models, not Core Data entities
 
                 print("   - itemLists count after assignment: \(itemLists.count)")
-                print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription ?? "No desc" })")
+                print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription })")
+            }
 
-                // Calculate total spent
-                calculateTotalSpent()
+            // Calculate total spent (async, must be outside MainActor.run)
+            await calculateTotalSpent()
 
+            await MainActor.run {
                 isLoading = false
                 print("✅ DashboardViewModel: UI update completed, isLoading = false")
 
@@ -247,42 +218,33 @@ class DashboardViewModel: ObservableObject {
             // Get current state on main actor first (before async call)
             let currentItemLists = await MainActor.run { itemLists }
 
-            // Execute use case
-            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            // Execute use case to get Domain models
+            let fetchedItemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            
+            print("� DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemListDomains.count)")
+            
+            // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
+            let sortedItemLists = fetchedItemListDomains.sorted {
+                $0.date > $1.date
+            }
 
-            // Fetch Core Data entities
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "group == %@", group)
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-            let fetchedItemLists = try context.fetch(fetchRequest)
-            
-            print("� DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemLists.count)")
-            
-            // Check if data actually changed
-            let currentIDs = Set(currentItemLists.map { $0.objectID })
-            let fetchedIDs = Set(fetchedItemLists.map { $0.objectID })
-            
-            if currentIDs != fetchedIDs || currentItemLists.count != fetchedItemLists.count {
-                print("✅ DashboardViewModel: [BACKGROUND] Data changed, processing...")
-                
-                // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
-                let sortedItemLists = fetchedItemLists.sorted { 
-                    ($0.date ?? Date()) > ($1.date ?? Date()) 
+            // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
+            print("💡 DashboardViewModel: Service layer manages cache (single source of truth)")
+
+            // ⚡️ MAIN THREAD: ONLY UI update with animation
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    itemLists = sortedItemLists
                 }
-                
-                // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
-                print("💡 DashboardViewModel: Service layer manages cache (single source of truth)")
-                
-                // ⚡️ MAIN THREAD: ONLY UI update with animation
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        itemLists = sortedItemLists
-                    }
-                    calculateTotalSpent()
-                    print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items")
-                }
-            } else {
-                print("ℹ️ DashboardViewModel: No changes detected, skipping UI update")
+            }
+
+            // ✅ ALWAYS recalculate totals on refresh - items inside ItemLists may have changed!
+            // This fixes the bug where editing an item doesn't update the dashboard total
+            print("🔄 DashboardViewModel: Recalculating all ItemList totals...")
+            await calculateTotalSpent()
+
+            await MainActor.run {
+                print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
             }
             
             // Small delay for smooth animation completion
@@ -302,241 +264,14 @@ class DashboardViewModel: ObservableObject {
     }
 
     /// Refresh ItemList objects' Core Data relationships
+    /// ⚠️ DEPRECATED: Use refreshData() instead for Domain models
     /// Call this when navigating back to dashboard to get updated item totals
-    /// This is LIGHTWEIGHT - only refreshes objects, no DB query
-    func refreshItemListContexts() {
-        print("🔄 DashboardViewModel: Refreshing ItemList Core Data contexts...")
-
-        // Refresh each ItemList object to reload its items relationship from Core Data
-        for itemList in itemLists {
-            // mergeChanges: true preserves any unsaved changes
-            context.refresh(itemList, mergeChanges: true)
-        }
-
-        print("✅ DashboardViewModel: Refreshed \(itemLists.count) ItemList contexts")
-
-        // Recalculate totals since items relationships are now fresh
-        calculateTotalSpent()
-
-        // Force UI update
-        objectWillChange.send()
+    @available(*, deprecated, message: "Use refreshData() instead for Domain models")
+    func refreshItemListContexts() async {
+        print("⚠️ DashboardViewModel: refreshItemListContexts() is deprecated, calling refreshData()...")
+        await refreshData()
     }
 
-    /// Load dashboard data using cache optimization
-    func loadDashboardDataOptimized() async {
-        print("🔄 DashboardViewModel: loadDashboardDataOptimized() starting...")
-        
-        // Update UI on main thread
-        await MainActor.run {
-            print("🔄 DashboardViewModel: Setting isLoading = true")
-            isLoading = true
-            errorMessage = nil
-        }
-        
-        do {
-            // 1. Get current user using Use Case
-            print("🔄 DashboardViewModel: Getting current user...")
-            guard let userDomain = try await getCurrentUserUseCase.execute() else {
-                print("❌ DashboardViewModel: No user found")
-                await MainActor.run {
-                    errorMessage = "No user found. Please create a user first."
-                    isLoading = false
-                }
-                return
-            }
-            print("✅ DashboardViewModel: Found user: \(userDomain.name)")
-
-            // Fetch Core Data user entity
-            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
-            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
-            guard let user = try context.fetch(userFetchRequest).first else {
-                print("❌ DashboardViewModel: User Core Data entity not found")
-                await MainActor.run {
-                    errorMessage = "User not found"
-                    isLoading = false
-                }
-                return
-            }
-
-            // 2. Get user's groups using Use Case
-            print("🔄 DashboardViewModel: Getting user groups...")
-            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
-
-            // Fetch Core Data group entities
-            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-            let groupIds = groupDomains.map { $0.id }
-            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
-            let userGroups = try context.fetch(groupFetchRequest)
-            guard let group = userGroups.first else {
-                print("❌ DashboardViewModel: No groups found")
-                await MainActor.run {
-                    errorMessage = "No groups found. Please create a group first."
-                    isLoading = false
-                }
-                return
-            }
-            print("✅ DashboardViewModel: Found group: \(group.name ?? "Unknown")")
-            
-            // 3. Update user and group first
-            await MainActor.run {
-                currentUser = user
-                currentGroup = group
-                availableGroups = userGroups
-            }
-
-            // 4. Load ItemLists using Use Case
-            print("� DashboardViewModel: Loading ItemLists (Service layer manages cache)...")
-            guard let groupId = group.id else {
-                throw ValidationError.invalidGroup
-            }
-            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
-
-            // Fetch Core Data ItemList entities
-            let itemListFetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            itemListFetchRequest.predicate = NSPredicate(format: "group == %@", group)
-            itemListFetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-            let sortedItemLists = try context.fetch(itemListFetchRequest)
-            
-            print("✅ DashboardViewModel: Loaded \(sortedItemLists.count) ItemLists")
-            
-            await MainActor.run {
-                itemLists = sortedItemLists
-                calculateTotalSpent()
-                isLoading = false
-                print("✅ DashboardViewModel: UI updated")
-                print("📊 DashboardViewModel: Displaying \(itemLists.count) total items")
-                print("💰 DashboardViewModel: Total spent: \(formattedTotalSpent)")
-            }
-            
-        } catch {
-            print("❌ DashboardViewModel: Error: \(error.localizedDescription)")
-            await MainActor.run {
-                errorMessage = "Error loading dashboard data: \(error.localizedDescription)"
-                isLoading = false
-            }
-        }
-    }
-    
-    /// Load dashboard data optimized for massive datasets (500+ items)
-    func loadDashboardDataMassive(limit: Int = 100) async {
-        print("🚀 DashboardViewModel: loadDashboardDataMassive() starting with limit: \(limit)")
-        
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
-        
-        do {
-            // 1. Get current user and group using Use Cases
-            guard let userDomain = try await getCurrentUserUseCase.execute() else {
-                await MainActor.run {
-                    errorMessage = "User not found"
-                    isLoading = false
-                }
-                return
-            }
-
-            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
-            guard let firstGroupDomain = groupDomains.first else {
-                await MainActor.run {
-                    errorMessage = "Group not found"
-                    isLoading = false
-                }
-                return
-            }
-
-            // Fetch Core Data entities
-            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
-            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
-            guard let user = try context.fetch(userFetchRequest).first else {
-                await MainActor.run {
-                    errorMessage = "User not found"
-                    isLoading = false
-                }
-                return
-            }
-
-            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-            let groupIds = groupDomains.map { $0.id }
-            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
-            let userGroups = try context.fetch(groupFetchRequest)
-            guard let group = userGroups.first else {
-                await MainActor.run {
-                    errorMessage = "User or group not found"
-                    isLoading = false
-                }
-                return
-            }
-            
-            // 2. Update context
-            await MainActor.run {
-                currentUser = user
-                currentGroup = group
-            }
-            
-            // 3. Check cache with timestamp validation
-            let cacheKey = "dashboard_items_massive_\(group.id?.uuidString ?? "unknown")"
-            let cacheTimestampKey = "\(cacheKey)_timestamp"
-            
-            if let cachedItemLists: [ItemList] = cacheManager.getCachedData(for: cacheKey),
-               let timestamp: Date = cacheManager.getCachedData(for: cacheTimestampKey) {
-                
-                // Check if cache is still fresh (10 minutes for massive data)
-                let cacheAge = Date().timeIntervalSince(timestamp)
-                if cacheAge < 600 { // 10 minutes
-                    print("🟢 DashboardViewModel: Using FRESH massive cache (\(cachedItemLists.count) items, age: \(Int(cacheAge))s)")
-                    
-                    await MainActor.run {
-                        itemLists = cachedItemLists
-                        calculateTotalSpent()
-                        isLoading = false
-                    }
-                    return
-                } else {
-                    print("🟡 DashboardViewModel: Cache EXPIRED (age: \(Int(cacheAge))s), refreshing...")
-                }
-            }
-            
-            // 4. Load limited data from database using Use Case
-            print("🔄 DashboardViewModel: Loading RECENT \(limit) ItemLists from database...")
-            guard let groupId = group.id else {
-                throw ValidationError.invalidGroup
-            }
-            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
-
-            // Fetch Core Data ItemList entities
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "group == %@", group)
-            let allItemLists = try context.fetch(fetchRequest)
-            
-            // Sort by date and take most recent
-            let recentItemLists = allItemLists
-                .sorted { ($0.date ?? Date.distantPast) > ($1.date ?? Date.distantPast) }
-                .prefix(limit)
-                .map { $0 }
-            
-            print("🟡 DashboardViewModel: Loaded \(recentItemLists.count) recent ItemLists from \(allItemLists.count) total")
-            
-            // 5. Cache the limited data with timestamp
-            cacheManager.cacheData(recentItemLists, for: cacheKey)
-            cacheManager.cacheData(Date(), for: cacheTimestampKey)
-            
-            await MainActor.run {
-                itemLists = recentItemLists
-                calculateTotalSpent()
-                isLoading = false
-                print("✅ DashboardViewModel: UI updated with recent items only")
-            }
-            
-        } catch {
-            print("❌ DashboardViewModel: Error in massive load: \(error.localizedDescription)")
-            await MainActor.run {
-                errorMessage = "Error loading dashboard: \(error.localizedDescription)"
-                isLoading = false
-            }
-        }
-    }
-    
     /// Add a new expense - triggers navigation to AddItemListView
     func addExpense() {
         // Navigation will be handled by the view using navigationPath
@@ -562,26 +297,24 @@ class DashboardViewModel: ObservableObject {
             // ✅ Delay de 0.3 segundos para mostrar el spinner en acción
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 segundos
 
-            // Load ItemLists using Use Case
+            // Load ItemLists using Use Case (Domain models)
             guard let groupId = newGroup.id else {
                 throw ValidationError.invalidGroup
             }
-            let _ = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
 
-            // Fetch Core Data entities
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "group == %@", newGroup)
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-            let sortedItemLists = try context.fetch(fetchRequest)
-            
             await MainActor.run {
                 currentGroup = newGroup
-                itemLists = sortedItemLists
-                calculateTotalSpent()
+                itemLists = itemListDomains
+            }
+
+            // Calculate total spent (async, must be outside MainActor.run)
+            await calculateTotalSpent()
+
+            await MainActor.run {
                 isChangingGroup = false
-                
                 print("✅ DashboardViewModel: Grupo cambiado exitosamente")
-                print("📋 DashboardViewModel: Cargados \(sortedItemLists.count) ItemLists")
+                print("📋 DashboardViewModel: Cargados \(itemListDomains.count) ItemLists")
             }
         } catch {
             await MainActor.run {
@@ -685,208 +418,39 @@ class DashboardViewModel: ObservableObject {
         }
     }
     
-    /// Add new ItemList to the dashboard using cache optimization
-    func addItemList(_ itemList: ItemList) async {
-        let itemListDesc = itemList.itemListDescription ?? "No description"
+    /// Add ItemList from Domain model using Clean Architecture
+    /// ✅ Works with Domain models only - no Core Data conversion needed!
+    func addItemListFromDomain(_ itemListDomain: ItemListDomain) async {
+        let itemListDesc = itemListDomain.itemListDescription
         print("\n🟢 ============================================")
-        print("� [ADD] Adding ItemList: '\(itemListDesc)'")
+        print("📋 [ADD-DOMAIN] Adding ItemList: '\(itemListDesc)'")
         print("🟢 ============================================")
-        
-        // Background validation
-        guard isItemListInCurrentContext(itemList) else {
-            print("⚠️ [ADD] ItemList doesn't belong to current context, skipping")
+
+        // Check if already exists (compare by ID)
+        if itemLists.contains(where: { $0.id == itemListDomain.id }) {
+            print("⚠️ [ADD-DOMAIN] ItemList already exists in dashboard")
             return
         }
-        
-        // Get current state
-        let (currentItemLists, groupId) = await MainActor.run { 
-            (itemLists, currentGroup?.id?.uuidString)
+
+        // Calculate insert position (sorted by date) - works with Domain models!
+        let sortedItemLists = (itemLists + [itemListDomain]).sorted {
+            $0.date > $1.date
         }
-        
-        print("📊 [ADD] Current count BEFORE add: \(currentItemLists.count)")
-        
-        // Check for duplicates
-        if currentItemLists.contains(where: { $0.objectID == itemList.objectID }) {
-            print("⚠️ [ADD] ItemList already exists in dashboard")
-            return
-        }
-        
-        // Calculate insert position (sorted by date)
-        let sortedItemLists = (currentItemLists + [itemList]).sorted { 
-            ($0.date ?? Date()) > ($1.date ?? Date()) 
-        }
-        
-        print("📊 [ADD] New count AFTER add: \(sortedItemLists.count)")
-        
-        // 🎯 UPDATE SERVICE CACHE: Single source of truth
-        // The Service layer owns the cache, ViewModel just updates it
-        if let groupId = groupId {
-            let serviceCacheKey = "ItemListService.groupItemLists.\(groupId)"
-            let timestampKey = "\(serviceCacheKey).timestamp"
-            print("🔑 [ADD] Cache key: \(serviceCacheKey)")
-            cacheManager.cacheData(sortedItemLists, for: serviceCacheKey)
-            cacheManager.cacheData(Date(), for: timestampKey) // Update timestamp to keep cache fresh
-            print("✅ [ADD] Service cache UPDATED with \(sortedItemLists.count) items")
-            print("💾 [ADD] Cache now contains:")
-            for (index, item) in sortedItemLists.prefix(3).enumerated() {
-                print("   \(index + 1). \(item.itemListDescription ?? "No desc") - ID: \(item.objectID)")
-            }
-            if sortedItemLists.count > 3 {
-                print("   ... and \(sortedItemLists.count - 3) more")
-            }
-        }
-        
-        // Update UI on main thread
-        await MainActor.run {
-            itemLists = sortedItemLists
-            updateTotalSpentForItemList(itemList, operation: .add)
-            
-            print("✅ [ADD] ItemList added successfully to UI")
-            print("📊 [ADD] UI now shows \(itemLists.count) items")
-            print("[TOTAL] [ADD] New total spent: \(formattedTotalSpent)")
-            
-            // Force UI refresh
-            objectWillChange.send()
-        }
-        print("🟢 [ADD] Operation complete\n")
+
+        print("📊 [ADD-DOMAIN] New count: \(sortedItemLists.count)")
+
+        // Update UI (ViewModel is @MainActor)
+        itemLists = sortedItemLists
+        await calculateTotalSpent()
+
+        print("✅ [ADD-DOMAIN] ItemList added successfully to UI")
+        print("[TOTAL] [ADD-DOMAIN] New total spent: \(formattedTotalSpent)")
+
+        objectWillChange.send()
+        print("🟢 [ADD-DOMAIN] Operation complete\n")
     }
-    
-    /// Remove ItemList from the dashboard using cache optimization
-    func removeItemList(_ itemList: ItemList) async {
-        let itemListDesc = itemList.itemListDescription ?? "Unknown"
-        print("➖ DashboardViewModel: Removing ItemList from dashboard with INCREMENTAL cache...")
-        print("🔍 DashboardViewModel: Removing: '\(itemListDesc)'")
-        
-        // Get current state
-        let (currentItemLists, groupId) = await MainActor.run { 
-            (itemLists, currentGroup?.id?.uuidString)
-        }
-        
-        print("📊 DashboardViewModel: Current itemLists count BEFORE remove: \(currentItemLists.count)")
-        
-        guard let index = currentItemLists.firstIndex(where: { $0.objectID == itemList.objectID }) else {
-            print("⚠️ DashboardViewModel: ItemList not found in current list")
-            return
-        }
-        
-        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
-        
-        // Create updated list
-        var updatedItemLists = currentItemLists
-        updatedItemLists.remove(at: index)
-        
-        print("📊 DashboardViewModel: New itemLists count AFTER remove: \(updatedItemLists.count)")
-        
-        // 🎯 UPDATE SERVICE CACHE: Single source of truth
-        // The Service layer owns the cache, ViewModel just updates it
-        if let groupId = groupId {
-            let serviceCacheKey = "ItemListService.groupItemLists.\(groupId)"
-            let timestampKey = "\(serviceCacheKey).timestamp"
-            cacheManager.cacheData(updatedItemLists, for: serviceCacheKey)
-            cacheManager.cacheData(Date(), for: timestampKey) // Update timestamp to keep cache fresh
-            print("✅ DashboardViewModel: Service cache updated (single source of truth)")
-            print("💡 DashboardViewModel: Cache now contains \(updatedItemLists.count) items")
-        }
-        
-        // Update UI on main thread
-        await MainActor.run {
-            updateTotalSpentForItemList(itemList, operation: .remove)
-            itemLists = updatedItemLists
-            
-            print("✅ DashboardViewModel: ItemList removed successfully")
-            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
-            print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
-            
-            objectWillChange.send()
-        }
-    }
-    
-    /// Delete an ItemList (swipe-to-delete action)
-    func deleteItemList(_ itemList: ItemList) async {
-        let itemListDesc = itemList.itemListDescription ?? "Unknown"
-        print("🗑️ DashboardViewModel: deleteItemList() called for: \(itemListDesc)")
-        
-        do {
-            // 1. Remove from UI immediately with animation (optimistic update)
-            print("⚡️ DashboardViewModel: Optimistic update - removing from UI and cache")
-            await removeItemList(itemList)
-            
-            // 2. Delete from Core Data using Use Case
-            print("🔄 DashboardViewModel: Deleting from Core Data...")
-            guard let itemListId = itemList.id else {
-                throw ValidationError.invalidItemList
-            }
-            try await deleteItemListUseCase.execute(id: itemListId)
-            print("✅ DashboardViewModel: ItemList deleted from Core Data successfully")
-            
-            // 🎯 INCREMENTAL CACHE: NO clearCache() needed!
-            // Cache was already updated in removeItemList()
-            print("💡 DashboardViewModel: Cache already updated incrementally - no refresh needed")
-            print("📊 DashboardViewModel: Current itemLists count: \(itemLists.count)")
-            
-        } catch {
-            print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")
-            
-            // Rollback UI change by reloading data
-            await MainActor.run {
-                errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
-            }
-            
-            // Reload to restore correct state
-            print("🔄 DashboardViewModel: Rolling back - reloading from database")
-            await loadDashboardDataOptimized()
-        }
-    }
-    
-    /// Update specific ItemList in the dashboard using cache optimization
-    func updateItemList(_ itemList: ItemList) async {
-        print("✏️ DashboardViewModel: Updating ItemList in dashboard with cache optimization...")
-        
-        // Get current state
-        let (currentItemLists, groupId) = await MainActor.run { 
-            (itemLists, currentGroup?.id?.uuidString)
-        }
-        
-        guard let index = currentItemLists.firstIndex(where: { $0.objectID == itemList.objectID }) else {
-            print("⚠️ DashboardViewModel: ItemList not found in current list")
-            return
-        }
-        
-        let oldItemList = currentItemLists[index]
-        
-        // Create updated list
-        var updatedItemLists = currentItemLists
-        updatedItemLists[index] = itemList
-        
-        // Re-sort if dates changed
-        updatedItemLists = updatedItemLists.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-        
-        // Update cache
-        if let groupId = groupId {
-            let cacheKey = "dashboard_items_\(groupId)"
-            cacheManager.cacheData(updatedItemLists, for: cacheKey)
-            print("✅ DashboardViewModel: Cache updated after ItemList update")
-        }
-        
-        // Update UI on main thread
-        await MainActor.run {
-            // Update total spent (remove old, add new)
-            updateTotalSpentForItemList(oldItemList, operation: .remove)
-            updateTotalSpentForItemList(itemList, operation: .add)
-            
-            itemLists = updatedItemLists
-            
-            print("✅ DashboardViewModel: ItemList updated successfully")
-            objectWillChange.send()
-        }
-    }
-    
-    /// Refresh data after ItemList creation (fallback for complex cases)
-    func refreshAfterItemListCreation() async {
-        print("🔄 DashboardViewModel: Refreshing after ItemList creation...")
-        await loadDashboardDataOptimized()
-    }
-    
+
+    /// Add new ItemList to the dashboard using cache optimization
     /// Clear cache for current group
     func clearCache() async {
         let groupIdString = await MainActor.run { currentGroup?.id?.uuidString }
@@ -899,89 +463,53 @@ class DashboardViewModel: ObservableObject {
     /// Force refresh by clearing cache and reloading
     func forceRefresh() async {
         await clearCache()
-        await loadDashboardDataOptimized()
+        await loadDashboardData()
         print("🔄 DashboardViewModel: Force refresh completed")
     }
     
     // MARK: - Private Methods
     
     /// Update total spent for a specific ItemList (incremental calculation)
-    private func updateTotalSpentForItemList(_ itemList: ItemList, operation: TotalSpentOperation) {
-        let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-        let itemListTotal = itemsArray.reduce(0.0) { itemTotal, item in
-            let amount = item.amount as Decimal? ?? 0
-            let quantity = Decimal(item.quantity)
-            let itemValue = NSDecimalNumber(decimal: amount * quantity).doubleValue
-            
-            // Protect against NaN or infinite values
-            guard itemValue.isFinite else {
-                print("⚠️ DashboardViewModel: Invalid item value in incremental update, skipping")
-                return itemTotal
-            }
-            
-            return itemTotal + itemValue
-        }
-        
-        // Protect against NaN
-        guard itemListTotal.isFinite else {
-            print("⚠️ DashboardViewModel: Invalid itemList total in incremental update, skipping")
-            return
-        }
-        
-        switch operation {
-        case .add:
-            totalSpent += itemListTotal
-        case .remove:
-            totalSpent -= itemListTotal
-        }
-        
-        // Ensure totalSpent is valid and non-negative
-        if !totalSpent.isFinite {
-            print("❌ DashboardViewModel: Total spent became NaN/Infinite, recalculating from scratch")
-            calculateTotalSpent()
-        } else {
-            totalSpent = max(0, totalSpent)
-        }
-    }
     
-    /// Verify if an ItemList belongs to the current dashboard context
-    private func isItemListInCurrentContext(_ itemList: ItemList) -> Bool {
-        // Check if ItemList belongs to current group
-        guard let currentGroupId = currentGroup?.id,
-              let itemListGroupId = itemList.group?.id else {
-            return false
-        }
-        
-        return currentGroupId == itemListGroupId
-    }
-    
-    /// Calculate total spent amount from all ItemLists (full recalculation)
-    private func calculateTotalSpent() {
-        let newTotal = itemLists.reduce(0.0) { total, itemList in
-            let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-            let itemListTotal = itemsArray.reduce(0.0) { itemTotal, item in
-                let amount = item.amount as Decimal? ?? 0
-                let quantity = Decimal(item.quantity)
-                let itemValue = NSDecimalNumber(decimal: amount * quantity).doubleValue
-                
-                // Protect against NaN or infinite values
-                guard itemValue.isFinite else {
-                    print("⚠️ DashboardViewModel: Invalid item value detected (NaN/Infinite), skipping")
-                    return itemTotal
+    /// Calculate total spent across all ItemLists (async, uses Domain models)
+    /// ✅ Clean Architecture: Uses async getItemListTotal for Domain models
+    /// ✅ Also populates itemListTotals cache for UI display
+    private func calculateTotalSpent() async {
+        // Calculate totals concurrently for better performance
+        let totals = await withTaskGroup(of: (UUID, Double).self) { group in
+            var results: [UUID: Double] = [:]
+
+            // Add tasks for each ItemList
+            for itemListDomain in itemLists {
+                group.addTask {
+                    let total = await self.getItemListTotal(itemListDomain)
+                    return (itemListDomain.id, total)
                 }
-                
-                return itemTotal + itemValue
             }
-            
+
+            // Collect results
+            for await (id, total) in group {
+                results[id] = total
+            }
+
+            return results
+        }
+
+        // Update individual ItemList totals cache on main thread
+        await MainActor.run {
+            itemListTotals = totals
+        }
+
+        // Sum all totals
+        let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
             // Protect against NaN or infinite values
             guard itemListTotal.isFinite else {
                 print("⚠️ DashboardViewModel: Invalid itemList total detected (NaN/Infinite), skipping")
                 return total
             }
-            
             return total + itemListTotal
         }
-        
+
         // Final protection against NaN
         if newTotal.isFinite {
             totalSpent = max(0, newTotal)  // Ensure non-negative
@@ -1017,21 +545,23 @@ class DashboardViewModel: ObservableObject {
     }
     
     /// Get recent ItemLists (last 10)
-    var recentItemLists: [ItemList] {
+    var recentItemLists: [ItemListDomain] {
         return Array(itemLists.prefix(10))
     }
     
     /// Update cached current month ItemLists
     /// ✅ Called automatically when itemLists changes (via didSet)
+    /// Update cache of current month ItemLists (for performance optimization)
+    /// ✅ Clean Architecture: Works with Domain models
     private func updateCurrentMonthCache() {
         let calendar = Calendar.current
         let now = Date()
-        
-        let filtered = itemLists.filter { itemList in
-            guard let itemListDate = itemList.date else { return false }
-            return calendar.isDate(itemListDate, equalTo: now, toGranularity: .month)
+
+        // Domain model date is NOT optional, simpler filtering!
+        let filtered = itemLists.filter { itemListDomain in
+            calendar.isDate(itemListDomain.date, equalTo: now, toGranularity: .month)
         }
-        
+
         // Only update if different to avoid unnecessary redraws
         if currentMonthItemLists.count != filtered.count {
             print("🗓️ DashboardViewModel: Updating current month cache")
@@ -1051,48 +581,182 @@ class DashboardViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
-    /// Get display amount for an ItemList
-    func getItemListTotal(_ itemList: ItemList) -> Double {
-        let itemsArray = itemList.items?.allObjects as? [Item] ?? []
-        let total = itemsArray.reduce(0.0) { total, item in
-            let amount = item.amount?.doubleValue ?? 0.0
-            let quantity = Double(item.quantity)
-            let itemValue = amount * quantity
-            
-            // Detect NaN at item level
-            guard itemValue.isFinite else {
-                print("❌ DashboardViewModel: getItemListTotal - Invalid item value detected!")
-                print("   Item: \(item.itemDescription ?? "Unknown"), Amount: \(amount), Quantity: \(quantity)")
-                return total
+    /// ✅ Clean Architecture: Uses Use Case, no Core Data knowledge
+    func getItemListTotal(_ itemListDomain: ItemListDomain) async -> Double {
+        do {
+            // Fetch items via Use Case (proper layering!)
+            let items = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
+
+            // Calculate total from Domain models
+            let total = items.reduce(0.0) { total, item in
+                let amount = Double(truncating: item.amount as NSNumber)
+                let quantity = Double(item.quantity)
+                let itemValue = amount * quantity
+
+                // Detect NaN at item level
+                guard itemValue.isFinite else {
+                    print("❌ DashboardViewModel: getItemListTotal(Domain) - Invalid item value detected!")
+                    print("   Item: \(item.itemDescription), Amount: \(amount), Quantity: \(quantity)")
+                    return total
+                }
+
+                return total + itemValue
             }
-            
-            return total + itemValue
-        }
-        
-        // Detect NaN at total level
-        guard total.isFinite else {
-            print("❌ DashboardViewModel: getItemListTotal - Total is NaN for ItemList: \(itemList.itemListDescription ?? "Unknown")")
+
+            // Detect NaN at total level
+            guard total.isFinite else {
+                print("❌ DashboardViewModel: getItemListTotal(Domain) - Total is NaN for ItemList: \(itemListDomain.itemListDescription)")
+                return 0.0
+            }
+
+            return total
+        } catch {
+            print("❌ DashboardViewModel: getItemListTotal(Domain) - Error fetching items: \(error.localizedDescription)")
             return 0.0
         }
-        
-        return total
     }
-    
-    /// Get formatted amount for an ItemList
-    func getFormattedItemListTotal(_ itemList: ItemList) -> String {
-        let total = getItemListTotal(itemList)
-        
+
+    /// Get formatted amount for an ItemListDomain (async, fetches items via Use Case)
+    /// ✅ Clean Architecture: Uses Use Case, no Core Data knowledge
+    func getFormattedItemListTotal(_ itemListDomain: ItemListDomain) async -> String {
+        let total = await getItemListTotal(itemListDomain)
+
         // Extra protection
         guard total.isFinite else {
-            print("❌ DashboardViewModel: getFormattedItemListTotal - Attempted to format NaN!")
+            print("❌ DashboardViewModel: getFormattedItemListTotal(Domain) - Attempted to format NaN!")
             return "€0.00"
         }
-        
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currentGroup?.currency ?? "EUR"
         formatter.locale = Locale(identifier: "es_ES")
         return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
+    }
+
+    /// Delete an ItemListDomain (Domain model version)
+    /// ✅ Clean Architecture: Uses Use Case only, no Core Data knowledge
+    func deleteItemListDomain(_ itemListDomain: ItemListDomain) async {
+        print("🗑️ DashboardViewModel: deleteItemListDomain() called for: \(itemListDomain.itemListDescription)")
+
+        do {
+            // 1. Remove from UI immediately (optimistic update)
+            print("⚡️ DashboardViewModel: Optimistic update - removing from UI")
+            await removeItemListDomain(itemListDomain)
+
+            // 2. Delete from persistence using Use Case
+            print("🔄 DashboardViewModel: Deleting from persistence...")
+            try await deleteItemListUseCase.execute(id: itemListDomain.id)
+            print("✅ DashboardViewModel: ItemList deleted successfully")
+
+        } catch {
+            print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")
+
+            // Rollback UI change by reloading data
+            await MainActor.run {
+                errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
+            }
+
+            // Reload to restore correct state
+            print("🔄 DashboardViewModel: Rolling back - reloading from database")
+            await loadDashboardData()
+        }
+    }
+
+    /// Remove an ItemListDomain from the UI cache (Domain model version)
+    /// ✅ Clean Architecture: Works with Domain models only
+    private func removeItemListDomain(_ itemListDomain: ItemListDomain) async {
+        print("➖ DashboardViewModel: Removing ItemListDomain from UI cache")
+        print("🔍 DashboardViewModel: Removing: '\(itemListDomain.itemListDescription)'")
+
+        // Get current state
+        let currentItemLists = await MainActor.run { itemLists }
+
+        print("📊 DashboardViewModel: Current itemLists count BEFORE remove: \(currentItemLists.count)")
+
+        guard let index = currentItemLists.firstIndex(where: { $0.id == itemListDomain.id }) else {
+            print("⚠️ DashboardViewModel: ItemList not found in current list")
+            return
+        }
+
+        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
+
+        // Create updated list
+        var updatedItemLists = currentItemLists
+        updatedItemLists.remove(at: index)
+
+        print("📊 DashboardViewModel: New itemLists count AFTER remove: \(updatedItemLists.count)")
+
+        // Update UI on main thread and recalculate total
+        await MainActor.run {
+            itemLists = updatedItemLists
+            print("✅ DashboardViewModel: ItemList removed successfully")
+            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
+            objectWillChange.send()
+        }
+
+        // Recalculate total spent (following RULES: always recalculate)
+        await calculateTotalSpent()
+        print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
+    }
+
+    /// Update an ItemListDomain in the UI cache (Domain model version)
+    /// ✅ Clean Architecture: Works with Domain models only
+    func updateItemListDomain(_ itemListDomain: ItemListDomain) async {
+        print("✏️ DashboardViewModel: Updating ItemListDomain in UI cache")
+        print("🔍 DashboardViewModel: Updating: '\(itemListDomain.itemListDescription)'")
+
+        // Get current state
+        let currentItemLists = await MainActor.run { itemLists }
+
+        guard let index = currentItemLists.firstIndex(where: { $0.id == itemListDomain.id }) else {
+            print("⚠️ DashboardViewModel: ItemList not found in current list")
+            return
+        }
+
+        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
+
+        // Create updated list
+        var updatedItemLists = currentItemLists
+        updatedItemLists[index] = itemListDomain
+
+        // Re-sort if dates changed
+        updatedItemLists = updatedItemLists.sorted { $0.date > $1.date }
+
+        print("📊 DashboardViewModel: ItemList updated")
+
+        // Update UI on main thread and recalculate total
+        await MainActor.run {
+            itemLists = updatedItemLists
+            print("✅ DashboardViewModel: ItemList updated successfully")
+            objectWillChange.send()
+        }
+
+        // Recalculate total spent (following RULES: always recalculate)
+        await calculateTotalSpent()
+        print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
+    }
+
+    /// Verify if an ItemListDomain belongs to the current dashboard context
+    /// ✅ Clean Architecture: Works with Domain models only
+    private func isItemListInCurrentContext(_ itemListDomain: ItemListDomain) -> Bool {
+        // Check if ItemList belongs to current group
+        guard let currentGroupId = currentGroup?.id else {
+            return false
+        }
+
+        return currentGroupId == itemListDomain.groupId
+    }
+
+    /// Get current month ItemLists (Domain model version)
+    /// ✅ Clean Architecture: Works with Domain models only
+    func getCurrentMonthItemLists() -> [ItemListDomain] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        return itemLists.filter { itemListDomain in
+            calendar.isDate(itemListDomain.date, equalTo: now, toGranularity: .month)
+        }
     }
 }
 

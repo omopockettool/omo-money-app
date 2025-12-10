@@ -41,17 +41,18 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             item.quantity = quantity
             item.itemList = itemList
             item.createdAt = Date()
-            
+
             try self.context.save()
             return item
         }
-        
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
-        
+
+        // Invalidate specific cache for this ItemList
+        let itemListCacheKey = "\(CacheKeys.itemListItems).\(itemList.id?.uuidString ?? "nil")"
+        let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemList.id?.uuidString ?? "nil")"
+        await CacheManager.shared.clearDataCache(for: itemListCacheKey)
+        await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
+        print("🗑️ ItemService: Cache invalidated for ItemList '\(itemList.itemListDescription ?? "Unknown")' after item creation")
+
         return item
     }
     

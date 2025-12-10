@@ -21,7 +21,7 @@ final class AddItemViewModel: ObservableObject {
     // MARK: - Dependencies
     private let itemList: ItemList
     private let context: NSManagedObjectContext
-    private let itemToEdit: Item?
+    private let itemToEdit: ItemDomain?
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
 
@@ -39,7 +39,7 @@ final class AddItemViewModel: ObservableObject {
     init(
         itemList: ItemList,
         context: NSManagedObjectContext,
-        itemToEdit: Item? = nil,
+        itemToEdit: ItemDomain? = nil,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
@@ -51,8 +51,8 @@ final class AddItemViewModel: ObservableObject {
 
         // Pre-populate fields if editing
         if let item = itemToEdit {
-            self.description = item.itemDescription ?? ""
-            self.amount = item.amount?.stringValue ?? ""
+            self.description = item.itemDescription
+            self.amount = item.amount.description
             self.quantity = String(item.quantity)
         }
     }
@@ -78,15 +78,15 @@ final class AddItemViewModel: ObservableObject {
         do {
             let itemDomain: ItemDomain
 
-            if let existingItem = itemToEdit, let itemId = existingItem.id {
+            if let existingItem = itemToEdit {
                 // Edit mode - use Update Use Case
                 let updatedItemDomain = ItemDomain(
-                    id: itemId,
+                    id: existingItem.id,
                     itemDescription: description,
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId,
-                    createdAt: existingItem.createdAt ?? Date(),
+                    createdAt: existingItem.createdAt,
                     lastModifiedAt: Date()
                 )
                 try await updateItemUseCase.execute(updatedItemDomain)

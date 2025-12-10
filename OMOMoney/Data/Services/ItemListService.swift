@@ -88,12 +88,14 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             return itemList
         }
         
-        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
-        // The ViewModel will handle incremental cache updates
-        // This avoids unnecessary full reloads from Core Data
-        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache")
-        print("   ViewModel will add this item to its cache incrementally")
-        
+        // ✅ Invalidate cache after creation to ensure consistency
+        // The cache must be cleared so next fetch gets fresh data
+        let cacheKey = "\(CacheKeys.groupItemLists).\(groupId.uuidString)"
+        let timestampKey = "\(cacheKey).timestamp"
+        await CacheManager.shared.clearDataCache(for: cacheKey)
+        await CacheManager.shared.clearDataCache(for: timestampKey)
+        print("🗑️ ItemListService: Cache invalidated for group after creation")
+
         return itemList
     }
     
@@ -133,20 +135,30 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     
     /// Delete an itemList
     func deleteItemList(_ itemList: ItemList) async throws {
-    // Get the group before deleting the itemList (removed unused 'group' to resolve warning)
-    let itemListDescription = itemList.itemListDescription ?? "Unknown"
-        
+        // Get the group ID before deleting the itemList
+        guard let groupId = itemList.group?.id else {
+            print("⚠️ ItemListService: Cannot invalidate cache - ItemList has no group")
+            await delete(itemList)
+            try await save()
+            return
+        }
+
+        let itemListDescription = itemList.itemListDescription ?? "Unknown"
+
         print("🗑️ ItemListService: Deleting ItemList '\(itemListDescription)'")
-        
+
         await delete(itemList)
         try await save()
-        
+
         print("✅ ItemListService: ItemList deleted from Core Data")
-        
-        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
-        // The ViewModel already removed it from cache before calling this
-        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache after delete")
-        print("   ViewModel already updated its cache optimistically")
+
+        // ✅ INVALIDATE CACHE: Essential for refreshData() to get correct data
+        // Without this, refreshData() returns stale cached data that includes deleted ItemList
+        let cacheKey = "\(CacheKeys.groupItemLists).\(groupId.uuidString)"
+        let timestampKey = "\(cacheKey).timestamp"
+        await CacheManager.shared.clearDataCache(for: cacheKey)
+        await CacheManager.shared.clearDataCache(for: timestampKey)
+        print("🗑️ ItemListService: Cache invalidated for group after deletion")
     }
     
     /// Get itemLists for a specific group with caching

@@ -19,14 +19,14 @@ struct ItemListDetailView: View {
     // MARK: - Sheet Mode (UI State)
     enum ItemSheetMode: Identifiable {
         case create
-        case edit(Item)
+        case edit(ItemDomain)
 
         var id: String {
             switch self {
             case .create:
                 return "create"
             case .edit(let item):
-                return "edit-\(item.objectID)"
+                return "edit-\(item.id)"
             }
         }
     }
@@ -71,9 +71,11 @@ struct ItemListDetailView: View {
         .onAppear {
             // Only load data on first appearance to avoid DB query on sheet dismiss
             guard !hasLoadedInitialData else {
-                print("📍 ItemListDetailView: Sheet dismissed, refreshing Item contexts...")
-                // 🔄 Refresh Item Core Data objects to get updated values (instant, no DB query)
-                viewModel.refreshItemContexts()
+                print("📍 ItemListDetailView: Sheet dismissed, reloading items...")
+                // ✅ Reload items to get updated values
+                Task {
+                    await viewModel.loadItems()
+                }
                 return
             }
 
@@ -148,7 +150,7 @@ struct ItemListDetailView: View {
 
     private var itemsListView: some View {
         List {
-            ForEach(Array(viewModel.items.enumerated()), id: \.element.objectID) { index, item in
+            ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
                 ItemRowView(
                     item: item,
                     formattedAmount: viewModel.getFormattedAmount(item),
@@ -232,7 +234,7 @@ struct ItemListDetailView: View {
 // MARK: - Item Row View Component
 
 struct ItemRowView: View {
-    let item: Item
+    let item: ItemDomain
     let formattedAmount: String
     let onTap: () -> Void
 
@@ -246,7 +248,7 @@ struct ItemRowView: View {
 
                 // Content area
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(item.itemDescription ?? "Sin descripción")
+                    Text(item.itemDescription)
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -290,7 +292,7 @@ struct AddItemView: View {
     init(
         itemList: ItemList,
         context: NSManagedObjectContext,
-        itemToEdit: Item? = nil,
+        itemToEdit: ItemDomain? = nil,
         onItemSaved: @escaping (ItemDomain) -> Void,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase

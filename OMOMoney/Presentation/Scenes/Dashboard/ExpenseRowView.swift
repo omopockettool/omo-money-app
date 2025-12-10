@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct ExpenseRowView: View {
-    let itemList: ItemList
+    let itemList: ItemListDomain
     let formattedAmount: String
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: AppConstants.UserInterface.padding) {
@@ -19,11 +19,11 @@ struct ExpenseRowView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.green)
-                
+
                 // Content area
                 VStack(alignment: .leading, spacing: 4) {
                     // ItemList description
-                    Text(itemList.itemListDescription ?? "Sin descripción")
+                    Text(itemList.itemListDescription)
                         .font(.headline)
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -58,12 +58,13 @@ struct ExpenseRowView: View {
     }
     
     // MARK: - Helper Methods
-    
+
     /// Get the category from the ItemList (each ItemList has one category)
+    /// TODO: Implement proper category fetching via Use Case using categoryId
     private func getFirstCategory() -> Category? {
-        return itemList.category
+        return nil  // Domain model only has categoryId, not category relationship
     }
-    
+
     /// Get the color for a category
     private func getCategoryColor(_ category: Category) -> Color {
         guard let colorString = category.color else {
@@ -78,39 +79,33 @@ struct ExpenseRowView: View {
     VStack(spacing: 10) {
         // Preview with sample data
         ExpenseRowView(
-            itemList: {
-                let context = PersistenceController.preview.container.viewContext
-                let itemList = ItemList(context: context)
-                itemList.itemListDescription = "Compras del supermercado"
-                itemList.date = Date()
-                
-                let group = Group(context: context)
-                group.name = "Compras Ahorramas"
-                group.currency = "EUR"
-                itemList.group = group
-                
-                return itemList
-            }(),
+            itemList: ItemListDomain(
+                id: UUID(),
+                itemListDescription: "Compras del supermercado",
+                date: Date(),
+                categoryId: UUID(),
+                paymentMethodId: UUID(),
+                groupId: UUID(),
+                createdAt: Date(),
+                lastModifiedAt: nil
+            ),
             formattedAmount: "12.89 €",
             onTap: {
                 print("Expense row tapped")
             }
         )
-        
+
         ExpenseRowView(
-            itemList: {
-                let context = PersistenceController.preview.container.viewContext
-                let itemList = ItemList(context: context)
-                itemList.itemListDescription = "Cena en restaurante"
-                itemList.date = Date()
-                
-                let group = Group(context: context)
-                group.name = "Gastos Personales"
-                group.currency = "EUR"
-                itemList.group = group
-                
-                return itemList
-            }(),
+            itemList: ItemListDomain(
+                id: UUID(),
+                itemListDescription: "Cena en restaurante",
+                date: Date(),
+                categoryId: UUID(),
+                paymentMethodId: UUID(),
+                groupId: UUID(),
+                createdAt: Date(),
+                lastModifiedAt: nil
+            ),
             formattedAmount: "45.60 €",
             onTap: {
                 print("Expense row tapped")

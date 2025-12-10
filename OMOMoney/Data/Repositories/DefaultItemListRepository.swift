@@ -18,9 +18,11 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func fetchItemLists() async throws -> [ItemListDomain] {
-        // Fetch all ItemLists from Core Data
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        let itemLists = try context.fetch(fetchRequest)
+        // Fetch all ItemLists from Core Data on background thread
+        let itemLists = try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            return try self.context.fetch(fetchRequest)
+        }
         return itemLists.map { $0.toDomain() }
     }
     
@@ -30,24 +32,29 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func fetchItemLists(forGroupId groupId: UUID) async throws -> [ItemListDomain] {
-        // Fetch the Group from Core Data
-        let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+        // Fetch the Group from Core Data on background thread
+        let group = try await context.perform {
+            let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            return try self.context.fetch(fetchRequest).first
+        }
 
-        guard let group = try context.fetch(fetchRequest).first else {
+        guard let group = group else {
             throw RepositoryError.notFound
         }
 
-        // Get item lists using service
+        // Get item lists using service (already uses context.perform internally)
         let itemLists = try await itemListService.getItemLists(for: group)
         return itemLists.map { $0.toDomain() }
     }
     
     func fetchItemLists(forCategoryId categoryId: UUID) async throws -> [ItemListDomain] {
-        // Fetch ItemLists by category from Core Data
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
-        let itemLists = try context.fetch(fetchRequest)
+        // Fetch ItemLists by category from Core Data on background thread
+        let itemLists = try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "category.id == %@", categoryId as CVarArg)
+            return try self.context.fetch(fetchRequest)
+        }
         return itemLists.map { $0.toDomain() }
     }
     
@@ -78,33 +85,38 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func updateItemList(_ itemList: ItemListDomain) async throws {
-        // Fetch the Core Data ItemList entity
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", itemList.id as CVarArg)
+        // Fetch and update on background thread
+        try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", itemList.id as CVarArg)
 
-        guard let coreDataItemList = try context.fetch(fetchRequest).first else {
-            throw RepositoryError.notFound
+            guard let coreDataItemList = try self.context.fetch(fetchRequest).first else {
+                throw RepositoryError.notFound
+            }
+
+            // Update the entity
+            coreDataItemList.itemListDescription = itemList.itemListDescription
+            coreDataItemList.date = itemList.date
+            coreDataItemList.lastModifiedAt = Date()
+
+            // Save context
+            try self.context.save()
         }
-
-        // Update the entity
-        coreDataItemList.itemListDescription = itemList.itemListDescription
-        coreDataItemList.date = itemList.date
-        coreDataItemList.lastModifiedAt = Date()
-
-        // Save context
-        try context.save()
     }
     
     func deleteItemList(id: UUID) async throws {
-        // Fetch the ItemList from Core Data
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        // Fetch the ItemList from Core Data on background thread
+        let itemList = try await context.perform {
+            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            return try self.context.fetch(fetchRequest).first
+        }
 
-        guard let itemList = try context.fetch(fetchRequest).first else {
+        guard let itemList = itemList else {
             throw RepositoryError.notFound
         }
 
-        // Delete using service
+        // Delete using service (already uses context.perform internally)
         try await itemListService.deleteItemList(itemList)
     }
     

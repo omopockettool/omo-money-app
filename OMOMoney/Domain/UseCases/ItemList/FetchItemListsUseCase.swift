@@ -11,6 +11,8 @@ import Foundation
 protocol FetchItemListsUseCase {
     /// Fetch all item lists
     func execute() async throws -> [ItemListDomain]
+    /// Fetch a single item list by ID
+    func execute(itemListId: UUID) async throws -> ItemListDomain?
     /// Fetch item lists for a specific group
     func execute(forGroupId groupId: UUID) async throws -> [ItemListDomain]
     /// Fetch item lists for a specific category
@@ -29,7 +31,11 @@ final class DefaultFetchItemListsUseCase: FetchItemListsUseCase {
     func execute() async throws -> [ItemListDomain] {
         return try await itemListRepository.fetchItemLists()
     }
-    
+
+    func execute(itemListId: UUID) async throws -> ItemListDomain? {
+        return try await itemListRepository.fetchItemList(id: itemListId)
+    }
+
     func execute(forGroupId groupId: UUID) async throws -> [ItemListDomain] {
         return try await itemListRepository.fetchItemLists(forGroupId: groupId)
     }

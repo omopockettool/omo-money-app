@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct ExpenseListView: View {
-    let itemLists: [ItemList]
-    let getFormattedAmount: (ItemList) -> String
-    let onItemTap: (ItemList) -> Void
+    let itemLists: [ItemListDomain]
+    let getFormattedAmount: (ItemListDomain) -> String
+    let onItemTap: (ItemListDomain) -> Void
     let onRefresh: () async -> Void
-    let onDelete: (ItemList) async -> Void
+    let onDelete: (ItemListDomain) async -> Void
     
     var body: some View {
         List {
@@ -25,7 +25,7 @@ struct ExpenseListView: View {
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
                         Section {
-                            ForEach(itemListsForDate, id: \.objectID) { itemList in
+                            ForEach(itemListsForDate, id: \.id) { itemList in
                                 ExpenseRowView(
                                     itemList: itemList,
                                     formattedAmount: getFormattedAmount(itemList),
@@ -97,10 +97,10 @@ struct ExpenseListView: View {
     // MARK: - Helper Methods
     
     /// Group ItemLists by date for sectioned display
-    private var groupedItemLists: [Date: [ItemList]] {
+    private var groupedItemLists: [Date: [ItemListDomain]] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: itemLists) { itemList in
-            calendar.startOfDay(for: itemList.date ?? Date())
+            calendar.startOfDay(for: itemList.date)
         }
         return grouped
     }
