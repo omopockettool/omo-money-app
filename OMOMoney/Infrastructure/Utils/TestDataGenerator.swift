@@ -63,10 +63,23 @@ class TestDataGenerator {
                     itemList.itemListDescription = self.generateRandomDescription(index: i)
                     itemList.date = self.generateRandomDate()
                     itemList.createdAt = Date()
+
+                    // ✅ FIX: Set both relationship AND attribute for group
                     itemList.group = group
-                    itemList.category = categories.randomElement()
-                    itemList.paymentMethod = paymentMethods.randomElement()
-                    
+                    itemList.groupId = group.id
+
+                    // ✅ FIX: Set both relationship AND attribute for category
+                    if let category = categories.randomElement() {
+                        itemList.category = category
+                        itemList.categoryId = category.id
+                    }
+
+                    // ✅ FIX: Set both relationship AND attribute for payment method
+                    if let paymentMethod = paymentMethods.randomElement() {
+                        itemList.paymentMethod = paymentMethod
+                        itemList.paymentMethodId = paymentMethod.id
+                    }
+
                     // Create items for this ItemList
                     for j in 1...itemsPerList {
                         let item = Item(context: self.context)
@@ -78,13 +91,22 @@ class TestDataGenerator {
                         item.itemList = itemList
                     }
                 }
-                
+
                 try self.context.save()
             }
             
             print("✅ TestDataGenerator: Batch \(batchIndex + 1) completed")
         }
-        
+
+        // ✅ CRITICAL FIX: Invalidate ItemListService cache after generating test data
+        if let groupId = group.id {
+            let cacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            let timestampKey = "\(cacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: cacheKey)
+            await CacheManager.shared.clearDataCache(for: timestampKey)
+            print("🗑️ TestDataGenerator: Cache invalidated for group after test data generation")
+        }
+
         print("🎉 TestDataGenerator: Successfully generated \(itemListCount) ItemLists with \(itemListCount * itemsPerList) items!")
     }
     

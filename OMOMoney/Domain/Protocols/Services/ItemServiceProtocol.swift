@@ -11,7 +11,7 @@ protocol ItemServiceProtocol {
     func fetchItem(by id: UUID) async throws -> Item?
     
     /// Create a new item
-    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemList: ItemList) async throws -> Item
+    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID) async throws -> Item
     
     /// Update an existing item
     func updateItem(_ item: Item, description: String?, amount: NSDecimalNumber?, quantity: Int32?) async throws

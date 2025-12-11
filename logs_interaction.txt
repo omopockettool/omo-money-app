@@ -1,73 +1,203 @@
+check if everything looks good in this logs
 
-i found a bug when creating a new item list the cuantity is zero but i inserted a value of 5000! 
-
-🟢 ============================================
-� [ADD] Adding ItemList: 'Hh'
-🟢 ============================================
-✅ AddItemListViewModel: ItemList created successfully: Hh
-🔄 AddItemListViewModel: Creating automatic Item with price: 5000
-📊 [ADD] Current count BEFORE add: 0
-📊 [ADD] New count AFTER add: 1
-🔑 [ADD] Cache key: ItemListService.groupItemLists.E0476ADB-0486-4E6F-8759-DD3619EEC3AA
-✅ [ADD] Service cache UPDATED with 1 items
-💾 [ADD] Cache now contains:
-   1. Hh - ID: 0xa3922fcf9a028261 <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p12215>
+🔧 DashboardViewModel: Generating test data...
+🏠 DashboardViewModel: Active group - ID: EB0845FC-8621-4AFF-8241-71007F0AA00D, Name: 'Prueba'
+🔄 TestDataGenerator: Starting generation of 200 ItemLists with 2 items each...
+🎯 TestDataGenerator: Using provided target group - ID: EB0845FC-8621-4AFF-8241-71007F0AA00D, Name: 'Prueba'
+✅ TestDataGenerator: Found group 'Prueba' with 7 categories and 4 payment methods
+🔄 TestDataGenerator: Batch 1/4 - Creating 50 ItemLists...
+✅ TestDataGenerator: Batch 1 completed
+🔄 TestDataGenerator: Batch 2/4 - Creating 50 ItemLists...
+✅ TestDataGenerator: Batch 2 completed
+🔄 TestDataGenerator: Batch 3/4 - Creating 50 ItemLists...
+✅ TestDataGenerator: Batch 3 completed
+🔄 TestDataGenerator: Batch 4/4 - Creating 50 ItemLists...
+✅ TestDataGenerator: Batch 4 completed
+🗑️ TestDataGenerator: Cache invalidated for group after test data generation
+🎉 TestDataGenerator: Successfully generated 200 ItemLists with 400 items!
+✅ DashboardViewModel: Test data generation completed!
+🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH
+🔍 DashboardViewModel: Fetching latest ItemLists...
+🔍 ItemListService: Getting ItemLists for group 'Prueba'
+🔍 ItemListService: Cache key: ItemListService.groupItemLists.EB0845FC-8621-4AFF-8241-71007F0AA00D
+⚪️ [TTL CHECK] NO CACHE - First time fetch
+   🔄 Action: Fetching from Core Data...
+🔄 ItemListService: Cache miss - fetching from Core Data...
+   - Recibo restaurante #128 (ID: 5E05E0AF-13DA-466D-A990-3C4AFD4701D3)
+   - Jaja (ID: 57282E0C-5B2B-4B69-8E68-4F19BC1DAE69)
+   - Compras (ID: F379E8EF-4538-443B-B005-CF9C04E42D3D)
+   - Adquisición servicios #191 (ID: 2BCA7BE2-6602-4F05-900F-39D0EC700DCC)
+   - Factura hogar #6 (ID: 07F2CF55-A8FA-48A2-A17B-3AE7629DB102)
+   - (...and 197 more...)
+💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅
+   📦 Items: 202
+   ⏰ Cache valid for: 30 minutes
+   🎯 Source: CORE DATA (SQLite)
+� DashboardViewModel: Current count: 2, Fetched count: 202
+💡 DashboardViewModel: Service layer manages cache (single source of truth)
 🗓️ DashboardViewModel: Updating current month cache
-   - Total ItemLists: 1
-   - Current month ItemLists: 1
-✅ [ADD] ItemList added successfully to UI
-📊 [ADD] UI now shows 1 items
-[TOTAL] [ADD] New total spent: 0,00 €
-🟢 [ADD] Operation complete
-
-🔄 AddItemListView: Initializing with Clean Architecture DI
-✅ AddItemListViewModel: Automatic Item created successfully
-💡 AddItemListViewModel: Returning ItemListDomain for incremental cache update
-✅ AddItemListView: ItemList created: 'Hh'
-🔄 AddItemListView: Calling onItemListCreated callback with ItemList...
-🔄 DashboardView: onItemListCreated callback triggered
-✅ DashboardView: Received new ItemList: 'Hh'
-✅ AddItemListView: Callback executed
-⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)
-
-🟢 ============================================
-� [ADD] Adding ItemList: 'Hh'
-🟢 ============================================
-⚠️ [ADD] ItemList doesn't belong to current context, skipping
-✅ DashboardView: Incremental update completed - UI updated instantly!
-
-
-🟢 ============================================
-� [ADD] Adding ItemList: 'Hh'
-🟢 ============================================
-✅ AddItemListViewModel: ItemList created successfully: Hh
-🔄 AddItemListViewModel: Creating automatic Item with price: 5000
-📊 [ADD] Current count BEFORE add: 0
-📊 [ADD] New count AFTER add: 1
-🔑 [ADD] Cache key: ItemListService.groupItemLists.E0476ADB-0486-4E6F-8759-DD3619EEC3AA
-✅ [ADD] Service cache UPDATED with 1 items
-💾 [ADD] Cache now contains:
-   1. Hh - ID: 0xa3922fcf9a028261 <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p12215>
+   - Total ItemLists: 202
+   - Current month ItemLists: 18
+🔄 DashboardViewModel: Recalculating all ItemList totals...
+✅ DashboardViewModel: UI updated with 202 items, totals recalculated
+✅ DashboardViewModel: Refresh completed smoothly
+📊 [LOAD] Initial load - showing spinner
+🔍 [LOAD] Fetching items for ItemList: Jaja
+📦 [LOAD] Fetched 2 items from Use Case
+✅ [LOAD] Successfully loaded 2 items
+🗑️ [DELETE] Removing item: 'Halla'
+📊 [DELETE] Current count BEFORE delete: 2
+📊 [DELETE] New count AFTER delete: 1
+💀 [CoreDataService] delete() ejecutándose en context.perform
+💀 [CoreDataService] Object tipo: Item
+💀 [CoreDataService] Object ObjectID: 0x8fbcc49f15ce456a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/Item/p30879>
+💀 [CoreDataService] Context: <NSManagedObjectContext: 0x10a4d0780>
+💀 [CoreDataService] Objetos registrados ANTES: 1237
+💀 [CoreDataService] context.delete() ejecutado
+💀 [CoreDataService] Objetos registrados DESPUÉS: 1237
+💀 [CoreDataService] HasChanges: true
+💀 [CoreDataService] Cambios pendientes - Inserted: 1, Updated: 0, Deleted: 1
+💀 [CoreDataService] Objeto marcado para eliminar: Item - ObjectID: 0x8fbcc49f15ce456a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/Item/p30879>
+💾 [CoreDataService] save() ejecutándose
+💾 [CoreDataService] HasChanges: true
+💾 [CoreDataService] Cambios a guardar - Inserted: 1, Updated: 1, Deleted: 1
+💾 [CoreDataService] Guardando eliminación de: Item - ObjectID: 0x8fbcc49f15ce456a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/Item/p30879>
+💾 [CoreDataService] context.save() completado ✅
+🗑️ ItemService: Cache invalidated for ItemList and Group (including ItemListService) after item deletion
+✅ [DELETE] Item deleted from DB
+🔄 [ITEMLIST-REFRESH] ItemList context refreshed with latest properties
+🎉 [DELETE] Optimistic delete complete!
+📍 DashboardView: Navigated back, refreshing data...
+🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH
+🔍 DashboardViewModel: Fetching latest ItemLists...
+🔍 ItemListService: Getting ItemLists for group 'Prueba'
+🔍 ItemListService: Cache key: ItemListService.groupItemLists.EB0845FC-8621-4AFF-8241-71007F0AA00D
+⚪️ [TTL CHECK] NO CACHE - First time fetch
+   🔄 Action: Fetching from Core Data...
+🔄 ItemListService: Cache miss - fetching from Core Data...
+   - Recibo restaurante #128 (ID: 5E05E0AF-13DA-466D-A990-3C4AFD4701D3)
+   - Jaja (ID: 57282E0C-5B2B-4B69-8E68-4F19BC1DAE69)
+   - Compras (ID: F379E8EF-4538-443B-B005-CF9C04E42D3D)
+   - Adquisición servicios #191 (ID: 2BCA7BE2-6602-4F05-900F-39D0EC700DCC)
+   - Factura hogar #6 (ID: 07F2CF55-A8FA-48A2-A17B-3AE7629DB102)
+   - (...and 197 more...)
+💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅
+   📦 Items: 202
+   ⏰ Cache valid for: 30 minutes
+   🎯 Source: CORE DATA (SQLite)
+� DashboardViewModel: Current count: 202, Fetched count: 202
+💡 DashboardViewModel: Service layer manages cache (single source of truth)
+🔄 DashboardViewModel: Recalculating all ItemList totals...
+✅ DashboardViewModel: UI updated with 202 items, totals recalculated
+✅ DashboardViewModel: Refresh completed smoothly
+🗑️ DashboardViewModel: deleteItemListDomain() called for: Recibo restaurante #128
+⚡️ DashboardViewModel: Optimistic update - removing from UI
+➖ DashboardViewModel: Removing ItemListDomain from UI cache
+🔍 DashboardViewModel: Removing: 'Recibo restaurante #128'
+📊 DashboardViewModel: Current itemLists count BEFORE remove: 202
+🎯 DashboardViewModel: Found ItemList at index 0
+📊 DashboardViewModel: New itemLists count AFTER remove: 201
 🗓️ DashboardViewModel: Updating current month cache
-   - Total ItemLists: 1
-   - Current month ItemLists: 1
-✅ [ADD] ItemList added successfully to UI
-📊 [ADD] UI now shows 1 items
-[TOTAL] [ADD] New total spent: 0,00 €
-🟢 [ADD] Operation complete
+   - Total ItemLists: 201
+   - Current month ItemLists: 17
+✅ DashboardViewModel: ItemList removed successfully
+📊 DashboardViewModel: UI now shows 201 items
+[TOTAL] DashboardViewModel: New total spent: 65.344,42 €
+🔄 DashboardViewModel: Deleting from persistence...
+🗑️ ItemListService: Deleting ItemList 'Recibo restaurante #128'
+💀 [CoreDataService] delete() ejecutándose en context.perform
+💀 [CoreDataService] Object tipo: ItemList
+💀 [CoreDataService] Object ObjectID: 0x8fbcc497a72e453a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p15624>
+💀 [CoreDataService] Context: <NSManagedObjectContext: 0x10a4d0780>
+💀 [CoreDataService] Objetos registrados ANTES: 1235
+💀 [CoreDataService] context.delete() ejecutado
+💀 [CoreDataService] Objetos registrados DESPUÉS: 1235
+💀 [CoreDataService] HasChanges: true
+💀 [CoreDataService] Cambios pendientes - Inserted: 0, Updated: 0, Deleted: 1
+💀 [CoreDataService] Objeto marcado para eliminar: ItemList - ObjectID: 0x8fbcc497a72e453a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p15624>
+💾 [CoreDataService] save() ejecutándose
+💾 [CoreDataService] HasChanges: true
+💾 [CoreDataService] Cambios a guardar - Inserted: 0, Updated: 3, Deleted: 3
+💾 [CoreDataService] Guardando eliminación de: Item - ObjectID: 0x8fbcc49f29ae456a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/Item/p31100>
+💾 [CoreDataService] Guardando eliminación de: Item - ObjectID: 0x8fbcc49f3f6e456a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/Item/p31178>
+💾 [CoreDataService] Guardando eliminación de: ItemList - ObjectID: 0x8fbcc497a72e453a <x-coredata://D18FA237-F4CA-4F68-90DD-B2750CC75706/ItemList/p15624>
+💾 [CoreDataService] context.save() completado ✅
+✅ ItemListService: ItemList deleted from Core Data
+🗑️ ItemListService: Cache invalidated for group after deletion
+✅ DashboardViewModel: ItemList deleted successfully
+📊 [LOAD] Initial load - showing spinner
+🔍 [LOAD] Fetching items for ItemList: Jaja
+📦 [LOAD] Fetched 1 items from Use Case
+✅ [LOAD] Successfully loaded 1 items
 
-🔄 AddItemListView: Initializing with Clean Architecture DI
-✅ AddItemListViewModel: Automatic Item created successfully
-💡 AddItemListViewModel: Returning ItemListDomain for incremental cache update
-✅ AddItemListView: ItemList created: 'Hh'
-🔄 AddItemListView: Calling onItemListCreated callback with ItemList...
-🔄 DashboardView: onItemListCreated callback triggered
-✅ DashboardView: Received new ItemList: 'Hh'
-✅ AddItemListView: Callback executed
-⚡️ DashboardView: Using INCREMENTAL cache update (no DB query)
+🗑️ ItemService: Cache invalidated for ItemList and Group (including ItemListService) after item update
+✅ AddItemViewModel: Item updated successfully
+💡 AddItemViewModel: Returning ItemDomain for incremental cache update
+✅ AddItemView: Item saved, calling callback with ItemDomain
+✏️ [EDIT] Updating item from domain: 'Ush'
+📊 [EDIT] Found item at index 0, updating...
+✅ [EDIT] Item updated in local array
+🔄 [ITEMLIST-REFRESH] ItemList context refreshed with latest properties
+🎉 [EDIT] Incremental update complete - NO Core Data conversion!
+Reporter disconnected or already stopped. { func=stop, reporterID=170149424398345 }
+📍 DashboardView: Navigated back, refreshing data...
+🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH
+🔍 DashboardViewModel: Fetching latest ItemLists...
+🔍 ItemListService: Getting ItemLists for group 'Prueba'
+🔍 ItemListService: Cache key: ItemListService.groupItemLists.EB0845FC-8621-4AFF-8241-71007F0AA00D
+⚪️ [TTL CHECK] NO CACHE - First time fetch
+   🔄 Action: Fetching from Core Data...
+🔄 ItemListService: Cache miss - fetching from Core Data...
+   - Jaja (ID: 57282E0C-5B2B-4B69-8E68-4F19BC1DAE69)
+   - Compras (ID: F379E8EF-4538-443B-B005-CF9C04E42D3D)
+   - Adquisición servicios #191 (ID: 2BCA7BE2-6602-4F05-900F-39D0EC700DCC)
+   - Factura hogar #6 (ID: 07F2CF55-A8FA-48A2-A17B-3AE7629DB102)
+   - Recibo farmacia #63 (ID: E04748E6-99D0-4F6D-A949-5E753818B6DF)
+   - (...and 196 more...)
+💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅
+   📦 Items: 201
+   ⏰ Cache valid for: 30 minutes
+   🎯 Source: CORE DATA (SQLite)
+� DashboardViewModel: Current count: 201, Fetched count: 201
+💡 DashboardViewModel: Service layer manages cache (single source of truth)
+🔄 DashboardViewModel: Recalculating all ItemList totals...
+✅ DashboardViewModel: UI updated with 201 items, totals recalculated
+✅ DashboardViewModel: Refresh completed smoothly
+📊 [LOAD] Initial load - showing spinner
+🔍 [LOAD] Fetching items for ItemList: Compras
+📦 [LOAD] Fetched 1 items from Use Case
+✅ [LOAD] Successfully loaded 1 items
 
-🟢 ============================================
-� [ADD] Adding ItemList: 'Hh'
-🟢 ============================================
-⚠️ [ADD] ItemList doesn't belong to current context, skipping
-✅ DashboardView: Incremental update completed - UI updated instantly!
+🗑️ ItemService: Cache invalidated for ItemList and Group (including ItemListService) after item update
+✅ AddItemViewModel: Item updated successfully
+💡 AddItemViewModel: Returning ItemDomain for incremental cache update
+✅ AddItemView: Item saved, calling callback with ItemDomain
+✏️ [EDIT] Updating item from domain: 'Compras'
+📊 [EDIT] Found item at index 0, updating...
+✅ [EDIT] Item updated in local array
+🔄 [ITEMLIST-REFRESH] ItemList context refreshed with latest properties
+🎉 [EDIT] Incremental update complete - NO Core Data conversion!
+Reporter disconnected or already stopped. { func=stop, reporterID=170149424398346 }
+📍 DashboardView: Navigated back, refreshing data...
+🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH
+🔍 DashboardViewModel: Fetching latest ItemLists...
+🔍 ItemListService: Getting ItemLists for group 'Prueba'
+🔍 ItemListService: Cache key: ItemListService.groupItemLists.EB0845FC-8621-4AFF-8241-71007F0AA00D
+⚪️ [TTL CHECK] NO CACHE - First time fetch
+   🔄 Action: Fetching from Core Data...
+🔄 ItemListService: Cache miss - fetching from Core Data...
+   - Jaja (ID: 57282E0C-5B2B-4B69-8E68-4F19BC1DAE69)
+   - Compras (ID: F379E8EF-4538-443B-B005-CF9C04E42D3D)
+   - Adquisición servicios #191 (ID: 2BCA7BE2-6602-4F05-900F-39D0EC700DCC)
+   - Factura hogar #6 (ID: 07F2CF55-A8FA-48A2-A17B-3AE7629DB102)
+   - Recibo farmacia #63 (ID: E04748E6-99D0-4F6D-A949-5E753818B6DF)
+   - (...and 196 more...)
+💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅
+   📦 Items: 201
+   ⏰ Cache valid for: 30 minutes
+   🎯 Source: CORE DATA (SQLite)
+� DashboardViewModel: Current count: 201, Fetched count: 201
+💡 DashboardViewModel: Service layer manages cache (single source of truth)
+🔄 DashboardViewModel: Recalculating all ItemList totals...
+✅ DashboardViewModel: UI updated with 201 items, totals recalculated
+✅ DashboardViewModel: Refresh completed smoothly

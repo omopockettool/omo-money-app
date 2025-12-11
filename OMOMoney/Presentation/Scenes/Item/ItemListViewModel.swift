@@ -55,9 +55,15 @@ class ItemListViewModel: ObservableObject {
     func createItem(description: String, amount: NSDecimalNumber, quantity: Int32 = 1, itemList: ItemList) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
+        guard let itemListId = itemList.id else {
+            errorMessage = "Error: ItemList has no ID"
+            isLoading = false
+            return false
+        }
+
         do {
-            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, itemList: itemList)
+            let newItem = try await itemService.createItem(description: description, amount: amount, quantity: quantity, itemListId: itemListId)
             items.append(newItem)
             items.sort { ($0.createdAt ?? Date()) < ($1.createdAt ?? Date()) }
             isLoading = false

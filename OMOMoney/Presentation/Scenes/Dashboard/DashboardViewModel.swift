@@ -23,6 +23,7 @@ class DashboardViewModel: ObservableObject {
     @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
     @Published var itemListTotals: [UUID: Double] = [:]  // ✅ Cache for individual ItemList totals
+    @Published var categories: [UUID: (name: String, color: String)] = [:]  // ✅ NEW: Category lookup for display
     @Published var isLoading = false
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
@@ -146,6 +147,29 @@ class DashboardViewModel: ObservableObject {
             print("✅ DashboardViewModel: Found \(itemListDomains.count) ItemLists")
             print("📋 DashboardViewModel: ItemList descriptions: \(itemListDomains.map { $0.itemListDescription })")
 
+            // 4. ✅ NEW: Load categories for display (temporary direct service usage until Use Case is created)
+            print("🔄 DashboardViewModel: Loading categories...")
+            let categoryService = CategoryService(context: context)
+            let fetchedCategories = try await categoryService.getCategories(for: group)  // ✅ FIX: Use group instead of user
+            var categoriesDict: [UUID: (name: String, color: String)] = [:]
+            for category in fetchedCategories {
+                if let id = category.id, let name = category.name {
+                    categoriesDict[id] = (name: name, color: category.color ?? "#8E8E93")
+                }
+            }
+            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
+
+            // 🔍 DEBUG: Verify categoryId mapping
+            print("🔍 DashboardViewModel: Verifying ItemList → Category mapping:")
+            for itemList in itemListDomains.prefix(3) {
+                if let categoryId = itemList.categoryId {
+                    let categoryName = categoriesDict[categoryId]?.name ?? "NOT FOUND"
+                    print("   ✅ ItemList '\(itemList.itemListDescription)' → CategoryId: \(categoryId.uuidString.prefix(8)) → '\(categoryName)'")
+                } else {
+                    print("   ⚠️ ItemList '\(itemList.itemListDescription)' → NO CATEGORY ID!")
+                }
+            }
+
             // Calcular tiempo transcurrido y esperar si fue muy rápido
             let elapsed = Date().timeIntervalSince(startTime)
             let minimumDisplayTime: TimeInterval = 0.3 // 0.3 segundos mínimo (reducido para mejor UX)
@@ -154,7 +178,7 @@ class DashboardViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
 
-            // 4. Update UI on main thread
+            // 5. Update UI on main thread
             await MainActor.run {
                 print("🔄 DashboardViewModel: Updating UI with new data...")
                 print("   - Current itemLists count before: \(itemLists.count)")
@@ -164,6 +188,7 @@ class DashboardViewModel: ObservableObject {
                 currentGroup = group
                 availableGroups = userGroups  // ✅ Guardar todos los grupos disponibles
                 itemLists = itemListDomains  // ✅ Use Domain models, not Core Data entities
+                categories = categoriesDict  // ✅ NEW: Store categories for display
 
                 print("   - itemLists count after assignment: \(itemLists.count)")
                 print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription })")
@@ -303,9 +328,22 @@ class DashboardViewModel: ObservableObject {
             }
             let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
 
+            // ✅ CRITICAL FIX: Load categories for the new group
+            print("🔄 DashboardViewModel: Loading categories for new group...")
+            let categoryService = CategoryService(context: context)
+            let fetchedCategories = try await categoryService.getCategories(for: newGroup)
+            var categoriesDict: [UUID: (name: String, color: String)] = [:]
+            for category in fetchedCategories {
+                if let id = category.id, let name = category.name {
+                    categoriesDict[id] = (name: name, color: category.color ?? "#8E8E93")
+                }
+            }
+            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
+
             await MainActor.run {
                 currentGroup = newGroup
                 itemLists = itemListDomains
+                categories = categoriesDict  // ✅ FIX: Update categories when changing groups
             }
 
             // Calculate total spent (async, must be outside MainActor.run)

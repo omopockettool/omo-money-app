@@ -57,23 +57,12 @@ final class DefaultItemRepository: ItemRepository {
             throw ValidationError.invalidItemList
         }
 
-        // Fetch ItemList on background thread
-        let itemList = try await context.perform {
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
-            return try self.context.fetch(fetchRequest).first
-        }
-
-        guard let itemList = itemList else {
-            throw RepositoryError.notFound
-        }
-
-        // Create item using service (already uses context.perform internally)
+        // ✅ SIMPLE FIX: Pass itemListId directly - Service will fetch ItemList in its own context
         let item = try await itemService.createItem(
             description: description,
             amount: NSDecimalNumber(decimal: amount),
             quantity: quantity,
-            itemList: itemList
+            itemListId: itemListId
         )
 
         return item.toDomain()

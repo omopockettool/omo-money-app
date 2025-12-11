@@ -32,33 +32,66 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     }
     
     /// Create a new item
-    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemList: ItemList) async throws -> Item {
-        let item = try await context.perform {
+    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID) async throws -> Item {
+        // ✅ SIMPLE FIX: Accept itemListId directly, fetch ItemList in OUR context
+        let (item, groupId, itemListDescription) = try await context.perform {
+            // Fetch the ItemList in THIS context to access relationships
+            let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
+            request.fetchLimit = 1
+
+            guard let itemListInContext = try self.context.fetch(request).first else {
+                throw NSError(domain: "ItemService", code: 2, userInfo: [NSLocalizedDescriptionKey: "ItemList not found"])
+            }
+
             let item = Item(context: self.context)
             item.id = UUID()
             item.itemDescription = description
             item.amount = amount
             item.quantity = quantity
-            item.itemList = itemList
+            item.itemList = itemListInContext
             item.createdAt = Date()
 
             try self.context.save()
-            return item
+
+            // Get groupId and description while we're in the correct context
+            let groupId = itemListInContext.group?.id
+            let itemListDescription = itemListInContext.itemListDescription
+            return (item, groupId, itemListDescription)
         }
 
-        // Invalidate specific cache for this ItemList
-        let itemListCacheKey = "\(CacheKeys.itemListItems).\(itemList.id?.uuidString ?? "nil")"
-        let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemList.id?.uuidString ?? "nil")"
+        // ✅ BUG FIX: Invalidate ItemList-specific, Group-level, AND ItemListService caches
+        // Invalidate ItemList-specific caches
+        let itemListCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+        let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
         await CacheManager.shared.clearDataCache(for: itemListCacheKey)
         await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
-        print("🗑️ ItemService: Cache invalidated for ItemList '\(itemList.itemListDescription ?? "Unknown")' after item creation")
+
+        // Invalidate group-level caches (if itemList belongs to a group)
+        if let groupId = groupId {
+            let groupItemsCacheKey = "\(CacheKeys.groupItems).\(groupId.uuidString)"
+            let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: groupItemsCacheKey)
+            await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
+
+            // ✅ CRITICAL: Also invalidate ItemListService cache for the group
+            let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
+            await CacheManager.shared.clearDataCache(for: itemListServiceTimestampKey)
+
+            print("🗑️ ItemService: Cache invalidated for ItemList '\(itemListDescription ?? "Unknown")' and Group (including ItemListService) after item creation")
+        } else {
+            print("⚠️ ItemService: WARNING - ItemList '\(itemListDescription ?? "Unknown")' has no group! Cache invalidation incomplete.")
+        }
 
         return item
     }
     
     /// Update an existing item
     func updateItem(_ item: Item, description: String?, amount: NSDecimalNumber?, quantity: Int32?) async throws {
-        try await context.perform {
+        // ✅ CRITICAL: Get itemList and groupId INSIDE context.perform to access Core Data relationships
+        let (itemListId, groupId) = try await context.perform {
             if let description = description {
                 item.itemDescription = description
             }
@@ -69,27 +102,86 @@ class ItemService: CoreDataService, ItemServiceProtocol {
                 item.quantity = quantity
             }
             // Item doesn't have updatedAt, using createdAt instead
-            
+
             try self.context.save()
+
+            // Get IDs while we're in the correct context
+            let itemListId = item.itemList?.id
+            let groupId = item.itemList?.group?.id
+            return (itemListId, groupId)
         }
-        
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
+
+        // ✅ PERFORMANCE FIX: Invalidate only specific caches, not all caches with wildcard
+        // This prevents clearing unrelated ItemLists' and Groups' caches
+
+        // Invalidate ItemList-specific caches
+        if let itemListId = itemListId {
+            let itemListCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+            let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: itemListCacheKey)
+            await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
+        }
+
+        // Invalidate group-level caches (if itemList belongs to a group)
+        if let groupId = groupId {
+            let groupItemsCacheKey = "\(CacheKeys.groupItems).\(groupId.uuidString)"
+            let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: groupItemsCacheKey)
+            await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
+
+            // ✅ CRITICAL: Also invalidate ItemListService cache for the group
+            let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
+            await CacheManager.shared.clearDataCache(for: itemListServiceTimestampKey)
+
+            print("🗑️ ItemService: Cache invalidated for ItemList and Group (including ItemListService) after item update")
+        } else {
+            print("🗑️ ItemService: Cache invalidated for ItemList after item update")
+        }
     }
     
     /// Delete an item
     func deleteItem(_ item: Item) async throws {
+        // ✅ CRITICAL: Get itemList and groupId INSIDE context.perform to access Core Data relationships
+        let (itemListId, groupId) = await context.perform {
+            // Get IDs while we're in the correct context, before deleting
+            let itemListId = item.itemList?.id
+            let groupId = item.itemList?.group?.id
+            return (itemListId, groupId)
+        }
+
         await delete(item)
         try await save()
-        
-        // Invalidate relevant cache itemLists
-        await CacheManager.shared.clearDataCache(for: CacheKeys.itemListItems)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.groupItems)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.itemListTotalAmount)
-        await CacheManager.shared.clearCalculationCache(for: CacheKeys.groupTotalAmount)
+
+        // ✅ PERFORMANCE FIX: Invalidate only specific caches, not all caches with wildcard
+        // This prevents clearing unrelated ItemLists' and Groups' caches
+
+        // Invalidate ItemList-specific caches
+        if let itemListId = itemListId {
+            let itemListCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+            let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: itemListCacheKey)
+            await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
+        }
+
+        // Invalidate group-level caches (if itemList belongs to a group)
+        if let groupId = groupId {
+            let groupItemsCacheKey = "\(CacheKeys.groupItems).\(groupId.uuidString)"
+            let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: groupItemsCacheKey)
+            await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
+
+            // ✅ CRITICAL: Also invalidate ItemListService cache for the group
+            let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
+            await CacheManager.shared.clearDataCache(for: itemListServiceTimestampKey)
+
+            print("🗑️ ItemService: Cache invalidated for ItemList and Group (including ItemListService) after item deletion")
+        } else {
+            print("🗑️ ItemService: Cache invalidated for ItemList after item deletion")
+        }
     }
     
     /// Get items for a specific itemList with caching

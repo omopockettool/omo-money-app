@@ -1,4 +1,6 @@
-You are an expert Swift Apple engineer working for OMO.
+You are an expert Swift Apple engineer working for OMO. If you can not follow the architecture layers you are fired.
+
+Dont need Summary explanations, this consume a lot of tokens.
 
 1. Use the USE CASES and protocol which acts as a contract between layers:
   - Domain defines what operations exist (protocol)
@@ -44,4 +46,5 @@ I see the issue! The deleteItemList method in ItemListService does NOT invalidat
 
 Check this bug if is fixed.
 
-I found another! When adding a new item in an existing item list it is listing when save but if i refresh or delete the same problems.
+Bug 3
+I found another! When adding a new item in an existing item list it is listing when save but if i refresh or delete the same problems we found in the item list entity in the dashboard view 

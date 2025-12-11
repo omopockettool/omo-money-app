@@ -51,6 +51,7 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             // Set group by ID
             if let group = try? self.context.fetch(NSFetchRequest<Group>(entityName: "Group")).first(where: { $0.id == groupId }) {
                 itemList.group = group
+                itemList.groupId = groupId  // ✅ FIX: Also set the groupId attribute
                 print("✅ ItemListService: Group assigned: \(group.name ?? "Unknown")")
             } else {
                 print("❌ ItemListService: Failed to find group with ID: \(groupId)")
@@ -59,6 +60,7 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             // Set category by ID
             if let category = try? self.context.fetch(NSFetchRequest<Category>(entityName: "Category")).first(where: { $0.id == categoryId }) {
                 itemList.category = category
+                itemList.categoryId = categoryId  // ✅ FIX: Also set the categoryId attribute
                 print("✅ ItemListService: Category assigned: \(category.name ?? "Unknown")")
             } else {
                 print("❌ ItemListService: Failed to find category with ID: \(categoryId)")
@@ -68,6 +70,7 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             if let paymentMethodId = paymentMethodId,
                let paymentMethod = try? self.context.fetch(NSFetchRequest<PaymentMethod>(entityName: "PaymentMethod")).first(where: { $0.id == paymentMethodId }) {
                 itemList.paymentMethod = paymentMethod
+                itemList.paymentMethodId = paymentMethodId  // ✅ FIX: Also set the paymentMethodId attribute
                 print("✅ ItemListService: PaymentMethod assigned: \(paymentMethod.name ?? "Unknown")")
             } else {
                 print("⚠️ ItemListService: No payment method assigned (ID: \(paymentMethodId?.uuidString ?? "nil"))")
@@ -112,15 +115,18 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             // Update category by ID
             if let category = try? self.context.fetch(NSFetchRequest<Category>(entityName: "Category")).first(where: { $0.id == categoryId }) {
                 itemList.category = category
+                itemList.categoryId = categoryId  // ✅ FIX: Also set the categoryId attribute
             }
-            
+
             // Update payment method by ID
             if let paymentMethodId = paymentMethodId {
                 if let paymentMethod = try? self.context.fetch(NSFetchRequest<PaymentMethod>(entityName: "PaymentMethod")).first(where: { $0.id == paymentMethodId }) {
                     itemList.paymentMethod = paymentMethod
+                    itemList.paymentMethodId = paymentMethodId  // ✅ FIX: Also set the paymentMethodId attribute
                 }
             } else {
                 itemList.paymentMethod = nil
+                itemList.paymentMethodId = nil  // ✅ FIX: Also clear the paymentMethodId attribute
             }
             
             itemList.lastModifiedAt = Date()
