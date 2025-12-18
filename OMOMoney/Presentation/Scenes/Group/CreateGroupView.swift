@@ -9,12 +9,15 @@ import SwiftUI
 import CoreData
 
 /// Vista para crear un nuevo grupo
+/// ✅ Clean Architecture: Uses Use Cases, no direct Core Data access
 struct CreateGroupView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    let context: NSManagedObjectContext
+
+    // ✅ Clean Architecture: Use Cases instead of Core Data context
+    let createGroupUseCase: CreateGroupUseCase
+    let createUserGroupUseCase: CreateUserGroupUseCase
     let userId: UUID
-    let onGroupCreated: (Group) -> Void
+    let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
     
     @State private var groupName: String = ""
     @State private var selectedCurrency: String = "EUR"
@@ -87,41 +90,35 @@ struct CreateGroupView: View {
             errorMessage = "El nombre del grupo no puede estar vacío"
             return
         }
-        
+
         isCreating = true
         errorMessage = nil
-        
+
         do {
-            let groupService = GroupService(context: context)
-            let userGroupService = UserGroupService(context: context)
-            let userService = UserService(context: context)
-            
-            // Obtener el usuario
-            guard let user = try await userService.fetchUser(by: userId) else {
-                errorMessage = "Usuario no encontrado"
-                isCreating = false
-                return
-            }
-            
-            // Crear el grupo
-            let newGroup = try await groupService.createGroup(
+            // ✅ Clean Architecture: Use CreateGroupUseCase
+            // This will create the group with default categories and payment methods
+            let groupDomain = try await createGroupUseCase.execute(
                 name: groupName.trimmingCharacters(in: .whitespacesAndNewlines),
                 currency: selectedCurrency
             )
-            
-            // Asociar usuario con el grupo
-            _ = try await userGroupService.createUserGroup(
-                user: user,
-                group: newGroup,
+
+            print("✅ CreateGroupView: Group created via Use Case: '\(groupDomain.name)'")
+
+            // ✅ Clean Architecture: Use CreateUserGroupUseCase to associate user with group
+            let _ = try await createUserGroupUseCase.execute(
+                userId: userId,
+                groupId: groupDomain.id,
                 role: "owner"
             )
-            
-            // Notificar al padre
-            onGroupCreated(newGroup)
-            
+
+            print("✅ CreateGroupView: User-Group association created via Use Case")
+
+            // ✅ Notify parent with Domain model (already in Domain form from Use Case)
+            onGroupCreated(groupDomain)
+
             // Cerrar sheet
             dismiss()
-            
+
         } catch {
             errorMessage = "Error al crear grupo: \(error.localizedDescription)"
             isCreating = false
@@ -131,8 +128,10 @@ struct CreateGroupView: View {
 
 // MARK: - Preview
 #Preview {
-    CreateGroupView(
-        context: PersistenceController.preview.container.viewContext,
+    let appContainer = AppDIContainer.shared
+    return CreateGroupView(
+        createGroupUseCase: appContainer.makeCreateGroupUseCase(),
+        createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase(),
         userId: UUID(),
         onGroupCreated: { _ in }
     )

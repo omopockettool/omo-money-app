@@ -1,2 +1,16 @@
 you were adding extra logs when the rate limit stoped us.
-resume so we can check what is happening with the current issue 
+
+The problem: Categories are being created and the cache is being invalidated, BUT when the DashboardViewModel tries to load categories immediately after, the cache was cleared but the Core Data fetch is returning 0 items! This is a timing issue. The categories are being created asynchronously, but the GroupSelectorChipView is calling changeGroup() (which loads categories) before the categories finish saving to Core Data. The sequence is:
+CreateGroupView creates 7 categories and invalidates cache ✅
+CreateGroupView calls onGroupCreated(groupDomain) ✅
+DashboardViewModel receives the callback and calls changeGroup() ❌ TOO EARLY!
+changeGroup() tries to load categories from Core Data, but they're not saved yet ❌
+Cache now has "0 categories" cached ❌
+The fix: We need to wait for categories to be saved before calling the onGroupCreated callback. Let me check where categories are being created - it seems like there's code that creates default categories, but it's running async and not awaited properly. Let me search for where categories are created when a group is created:
+
+Perfect! I found it. Look at lines 49-93 of GroupService.swift. The createGroup() method creates default categories and payment methods, but there's a race condition:
+Line 45: try self.context.save() - Saves the group ✅
+Line 47: Returns the group immediately ❌
+Lines 50-93: Creates categories and payment methods AFTER returning! ❌
+The CreateGroupView receives the group, converts it to Domain, and calls onGroupCreated() before the categories finish saving. The fix: We need to await the category/payment method creation BEFORE returning from createGroup(). The creation happens outside the context.perform block, so it runs async. Let me fix this:
+Read GroupService.swift (lines 38-97)

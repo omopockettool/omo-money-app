@@ -45,6 +45,7 @@ struct DashboardView: View {
         let deleteItemListUseCase = DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
         let getCurrentUserUseCase = DefaultGetCurrentUserUseCase(userRepository: userRepository)
         let fetchGroupsForUserUseCase = DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
+        let fetchCategoriesUseCase = AppDIContainer.shared.makeFetchCategoriesUseCase()
 
         self._viewModel = StateObject(wrappedValue: DashboardViewModel(
             fetchItemListsUseCase: fetchItemListsUseCase,
@@ -52,7 +53,8 @@ struct DashboardView: View {
             deleteItemListUseCase: deleteItemListUseCase,
             getCurrentUserUseCase: getCurrentUserUseCase,
             fetchGroupsForUserUseCase: fetchGroupsForUserUseCase,
-            context: context
+            fetchCategoriesUseCase: fetchCategoriesUseCase,
+            testContext: context  // ⚠️ ONLY for test data generation
         ))
     }
     
@@ -128,8 +130,8 @@ struct DashboardView: View {
                    let group = viewModel.currentGroup {
                     NavigationStack {
                         AddItemListView(
-                            user: user.toDomain(),
-                            group: group.toDomain(),
+                            user: user,  // ✅ Already a Domain model
+                            group: group,  // ✅ Already a Domain model
                             onItemListCreated: { createdItemList in
                                 print("🔄 DashboardView: onItemListCreated callback triggered")
                                 print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
@@ -247,21 +249,21 @@ struct DashboardView: View {
                 if let currentGroup = viewModel.currentGroup,
                    let userId = viewModel.currentUser?.id {
                     GroupSelectorChipView(
-                        currentGroup: currentGroup,
-                        availableGroups: viewModel.availableGroups,
+                        currentGroup: currentGroup,  // ✅ GroupDomain
+                        availableGroups: viewModel.availableGroups,  // ✅ [GroupDomain]
                         context: context,
                         userId: userId,
                         isChangingGroup: viewModel.isChangingGroup,  // ✅ Pasar estado de carga
-                        onGroupChange: { newGroup in
+                        onGroupChange: { newGroup in  // ✅ newGroup is GroupDomain
                             Task {
                                 await viewModel.changeGroup(to: newGroup)
                             }
                         },
-                        onGroupCreated: { newGroup in
+                        onGroupCreated: { newGroup in  // ✅ newGroup is GroupDomain
                             // Incremental update sin query
                             viewModel.addGroup(newGroup)
                         },
-                        onGroupDeleted: { deletedGroup in
+                        onGroupDeleted: { deletedGroup in  // ✅ deletedGroup is GroupDomain
                             // Incremental delete
                             viewModel.removeGroup(deletedGroup)
                         }
@@ -284,17 +286,17 @@ struct DashboardView: View {
         
         if let currentUser = viewModel.currentUser {
                 print("\n👤 USUARIO:")
-                print("   ID: \(currentUser.id?.uuidString ?? "N/A")")
-                print("   Nombre: \(currentUser.name ?? "N/A")")
-                print("   Email: \(currentUser.email ?? "N/A")")
-                print("   Creado: \(currentUser.createdAt ?? Date())")
-                
+                print("   ID: \(currentUser.id.uuidString)")  // ✅ id is NOT optional
+                print("   Nombre: \(currentUser.name)")
+                print("   Email: \(currentUser.email)")
+                print("   Creado: \(currentUser.createdAt)")
+
                 if let currentGroup = viewModel.currentGroup {
                     print("\n🏢 GRUPO ACTUAL:")
-                    print("   ID: \(currentGroup.id?.uuidString ?? "N/A")")
-                    print("   Nombre: \(currentGroup.name ?? "N/A")")
-                    print("   Moneda: \(currentGroup.currency ?? "N/A")")
-                    print("   Creado: \(currentGroup.createdAt ?? Date())")
+                    print("   ID: \(currentGroup.id.uuidString)")  // ✅ id is NOT optional
+                    print("   Nombre: \(currentGroup.name)")
+                    print("   Moneda: \(currentGroup.currency)")
+                    print("   Creado: \(currentGroup.createdAt)")
                 }
                 
                 print("\n📋 ITEM LISTS (\(viewModel.itemLists.count)):")

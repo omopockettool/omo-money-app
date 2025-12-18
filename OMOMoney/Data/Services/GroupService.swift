@@ -35,22 +35,26 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     
     /// Create a new group
     func createGroup(name: String, currency: String) async throws -> Group {
+        // Step 1: Create and save the group entity
         let group = try await context.perform {
             let group = Group(context: self.context)
             group.id = UUID()
             group.name = name
             group.currency = currency
             group.createdAt = Date()
-            
+
             try self.context.save()
             return group
         }
-        
-        // Create default payment methods and categories for the new group
+
+        print("✅ [GroupService] Group created: '\(name)' (ID: \(group.id?.uuidString ?? "nil"))")
+
+        // Step 2: Create default payment methods and categories for the new group
+        // ⚠️ CRITICAL: Must complete BEFORE returning to avoid race condition
         do {
             let paymentMethodService = PaymentMethodService(context: context)
             let categoryService = CategoryService(context: context)
-            
+
             // Create default payment methods
             let defaultPaymentMethods: [(String, String)] = [
                 ("Efectivo", "cash"),
@@ -58,7 +62,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
                 ("Tarjeta Crédito", "card_credit"),
                 ("Transferencia", "bank_transfer")
             ]
-            
+
+            print("🔄 [GroupService] Creating \(defaultPaymentMethods.count) default payment methods...")
             if let groupId = group.id {
                 for (pmName, pmType) in defaultPaymentMethods {
                     let _ = try await paymentMethodService.createPaymentMethod(
@@ -69,7 +74,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
                     )
                 }
             }
-            
+            print("✅ [GroupService] Payment methods created")
+
             // Create default categories
             let defaultCategories = [
                 ("Alimentos", "#FF6B6B"),
@@ -80,25 +86,33 @@ class GroupService: CoreDataService, GroupServiceProtocol {
                 ("Compras", "#DDA0DD"),
                 ("Otros", "#BDC3C7")
             ]
-            
-            for (categoryName, color) in defaultCategories {
-                let _ = try await categoryService.createCategory(
-                    name: categoryName,
-                    color: color,
-                    group: group
-                )
+
+            print("🔄 [GroupService] Creating \(defaultCategories.count) default categories...")
+            if let groupId = group.id {
+                for (categoryName, color) in defaultCategories {
+                    let _ = try await categoryService.createCategory(
+                        name: categoryName,
+                        color: color,
+                        groupId: groupId  // ✅ FIX: Pass groupId instead of group object
+                    )
+                }
             }
-            
+            print("✅ [GroupService] All \(defaultCategories.count) categories created and saved to Core Data")
+
         } catch {
             // Don't fail group creation if seeding defaults fails — just log
-            print("[GroupService] Warning: failed to create default payment methods/categories: \(error.localizedDescription)")
+            print("❌ [GroupService] Warning: failed to create default payment methods/categories: \(error.localizedDescription)")
         }
-        
-        // Invalidate relevant cache itemLists
+
+        // Step 3: Invalidate relevant caches
+        print("🧹 [GroupService] Invalidating caches...")
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
-        
+        print("✅ [GroupService] Caches invalidated")
+
+        // Step 4: Return group ONLY after categories are saved
+        print("✅ [GroupService] createGroup() complete - returning group with all default data")
         return group
     }
     

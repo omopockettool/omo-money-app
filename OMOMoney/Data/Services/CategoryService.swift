@@ -52,15 +52,15 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     }
     
     /// Create a new category
-    func createCategory(name: String, color: String?, group: Group, limit: Decimal? = nil, limitFrequency: String? = nil) async throws -> Category {
-        let category = try await context.perform {
+    /// ✅ FIXED: Accepts groupId instead of group object to avoid Core Data context issues
+    func createCategory(name: String, color: String?, groupId: UUID, limit: Decimal? = nil, limitFrequency: String? = nil) async throws -> Category {
+        let (category, group) = try await context.perform {
             let category = Category(context: self.context)
             category.id = UUID()
             category.name = name
             category.color = color ?? "#007AFF"
-            category.group = group
             category.createdAt = Date()
-            
+
             // Set budget limit and frequency if provided
             if let limit = limit {
                 category.limit = NSDecimalNumber(decimal: limit)
@@ -68,23 +68,36 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
             if let limitFrequency = limitFrequency {
                 category.limitFrequency = limitFrequency
             }
-            
-            try self.context.save()
-            return category
+
+            // ✅ FIX: Fetch group fresh from Core Data inside context.perform (same as PaymentMethodService)
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            groupRequest.fetchLimit = 1
+
+            let group = try self.context.fetch(groupRequest).first
+            if let group = group {
+                category.group = group
+            }
+
+            return (category, group)
         }
-        
+
+        // ✅ CRITICAL FIX: Save AFTER context.perform (matches PaymentMethodService pattern)
+        try await save()
+        print("💾 CategoryService: Category '\(name)' saved to Core Data successfully")
+
         // Invalidate relevant cache itemLists - only for the specific group
-        let groupCacheKey = "\(CacheKeys.groupCategories).\(group.id?.uuidString ?? "nil")"
+        let groupCacheKey = "\(CacheKeys.groupCategories).\(groupId.uuidString)"
         print("🧹 CategoryService: Invalidating cache after creating category '\(name)'")
         print("🧹 CategoryService: Group cache key: \(groupCacheKey)")
         await CacheManager.shared.clearDataCache(for: groupCacheKey)
-        
+
         // For user categories, we need to clear for all users in this group
         // This is more complex, so for now we keep the broad invalidation
         await CacheManager.shared.clearDataCache(for: CacheKeys.userCategories)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.categoryExists)
         print("✅ CategoryService: Cache invalidated successfully")
-        
+
         return category
     }
     
@@ -160,11 +173,20 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
         request.predicate = NSPredicate(format: "group == %@", group)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Category.name, ascending: true)]
         let categories = try await fetch(request)
-        
+
+        // ✅ DEBUG: Log category details
+        print("🟡 CategoryService: ✅ Categories fetched from DATABASE and cached (\(categories.count) items)")
+        if categories.isEmpty {
+            print("⚠️ CategoryService: WARNING - No categories found in Core Data for group '\(group.name ?? "Unknown")'")
+            print("⚠️ CategoryService: Group ID: \(group.id?.uuidString ?? "nil")")
+            print("⚠️ CategoryService: This group may have been created before the Core Data fix was applied")
+        } else {
+            print("📋 CategoryService: Category names: \(categories.compactMap { $0.name })")
+        }
+
         // Cache the result
         await CacheManager.shared.cacheData(categories, for: cacheKey)
-        print("🟡 CategoryService: ✅ Categories fetched from DATABASE and cached (\(categories.count) items)")
-        
+
         return categories
     }
     

@@ -14,7 +14,7 @@ protocol CategoryServiceProtocol {
     func fetchCategory(by id: UUID) async throws -> Category?
     
     /// Create a new category
-    func createCategory(name: String, color: String?, group: Group, limit: Decimal?, limitFrequency: String?) async throws -> Category
+    func createCategory(name: String, color: String?, groupId: UUID, limit: Decimal?, limitFrequency: String?) async throws -> Category
     
     /// Update an existing category
     func updateCategory(_ category: Category, name: String?, color: String?, limit: Decimal?, limitFrequency: String?) async throws

@@ -6,35 +6,34 @@ import CoreData
 final class AddItemListViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var categories: [Category] = []
-    @Published var paymentMethods: [PaymentMethod] = []
+    // ✅ Clean Architecture: Use Domain models, not Core Data entities
+    @Published var categories: [CategoryDomain] = []
+    @Published var paymentMethods: [PaymentMethod] = []  // TODO: Create PaymentMethodDomain
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var description = ""
     @Published var price = ""  // Optional price field - empty means no automatic item
     @Published var date = Date()
-    @Published var selectedCategory: Category?
-    @Published var selectedPaymentMethod: PaymentMethod?
+    @Published var selectedCategory: CategoryDomain?
+    @Published var selectedPaymentMethod: PaymentMethod?  // TODO: Use PaymentMethodDomain
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
     private let createItemUseCase: CreateItemUseCase
-    private let categoryService: CategoryServiceProtocol
-    private let itemService: ItemServiceProtocol
-    private let paymentMethodService: PaymentMethodServiceProtocol
+    private let fetchCategoriesUseCase: FetchCategoriesUseCase
+    private let paymentMethodService: PaymentMethodServiceProtocol  // TODO: Create PaymentMethod Use Cases
+
     // MARK: - Initialization
-    
+
     init(
         createItemListUseCase: CreateItemListUseCase,
         createItemUseCase: CreateItemUseCase,
-        categoryService: CategoryServiceProtocol,
-        itemService: ItemServiceProtocol,
+        fetchCategoriesUseCase: FetchCategoriesUseCase,
         paymentMethodService: PaymentMethodServiceProtocol
     ) {
         self.createItemListUseCase = createItemListUseCase
         self.createItemUseCase = createItemUseCase
-        self.categoryService = categoryService
-        self.itemService = itemService
+        self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.paymentMethodService = paymentMethodService
         print("🔄 AddItemListViewModel: Initialized")
     }
@@ -45,8 +44,7 @@ final class AddItemListViewModel: ObservableObject {
         self.init(
             createItemListUseCase: appContainer.makeCreateItemListUseCase(),
             createItemUseCase: appContainer.makeCreateItemUseCase(),
-            categoryService: appContainer.categoryService,
-            itemService: appContainer.itemService,
+            fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
             paymentMethodService: appContainer.paymentMethodService
         )
     }
@@ -77,16 +75,17 @@ final class AddItemListViewModel: ObservableObject {
     // MARK: - Public Methods
     
     /// Load categories for the specified group
-    func loadCategories(for group: Group) async {
+    /// ✅ Clean Architecture: Accept UUID, use Use Case to fetch Domain models
+    func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            categories = try await categoryService.getCategories(for: group)
+            categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
         } catch {
             errorMessage = "Error al cargar categorías: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
     
@@ -107,12 +106,13 @@ final class AddItemListViewModel: ObservableObject {
     /// Create a new itemList with the specified details
     /// If price is provided, also creates an automatic Item
     /// Returns the created ItemListDomain if successful, nil otherwise
+    /// ✅ Clean Architecture: Accept UUIDs, work with Domain models
     func createItemList(
         description: String,
         date: Date,
-        category: Category,
-        group: Group,
-        paymentMethod: PaymentMethod?
+        categoryId: UUID,
+        groupId: UUID,
+        paymentMethodId: UUID?
     ) async -> ItemListDomain? {
         isLoading = true
         errorMessage = nil
@@ -123,16 +123,16 @@ final class AddItemListViewModel: ObservableObject {
             print("🔄 AddItemListViewModel: Creating ItemList...")
             print("📝 Description: \(trimmedDescription)")
             print("💰 Price: \(price.isEmpty ? "None (ItemList only)" : price)")
-            print("📂 Category: \(category.name ?? "Unknown")")
-            print("💳 Payment Method: \(paymentMethod?.name ?? "Unknown")")
+            print("📂 Category ID: \(categoryId)")
+            print("💳 Payment Method ID: \(paymentMethodId?.uuidString ?? "None")")
 
             // Step 1: Create ItemList
             let itemList = try await createItemListUseCase.execute(
                 description: trimmedDescription,
                 date: date,
-                categoryId: category.id,
-                paymentMethodId: paymentMethod?.id,
-                groupId: group.id
+                categoryId: categoryId,
+                paymentMethodId: paymentMethodId,
+                groupId: groupId
             )
 
             print("✅ AddItemListViewModel: ItemList created successfully: \(itemList.itemListDescription)")

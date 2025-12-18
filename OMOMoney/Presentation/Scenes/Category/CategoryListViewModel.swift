@@ -39,9 +39,14 @@ class CategoryListViewModel: ObservableObject {
     func createCategory(name: String, color: String? = nil, group: Group) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            let newCategory = try await categoryService.createCategory(name: name, color: color, group: group)
+            guard let groupId = group.id else {
+                errorMessage = "Invalid group ID"
+                isLoading = false
+                return false
+            }
+            let newCategory = try await categoryService.createCategory(name: name, color: color, groupId: groupId)
             categories.append(newCategory)
             categories.sort { ($0.name ?? "") < ($1.name ?? "") }
             isLoading = false

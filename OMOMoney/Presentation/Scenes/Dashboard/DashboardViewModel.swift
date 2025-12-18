@@ -28,9 +28,9 @@ class DashboardViewModel: ObservableObject {
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
     @Published var errorMessage: String?
-    @Published var currentGroup: Group?
-    @Published var currentUser: User?
-    @Published var availableGroups: [Group] = []  // ✅ Grupos disponibles para selector
+    @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
+    @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
+    @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
     
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
@@ -38,12 +38,15 @@ class DashboardViewModel: ObservableObject {
     private let deleteItemListUseCase: DeleteItemListUseCase
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
-    private let context: NSManagedObjectContext  // ✅ For Core Data operations
+    private let fetchCategoriesUseCase: FetchCategoriesUseCase
 
     // MARK: - Cache
     // Note: Cache is managed by Service layer (ItemListService)
     // ViewModel only updates service cache for incremental changes
     private let cacheManager = CacheManager.shared
+
+    // ⚠️ ONLY for test data generation - should not be used in production code
+    private let testContext: NSManagedObjectContext?
 
     // MARK: - Initialization
     init(
@@ -52,14 +55,16 @@ class DashboardViewModel: ObservableObject {
         deleteItemListUseCase: DeleteItemListUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
-        context: NSManagedObjectContext
+        fetchCategoriesUseCase: FetchCategoriesUseCase,
+        testContext: NSManagedObjectContext? = nil  // ⚠️ ONLY for test data generation
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
         self.deleteItemListUseCase = deleteItemListUseCase
         self.getCurrentUserUseCase = getCurrentUserUseCase
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
-        self.context = context
+        self.fetchCategoriesUseCase = fetchCategoriesUseCase
+        self.testContext = testContext
 
         // Listen for Core Data context changes
         setupCoreDataNotifications()
@@ -102,19 +107,7 @@ class DashboardViewModel: ObservableObject {
             }
             print("✅ DashboardViewModel: Found user: \(userDomain.name)")
 
-            // Fetch Core Data user entity
-            let userFetchRequest: NSFetchRequest<User> = User.fetchRequest()
-            userFetchRequest.predicate = NSPredicate(format: "id == %@", userDomain.id as CVarArg)
-            guard let user = try context.fetch(userFetchRequest).first else {
-                print("❌ DashboardViewModel: User Core Data entity not found")
-                await MainActor.run {
-                    errorMessage = "User not found"
-                    isLoading = false
-                }
-                return
-            }
-
-            // 2. Get user's groups using Use Case
+            // 2. Get user's groups using Use Case (✅ Domain models only!)
             print("🔄 DashboardViewModel: Getting user groups...")
             let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
             guard let firstGroupDomain = groupDomains.first else {
@@ -127,35 +120,18 @@ class DashboardViewModel: ObservableObject {
             }
             print("✅ DashboardViewModel: Found \(groupDomains.count) group(s), using: \(firstGroupDomain.name)")
 
-            // Fetch Core Data group entities
-            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-            let groupIds = groupDomains.map { $0.id }
-            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
-            let userGroups = try context.fetch(groupFetchRequest)
-            guard let group = userGroups.first else {
-                print("❌ DashboardViewModel: Group Core Data entity not found")
-                await MainActor.run {
-                    errorMessage = "Group not found"
-                    isLoading = false
-                }
-                return
-            }
-
             // 3. Load ItemLists for the group using Use Case
             print("🔄 DashboardViewModel: Getting ItemLists for group...")
             let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: firstGroupDomain.id)
             print("✅ DashboardViewModel: Found \(itemListDomains.count) ItemLists")
             print("📋 DashboardViewModel: ItemList descriptions: \(itemListDomains.map { $0.itemListDescription })")
 
-            // 4. ✅ NEW: Load categories for display (temporary direct service usage until Use Case is created)
+            // 4. ✅ Load categories for display using Use Case (Clean Architecture)
             print("🔄 DashboardViewModel: Loading categories...")
-            let categoryService = CategoryService(context: context)
-            let fetchedCategories = try await categoryService.getCategories(for: group)  // ✅ FIX: Use group instead of user
+            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: firstGroupDomain.id)
             var categoriesDict: [UUID: (name: String, color: String)] = [:]
-            for category in fetchedCategories {
-                if let id = category.id, let name = category.name {
-                    categoriesDict[id] = (name: name, color: category.color ?? "#8E8E93")
-                }
+            for categoryDomain in categoryDomains {
+                categoriesDict[categoryDomain.id] = (name: categoryDomain.name, color: categoryDomain.color)
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
 
@@ -178,17 +154,17 @@ class DashboardViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
 
-            // 5. Update UI on main thread
+            // 5. Update UI on main thread (✅ Domain models only!)
             await MainActor.run {
                 print("🔄 DashboardViewModel: Updating UI with new data...")
                 print("   - Current itemLists count before: \(itemLists.count)")
                 print("   - New itemLists count: \(itemListDomains.count)")
 
-                currentUser = user
-                currentGroup = group
-                availableGroups = userGroups  // ✅ Guardar todos los grupos disponibles
-                itemLists = itemListDomains  // ✅ Use Domain models, not Core Data entities
-                categories = categoriesDict  // ✅ NEW: Store categories for display
+                currentUser = userDomain  // ✅ Domain model
+                currentGroup = firstGroupDomain  // ✅ Domain model
+                availableGroups = groupDomains  // ✅ Domain models array
+                itemLists = itemListDomains  // ✅ Domain models
+                categories = categoriesDict  // ✅ Category lookup
 
                 print("   - itemLists count after assignment: \(itemLists.count)")
                 print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription })")
@@ -235,11 +211,7 @@ class DashboardViewModel: ObservableObject {
             
             // Fetch latest data using Use Case
             print("🔍 DashboardViewModel: Fetching latest ItemLists...")
-            guard let groupId = group.id else {
-                print("⚠️ DashboardViewModel: Invalid group ID")
-                await MainActor.run { isRefreshing = false }
-                return
-            }
+            let groupId = group.id  // ✅ GroupDomain.id is NOT optional
             // Get current state on main actor first (before async call)
             let currentItemLists = await MainActor.run { itemLists }
 
@@ -305,43 +277,38 @@ class DashboardViewModel: ObservableObject {
     
     // MARK: - Group Management
     
-    /// Cambiar el grupo activo y recargar los ItemLists
-    func changeGroup(to newGroup: Group) async {
-        guard newGroup.objectID != currentGroup?.objectID else {
+    /// Cambiar el grupo activo y recargar los ItemLists (✅ Clean Architecture: Domain model)
+    func changeGroup(to newGroup: GroupDomain) async {
+        guard newGroup.id != currentGroup?.id else {
             print("⚠️ DashboardViewModel: Grupo ya seleccionado, ignorando cambio")
             return
         }
-        
-        print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name ?? "Unknown")")
-        
+
+        print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name)")
+
         await MainActor.run {
             isChangingGroup = true  // ✅ Usa loading sutil, no el splash
         }
-        
+
         do {
             // ✅ Delay de 0.3 segundos para mostrar el spinner en acción
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 segundos
 
             // Load ItemLists using Use Case (Domain models)
-            guard let groupId = newGroup.id else {
-                throw ValidationError.invalidGroup
-            }
+            let groupId = newGroup.id  // ✅ GroupDomain.id is NOT optional
             let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
 
-            // ✅ CRITICAL FIX: Load categories for the new group
+            // ✅ CRITICAL FIX: Load categories for the new group using Use Case (Clean Architecture)
             print("🔄 DashboardViewModel: Loading categories for new group...")
-            let categoryService = CategoryService(context: context)
-            let fetchedCategories = try await categoryService.getCategories(for: newGroup)
+            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
             var categoriesDict: [UUID: (name: String, color: String)] = [:]
-            for category in fetchedCategories {
-                if let id = category.id, let name = category.name {
-                    categoriesDict[id] = (name: name, color: category.color ?? "#8E8E93")
-                }
+            for categoryDomain in categoryDomains {
+                categoriesDict[categoryDomain.id] = (name: categoryDomain.name, color: categoryDomain.color)
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
 
             await MainActor.run {
-                currentGroup = newGroup
+                currentGroup = newGroup  // ✅ Domain model
                 itemLists = itemListDomains
                 categories = categoriesDict  // ✅ FIX: Update categories when changing groups
             }
@@ -373,39 +340,30 @@ class DashboardViewModel: ObservableObject {
         print("🔄 DashboardViewModel: Recargando grupos disponibles...")
 
         do {
-            guard let userId = user.id else {
-                print("⚠️ DashboardViewModel: Invalid user ID")
-                return
-            }
+            let userId = user.id  // ✅ UserDomain.id is NOT optional
 
             let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userId)
 
-            // Fetch Core Data group entities
-            let groupFetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-            let groupIds = groupDomains.map { $0.id }
-            groupFetchRequest.predicate = NSPredicate(format: "id IN %@", groupIds)
-            let userGroups = try context.fetch(groupFetchRequest)
-
             await MainActor.run {
-                availableGroups = userGroups
-                print("✅ DashboardViewModel: Grupos recargados. Total: \(userGroups.count)")
+                availableGroups = groupDomains  // ✅ Use Domain models
+                print("✅ DashboardViewModel: Grupos recargados. Total: \(groupDomains.count)")
             }
         } catch {
             print("❌ DashboardViewModel: Error recargando grupos: \(error)")
         }
     }
     
-    /// Agregar un grupo nuevo incrementalmente (sin query a BD)
-    func addGroup(_ newGroup: Group) {
+    /// Agregar un grupo nuevo incrementalmente (sin query a BD) (✅ Clean Architecture: Domain model)
+    func addGroup(_ newGroup: GroupDomain) {
         print("➕ [DashboardVM] addGroup() llamado")
-        print("➕ [DashboardVM] Grupo nuevo: '\(newGroup.name ?? "Sin nombre")' (ObjectID: \(newGroup.objectID))")
+        print("➕ [DashboardVM] Grupo nuevo: '\(newGroup.name)' (ID: \(newGroup.id.uuidString))")
         print("➕ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
-        
-        guard !availableGroups.contains(where: { $0.objectID == newGroup.objectID }) else {
+
+        guard !availableGroups.contains(where: { $0.id == newGroup.id }) else {
             print("⚠️ [DashboardVM] Grupo ya existe en lista - SKIP")
             return
         }
-        
+
         availableGroups.append(newGroup)
         print("➕ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
         print("➕ [DashboardVM] Enviando objectWillChange...")
@@ -413,19 +371,19 @@ class DashboardViewModel: ObservableObject {
         print("✅ [DashboardVM] addGroup() completado")
     }
     
-    /// Eliminar un grupo incrementalmente
-    func removeGroup(_ group: Group) {
+    /// Eliminar un grupo incrementalmente (✅ Clean Architecture: Domain model)
+    func removeGroup(_ group: GroupDomain) {
         print("🗑️ [DashboardVM] removeGroup() llamado")
-        print("🗑️ [DashboardVM] Grupo a eliminar: '\(group.name ?? "Sin nombre")' (ObjectID: \(group.objectID))")
+        print("🗑️ [DashboardVM] Grupo a eliminar: '\(group.name)' (ID: \(group.id.uuidString))")
         print("🗑️ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
-        print("🗑️ [DashboardVM] availableGroups ANTES: \(availableGroups.map { ($0.name ?? "Sin nombre", $0.objectID) })")
-        print("🗑️ [DashboardVM] currentGroup: '\(currentGroup?.name ?? "nil")' (ObjectID: \(currentGroup?.objectID.debugDescription ?? "nil"))")
-        print("🗑️ [DashboardVM] currentUser: '\(currentUser?.name ?? "nil")' (ObjectID: \(currentUser?.objectID.debugDescription ?? "nil"))")
-        
-        availableGroups.removeAll { $0.objectID == group.objectID }
-        
+        print("🗑️ [DashboardVM] availableGroups ANTES: \(availableGroups.map { ($0.name, $0.id.uuidString) })")
+        print("🗑️ [DashboardVM] currentGroup: '\(currentGroup?.name ?? "nil")' (ID: \(currentGroup?.id.uuidString ?? "nil"))")
+        print("🗑️ [DashboardVM] currentUser: '\(currentUser?.name ?? "nil")' (ID: \(currentUser?.id.uuidString ?? "nil"))")
+
+        availableGroups.removeAll { $0.id == group.id }  // ✅ Compare by UUID, not objectID
+
         print("🗑️ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
-        print("🗑️ [DashboardVM] availableGroups DESPUÉS: \(availableGroups.map { $0.name ?? "Sin nombre" })")
+        print("🗑️ [DashboardVM] availableGroups DESPUÉS: \(availableGroups.map { $0.name })")
         print("🗑️ [DashboardVM] Enviando objectWillChange...")
         objectWillChange.send()
         print("✅ [DashboardVM] removeGroup() completado")
@@ -434,16 +392,30 @@ class DashboardViewModel: ObservableObject {
     /// Generate test data (temporary - triggered by gear button)
     func openSettings() {
         print("🔧 DashboardViewModel: Generating test data...")
-        print("🏠 DashboardViewModel: Active group - ID: \(currentGroup?.id?.uuidString ?? "nil"), Name: '\(currentGroup?.name ?? "No Group")'")
-        
+
+        guard let group = currentGroup else {
+            print("⚠️ DashboardViewModel: No current group")
+            return
+        }
+
+        print("🏠 DashboardViewModel: Active group - ID: \(group.id.uuidString), Name: '\(group.name)'")
+
         Task {
             do {
-                // Use the context we already have
+                // ⚠️ Test data generation only - requires testContext
+                guard let context = testContext else {
+                    print("❌ Test context not available for test data generation")
+                    return
+                }
+
                 let generator = TestDataGenerator(context: context)
-                
+
+                // Convert GroupDomain to Core Data for TestDataGenerator
+                let groupCoreData = group.toCoreData(context: context)
+
                 // Generate 200 ItemLists with 2 items each = 400 total items
                 // Pass the currentGroup to ensure data is created for the correct group
-                try await generator.generateMassiveTestData(itemListCount: 200, itemsPerList: 2, targetGroup: currentGroup)
+                try await generator.generateMassiveTestData(itemListCount: 200, itemsPerList: 2, targetGroup: groupCoreData)
                 
                 print("✅ DashboardViewModel: Test data generation completed!")
                 
@@ -490,9 +462,10 @@ class DashboardViewModel: ObservableObject {
 
     /// Add new ItemList to the dashboard using cache optimization
     /// Clear cache for current group
+    @MainActor
     func clearCache() async {
-        let groupIdString = await MainActor.run { currentGroup?.id?.uuidString }
-        guard let groupId = groupIdString else { return }
+        guard let group = currentGroup else { return }  // ✅ Direct access on MainActor
+        let groupId = group.id.uuidString  // ✅ GroupDomain.id is NOT optional
         let cacheKey = "dashboard_items_\(groupId)"
         cacheManager.clearDataCache(for: cacheKey)
         print("🗂️ DashboardViewModel: Cache cleared for group \(groupId)")
@@ -779,11 +752,11 @@ class DashboardViewModel: ObservableObject {
     /// ✅ Clean Architecture: Works with Domain models only
     private func isItemListInCurrentContext(_ itemListDomain: ItemListDomain) -> Bool {
         // Check if ItemList belongs to current group
-        guard let currentGroupId = currentGroup?.id else {
+        guard let currentGroup = currentGroup else {
             return false
         }
 
-        return currentGroupId == itemListDomain.groupId
+        return currentGroup.id == itemListDomain.groupId  // ✅ id is NOT optional
     }
 
     /// Get current month ItemLists (Domain model version)

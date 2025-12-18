@@ -68,6 +68,10 @@ final class AppDIContainer {
         return DefaultItemRepository(itemService: itemService, context: viewContext)
     }()
 
+    lazy var categoryRepository: CategoryRepository = {
+        return DefaultCategoryRepository(categoryService: categoryService, context: viewContext)
+    }()
+
     // MARK: - ItemList Use Cases
     func makeCreateItemListUseCase() -> CreateItemListUseCase {
         DefaultCreateItemListUseCase(itemListRepository: itemListRepository)
@@ -97,6 +101,21 @@ final class AppDIContainer {
     }
     func makeFetchItemsUseCase() -> FetchItemsUseCase {
         DefaultFetchItemsUseCase(itemRepository: itemRepository)
+    }
+
+    // MARK: - Category Use Cases
+    func makeFetchCategoriesUseCase() -> FetchCategoriesUseCase {
+        DefaultFetchCategoriesUseCase(categoryRepository: categoryRepository)
+    }
+
+    // MARK: - Group Use Cases
+    func makeCreateGroupUseCase() -> CreateGroupUseCase {
+        DefaultCreateGroupUseCase(groupRepository: groupRepository)
+    }
+
+    // MARK: - UserGroup Use Cases
+    func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
+        DefaultCreateUserGroupUseCase(userGroupRepository: userGroupRepository)
     }
 
     lazy var userRepository: UserRepository = {

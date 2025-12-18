@@ -43,15 +43,15 @@ struct AddItemListView: View {
 
             Section("Categoría") {
                 Picker("Categoría", selection: $viewModel.selectedCategory) {
-                    Text("Seleccionar Categoría").tag(nil as Category?)
+                    Text("Seleccionar Categoría").tag(nil as CategoryDomain?)
                     ForEach(viewModel.categories, id: \.id) { category in
                         HStack {
                             Circle()
-                                .fill(Color(hex: category.color ?? "#8E8E93") ?? Color.gray)
+                                .fill(Color(hex: category.color) ?? Color.gray)
                                 .frame(width: 12, height: 12)
-                            Text(category.name ?? "Sin nombre")
+                            Text(category.name)
                         }
-                        .tag(category as Category?)
+                        .tag(category as CategoryDomain?)
                     }
                 }
                 .pickerStyle(.navigationLink)
@@ -123,6 +123,10 @@ struct AddItemListView: View {
             }
         }
         .task {
+            print("🔄 AddItemListView: .task triggered - loading categories and payment methods")
+            print("🔄 AddItemListView: Group ID: \(group.id)")
+            print("🔄 AddItemListView: Group Name: '\(group.name)'")
+
             // Fetch existing Group from Core Data by ID (don't create new one)
             let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
@@ -130,10 +134,16 @@ struct AddItemListView: View {
 
             do {
                 if let existingGroup = try viewContext.fetch(fetchRequest).first {
-                    await viewModel.loadCategories(for: existingGroup)
+                    print("✅ AddItemListView: Found Group in Core Data")
+                    // ✅ Clean Architecture: Pass UUID to ViewModel
+                    await viewModel.loadCategories(forGroupId: group.id)
                     await viewModel.loadPaymentMethods(for: existingGroup)
+                    print("✅ AddItemListView: Loaded \(viewModel.categories.count) categories")
+                    print("✅ AddItemListView: Loaded \(viewModel.paymentMethods.count) payment methods")
                 } else {
                     print("❌ AddItemListView: Could not find Group with ID: \(group.id)")
+                    print("⚠️ AddItemListView: This means categories/payment methods will be empty!")
+                    // TODO: Show error to user or create categories/payment methods
                 }
             } catch {
                 print("❌ AddItemListView: Error fetching group: \(error.localizedDescription)")
@@ -148,22 +158,13 @@ struct AddItemListView: View {
 
         print("🔄 AddItemListView: Creating ItemList...")
 
-        // Fetch existing Group from Core Data by ID (don't create new one)
-        let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
-        fetchRequest.fetchLimit = 1
-
-        guard let existingGroup = try? viewContext.fetch(fetchRequest).first else {
-            print("❌ AddItemListView: Could not find Group with ID: \(group.id)")
-            return
-        }
-
+        // ✅ Clean Architecture: Pass UUIDs instead of Core Data entities
         if let createdItemList = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
-            category: category,
-            group: existingGroup,
-            paymentMethod: viewModel.selectedPaymentMethod
+            categoryId: category.id,
+            groupId: group.id,
+            paymentMethodId: viewModel.selectedPaymentMethod?.id
         ) {
             // ✅ SUCCESS: ItemList created successfully
             print("✅ AddItemListView: ItemList created: '\(createdItemList.itemListDescription)'")
