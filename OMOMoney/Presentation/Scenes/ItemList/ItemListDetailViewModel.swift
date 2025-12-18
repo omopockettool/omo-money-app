@@ -59,38 +59,55 @@ class ItemListDetailViewModel: ObservableObject {
 
     /// Load items for the current ItemList
     func loadItems() async {
+        print("🟡 [LOAD-ITEMS] ========================================")
+        print("🟡 [LOAD-ITEMS] START - Loading items for ItemList")
+        print("🟡 [LOAD-ITEMS] ItemList: '\(itemList.itemListDescription ?? "nil")'")
+        print("🟡 [LOAD-ITEMS] ItemList ID: \(itemList.id?.uuidString ?? "nil")")
+
         // Only show loading spinner if we don't have data yet (initial load)
         // During refresh (pull-to-refresh), keep the existing list visible
         let isInitialLoad = items.isEmpty
+        print("🟡 [LOAD-ITEMS] Current items count: \(items.count)")
+        print("🟡 [LOAD-ITEMS] Is initial load: \(isInitialLoad)")
 
         if isInitialLoad {
-            print("📊 [LOAD] Initial load - showing spinner")
+            print("🟡 [LOAD-ITEMS] Initial load - showing spinner")
             isLoading = true
         } else {
-            print("🔄 [REFRESH] Pull-to-refresh - keeping list visible")
+            print("🟡 [LOAD-ITEMS] Refresh - keeping list visible")
         }
         errorMessage = nil
 
         do {
             guard let itemListId = itemList.id else {
+                print("❌ [LOAD-ITEMS] ERROR - ItemList ID is nil")
                 errorMessage = "ItemList ID no válido"
                 isLoading = false
                 return
             }
 
-            print("🔍 [LOAD] Fetching items for ItemList: \(itemList.itemListDescription ?? "Unknown")")
+            print("🟡 [LOAD-ITEMS] Calling fetchItemsUseCase...")
 
             // ✅ Use case returns Domain models - use them directly!
             let itemDomains = try await fetchItemsUseCase.execute(forItemListId: itemListId)
 
-            print("📦 [LOAD] Fetched \(itemDomains.count) items from Use Case")
+            print("✅ [LOAD-ITEMS] Use Case returned \(itemDomains.count) items")
+            for (index, item) in itemDomains.prefix(3).enumerated() {
+                print("   \(index + 1). \(item.itemDescription) - \(item.amount)")
+            }
+            if itemDomains.count > 3 {
+                print("   ...and \(itemDomains.count - 3) more items")
+            }
 
             // ✅ Use Domain models directly, no Core Data conversion needed
             items = itemDomains.sorted { $0.createdAt > $1.createdAt }
-            print("✅ [LOAD] Successfully loaded \(items.count) items")
+            print("✅ [LOAD-ITEMS] Items sorted and assigned to @Published property")
+            print("🟡 [LOAD-ITEMS] Final items count: \(items.count)")
             isLoading = false
+            print("🟡 [LOAD-ITEMS] ========================================")
         } catch {
-            print("❌ [LOAD] Error loading items: \(error.localizedDescription)")
+            print("❌ [LOAD-ITEMS] ERROR loading items: \(error.localizedDescription)")
+            print("🟡 [LOAD-ITEMS] ========================================")
             errorMessage = "No se pudieron cargar los items: \(error.localizedDescription)"
             isLoading = false
         }

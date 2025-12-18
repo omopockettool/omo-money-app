@@ -48,3 +48,9 @@ Check this bug if is fixed.
 
 Bug 3
 I found another! When adding a new item in an existing item list it is listing when save but if i refresh or delete the same problems we found in the item list entity in the dashboard view 
+
+you were adding extra logs when the rate limit stoped us.
+resume so we can check what is happening with the current issue about adding new items to item lists.
+
+
+read the RULES.md to get context of the project and then start reviewing the current bugs

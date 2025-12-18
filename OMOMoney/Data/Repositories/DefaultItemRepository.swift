@@ -31,6 +31,10 @@ final class DefaultItemRepository: ItemRepository {
     }
 
     func fetchItems(forItemListId itemListId: UUID) async throws -> [ItemDomain] {
+        print("🔶 [REPO-FETCH] ========================================")
+        print("🔶 [REPO-FETCH] Repository fetching items for ItemList ID: \(itemListId.uuidString)")
+        print("🔶 [REPO-FETCH] Fetching ItemList entity from Core Data...")
+
         // Fetch ItemList first on background thread
         let itemList = try await context.perform {
             let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
@@ -39,12 +43,26 @@ final class DefaultItemRepository: ItemRepository {
         }
 
         guard let itemList = itemList else {
+            print("❌ [REPO-FETCH] ERROR - ItemList not found")
+            print("🔶 [REPO-FETCH] ========================================")
             throw RepositoryError.notFound
         }
 
+        print("✅ [REPO-FETCH] ItemList found: '\(itemList.itemListDescription ?? "nil")'")
+        print("🔶 [REPO-FETCH] Calling itemService.getItems()...")
+
         // Get items using service (already uses context.perform internally)
         let items = try await itemService.getItems(for: itemList)
-        return items.map { $0.toDomain() }
+
+        print("✅ [REPO-FETCH] Service returned \(items.count) Core Data items")
+        print("🔶 [REPO-FETCH] Converting to Domain models...")
+
+        let domainItems = items.map { $0.toDomain() }
+
+        print("✅ [REPO-FETCH] Converted to \(domainItems.count) Domain models")
+        print("🔶 [REPO-FETCH] ========================================")
+
+        return domainItems
     }
 
     func createItem(

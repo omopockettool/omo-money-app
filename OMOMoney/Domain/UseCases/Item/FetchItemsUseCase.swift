@@ -33,6 +33,15 @@ final class DefaultFetchItemsUseCase: FetchItemsUseCase {
     }
 
     func execute(forItemListId itemListId: UUID) async throws -> [ItemDomain] {
-        return try await itemRepository.fetchItems(forItemListId: itemListId)
+        print("🔷 [FETCH-ITEMS-UC] ========================================")
+        print("🔷 [FETCH-ITEMS-UC] Use Case called for ItemList ID: \(itemListId.uuidString)")
+        print("🔷 [FETCH-ITEMS-UC] Calling repository...")
+
+        let items = try await itemRepository.fetchItems(forItemListId: itemListId)
+
+        print("🔷 [FETCH-ITEMS-UC] Repository returned \(items.count) items")
+        print("🔷 [FETCH-ITEMS-UC] ========================================")
+
+        return items
     }
 }
