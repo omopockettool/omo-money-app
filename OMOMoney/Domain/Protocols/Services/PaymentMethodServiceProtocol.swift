@@ -1,36 +1,36 @@
-import CoreData
 import Foundation
 
 /// Protocol for PaymentMethod service operations
 /// Enables dependency injection and testing
+/// ✅ REFACTORED: Returns Domain models and accepts UUID parameters
 protocol PaymentMethodServiceProtocol {
-    
+
     // MARK: - PaymentMethod CRUD Operations
-    
+
     /// Fetch paymentMethod by ID
-    func fetchPaymentMethod(by id: UUID) async throws -> PaymentMethod?
-    
+    func fetchPaymentMethod(by id: UUID) async throws -> PaymentMethodDomain?
+
     /// Create a new paymentMethod
-    func createPaymentMethod(name: String, type: String, isActive: Bool, groupId: UUID) async throws -> PaymentMethod
-    
+    func createPaymentMethod(name: String, type: String, isActive: Bool, groupId: UUID) async throws -> PaymentMethodDomain
+
     /// Update an existing paymentMethod
-    func updatePaymentMethod(_ paymentMethod: PaymentMethod, name: String?, type: String?, isActive: Bool?) async throws
-    
+    func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, isActive: Bool?) async throws
+
     /// Delete a paymentMethod
-    func deletePaymentMethod(_ paymentMethod: PaymentMethod) async throws
-    
+    func deletePaymentMethod(paymentMethodId: UUID) async throws
+
     /// Get paymentMethods for a specific group
-    func getPaymentMethods(for group: Group) async throws -> [PaymentMethod]
-    
+    func getPaymentMethods(forGroupId groupId: UUID) async throws -> [PaymentMethodDomain]
+
     /// Get active paymentMethods for a specific group
-    func getActivePaymentMethods(for group: Group) async throws -> [PaymentMethod]
-    
+    func getActivePaymentMethods(forGroupId groupId: UUID) async throws -> [PaymentMethodDomain]
+
     /// Get paymentMethods count for a specific group
-    func getPaymentMethodsCount(for group: Group) async throws -> Int
-    
+    func getPaymentMethodsCount(forGroupId groupId: UUID) async throws -> Int
+
     /// Toggle paymentMethod active status
-    func toggleActiveStatus(_ paymentMethod: PaymentMethod) async throws
-    
+    func toggleActiveStatus(paymentMethodId: UUID) async throws
+
     /// Get paymentMethods by type
-    func getPaymentMethods(for group: Group, type: String) async throws -> [PaymentMethod]
+    func getPaymentMethods(forGroupId groupId: UUID, type: String) async throws -> [PaymentMethodDomain]
 }

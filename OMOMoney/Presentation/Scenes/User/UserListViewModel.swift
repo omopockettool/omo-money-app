@@ -3,19 +3,20 @@ import Foundation
 
 /// ViewModel for User list functionality
 /// Handles user list display and management
+/// ✅ REFACTORED: Works with UserDomain
 @MainActor
 class UserListViewModel: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var users: [User] = []
+    @Published var users: [UserDomain] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var hasMoreUsers = false
     @Published var currentPage = 0
-    
+
     // MARK: - Private Properties
     private let pageSize = 20
-    private var allUsers: [User] = []
+    private var allUsers: [UserDomain] = []
     
     // MARK: - Services
     private let userService: any UserServiceProtocol
@@ -77,11 +78,11 @@ class UserListViewModel: ObservableObject {
         do {
             let newUser = try await userService.createUser(name: name, email: email)
             allUsers.append(newUser)
-            allUsers.sort { ($0.name ?? "") < ($1.name ?? "") }
-            
+            allUsers.sort { $0.name < $1.name }
+
             // Reset pagination to show the new user
             await resetPagination()
-            
+
             isLoading = false
             return true
         } catch {
@@ -92,20 +93,21 @@ class UserListViewModel: ObservableObject {
     }
     
     /// Delete a user
-    func deleteUser(_ user: User) async -> Bool {
+    /// ✅ REFACTORED: Works with UserDomain
+    func deleteUser(_ user: UserDomain) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            try await userService.deleteUser(user)
+            try await userService.deleteUser(userId: user.id)
             allUsers.removeAll { $0.id == user.id }
             users.removeAll { $0.id == user.id }
-            
+
             // Adjust pagination if needed
             if users.isEmpty && hasMoreUsers {
                 await loadMoreUsers()
             }
-            
+
             isLoading = false
             return true
         } catch {

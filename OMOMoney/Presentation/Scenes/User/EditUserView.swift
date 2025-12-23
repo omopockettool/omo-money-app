@@ -11,15 +11,15 @@ import SwiftUI
 struct EditUserView: View {
     @StateObject private var viewModel: EditUserViewModel
     @Binding var navigationPath: NavigationPath
-    
-    init(user: User, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
+
+    init(user: UserDomain, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
         let userService = UserService(context: context)
         self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user, userService: userService))
         self._navigationPath = navigationPath
     }
-    
+
     // For use in sheets where navigation is not needed
-    init(user: User, context: NSManagedObjectContext) {
+    init(user: UserDomain, context: NSManagedObjectContext) {
         let userService = UserService(context: context)
         self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user, userService: userService))
         self._navigationPath = .constant(NavigationPath())
@@ -95,14 +95,15 @@ struct EditUserView: View {
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
-    let user = User(context: context)
-    user.id = UUID()
-    user.name = "John Doe"
-    user.email = "john@example.com"
-    user.createdAt = Date()
-    user.lastModifiedAt = Date()
-    
-    return NavigationStack {
+    let user = UserDomain(
+        id: UUID(),
+        name: "John Doe",
+        email: "john@example.com",
+        createdAt: Date(),
+        lastModifiedAt: Date()
+    )
+
+    NavigationStack {
         EditUserView(
             user: user,
             context: context,

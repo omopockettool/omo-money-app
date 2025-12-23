@@ -69,7 +69,11 @@ final class AppDIContainer {
     }()
 
     lazy var categoryRepository: CategoryRepository = {
-        return DefaultCategoryRepository(categoryService: categoryService, context: viewContext)
+        return DefaultCategoryRepository(categoryService: categoryService)
+    }()
+
+    lazy var paymentMethodRepository: PaymentMethodRepository = {
+        return DefaultPaymentMethodRepository(paymentMethodService: paymentMethodService)
     }()
 
     // MARK: - ItemList Use Cases
@@ -108,6 +112,11 @@ final class AppDIContainer {
         DefaultFetchCategoriesUseCase(categoryRepository: categoryRepository)
     }
 
+    // MARK: - PaymentMethod Use Cases
+    func makeFetchPaymentMethodsUseCase() -> FetchPaymentMethodsUseCase {
+        DefaultFetchPaymentMethodsUseCase(paymentMethodRepository: paymentMethodRepository)
+    }
+
     // MARK: - Group Use Cases
     func makeCreateGroupUseCase() -> CreateGroupUseCase {
         DefaultCreateGroupUseCase(groupRepository: groupRepository)
@@ -126,7 +135,7 @@ final class AppDIContainer {
         return DefaultGroupRepository(
             groupService: groupService,
             userGroupService: userGroupService,
-            userService: userService
+            context: viewContext
         )
     }()
     
@@ -134,7 +143,8 @@ final class AppDIContainer {
         return DefaultUserGroupRepository(
             userGroupService: userGroupService,
             userService: userService,
-            groupService: groupService
+            groupService: groupService,
+            context: viewContext
         )
     }()
     

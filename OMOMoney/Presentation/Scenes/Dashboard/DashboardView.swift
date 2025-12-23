@@ -8,6 +8,43 @@
 import SwiftUI
 import CoreData
 
+/// Wrapper view to fetch existing ItemList from Core Data for navigation
+/// ✅ CRITICAL: Never create a new ItemList object - always fetch the existing one
+struct ItemListDetailNavigationWrapper: View {
+    let itemListDomain: ItemListDomain
+    let context: NSManagedObjectContext
+
+    @State private var itemList: ItemList?
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack {
+            if isLoading {
+                ProgressView("Cargando...")
+            } else if let itemList = itemList {
+                ItemListDetailView(itemList: itemList, context: context)
+            } else {
+                Text("Error: ItemList no encontrada")
+                    .foregroundColor(.red)
+            }
+        }
+        .task {
+            fetchItemList()
+        }
+    }
+
+    private func fetchItemList() {
+        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", itemListDomain.id as CVarArg)
+        fetchRequest.fetchLimit = 1
+
+        context.performAndWait {
+            self.itemList = try? context.fetch(fetchRequest).first
+            self.isLoading = false
+        }
+    }
+}
+
 struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
@@ -36,7 +73,7 @@ struct DashboardView: View {
         let groupRepository = DefaultGroupRepository(
             groupService: groupService,
             userGroupService: userGroupService,
-            userService: userService
+            context: context
         )
 
         // Create use cases
@@ -120,10 +157,9 @@ struct DashboardView: View {
             }
             .background(Color(.systemBackground))
             .navigationDestination(for: ItemListDomain.self) { itemListDomain in
-                // TODO: ItemListDetailView needs to be updated to work with Domain models
-                // For now, convert back to Core Data for navigation
-                let itemList = itemListDomain.toCoreData(context: context)
-                ItemListDetailView(itemList: itemList, context: context)
+                // ✅ CRITICAL FIX: Fetch the EXISTING ItemList instead of creating a new one
+                // Creating a new object breaks the items relationship!
+                ItemListDetailNavigationWrapper(itemListDomain: itemListDomain, context: context)
             }
             .sheet(isPresented: $showingAddItemList) {
                 if let user = viewModel.currentUser,

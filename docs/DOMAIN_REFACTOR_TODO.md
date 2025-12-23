@@ -433,3 +433,15 @@ After each session, verify:
 - ✅ Follow Clean Architecture perfectly
 
 **When complete, DashboardViewModel will be a pure presentation layer with perfect separation of concerns! 🎉**
+
+## ✅ MOSTLY COMPLETE - Remaining Work
+
+### Still Using Core Data Entities:
+1. **currentGroup: Group?** - Should be `GroupDomain?`
+2. **currentUser: User?** - Should be `UserDomain?`  
+3. **availableGroups: [Group]** - Should be `[GroupDomain]`
+
+### Note:
+The major ViewModel → Use Case → Domain refactor is DONE. The remaining work (currentGroup, currentUser) is blocked by the Service Layer refactor described in REFACTOR_PLAN_PURE_DOMAIN.md.
+
+Once Services return Domain models, we can complete these final properties.

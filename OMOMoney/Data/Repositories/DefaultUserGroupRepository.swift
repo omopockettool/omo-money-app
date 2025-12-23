@@ -3,30 +3,36 @@
 //  OMOMoney
 //
 //  Created on 11/18/25.
+//  ⚠️ TEMPORARY: UserGroupService still uses Core Data entities
 //
 
+import CoreData
 import Foundation
 
 /// Default implementation of UserGroupRepository
 /// Wraps UserGroupService and converts between Core Data and Domain models
+/// ⚠️ TEMPORARY: Needs context until UserGroupService is refactored
 final class DefaultUserGroupRepository: UserGroupRepository {
-    
+
     // MARK: - Properties
-    
+
     private let userGroupService: UserGroupServiceProtocol
     private let userService: UserServiceProtocol
     private let groupService: GroupServiceProtocol
-    
+    private let context: NSManagedObjectContext
+
     // MARK: - Initialization
-    
+
     init(
         userGroupService: UserGroupServiceProtocol,
         userService: UserServiceProtocol,
-        groupService: GroupServiceProtocol
+        groupService: GroupServiceProtocol,
+        context: NSManagedObjectContext
     ) {
         self.userGroupService = userGroupService
         self.userService = userService
         self.groupService = groupService
+        self.context = context
     }
     
     // MARK: - UserGroupRepository Implementation
@@ -38,28 +44,18 @@ final class DefaultUserGroupRepository: UserGroupRepository {
     }
     
     func fetchUserGroup(id: UUID) async throws -> UserGroupDomain? {
-        guard let userGroup = try await userGroupService.fetchUserGroup(by: id) else {
-            return nil
-        }
-        return userGroup.toDomain()
+        // ✅ Service already returns UserGroupDomain
+        return try await userGroupService.fetchUserGroup(by: id)
     }
     
     func fetchUserGroups(forUserId userId: UUID) async throws -> [UserGroupDomain] {
-        guard let user = try await userService.fetchUser(by: userId) else {
-            throw RepositoryError.notFound
-        }
-        
-        let userGroups = try await userGroupService.getUserGroups(for: user)
-        return userGroups.map { $0.toDomain() }
+        // ✅ Service already accepts UUID and returns Domain models
+        return try await userGroupService.getUserGroups(forUserId: userId)
     }
     
     func fetchUserGroups(forGroupId groupId: UUID) async throws -> [UserGroupDomain] {
-        guard let group = try await groupService.fetchGroup(by: groupId) else {
-            throw RepositoryError.notFound
-        }
-        
-        let userGroups = try await userGroupService.getUserGroups(for: group)
-        return userGroups.map { $0.toDomain() }
+        // ✅ Service already accepts UUID and returns Domain models
+        return try await userGroupService.getUserGroups(forGroupId: groupId)
     }
     
     func createUserGroup(
@@ -67,55 +63,34 @@ final class DefaultUserGroupRepository: UserGroupRepository {
         groupId: UUID,
         role: String
     ) async throws -> UserGroupDomain {
-        // Fetch the user and group entities
-        guard let user = try await userService.fetchUser(by: userId) else {
-            throw RepositoryError.notFound
-        }
-        
-        guard let group = try await groupService.fetchGroup(by: groupId) else {
-            throw RepositoryError.notFound
-        }
-        
-        // Create the user-group relationship
-        let userGroup = try await userGroupService.createUserGroup(
-            user: user,
-            group: group,
+        // ✅ Service already accepts UUIDs and returns Domain model
+        return try await userGroupService.createUserGroup(
+            userId: userId,
+            groupId: groupId,
             role: role
         )
-        
-        return userGroup.toDomain()
     }
     
     func updateUserGroup(_ userGroup: UserGroupDomain) async throws {
-        guard let coreDataUserGroup = try await userGroupService.fetchUserGroup(by: userGroup.id) else {
-            throw RepositoryError.notFound
-        }
-        
+        // ✅ Service accepts UUID parameter
         try await userGroupService.updateUserGroup(
-            coreDataUserGroup,
+            userGroupId: userGroup.id,
             role: userGroup.role
         )
     }
-    
+
     func deleteUserGroup(id: UUID) async throws {
-        guard let userGroup = try await userGroupService.fetchUserGroup(by: id) else {
-            throw RepositoryError.notFound
-        }
-        
-        try await userGroupService.deleteUserGroup(userGroup)
+        // ✅ Service accepts UUID parameter
+        try await userGroupService.deleteUserGroup(userGroupId: id)
     }
     
     func removeUser(_ userId: UUID, fromGroup groupId: UUID) async throws {
-        // Fetch the user-group relationship
-        guard let user = try await userService.fetchUser(by: userId) else {
-            throw RepositoryError.notFound
-        }
-        
-        let userGroups = try await userGroupService.getUserGroups(for: user)
+        // ✅ Service accepts UUIDs and returns Domain models
+        let userGroups = try await userGroupService.getUserGroups(forUserId: userId)
         guard let userGroupToRemove = userGroups.first(where: { $0.groupId == groupId }) else {
             throw RepositoryError.notFound
         }
-        
-        try await userGroupService.deleteUserGroup(userGroupToRemove)
+
+        try await userGroupService.deleteUserGroup(userGroupId: userGroupToRemove.id)
     }
 }

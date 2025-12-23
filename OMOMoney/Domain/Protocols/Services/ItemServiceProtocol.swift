@@ -14,7 +14,8 @@ protocol ItemServiceProtocol {
     func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID) async throws -> Item
     
     /// Update an existing item
-    func updateItem(_ item: Item, description: String?, amount: NSDecimalNumber?, quantity: Int32?) async throws
+    /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data object
+    func updateItem(itemId: UUID, description: String?, amount: NSDecimalNumber?, quantity: Int32?) async throws
     
     /// Delete an item
     func deleteItem(_ item: Item) async throws

@@ -24,19 +24,28 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     // This enables dashboard dropdown with user's groups for switching context
     
     /// Fetch group by ID
-    func fetchGroup(by id: UUID) async throws -> Group? {
-        let request: NSFetchRequest<Group> = Group.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        request.fetchLimit = 1
-        
-        let results = try await fetch(request)
-        return results.first
+    /// ✅ REFACTORED: Returns Domain model
+    func fetchGroup(by id: UUID) async throws -> GroupDomain? {
+        return try await context.perform {
+            let request: NSFetchRequest<Group> = Group.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+            request.returnsObjectsAsFaults = false
+
+            guard let group = try self.context.fetch(request).first else {
+                return nil
+            }
+
+            // Convert to Domain INSIDE context.perform
+            return group.toDomain()
+        }
     }
-    
+
     /// Create a new group
-    func createGroup(name: String, currency: String) async throws -> Group {
-        // Step 1: Create and save the group entity
-        let group = try await context.perform {
+    /// ✅ REFACTORED: Returns Domain model
+    func createGroup(name: String, currency: String) async throws -> GroupDomain {
+        // Step 1: Create and save the group entity, convert to Domain
+        let (groupDomain, groupId) = try await context.perform {
             let group = Group(context: self.context)
             group.id = UUID()
             group.name = name
@@ -44,10 +53,12 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             group.createdAt = Date()
 
             try self.context.save()
-            return group
+
+            // Convert to Domain INSIDE context.perform
+            return (group.toDomain(), group.id!)
         }
 
-        print("✅ [GroupService] Group created: '\(name)' (ID: \(group.id?.uuidString ?? "nil"))")
+        print("✅ [GroupService] Group created: '\(name)' (ID: \(groupId.uuidString))")
 
         // Step 2: Create default payment methods and categories for the new group
         // ⚠️ CRITICAL: Must complete BEFORE returning to avoid race condition
@@ -64,15 +75,13 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             ]
 
             print("🔄 [GroupService] Creating \(defaultPaymentMethods.count) default payment methods...")
-            if let groupId = group.id {
-                for (pmName, pmType) in defaultPaymentMethods {
-                    let _ = try await paymentMethodService.createPaymentMethod(
-                        name: pmName,
-                        type: pmType,
-                        isActive: true,
-                        groupId: groupId
-                    )
-                }
+            for (pmName, pmType) in defaultPaymentMethods {
+                let _ = try await paymentMethodService.createPaymentMethod(
+                    name: pmName,
+                    type: pmType,
+                    isActive: true,
+                    groupId: groupId
+                )
             }
             print("✅ [GroupService] Payment methods created")
 
@@ -88,14 +97,12 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             ]
 
             print("🔄 [GroupService] Creating \(defaultCategories.count) default categories...")
-            if let groupId = group.id {
-                for (categoryName, color) in defaultCategories {
-                    let _ = try await categoryService.createCategory(
-                        name: categoryName,
-                        color: color,
-                        groupId: groupId  // ✅ FIX: Pass groupId instead of group object
-                    )
-                }
+            for (categoryName, color) in defaultCategories {
+                let _ = try await categoryService.createCategory(
+                    name: categoryName,
+                    color: color,
+                    groupId: groupId
+                )
             }
             print("✅ [GroupService] All \(defaultCategories.count) categories created and saved to Core Data")
 
@@ -111,14 +118,23 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
         print("✅ [GroupService] Caches invalidated")
 
-        // Step 4: Return group ONLY after categories are saved
+        // Step 4: Return groupDomain ONLY after categories are saved
         print("✅ [GroupService] createGroup() complete - returning group with all default data")
-        return group
+        return groupDomain
     }
-    
+
     /// Update an existing group
-    func updateGroup(_ group: Group, name: String? = nil, currency: String? = nil) async throws {
+    /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data entity
+    func updateGroup(groupId: UUID, name: String? = nil, currency: String? = nil) async throws {
         try await context.perform {
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            groupRequest.fetchLimit = 1
+
+            guard let group = try self.context.fetch(groupRequest).first else {
+                throw RepositoryError.notFound
+            }
+
             if let name = name {
                 group.name = name
             }
@@ -126,34 +142,44 @@ class GroupService: CoreDataService, GroupServiceProtocol {
                 group.currency = currency
             }
             group.lastModifiedAt = Date()
-            
+
             try self.context.save()
         }
-        
+
         // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
     }
-    
+
     /// Delete a group
-    func deleteGroup(_ group: Group) async throws {
+    /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data entity
+    func deleteGroup(groupId: UUID) async throws {
         print("🔥 [GroupService] deleteGroup() iniciado")
-        print("🔥 [GroupService] Grupo a eliminar: '\(group.name ?? "Sin nombre")' (ObjectID: \(group.objectID))")
-        print("🔥 [GroupService] UUID: \(group.id?.uuidString ?? "nil")")
-        
-        // Verificar si el grupo tiene relaciones antes de eliminar
-        let userGroupsCount = group.userGroups?.count ?? 0
-        let itemListsCount = group.itemLists?.count ?? 0
-        
-        print("🔥 [GroupService] UserGroups relacionados: \(userGroupsCount)")
-        print("🔥 [GroupService] ItemLists relacionados: \(itemListsCount)")
-        
-        await delete(group)
-        print("🔥 [GroupService] delete(group) ejecutado")
-        
-        try await save()
-        print("🔥 [GroupService] save() ejecutado")
-        
+        print("�� [GroupService] UUID: \(groupId.uuidString)")
+
+        try await context.perform {
+            let groupRequest: NSFetchRequest<Group> = Group.fetchRequest()
+            groupRequest.predicate = NSPredicate(format: "id == %@", groupId as CVarArg)
+            groupRequest.fetchLimit = 1
+
+            guard let group = try self.context.fetch(groupRequest).first else {
+                throw RepositoryError.notFound
+            }
+
+            print("🔥 [GroupService] Grupo a eliminar: '\(group.name ?? "Sin nombre")' (ObjectID: \(group.objectID))")
+
+            // Verificar si el grupo tiene relaciones antes de eliminar
+            let userGroupsCount = group.userGroups?.count ?? 0
+            let itemListsCount = group.itemLists?.count ?? 0
+
+            print("🔥 [GroupService] UserGroups relacionados: \(userGroupsCount)")
+            print("🔥 [GroupService] ItemLists relacionados: \(itemListsCount)")
+
+            self.context.delete(group)
+            try self.context.save()
+            print("🔥 [GroupService] save() ejecutado")
+        }
+
         // Invalidate relevant cache itemLists
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
@@ -224,36 +250,47 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     }
     
     /// Create multiple groups efficiently
-    func createGroups(_ groupDataList: [(name: String, currency: String)]) async throws -> [Group] {
+    /// ✅ REFACTORED: Returns Domain models
+    func createGroups(_ groupDataList: [(name: String, currency: String)]) async throws -> [GroupDomain] {
         // For small batches, use regular creation for better control
         if groupDataList.count <= 10 {
-            var createdGroups: [Group] = []
+            var createdGroups: [GroupDomain] = []
             for groupData in groupDataList {
-                let group = try await createGroup(name: groupData.name, currency: groupData.currency)
-                createdGroups.append(group)
+                let groupDomain = try await createGroup(name: groupData.name, currency: groupData.currency)
+                createdGroups.append(groupDomain)
             }
             return createdGroups
         }
-        
+
         // For larger batches, use bulk insert
-        let objects: [[String: Any]] = groupDataList.map { groupData in
-            return [
-                "id": UUID(),
-                "name": groupData.name,
-                "currency": groupData.currency,
-                "createdAt": Date(),
-                "lastModifiedAt": Date()
-            ]
+        let groupIds = try await context.perform {
+            var groupIds: [UUID] = []
+            for groupData in groupDataList {
+                let group = Group(context: self.context)
+                let groupId = UUID()
+                group.id = groupId
+                group.name = groupData.name
+                group.currency = groupData.currency
+                group.createdAt = Date()
+                groupIds.append(groupId)
+            }
+            try self.context.save()
+            return groupIds
         }
-        
-        try await bulkInsert(Group.self, objects: objects)
-        
-        // Clear caches - Note: return empty array since fetchGroups() was removed
+
+        // Clear caches
         await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
         await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
-        
-        // TODO: Return created groups properly when getGroups(for user: User) is implemented
-        return []
+
+        // Fetch created groups as Domain models
+        return try await context.perform {
+            let request: NSFetchRequest<Group> = Group.fetchRequest()
+            request.predicate = NSPredicate(format: "id IN %@", groupIds)
+            request.returnsObjectsAsFaults = false
+
+            let groups = try self.context.fetch(request)
+            return groups.map { $0.toDomain() }
+        }
     }
     
     /// Get groups count for specific currency
@@ -277,12 +314,9 @@ class GroupService: CoreDataService, GroupServiceProtocol {
     }
     
     /// Get group members count
-    func getGroupMembersCount(_ group: Group) async throws -> Int {
-        guard let groupId = group.id else {
-            throw CoreDataError.invalidObjectID
-        }
-        
-        let cacheKey = "GroupService.membersCount_\(groupId)"
+    /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data entity
+    func getGroupMembersCount(groupId: UUID) async throws -> Int {
+        let cacheKey = "GroupService.membersCount_\(groupId.uuidString)"
         
         // Check cache first
         if let cachedCount: Int = await CacheManager.shared.getCachedData(for: cacheKey) {

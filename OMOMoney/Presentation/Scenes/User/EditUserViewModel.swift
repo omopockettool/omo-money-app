@@ -3,57 +3,59 @@ import Foundation
 
 /// ViewModel for editing existing users
 /// Handles user editing form and validation
+/// ✅ REFACTORED: Works with UserDomain
 @MainActor
 class EditUserViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
     @Published var name = ""
     @Published var email = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var shouldNavigateBack = false
-    
+
     // MARK: - Computed Properties
     var userCreatedAt: Date? {
         return user.createdAt
     }
-    
+
     var userLastModifiedAt: Date? {
         return user.lastModifiedAt
     }
-    
+
     // MARK: - Private Properties
-    private let user: User
+    private let user: UserDomain
     private let userService: any UserServiceProtocol
-    
+
     // MARK: - Initialization
-    init(user: User, userService: any UserServiceProtocol) {
+    init(user: UserDomain, userService: any UserServiceProtocol) {
         self.user = user
         self.userService = userService
-        
+
         // Initialize form with current values
-        self.name = user.name ?? ""
-        self.email = user.email ?? ""
+        self.name = user.name
+        self.email = user.email
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Update the user
+    /// ✅ REFACTORED: Uses UUID parameter
     func updateUser() async {
         guard validateInput() else { return }
-        
+
         // Additional async validation for name duplicates
         guard await validateNameAsync() else { return }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let nameToUse = name.trimmingCharacters(in: .whitespacesAndNewlines)
             let emailToUse = email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : email.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            try await userService.updateUser(user, name: nameToUse, email: emailToUse)
-            
+
+            try await userService.updateUser(userId: user.id, name: nameToUse, email: emailToUse)
+
             isLoading = false
             shouldNavigateBack = true
         } catch {
@@ -98,8 +100,8 @@ class EditUserViewModel: ObservableObject {
     /// Validate user name asynchronously (check for duplicates)
     func validateNameAsync() async -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let originalName = user.name ?? ""
-        
+        let originalName = user.name
+
         // Only check if name actually changed
         if trimmedName != originalName {
             do {
@@ -113,19 +115,19 @@ class EditUserViewModel: ObservableObject {
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     /// Clear error message
     func clearError() {
         errorMessage = nil
     }
-    
+
     /// Reset form to original values
     func resetForm() {
-        name = user.name ?? ""
-        email = user.email ?? ""
+        name = user.name
+        email = user.email
         errorMessage = nil
     }
 }

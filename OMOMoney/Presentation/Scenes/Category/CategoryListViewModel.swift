@@ -3,52 +3,50 @@ import Foundation
 
 /// ViewModel for Category list functionality
 /// Handles category list display and management
+/// ✅ REFACTORED: Works with Domain models and UUID parameters
 @MainActor
 class CategoryListViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
-    @Published var categories: [Category] = []
+    @Published var categories: [CategoryDomain] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+
     // MARK: - Services
     private let categoryService: CategoryService
-    
+
     // MARK: - Initialization
     init(context: NSManagedObjectContext) {
         self.categoryService = CategoryService(context: context)
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Load categories for a specific group
-    func loadCategories(for group: Group) async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            categories = try await categoryService.getCategories(for: group)
-        } catch {
-            errorMessage = "Error loading categories: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
-    /// Create a new category
-    func createCategory(name: String, color: String? = nil, group: Group) async -> Bool {
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            guard let groupId = group.id else {
-                errorMessage = "Invalid group ID"
-                isLoading = false
-                return false
-            }
-            let newCategory = try await categoryService.createCategory(name: name, color: color, groupId: groupId)
+            categories = try await categoryService.getCategories(forGroupId: groupId)
+        } catch {
+            errorMessage = "Error loading categories: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+    }
+
+    /// Create a new category
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func createCategory(name: String, color: String? = nil, groupId: UUID) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let newCategory = try await categoryService.createCategory(name: name, color: color, groupId: groupId, limit: nil, limitFrequency: nil)
             categories.append(newCategory)
-            categories.sort { ($0.name ?? "") < ($1.name ?? "") }
+            categories.sort { $0.name < $1.name }
             isLoading = false
             return true
         } catch {
@@ -57,14 +55,15 @@ class CategoryListViewModel: ObservableObject {
             return false
         }
     }
-    
+
     /// Update an existing category
-    func updateCategory(_ category: Category, name: String? = nil, color: String? = nil) async -> Bool {
+    /// ✅ REFACTORED: Accepts Domain model
+    func updateCategory(_ category: CategoryDomain, name: String? = nil, color: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            try await categoryService.updateCategory(category, name: name, color: color)
+            try await categoryService.updateCategory(categoryId: category.id, name: name, color: color, limit: nil, limitFrequency: nil)
             isLoading = false
             return true
         } catch {
@@ -73,14 +72,15 @@ class CategoryListViewModel: ObservableObject {
             return false
         }
     }
-    
+
     /// Delete a category
-    func deleteCategory(_ category: Category) async -> Bool {
+    /// ✅ REFACTORED: Accepts Domain model
+    func deleteCategory(_ category: CategoryDomain) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            try await categoryService.deleteCategory(category)
+            try await categoryService.deleteCategory(categoryId: category.id)
             categories.removeAll { $0.id == category.id }
             isLoading = false
             return true
@@ -90,27 +90,29 @@ class CategoryListViewModel: ObservableObject {
             return false
         }
     }
-    
+
     /// Check if category name exists
-    func categoryExists(withName name: String, in group: Group? = nil, excluding categoryId: UUID? = nil) async -> Bool {
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func categoryExists(withName name: String, inGroupId groupId: UUID? = nil, excluding categoryId: UUID? = nil) async -> Bool {
         do {
-            return try await categoryService.categoryExists(withName: name, in: group, excluding: categoryId)
+            return try await categoryService.categoryExists(withName: name, inGroupId: groupId, excluding: categoryId)
         } catch {
             errorMessage = "Error checking category name: \(error.localizedDescription)"
             return false
         }
     }
-    
+
     /// Get categories count for a specific group
-    func getCategoriesCount(for group: Group) async -> Int {
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func getCategoriesCount(forGroupId groupId: UUID) async -> Int {
         do {
-            return try await categoryService.getCategoriesCount(for: group)
+            return try await categoryService.getCategoriesCount(forGroupId: groupId)
         } catch {
             errorMessage = "Error getting categories count: \(error.localizedDescription)"
             return 0
         }
     }
-    
+
     /// Clear error message
     func clearError() {
         errorMessage = nil

@@ -18,7 +18,7 @@ class TestDataGenerator {
     /// Generate massive test data for performance testing
     func generateMassiveTestData(itemListCount: Int = 500, itemsPerList: Int = 3, targetGroup: Group? = nil) async throws {
         print("🔄 TestDataGenerator: Starting generation of \(itemListCount) ItemLists with \(itemsPerList) items each...")
-        
+
         // Get existing group and user
         let group: Group
         if let targetGroup = targetGroup {
@@ -31,11 +31,11 @@ class TestDataGenerator {
             print("🔍 TestDataGenerator: Using first available group - ID: \(fetchedGroup.id?.uuidString ?? "nil"), Name: '\(fetchedGroup.name ?? "No Name")'")
             group = fetchedGroup
         }
-        
+
         guard (try await getOrCreateTestUser()) != nil else {
             throw TestDataError.missingRequiredData
         }
-        
+
         let categories = try await getTestCategories(for: group)
         let paymentMethods = try await getTestPaymentMethods(for: group)
         
@@ -157,17 +157,27 @@ class TestDataGenerator {
     
     private func getTestCategories(for group: Group) async throws -> [Category] {
         let request: NSFetchRequest<Category> = Category.fetchRequest()
-        request.predicate = NSPredicate(format: "group == %@", group)
-        
+        // ✅ Query by UUID instead of relationship
+        if let groupId = group.id {
+            request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+        } else {
+            request.predicate = NSPredicate(format: "group == %@", group)
+        }
+
         return try await context.perform {
             try self.context.fetch(request)
         }
     }
-    
+
     private func getTestPaymentMethods(for group: Group) async throws -> [PaymentMethod] {
         let request: NSFetchRequest<PaymentMethod> = PaymentMethod.fetchRequest()
-        request.predicate = NSPredicate(format: "group == %@ AND isActive == YES", group)
-        
+        // ✅ Query by UUID instead of relationship
+        if let groupId = group.id {
+            request.predicate = NSPredicate(format: "group.id == %@ AND isActive == YES", groupId as CVarArg)
+        } else {
+            request.predicate = NSPredicate(format: "group == %@ AND isActive == YES", group)
+        }
+
         return try await context.perform {
             try self.context.fetch(request)
         }
@@ -186,10 +196,43 @@ class TestDataGenerator {
     private func generateRandomDate() -> Date {
         let calendar = Calendar.current
         let now = Date()
-        
-        // Generate dates within the last 6 months
-        let daysAgo = Int.random(in: 0...180)
-        return calendar.date(byAdding: .day, value: -daysAgo, to: now) ?? now
+
+        // ✅ Generate dates within CURRENT MONTH to be visible in dashboard
+        // Get first day of current month
+        let components = calendar.dateComponents([.year, .month], from: now)
+        guard let firstDayOfMonth = calendar.date(from: components) else { return now }
+
+        // Get number of days in current month
+        guard let range = calendar.range(of: .day, in: .month, for: now) else { return now }
+        let daysInMonth = range.count
+
+        // Generate random day within current month
+        let randomDay = Int.random(in: 0..<daysInMonth)
+        return calendar.date(byAdding: .day, value: randomDay, to: firstDayOfMonth) ?? now
+    }
+
+    /// Delete old test data for a group
+    private func deleteOldTestData(for group: Group) async throws {
+        guard let groupId = group.id else { return }
+
+        print("🗑️ TestDataGenerator: Deleting old ItemLists for group '\(group.name ?? "N/A")'...")
+
+        let deletedCount = try await context.perform {
+            let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
+            request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+
+            let itemLists = try self.context.fetch(request)
+            let count = itemLists.count
+
+            for itemList in itemLists {
+                self.context.delete(itemList)
+            }
+
+            try self.context.save()
+            return count
+        }
+
+        print("✅ TestDataGenerator: Deleted \(deletedCount) old ItemLists")
     }
 }
 

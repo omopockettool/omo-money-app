@@ -1,36 +1,58 @@
-import CoreData
 import Foundation
 
 /// Protocol for UserGroup service operations
 /// Enables dependency injection and testing
+/// ✅ REFACTORED: Pure Domain Architecture - returns Domain models, accepts UUIDs
 protocol UserGroupServiceProtocol {
-    
+
     // MARK: - UserGroup CRUD Operations
-    
+
     /// Fetch user group by ID
-    func fetchUserGroup(by id: UUID) async throws -> UserGroup?
-    
+    /// - Returns: UserGroupDomain model
+    func fetchUserGroup(by id: UUID) async throws -> UserGroupDomain?
+
     /// Create a new user group relationship
-    func createUserGroup(user: User, group: Group, role: String) async throws -> UserGroup
-    
+    /// - Parameters:
+    ///   - userId: UUID of the user
+    ///   - groupId: UUID of the group
+    ///   - role: Role string (owner, admin, member)
+    /// - Returns: UserGroupDomain model
+    func createUserGroup(userId: UUID, groupId: UUID, role: String) async throws -> UserGroupDomain
+
     /// Update an existing user group
-    func updateUserGroup(_ userGroup: UserGroup, role: String?) async throws
-    
+    /// - Parameters:
+    ///   - userGroupId: UUID of the UserGroup to update
+    ///   - role: New role (optional)
+    func updateUserGroup(userGroupId: UUID, role: String?) async throws
+
     /// Delete a user group relationship
-    func deleteUserGroup(_ userGroup: UserGroup) async throws
-    
+    /// - Parameter userGroupId: UUID of the UserGroup to delete
+    func deleteUserGroup(userGroupId: UUID) async throws
+
     /// Get user groups for a specific user
-    func getUserGroups(for user: User) async throws -> [UserGroup]
-    
+    /// - Parameter userId: UUID of the user
+    /// - Returns: Array of UserGroupDomain models
+    func getUserGroups(forUserId userId: UUID) async throws -> [UserGroupDomain]
+
     /// Get user groups for a specific group
-    func getUserGroups(for group: Group) async throws -> [UserGroup]
-    
+    /// - Parameter groupId: UUID of the group
+    /// - Returns: Array of UserGroupDomain models
+    func getUserGroups(forGroupId groupId: UUID) async throws -> [UserGroupDomain]
+
     /// Get users in a specific group
-    func getUsers(in group: Group) async throws -> [User]
-    
+    /// - Parameter groupId: UUID of the group
+    /// - Returns: Array of UserDomain models
+    func getUsers(inGroupId groupId: UUID) async throws -> [UserDomain]
+
     /// Get groups for a specific user
-    func getGroups(for user: User) async throws -> [Group]
-    
+    /// - Parameter userId: UUID of the user
+    /// - Returns: Array of GroupDomain models
+    func getGroups(forUserId userId: UUID) async throws -> [GroupDomain]
+
     /// Check if user is member of group
-    func isUser(_ user: User, memberOf group: Group) async throws -> Bool
+    /// - Parameters:
+    ///   - userId: UUID of the user
+    ///   - groupId: UUID of the group
+    /// - Returns: Boolean indicating membership
+    func isUserMember(userId: UUID, groupId: UUID) async throws -> Bool
 }

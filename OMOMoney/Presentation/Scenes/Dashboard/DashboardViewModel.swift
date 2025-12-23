@@ -410,8 +410,19 @@ class DashboardViewModel: ObservableObject {
 
                 let generator = TestDataGenerator(context: context)
 
-                // Convert GroupDomain to Core Data for TestDataGenerator
-                let groupCoreData = group.toCoreData(context: context)
+                // ✅ CRITICAL FIX: Fetch EXISTING Group from Core Data (don't create new one!)
+                let groupCoreData = try await context.perform {
+                    let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+                    return try context.fetch(fetchRequest).first
+                }
+
+                guard let groupCoreData = groupCoreData else {
+                    throw NSError(domain: "DashboardViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Group not found in Core Data"])
+                }
+
+                print("🏠 DashboardViewModel: Active group - ID: \(groupCoreData.id?.uuidString ?? "nil"), Name: '\(groupCoreData.name ?? "No Name")'")
 
                 // Generate 200 ItemLists with 2 items each = 400 total items
                 // Pass the currentGroup to ensure data is created for the correct group

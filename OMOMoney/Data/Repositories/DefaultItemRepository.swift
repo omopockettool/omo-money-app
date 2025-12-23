@@ -35,33 +35,41 @@ final class DefaultItemRepository: ItemRepository {
         print("🔶 [REPO-FETCH] Repository fetching items for ItemList ID: \(itemListId.uuidString)")
         print("🔶 [REPO-FETCH] Fetching ItemList entity from Core Data...")
 
-        // Fetch ItemList first on background thread
-        let itemList = try await context.perform {
+        // ✅ CRITICAL FIX: Fetch AND convert to Domain models inside context.perform
+        // This ensures thread-safe access to Core Data properties
+        let domainItems = try await context.perform {
             let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
-            return try self.context.fetch(fetchRequest).first
+            fetchRequest.fetchLimit = 1
+
+            guard let itemList = try self.context.fetch(fetchRequest).first else {
+                print("❌ [REPO-FETCH] ERROR - ItemList not found")
+                throw RepositoryError.notFound
+            }
+
+            print("✅ [REPO-FETCH] ItemList found: '\(itemList.itemListDescription ?? "nil")'")
+            print("🔶 [REPO-FETCH] Fetching items from ItemList relationship...")
+
+            // Fetch items directly from the relationship
+            let itemsRequest: NSFetchRequest<Item> = Item.fetchRequest()
+            itemsRequest.predicate = NSPredicate(format: "itemList == %@", itemList)
+            itemsRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
+            itemsRequest.returnsObjectsAsFaults = false  // Force full object load
+
+            let items = try self.context.fetch(itemsRequest)
+
+            print("✅ [REPO-FETCH] Service returned \(items.count) Core Data items")
+            print("🔶 [REPO-FETCH] Converting to Domain models (inside context.perform)...")
+
+            // Convert to Domain models INSIDE context.perform for thread safety
+            let domainItems = items.map { $0.toDomain() }
+
+            print("✅ [REPO-FETCH] Converted to \(domainItems.count) Domain models")
+
+            return domainItems
         }
 
-        guard let itemList = itemList else {
-            print("❌ [REPO-FETCH] ERROR - ItemList not found")
-            print("🔶 [REPO-FETCH] ========================================")
-            throw RepositoryError.notFound
-        }
-
-        print("✅ [REPO-FETCH] ItemList found: '\(itemList.itemListDescription ?? "nil")'")
-        print("🔶 [REPO-FETCH] Calling itemService.getItems()...")
-
-        // Get items using service (already uses context.perform internally)
-        let items = try await itemService.getItems(for: itemList)
-
-        print("✅ [REPO-FETCH] Service returned \(items.count) Core Data items")
-        print("🔶 [REPO-FETCH] Converting to Domain models...")
-
-        let domainItems = items.map { $0.toDomain() }
-
-        print("✅ [REPO-FETCH] Converted to \(domainItems.count) Domain models")
         print("🔶 [REPO-FETCH] ========================================")
-
         return domainItems
     }
 
@@ -87,14 +95,10 @@ final class DefaultItemRepository: ItemRepository {
     }
 
     func updateItem(_ item: ItemDomain) async throws {
-        // Fetch the Core Data item
-        guard let coreDataItem = try await itemService.fetchItem(by: item.id) else {
-            throw RepositoryError.notFound
-        }
-
-        // Update using service
+        // ✅ CRITICAL FIX: Pass UUID instead of Core Data object to avoid thread boundary issues
+        // The service will fetch the item inside its own context.perform block
         try await itemService.updateItem(
-            coreDataItem,
+            itemId: item.id,
             description: item.itemDescription,
             amount: NSDecimalNumber(decimal: item.amount),
             quantity: item.quantity

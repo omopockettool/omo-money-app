@@ -59,14 +59,14 @@ struct AddItemListView: View {
 
             Section("Método de Pago") {
                 Picker("Método de Pago", selection: $viewModel.selectedPaymentMethod) {
-                    Text("Seleccionar Método de Pago").tag(nil as PaymentMethod?)
+                    Text("Seleccionar Método de Pago").tag(nil as PaymentMethodDomain?)
                     ForEach(viewModel.paymentMethods, id: \.id) { paymentMethod in
                         HStack {
-                            Image(systemName: paymentMethodIcon(for: paymentMethod.type ?? ""))
-                                .foregroundColor(paymentMethodColor(for: paymentMethod.type ?? ""))
-                            Text(paymentMethod.name ?? "Sin nombre")
+                            Image(systemName: paymentMethodIcon(for: paymentMethod.type))
+                                .foregroundColor(paymentMethodColor(for: paymentMethod.type))
+                            Text(paymentMethod.name)
                         }
-                        .tag(paymentMethod as PaymentMethod?)
+                        .tag(paymentMethod as PaymentMethodDomain?)
                     }
                 }
                 .pickerStyle(.navigationLink)
@@ -137,7 +137,7 @@ struct AddItemListView: View {
                     print("✅ AddItemListView: Found Group in Core Data")
                     // ✅ Clean Architecture: Pass UUID to ViewModel
                     await viewModel.loadCategories(forGroupId: group.id)
-                    await viewModel.loadPaymentMethods(for: existingGroup)
+                    await viewModel.loadPaymentMethods(forGroupId: group.id)
                     print("✅ AddItemListView: Loaded \(viewModel.categories.count) categories")
                     print("✅ AddItemListView: Loaded \(viewModel.paymentMethods.count) payment methods")
                 } else {

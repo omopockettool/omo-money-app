@@ -10,10 +10,10 @@ import SwiftUI
 
 struct AppContentView: View {
     @State private var navigationPath = NavigationPath()
-    @State private var selectedUser: User?
-    @State private var selectedGroup: Group?
+    @State private var selectedUser: UserDomain?
+    @State private var selectedGroup: GroupDomain?
     @State private var isLoading = true
-    
+
     private let context: NSManagedObjectContext
     private let userService: UserService
     private let groupService: GroupService
@@ -91,32 +91,32 @@ extension AppContentView {
             let startTime = Date()
             
             do {
-                // Get the current user
+                // Get the current user (returns UserDomain)
                 guard let currentUser = try await userService.getCurrentUser() else {
                     print("❌ AppContentView: No users found")
                     isLoading = false
                     return
                 }
-                
-                // Load groups for the current user
+
+                // ✅ Load groups for the current user - Service already returns Domain models
                 let userGroupService = UserGroupService(context: context)
-                let userGroups = try await userGroupService.getGroups(for: currentUser)
-                
+                let groups = try await userGroupService.getGroups(forUserId: currentUser.id)
+
                 // Calcular tiempo transcurrido y esperar si fue muy rápido
                 let elapsed = Date().timeIntervalSince(startTime)
                 let minimumDisplayTime: TimeInterval = 1.5 // 1.5 segundos mínimo
-                
+
                 if elapsed < minimumDisplayTime {
                     try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
                 }
-                
+
                 await MainActor.run {
                     selectedUser = currentUser
-                    selectedGroup = userGroups.first
+                    selectedGroup = groups.first
                     isLoading = false
                 }
-                
-                print("✅ AppContentView: Loaded user: \(currentUser.name ?? "Unknown"), groups: \(userGroups.count)")
+
+                print("✅ AppContentView: Loaded user: \(currentUser.name), groups: \(groups.count)")
                 
             } catch {
                 print("❌ AppContentView: Error loading data: \(error)")

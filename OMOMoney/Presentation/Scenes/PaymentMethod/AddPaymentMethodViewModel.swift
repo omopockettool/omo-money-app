@@ -1,11 +1,11 @@
-import CoreData
 import Foundation
 
 /// ViewModel for adding and editing PaymentMethod
 /// Handles payment method creation and modification forms
+/// ✅ REFACTORED: Uses Domain models
 @MainActor
 class AddPaymentMethodViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
     @Published var name = ""
     @Published var type = ""
@@ -13,43 +13,45 @@ class AddPaymentMethodViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var validationErrors: [String: String] = [:]
-    
+
     // MARK: - Private Properties
     private let paymentMethodService: any PaymentMethodServiceProtocol
-    private var editingPaymentMethod: PaymentMethod?
-    private var targetGroup: Group?
+    private var editingPaymentMethodId: UUID?
+    private var targetGroupId: UUID?
     
     // MARK: - Computed Properties
     var isEditing: Bool {
-        return editingPaymentMethod != nil
+        return editingPaymentMethodId != nil
     }
-    
+
     var title: String {
         return isEditing ? "Edit Payment Method" : "Add Payment Method"
     }
-    
+
     var submitButtonTitle: String {
         return isEditing ? "Update" : "Create"
     }
-    
+
     // MARK: - Initialization
     init(paymentMethodService: any PaymentMethodServiceProtocol) {
         self.paymentMethodService = paymentMethodService
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Configure for creating a new payment method
-    func configureForCreation(group: Group) {
-        self.targetGroup = group
-        self.editingPaymentMethod = nil
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func configureForCreation(groupId: UUID) {
+        self.targetGroupId = groupId
+        self.editingPaymentMethodId = nil
         resetForm()
     }
-    
+
     /// Configure for editing an existing payment method
-    func configureForEditing(_ paymentMethod: PaymentMethod) {
-        self.editingPaymentMethod = paymentMethod
-        self.targetGroup = paymentMethod.group
+    /// ✅ REFACTORED: Accepts Domain model
+    func configureForEditing(_ paymentMethod: PaymentMethodDomain) {
+        self.editingPaymentMethodId = paymentMethod.id
+        self.targetGroupId = paymentMethod.groupId
         populateForm(with: paymentMethod)
     }
     
@@ -95,22 +97,23 @@ class AddPaymentMethodViewModel: ObservableObject {
     }
     
     // MARK: - Private Methods
-    
+
     /// Populate form with existing payment method data
-    private func populateForm(with paymentMethod: PaymentMethod) {
-        name = paymentMethod.name ?? ""
-        type = paymentMethod.type ?? ""
+    /// ✅ REFACTORED: Accepts Domain model
+    private func populateForm(with paymentMethod: PaymentMethodDomain) {
+        name = paymentMethod.name
+        type = paymentMethod.type
         isActive = paymentMethod.isActive
     }
-    
+
     /// Create a new payment method
+    /// ✅ REFACTORED: Uses UUID
     private func createPaymentMethod() async -> Bool {
-        guard let targetGroup = targetGroup,
-              let groupId = targetGroup.id else {
+        guard let groupId = targetGroupId else {
             errorMessage = "Invalid group"
             return false
         }
-        
+
         do {
             _ = try await paymentMethodService.createPaymentMethod(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -124,17 +127,18 @@ class AddPaymentMethodViewModel: ObservableObject {
             return false
         }
     }
-    
+
     /// Update existing payment method
+    /// ✅ REFACTORED: Uses UUID
     private func updatePaymentMethod() async -> Bool {
-        guard let editingPaymentMethod = editingPaymentMethod else {
+        guard let paymentMethodId = editingPaymentMethodId else {
             errorMessage = "No payment method to update"
             return false
         }
-        
+
         do {
             try await paymentMethodService.updatePaymentMethod(
-                editingPaymentMethod,
+                paymentMethodId: paymentMethodId,
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 type: type.trimmingCharacters(in: .whitespacesAndNewlines),
                 isActive: isActive

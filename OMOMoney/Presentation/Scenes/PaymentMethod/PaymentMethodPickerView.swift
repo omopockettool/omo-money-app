@@ -1,23 +1,24 @@
 import SwiftUI
 import CoreData
 
+/// ✅ REFACTORED: Uses PaymentMethodDomain
 struct PaymentMethodPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
-    
-    @Binding var selectedPaymentMethod: PaymentMethod?
+
+    @Binding var selectedPaymentMethod: PaymentMethodDomain?
     let group: Group
-    
+
     @StateObject private var viewModel: PaymentMethodPickerViewModel
-    
-    init(selectedPaymentMethod: Binding<PaymentMethod?>, group: Group, context: NSManagedObjectContext) {
+
+    init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, group: Group, context: NSManagedObjectContext) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.group = group
-        
+
         let paymentMethodService = PaymentMethodService(context: context)
         self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel(paymentMethodService: paymentMethodService))
     }
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -92,15 +93,16 @@ struct PaymentMethodPickerView: View {
             }
         }
         .task {
-            await viewModel.loadAvailablePaymentMethods(for: group)
+            guard let groupId = group.id else { return }
+            await viewModel.loadAvailablePaymentMethods(forGroupId: groupId)
         }
     }
-    
+
     // MARK: - Computed Properties
-    
-    private var groupedPaymentMethods: [String: [PaymentMethod]] {
+
+    private var groupedPaymentMethods: [String: [PaymentMethodDomain]] {
         Dictionary(grouping: viewModel.availablePaymentMethods) { paymentMethod in
-            paymentMethod.type ?? "other"
+            paymentMethod.type
         }
     }
     
@@ -124,25 +126,26 @@ struct PaymentMethodPickerView: View {
 
 // MARK: - PaymentMethodRow
 
+/// ✅ REFACTORED: Uses PaymentMethodDomain
 struct PaymentMethodRow: View {
-    let paymentMethod: PaymentMethod
+    let paymentMethod: PaymentMethodDomain
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         HStack {
             // Payment Method Icon
-            Image(systemName: paymentMethodIcon(for: paymentMethod.type ?? "other"))
+            Image(systemName: paymentMethodIcon(for: paymentMethod.type))
                 .font(.title2)
-                .foregroundColor(paymentMethodColor(for: paymentMethod.type ?? "other"))
+                .foregroundColor(paymentMethodColor(for: paymentMethod.type))
                 .frame(width: 30)
-            
+
             VStack(alignment: .leading, spacing: 4) {
-                Text(paymentMethod.name ?? "Sin nombre")
+                Text(paymentMethod.name)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
-                Text(paymentMethodTypeDisplayName(paymentMethod.type ?? "other"))
+
+                Text(paymentMethodTypeDisplayName(paymentMethod.type))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

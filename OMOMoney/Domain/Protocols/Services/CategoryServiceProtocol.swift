@@ -1,50 +1,50 @@
-import CoreData
 import Foundation
 
 /// Protocol for Category service operations
 /// Enables dependency injection and testing
+/// ✅ REFACTORED: Returns Domain models, accepts UUID parameters (Clean Architecture)
 protocol CategoryServiceProtocol {
-    
+
     // MARK: - Category CRUD Operations
-    
+
     /// Get categories for a specific user across all their groups
-    func getCategories(for user: User) async throws -> [Category]
-    
+    func getCategories(forUserId userId: UUID) async throws -> [CategoryDomain]
+
     /// Fetch category by ID
-    func fetchCategory(by id: UUID) async throws -> Category?
-    
+    func fetchCategory(by id: UUID) async throws -> CategoryDomain?
+
     /// Create a new category
-    func createCategory(name: String, color: String?, groupId: UUID, limit: Decimal?, limitFrequency: String?) async throws -> Category
-    
+    func createCategory(name: String, color: String?, groupId: UUID, limit: Decimal?, limitFrequency: String?) async throws -> CategoryDomain
+
     /// Update an existing category
-    func updateCategory(_ category: Category, name: String?, color: String?, limit: Decimal?, limitFrequency: String?) async throws
-    
+    func updateCategory(categoryId: UUID, name: String?, color: String?, limit: Decimal?, limitFrequency: String?) async throws
+
     /// Delete a category
-    func deleteCategory(_ category: Category) async throws
-    
+    func deleteCategory(categoryId: UUID) async throws
+
     /// Get categories for a specific group
-    func getCategories(for group: Group) async throws -> [Category]
-    
+    func getCategories(forGroupId groupId: UUID) async throws -> [CategoryDomain]
+
     /// Check if category exists by name
-    func categoryExists(withName name: String, in group: Group?, excluding categoryId: UUID?) async throws -> Bool
-    
+    func categoryExists(withName name: String, inGroupId groupId: UUID?, excluding categoryId: UUID?) async throws -> Bool
+
     /// Get categories count for a specific group
-    func getCategoriesCount(for group: Group) async throws -> Int
-    
+    func getCategoriesCount(forGroupId groupId: UUID) async throws -> Int
+
     /// Get categories count for a specific user across all their groups
-    func getCategoriesCount(for user: User) async throws -> Int
-    
+    func getCategoriesCount(forUserId userId: UUID) async throws -> Int
+
     // MARK: - Budget & Limit Operations
-    
+
     /// Get spending for a category within the specified frequency period
-    func getSpending(for category: Category, in period: DateInterval) async throws -> Decimal
-    
+    func getSpending(forCategoryId categoryId: UUID, in period: DateInterval) async throws -> Decimal
+
     /// Check if category is over limit for the current period
-    func isOverLimit(_ category: Category, currentDate: Date) async throws -> Bool
-    
+    func isOverLimit(categoryId: UUID, currentDate: Date) async throws -> Bool
+
     /// Get remaining budget for a category in the current period
-    func getRemainingBudget(for category: Category, currentDate: Date) async throws -> Decimal
-    
+    func getRemainingBudget(forCategoryId categoryId: UUID, currentDate: Date) async throws -> Decimal
+
     /// Get budget status (percentage used) for a category
-    func getBudgetStatus(for category: Category, currentDate: Date) async throws -> Double
+    func getBudgetStatus(forCategoryId categoryId: UUID, currentDate: Date) async throws -> Double
 }

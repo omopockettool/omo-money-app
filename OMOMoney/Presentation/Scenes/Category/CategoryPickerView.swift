@@ -3,23 +3,23 @@ import CoreData
 
 struct CategoryPickerView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    @Binding var selectedCategory: Category?
-    let group: Group
-    
+
+    @Binding var selectedCategoryId: UUID?
+    let groupId: UUID
+
     @StateObject private var viewModel: CategoryPickerViewModel
-    
-    init(selectedCategory: Binding<Category?>, group: Group, context: NSManagedObjectContext) {
-        self._selectedCategory = selectedCategory
-        self.group = group
-        
+
+    /// ✅ REFACTORED: Accepts UUID parameters, works with Domain models
+    init(selectedCategoryId: Binding<UUID?>, groupId: UUID, context: NSManagedObjectContext) {
+        self._selectedCategoryId = selectedCategoryId
+        self.groupId = groupId
+
         let categoryService = CategoryService(context: context)
         self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel(
             categoryService: categoryService
         ))
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -31,7 +31,7 @@ struct CategoryPickerView: View {
                         Text("No hay categorías disponibles")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        
+
                         Text("Las categorías se crean automáticamente cuando se crea un grupo")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -42,23 +42,23 @@ struct CategoryPickerView: View {
                     List {
                         ForEach(viewModel.categories, id: \.id) { category in
                             Button(action: {
-                                selectedCategory = category
+                                selectedCategoryId = category.id
                                 dismiss()
                             }) {
                                 HStack {
                                     // Category color indicator
                                     Circle()
-                                        .fill(Color(hex: category.color ?? "#8E8E93") ?? Color.gray)
+                                        .fill(Color(hex: category.color) ?? Color.gray)
                                         .frame(width: 20, height: 20)
-                                    
+
                                     // Category name
-                                    Text(category.name ?? "Sin nombre")
+                                    Text(category.name)
                                         .foregroundColor(.primary)
-                                    
+
                                     Spacer()
-                                    
+
                                     // Selection indicator
-                                    if selectedCategory?.id == category.id {
+                                    if selectedCategoryId == category.id {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
                                     }
@@ -80,20 +80,18 @@ struct CategoryPickerView: View {
             }
         }
         .task {
-            await viewModel.loadCategories(for: group)
+            await viewModel.loadCategories(forGroupId: groupId)
         }
     }
 }
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
-    let group = Group(context: context)
-    group.id = UUID()
-    group.name = "Test Group"
-    
-    return CategoryPickerView(
-        selectedCategory: .constant(nil),
-        group: group,
+    let groupId = UUID()
+
+    CategoryPickerView(
+        selectedCategoryId: .constant(nil),
+        groupId: groupId,
         context: context
     )
 }

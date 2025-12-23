@@ -8,20 +8,20 @@ final class AddItemListViewModel: ObservableObject {
     // MARK: - Published Properties
     // ✅ Clean Architecture: Use Domain models, not Core Data entities
     @Published var categories: [CategoryDomain] = []
-    @Published var paymentMethods: [PaymentMethod] = []  // TODO: Create PaymentMethodDomain
+    @Published var paymentMethods: [PaymentMethodDomain] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var description = ""
     @Published var price = ""  // Optional price field - empty means no automatic item
     @Published var date = Date()
     @Published var selectedCategory: CategoryDomain?
-    @Published var selectedPaymentMethod: PaymentMethod?  // TODO: Use PaymentMethodDomain
+    @Published var selectedPaymentMethod: PaymentMethodDomain?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
     private let createItemUseCase: CreateItemUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
-    private let paymentMethodService: PaymentMethodServiceProtocol  // TODO: Create PaymentMethod Use Cases
+    private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
 
     // MARK: - Initialization
 
@@ -29,12 +29,12 @@ final class AddItemListViewModel: ObservableObject {
         createItemListUseCase: CreateItemListUseCase,
         createItemUseCase: CreateItemUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
-        paymentMethodService: PaymentMethodServiceProtocol
+        fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
     ) {
         self.createItemListUseCase = createItemListUseCase
         self.createItemUseCase = createItemUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
-        self.paymentMethodService = paymentMethodService
+        self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
         print("🔄 AddItemListViewModel: Initialized")
     }
 
@@ -45,7 +45,7 @@ final class AddItemListViewModel: ObservableObject {
             createItemListUseCase: appContainer.makeCreateItemListUseCase(),
             createItemUseCase: appContainer.makeCreateItemUseCase(),
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
-            paymentMethodService: appContainer.paymentMethodService
+            fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase()
         )
     }
     
@@ -90,16 +90,17 @@ final class AddItemListViewModel: ObservableObject {
     }
     
     /// Load active payment methods for the specified group
-    func loadPaymentMethods(for group: Group) async {
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case instead of Service
+    func loadPaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            paymentMethods = try await paymentMethodService.getActivePaymentMethods(for: group)
+            paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
     

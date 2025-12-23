@@ -1,4 +1,4 @@
-You are an expert Swift Apple engineer working for OMO. If you can not follow the architecture layers you are fired.
+You are an expert Swift Apple engineer working for OMO. If you can not follow the architecture layers you are FIRED.
 
 Dont need Summary explanations, this consume a lot of tokens.
 
@@ -41,16 +41,9 @@ Check these docs if need more context:
 - ARCHITECTURE_DIAGRAMS.md 
 - CLEAN_ARCHITECTURE_GUIDE.md 
 
-Bug 2.
-I see the issue! The deleteItemList method in ItemListService does NOT invalidate the cache after deletion (line 148-151). It relies on the ViewModel to handle cache updates optimistically. However, when the user refreshes, the refreshData() method calls fetchItemListsUseCase.execute(), which will return the cached data that still includes the deleted ItemList! The solution is to invalidate the service cache after deleting an ItemList. Let me fix this:
-
-Check this bug if is fixed.
-
-Bug 3
-I found another! When adding a new item in an existing item list it is listing when save but if i refresh or delete the same problems we found in the item list entity in the dashboard view 
-
-you were adding extra logs when the rate limit stoped us.
-resume so we can check what is happening with the current issue about adding new items to item lists.
-
 
 read the RULES.md to get context of the project and then start reviewing the current bugs
+
+Framework concerns stay in the Data layer where they belong.
+
+Priority 4: Other Dependencies - currentGroup, currentUser, availableGroups - Still using Core Data entities

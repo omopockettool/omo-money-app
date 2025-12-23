@@ -37,7 +37,7 @@ struct UserListView: View {
                     .transition(.move(edge: .bottom))
                     .animation(AnimationHelper.slide, value: showingAddUser)
             }
-            .navigationDestination(for: User.self) { user in
+            .navigationDestination(for: UserDomain.self) { user in
                 EditUserView(user: user, context: viewContext)
                     .transition(.asymmetric(
                         insertion: .move(edge: .trailing),
@@ -69,13 +69,13 @@ struct UserListView: View {
     // MARK: - Subviews
     
     @ViewBuilder
-    private func userRow(for user: User, at index: Int) -> some View {
+    private func userRow(for user: UserDomain, at index: Int) -> some View {
         NavigationLink(value: user) {
             HStack {
                 VStack(alignment: .leading) {
-                    Text(user.name ?? "Sin nombre")
+                    Text(user.name)
                         .font(.headline)
-                    Text(user.email ?? "Sin email")
+                    Text(user.email.isEmpty ? "Sin email" : user.email)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }

@@ -208,12 +208,16 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         }
         
         print("🔄 ItemListService: Cache miss - fetching from Core Data...")
-        
-        // Fetch from Core Data
+
+        // ✅ Fetch from Core Data using UUID instead of relationship
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        request.predicate = NSPredicate(format: "group == %@", group)
+        if let groupId = group.id {
+            request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
+        } else {
+            request.predicate = NSPredicate(format: "group == %@", group)
+        }
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
-        
+
         let itemLists = try await fetch(request)
         
         // Log each ItemList found (only first few to avoid spam)

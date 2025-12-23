@@ -47,6 +47,9 @@ struct GroupSelectorChipView: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingPicker) {
+            // ✅ Clean Architecture: Get DeleteGroupUseCase from DI Container
+            let deleteGroupUseCase = AppDIContainer.shared.makeGroupSceneDIContainer().makeDeleteGroupUseCase()
+
             GroupPickerSheet(
                 currentGroup: currentGroup,
                 availableGroups: availableGroups,
@@ -54,6 +57,7 @@ struct GroupSelectorChipView: View {
                 userId: userId,
                 isChangingGroup: isChangingGroup,
                 showingPicker: $showingPicker,  // ✅ Binding para cerrar el sheet
+                deleteGroupUseCase: deleteGroupUseCase,
                 onGroupChange: onGroupChange,
                 onGroupCreated: onGroupCreated,
                 onGroupDeleted: onGroupDeleted
@@ -77,6 +81,9 @@ struct GroupPickerSheet: View {
     let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
     let onGroupDeleted: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
 
+    // ✅ Clean Architecture: Use Cases instead of direct service access
+    let deleteGroupUseCase: DeleteGroupUseCase
+
     @State private var showingCreateGroup = false
     @State private var selectedGroupID: UUID?  // ✅ Track del grupo siendo cargado (Domain UUID)
     @State private var showingDeleteAlert = false
@@ -89,6 +96,7 @@ struct GroupPickerSheet: View {
          userId: UUID,
          isChangingGroup: Bool,
          showingPicker: Binding<Bool>,
+         deleteGroupUseCase: DeleteGroupUseCase,
          onGroupChange: @escaping (GroupDomain) -> Void,
          onGroupCreated: @escaping (GroupDomain) -> Void,
          onGroupDeleted: @escaping (GroupDomain) -> Void) {
@@ -98,6 +106,7 @@ struct GroupPickerSheet: View {
         self.userId = userId
         self.isChangingGroup = isChangingGroup
         self._showingPicker = showingPicker
+        self.deleteGroupUseCase = deleteGroupUseCase
         self.onGroupChange = onGroupChange
         self.onGroupCreated = onGroupCreated
         self.onGroupDeleted = onGroupDeleted
@@ -277,14 +286,11 @@ struct GroupPickerSheet: View {
         print("🔄 [GroupPicker] availableGroups DESPUÉS: \(availableGroups.map { $0.name })")  // ✅ Domain: non-optional
 
         Task {
-            let groupService = GroupService(context: context)
-
             do {
-                print("🔥 [GroupPicker] Llamando a groupService.deleteGroup()...")
-                // ✅ Convert Domain to Core Data for service layer
-                let groupEntity = groupToDelete.toCoreData(context: context)
-                try await groupService.deleteGroup(groupEntity)
-                print("✅ [GroupPicker] groupService.deleteGroup() completado")
+                print("🔥 [GroupPicker] Llamando a deleteGroupUseCase.execute()...")
+                // ✅ Clean Architecture: Use Case handles everything (no Core Data conversion needed)
+                try await deleteGroupUseCase.execute(groupId: groupToDelete.id)
+                print("✅ [GroupPicker] deleteGroupUseCase.execute() completado")
 
                 await MainActor.run {
                     print("📤 [GroupPicker] Llamando a onGroupDeleted callback...")

@@ -103,73 +103,80 @@ class DataPreloader: ObservableObject {
     }
     
     /// Preload payment methods for a specific group into cache
+    /// ✅ REFACTORED: Uses UUID parameter
     private func preloadPaymentMethods(for group: Group) async {
+        guard let groupId = group.id else { return }
         do {
-            _ = try await paymentMethodService.getPaymentMethods(for: group)
-            _ = try await paymentMethodService.getPaymentMethodsCount(for: group)
+            _ = try await paymentMethodService.getPaymentMethods(forGroupId: groupId)
+            _ = try await paymentMethodService.getPaymentMethodsCount(forGroupId: groupId)
         } catch {
             print("⚠️ Failed to preload payment methods: \(error.localizedDescription)")
         }
     }
     
     /// Preload data for specific group
+    /// ✅ REFACTORED: Uses UUID parameter
     func preloadGroupData(_ group: Group) async {
         guard !isPreloading else { return }
-        
+        guard let groupId = group.id else { return }
+
         isPreloading = true
         preloadingProgress = 0.0
         preloadingStatus = "Loading group data..."
-        
+
         do {
             // Preload group-specific data
-            _ = try await categoryService.getCategories(for: group)
+            _ = try await categoryService.getCategories(forGroupId: groupId)
             preloadingProgress = 0.25
-            
+
             await preloadPaymentMethods(for: group)
             preloadingProgress = 0.5
-            
-            _ = try await groupService.getGroupMembersCount(group)
+
+            _ = try await groupService.getGroupMembersCount(groupId: groupId)
             preloadingProgress = 0.75
-            
+
             // Preload group statistics
             if let currency = group.currency {
                 _ = try await groupService.getGroupsCount(for: currency)
             }
             preloadingProgress = 1.0
-            
+
             preloadingStatus = "Group data loaded"
         } catch {
             preloadingStatus = "Failed to load group data"
             print("⚠️ Failed to preload group data: \(error.localizedDescription)")
         }
-        
+
         isPreloading = false
     }
-    
+
     /// Preload data for multiple groups efficiently
+    /// ✅ REFACTORED: Uses UUID parameters
     func preloadMultipleGroupsData(_ groups: [Group]) async {
         guard !isPreloading else { return }
-        
+
         isPreloading = true
         preloadingProgress = 0.0
         preloadingStatus = "Loading multiple groups data..."
-        
+
         let progressIncrement = 1.0 / Double(groups.count)
-        
+
         for (index, group) in groups.enumerated() {
             preloadingStatus = "Loading group \(index + 1) of \(groups.count)..."
-            
+
             do {
-                _ = try await categoryService.getCategories(for: group)
-                _ = try await paymentMethodService.getPaymentMethods(for: group)
-                _ = try await groupService.getGroupMembersCount(group)
+                if let groupId = group.id {
+                    _ = try await categoryService.getCategories(forGroupId: groupId)
+                    _ = try await groupService.getGroupMembersCount(groupId: groupId)
+                    _ = try await paymentMethodService.getPaymentMethods(forGroupId: groupId)
+                }
             } catch {
                 print("⚠️ Failed to preload data for group \(group.name ?? "Unknown"): \(error.localizedDescription)")
             }
-            
+
             preloadingProgress += progressIncrement
         }
-        
+
         preloadingStatus = "All groups data loaded"
         isPreloading = false
     }

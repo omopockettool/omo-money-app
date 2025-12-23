@@ -1,20 +1,20 @@
-import CoreData
 import Foundation
 
 /// ViewModel for PaymentMethod picker functionality
 /// Handles payment method selection in forms and pickers
+/// ✅ REFACTORED: Uses Domain models
 @MainActor
 class PaymentMethodPickerViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
-    @Published var availablePaymentMethods: [PaymentMethod] = []
-    @Published var selectedPaymentMethod: PaymentMethod?
+    @Published var availablePaymentMethods: [PaymentMethodDomain] = []
+    @Published var selectedPaymentMethod: PaymentMethodDomain?
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+
     // MARK: - Private Properties
     private let paymentMethodService: any PaymentMethodServiceProtocol
-    private var currentGroup: Group?
+    private var currentGroupId: UUID?
     
     // MARK: - Initialization
     init(paymentMethodService: any PaymentMethodServiceProtocol) {
@@ -22,53 +22,55 @@ class PaymentMethodPickerViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    
+
     /// Load available payment methods for a specific group
-    func loadAvailablePaymentMethods(for group: Group) async {
-        self.currentGroup = group
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func loadAvailablePaymentMethods(forGroupId groupId: UUID) async {
+        self.currentGroupId = groupId
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            availablePaymentMethods = try await paymentMethodService.getActivePaymentMethods(for: group)
+            availablePaymentMethods = try await paymentMethodService.getActivePaymentMethods(forGroupId: groupId)
         } catch {
             errorMessage = "Error loading payment methods: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
-    
+
     /// Load available payment methods by type for a specific group
-    func loadAvailablePaymentMethods(for group: Group, type: String) async {
-        self.currentGroup = group
+    /// ✅ REFACTORED: Accepts UUID parameter
+    func loadAvailablePaymentMethods(forGroupId groupId: UUID, type: String) async {
+        self.currentGroupId = groupId
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            let allPaymentMethods = try await paymentMethodService.getPaymentMethods(for: group, type: type)
+            let allPaymentMethods = try await paymentMethodService.getPaymentMethods(forGroupId: groupId, type: type)
             availablePaymentMethods = allPaymentMethods.filter { $0.isActive }
         } catch {
             errorMessage = "Error loading payment methods: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
-    
+
     /// Select a payment method
-    func selectPaymentMethod(_ paymentMethod: PaymentMethod) {
+    func selectPaymentMethod(_ paymentMethod: PaymentMethodDomain) {
         selectedPaymentMethod = paymentMethod
     }
-    
+
     /// Clear the selected payment method
     func clearSelection() {
         selectedPaymentMethod = nil
     }
-    
+
     /// Get payment method by ID
-    func getPaymentMethod(by id: UUID) -> PaymentMethod? {
+    func getPaymentMethod(by id: UUID) -> PaymentMethodDomain? {
         return availablePaymentMethods.first { $0.id == id }
     }
-    
+
     /// Set selected payment method by ID
     func setSelectedPaymentMethod(by id: UUID?) {
         if let id = id {
@@ -77,41 +79,41 @@ class PaymentMethodPickerViewModel: ObservableObject {
             selectedPaymentMethod = nil
         }
     }
-    
+
     /// Check if a payment method is selected
-    func isPaymentMethodSelected(_ paymentMethod: PaymentMethod) -> Bool {
+    func isPaymentMethodSelected(_ paymentMethod: PaymentMethodDomain) -> Bool {
         return selectedPaymentMethod?.id == paymentMethod.id
     }
-    
+
     /// Get the display name for selected payment method
     var selectedPaymentMethodDisplayName: String {
         return selectedPaymentMethod?.name ?? "No payment method selected"
     }
-    
+
     /// Check if there are available payment methods
     var hasAvailablePaymentMethods: Bool {
         return !availablePaymentMethods.isEmpty
     }
-    
+
     /// Get payment methods grouped by type
-    var paymentMethodsByType: [String: [PaymentMethod]] {
-        return Dictionary(grouping: availablePaymentMethods) { $0.type ?? "unknown" }
+    var paymentMethodsByType: [String: [PaymentMethodDomain]] {
+        return Dictionary(grouping: availablePaymentMethods) { $0.type }
     }
-    
+
     /// Get unique types available
     var availableTypes: [String] {
-        return Array(Set(availablePaymentMethods.compactMap { $0.type })).sorted()
+        return Array(Set(availablePaymentMethods.map { $0.type })).sorted()
     }
-    
+
     /// Clear error message
     func clearError() {
         errorMessage = nil
     }
-    
+
     /// Refresh payment methods for current group
     func refreshPaymentMethods() async {
-        guard let currentGroup = currentGroup else { return }
-        await loadAvailablePaymentMethods(for: currentGroup)
+        guard let currentGroupId = currentGroupId else { return }
+        await loadAvailablePaymentMethods(forGroupId: currentGroupId)
     }
     
     // MARK: - Validation
