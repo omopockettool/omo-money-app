@@ -1,8 +1,8 @@
 import Foundation
 
 /// ViewModel for PaymentMethod list functionality
-/// Handles paymentMethod list display and management
-/// ✅ REFACTORED: Uses Domain models
+/// Handles payment method list display and management
+/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 class PaymentMethodListViewModel: ObservableObject {
 
@@ -11,24 +11,46 @@ class PaymentMethodListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    // MARK: - Services
-    private let paymentMethodService: any PaymentMethodServiceProtocol
+    // MARK: - Use Cases
+    private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
+    private let createPaymentMethodUseCase: CreatePaymentMethodUseCase
+    private let updatePaymentMethodUseCase: UpdatePaymentMethodUseCase
+    private let deletePaymentMethodUseCase: DeletePaymentMethodUseCase
 
     // MARK: - Initialization
-    init(paymentMethodService: any PaymentMethodServiceProtocol) {
-        self.paymentMethodService = paymentMethodService
+    init(
+        fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase,
+        createPaymentMethodUseCase: CreatePaymentMethodUseCase,
+        updatePaymentMethodUseCase: UpdatePaymentMethodUseCase,
+        deletePaymentMethodUseCase: DeletePaymentMethodUseCase
+    ) {
+        self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
+        self.createPaymentMethodUseCase = createPaymentMethodUseCase
+        self.updatePaymentMethodUseCase = updatePaymentMethodUseCase
+        self.deletePaymentMethodUseCase = deletePaymentMethodUseCase
     }
-    
+
+    /// Convenience initializer using DI Container
+    convenience init() {
+        let appContainer = AppDIContainer.shared
+        self.init(
+            fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase(),
+            createPaymentMethodUseCase: appContainer.makeCreatePaymentMethodUseCase(),
+            updatePaymentMethodUseCase: appContainer.makeUpdatePaymentMethodUseCase(),
+            deletePaymentMethodUseCase: appContainer.makeDeletePaymentMethodUseCase()
+        )
+    }
+
     // MARK: - Public Methods
 
-    /// Load paymentMethods for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Load payment methods for a specific group
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadPaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            paymentMethods = try await paymentMethodService.getPaymentMethods(forGroupId: groupId)
+            paymentMethods = try await fetchPaymentMethodsUseCase.execute(forGroupId: groupId)
         } catch {
             errorMessage = "Error loading paymentMethods: \(error.localizedDescription)"
         }
@@ -36,14 +58,14 @@ class PaymentMethodListViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Load only active paymentMethods for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Load only active payment methods for a specific group
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadActivePaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            paymentMethods = try await paymentMethodService.getActivePaymentMethods(forGroupId: groupId)
+            paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
         } catch {
             errorMessage = "Error loading active paymentMethods: \(error.localizedDescription)"
         }
@@ -51,14 +73,15 @@ class PaymentMethodListViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Load paymentMethods by type for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Load payment methods by type for a specific group
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case with client-side filtering
     func loadPaymentMethods(forGroupId groupId: UUID, type: String) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            paymentMethods = try await paymentMethodService.getPaymentMethods(forGroupId: groupId, type: type)
+            let allMethods = try await fetchPaymentMethodsUseCase.execute(forGroupId: groupId)
+            paymentMethods = allMethods.filter { $0.type == type }
         } catch {
             errorMessage = "Error loading paymentMethods by type: \(error.localizedDescription)"
         }
@@ -66,14 +89,14 @@ class PaymentMethodListViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Create a new paymentMethod
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Create a new payment method
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func createPaymentMethod(name: String, type: String, isActive: Bool = true, groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            let newPaymentMethod = try await paymentMethodService.createPaymentMethod(
+            let newPaymentMethod = try await createPaymentMethodUseCase.execute(
                 name: name,
                 type: type,
                 isActive: isActive,
@@ -89,28 +112,37 @@ class PaymentMethodListViewModel: ObservableObject {
             return false
         }
     }
-    
-    /// Update an existing paymentMethod
-    /// ✅ REFACTORED: Accepts UUID parameter and works with Domain models
+
+    /// Update an existing payment method
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func updatePaymentMethod(paymentMethodId: UUID, name: String? = nil, type: String? = nil, isActive: Bool? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            try await paymentMethodService.updatePaymentMethod(paymentMethodId: paymentMethodId, name: name, type: type, isActive: isActive)
+            // Find the current payment method to update
+            guard let currentMethod = paymentMethods.first(where: { $0.id == paymentMethodId }) else {
+                errorMessage = "Payment method not found"
+                isLoading = false
+                return false
+            }
 
-            // Update local array - reconstruct the domain model with updated values
+            // Create updated domain model
+            let updatedMethod = PaymentMethodDomain(
+                id: currentMethod.id,
+                name: name ?? currentMethod.name,
+                type: type ?? currentMethod.type,
+                isActive: isActive ?? currentMethod.isActive,
+                groupId: currentMethod.groupId,
+                createdAt: currentMethod.createdAt,
+                lastModifiedAt: Date()
+            )
+
+            try await updatePaymentMethodUseCase.execute(updatedMethod)
+
+            // Update local array
             if let index = paymentMethods.firstIndex(where: { $0.id == paymentMethodId }) {
-                let current = paymentMethods[index]
-                paymentMethods[index] = PaymentMethodDomain(
-                    id: current.id,
-                    name: name ?? current.name,
-                    type: type ?? current.type,
-                    isActive: isActive ?? current.isActive,
-                    groupId: current.groupId,
-                    createdAt: current.createdAt,
-                    lastModifiedAt: Date()
-                )
+                paymentMethods[index] = updatedMethod
             }
 
             isLoading = false
@@ -122,14 +154,14 @@ class PaymentMethodListViewModel: ObservableObject {
         }
     }
 
-    /// Delete a paymentMethod
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Delete a payment method
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func deletePaymentMethod(paymentMethodId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            try await paymentMethodService.deletePaymentMethod(paymentMethodId: paymentMethodId)
+            try await deletePaymentMethodUseCase.execute(id: paymentMethodId)
             paymentMethods.removeAll { $0.id == paymentMethodId }
             isLoading = false
             return true
@@ -140,27 +172,36 @@ class PaymentMethodListViewModel: ObservableObject {
         }
     }
 
-    /// Toggle active status of a paymentMethod
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Toggle active status of a payment method
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func toggleActiveStatus(paymentMethodId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            try await paymentMethodService.toggleActiveStatus(paymentMethodId: paymentMethodId)
+            // Find current payment method
+            guard let currentMethod = paymentMethods.first(where: { $0.id == paymentMethodId }) else {
+                errorMessage = "Payment method not found"
+                isLoading = false
+                return false
+            }
 
-            // Update local array - reconstruct the domain model with toggled status
+            // Create updated domain model with toggled status
+            let updatedMethod = PaymentMethodDomain(
+                id: currentMethod.id,
+                name: currentMethod.name,
+                type: currentMethod.type,
+                isActive: !currentMethod.isActive,
+                groupId: currentMethod.groupId,
+                createdAt: currentMethod.createdAt,
+                lastModifiedAt: Date()
+            )
+
+            try await updatePaymentMethodUseCase.execute(updatedMethod)
+
+            // Update local array
             if let index = paymentMethods.firstIndex(where: { $0.id == paymentMethodId }) {
-                let current = paymentMethods[index]
-                paymentMethods[index] = PaymentMethodDomain(
-                    id: current.id,
-                    name: current.name,
-                    type: current.type,
-                    isActive: !current.isActive,
-                    groupId: current.groupId,
-                    createdAt: current.createdAt,
-                    lastModifiedAt: Date()
-                )
+                paymentMethods[index] = updatedMethod
             }
 
             isLoading = false
@@ -172,35 +213,30 @@ class PaymentMethodListViewModel: ObservableObject {
         }
     }
 
-    /// Get paymentMethods count for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// Get payment methods count for a specific group
+    /// ✅ CLEAN ARCHITECTURE: Uses loaded payment methods array
     func getPaymentMethodsCount(forGroupId groupId: UUID) async -> Int {
-        do {
-            return try await paymentMethodService.getPaymentMethodsCount(forGroupId: groupId)
-        } catch {
-            errorMessage = "Error getting paymentMethods count: \(error.localizedDescription)"
-            return 0
-        }
+        return paymentMethods.count
     }
-    
+
     /// Clear error message
     func clearError() {
         errorMessage = nil
     }
-    
+
     // MARK: - Computed Properties
 
-    /// Get active paymentMethods only
+    /// Get active payment methods only
     var activePaymentMethods: [PaymentMethodDomain] {
         return paymentMethods.filter { $0.isActive }
     }
 
-    /// Get inactive paymentMethods only
+    /// Get inactive payment methods only
     var inactivePaymentMethods: [PaymentMethodDomain] {
         return paymentMethods.filter { !$0.isActive }
     }
 
-    /// Get paymentMethods grouped by type
+    /// Get payment methods grouped by type
     var paymentMethodsByType: [String: [PaymentMethodDomain]] {
         return Dictionary(grouping: paymentMethods) { $0.type }
     }

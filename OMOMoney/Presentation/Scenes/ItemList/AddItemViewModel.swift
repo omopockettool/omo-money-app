@@ -19,8 +19,7 @@ final class AddItemViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // MARK: - Dependencies
-    private let itemList: ItemList
-    private let context: NSManagedObjectContext
+    private let itemListId: UUID
     private let itemToEdit: ItemDomain?
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
@@ -37,14 +36,12 @@ final class AddItemViewModel: ObservableObject {
 
     // MARK: - Initialization
     init(
-        itemList: ItemList,
-        context: NSManagedObjectContext,
+        itemListId: UUID,
         itemToEdit: ItemDomain? = nil,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
-        self.itemList = itemList
-        self.context = context
+        self.itemListId = itemListId
         self.itemToEdit = itemToEdit
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
@@ -66,8 +63,7 @@ final class AddItemViewModel: ObservableObject {
         let normalizedAmount = amount.replacingOccurrences(of: ",", with: ".")
 
         guard let amountDecimal = Decimal(string: normalizedAmount),
-              let quantityInt = Int32(quantity),
-              let itemListId = itemList.id else {
+              let quantityInt = Int32(quantity) else {
             errorMessage = "Cantidad o unidades inválidas"
             return nil
         }

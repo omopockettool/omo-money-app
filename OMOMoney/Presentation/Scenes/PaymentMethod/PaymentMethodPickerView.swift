@@ -11,12 +11,13 @@ struct PaymentMethodPickerView: View {
 
     @StateObject private var viewModel: PaymentMethodPickerViewModel
 
+    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
     init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, group: Group, context: NSManagedObjectContext) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.group = group
 
-        let paymentMethodService = PaymentMethodService(context: context)
-        self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel(paymentMethodService: paymentMethodService))
+        // Use convenience initializer that gets Use Cases from DI Container
+        self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel())
     }
 
     var body: some View {

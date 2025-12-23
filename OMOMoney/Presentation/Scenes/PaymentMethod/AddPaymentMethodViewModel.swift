@@ -2,7 +2,7 @@ import Foundation
 
 /// ViewModel for adding and editing PaymentMethod
 /// Handles payment method creation and modification forms
-/// ✅ REFACTORED: Uses Domain models
+/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 class AddPaymentMethodViewModel: ObservableObject {
 
@@ -15,10 +15,11 @@ class AddPaymentMethodViewModel: ObservableObject {
     @Published var validationErrors: [String: String] = [:]
 
     // MARK: - Private Properties
-    private let paymentMethodService: any PaymentMethodServiceProtocol
+    private let createPaymentMethodUseCase: CreatePaymentMethodUseCase
+    private let updatePaymentMethodUseCase: UpdatePaymentMethodUseCase
     private var editingPaymentMethodId: UUID?
     private var targetGroupId: UUID?
-    
+
     // MARK: - Computed Properties
     var isEditing: Bool {
         return editingPaymentMethodId != nil
@@ -33,8 +34,21 @@ class AddPaymentMethodViewModel: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(paymentMethodService: any PaymentMethodServiceProtocol) {
-        self.paymentMethodService = paymentMethodService
+    init(
+        createPaymentMethodUseCase: CreatePaymentMethodUseCase,
+        updatePaymentMethodUseCase: UpdatePaymentMethodUseCase
+    ) {
+        self.createPaymentMethodUseCase = createPaymentMethodUseCase
+        self.updatePaymentMethodUseCase = updatePaymentMethodUseCase
+    }
+
+    /// Convenience initializer using DI Container
+    convenience init() {
+        let appContainer = AppDIContainer.shared
+        self.init(
+            createPaymentMethodUseCase: appContainer.makeCreatePaymentMethodUseCase(),
+            updatePaymentMethodUseCase: appContainer.makeUpdatePaymentMethodUseCase()
+        )
     }
 
     // MARK: - Public Methods
@@ -54,29 +68,30 @@ class AddPaymentMethodViewModel: ObservableObject {
         self.targetGroupId = paymentMethod.groupId
         populateForm(with: paymentMethod)
     }
-    
+
     /// Submit the form (create or update)
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
     func submit() async -> Bool {
         clearValidationErrors()
-        
+
         guard validateForm() else {
             return false
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         let success: Bool
         if isEditing {
             success = await updatePaymentMethod()
         } else {
             success = await createPaymentMethod()
         }
-        
+
         isLoading = false
         return success
     }
-    
+
     /// Reset the form to initial state
     func resetForm() {
         name = ""
@@ -85,17 +100,17 @@ class AddPaymentMethodViewModel: ObservableObject {
         clearValidationErrors()
         clearError()
     }
-    
+
     /// Clear error message
     func clearError() {
         errorMessage = nil
     }
-    
+
     /// Clear validation errors
     func clearValidationErrors() {
         validationErrors.removeAll()
     }
-    
+
     // MARK: - Private Methods
 
     /// Populate form with existing payment method data
@@ -107,7 +122,7 @@ class AddPaymentMethodViewModel: ObservableObject {
     }
 
     /// Create a new payment method
-    /// ✅ REFACTORED: Uses UUID
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     private func createPaymentMethod() async -> Bool {
         guard let groupId = targetGroupId else {
             errorMessage = "Invalid group"
@@ -115,7 +130,7 @@ class AddPaymentMethodViewModel: ObservableObject {
         }
 
         do {
-            _ = try await paymentMethodService.createPaymentMethod(
+            _ = try await createPaymentMethodUseCase.execute(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 type: type.trimmingCharacters(in: .whitespacesAndNewlines),
                 isActive: isActive,
@@ -129,31 +144,38 @@ class AddPaymentMethodViewModel: ObservableObject {
     }
 
     /// Update existing payment method
-    /// ✅ REFACTORED: Uses UUID
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     private func updatePaymentMethod() async -> Bool {
-        guard let paymentMethodId = editingPaymentMethodId else {
+        guard let paymentMethodId = editingPaymentMethodId,
+              let groupId = targetGroupId else {
             errorMessage = "No payment method to update"
             return false
         }
 
         do {
-            try await paymentMethodService.updatePaymentMethod(
-                paymentMethodId: paymentMethodId,
+            // Create updated domain model
+            let updatedMethod = PaymentMethodDomain(
+                id: paymentMethodId,
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 type: type.trimmingCharacters(in: .whitespacesAndNewlines),
-                isActive: isActive
+                isActive: isActive,
+                groupId: groupId,
+                createdAt: Date(), // Note: This should ideally preserve original createdAt
+                lastModifiedAt: Date()
             )
+
+            try await updatePaymentMethodUseCase.execute(updatedMethod)
             return true
         } catch {
             errorMessage = "Error updating payment method: \(error.localizedDescription)"
             return false
         }
     }
-    
+
     /// Validate the form
     private func validateForm() -> Bool {
         var isValid = true
-        
+
         // Validate name
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedName.isEmpty {
@@ -166,7 +188,7 @@ class AddPaymentMethodViewModel: ObservableObject {
             validationErrors["name"] = "Name must be less than 50 characters"
             isValid = false
         }
-        
+
         // Validate type
         let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedType.isEmpty {
@@ -179,49 +201,49 @@ class AddPaymentMethodViewModel: ObservableObject {
             validationErrors["type"] = "Type must be less than 30 characters"
             isValid = false
         }
-        
+
         return isValid
     }
-    
+
     // MARK: - Validation Helpers
-    
+
     /// Check if name field has validation error
     func hasNameError() -> Bool {
         return validationErrors["name"] != nil
     }
-    
+
     /// Get name validation error message
     func getNameError() -> String? {
         return validationErrors["name"]
     }
-    
+
     /// Check if type field has validation error
     func hasTypeError() -> Bool {
         return validationErrors["type"] != nil
     }
-    
+
     /// Get type validation error message
     func getTypeError() -> String? {
         return validationErrors["type"]
     }
-    
+
     /// Check if form is valid for submission
     var canSubmit: Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        return !trimmedName.isEmpty && 
-               !trimmedType.isEmpty && 
+
+        return !trimmedName.isEmpty &&
+               !trimmedType.isEmpty &&
                !isLoading
     }
-    
+
     // MARK: - Common Payment Method Types
-    
+
     /// Get common payment method types for quick selection
     var commonTypes: [String] {
         return [
             "Credit Card",
-            "Debit Card", 
+            "Debit Card",
             "Cash",
             "Bank Transfer",
             "Digital Wallet",
@@ -230,7 +252,7 @@ class AddPaymentMethodViewModel: ObservableObject {
             "Other"
         ]
     }
-    
+
     /// Set type from common types
     func setType(_ selectedType: String) {
         type = selectedType

@@ -111,10 +111,39 @@ final class AppDIContainer {
     func makeFetchCategoriesUseCase() -> FetchCategoriesUseCase {
         DefaultFetchCategoriesUseCase(categoryRepository: categoryRepository)
     }
+    func makeCreateCategoryUseCase() -> CreateCategoryUseCase {
+        DefaultCreateCategoryUseCase(categoryRepository: categoryRepository)
+    }
+    func makeUpdateCategoryUseCase() -> UpdateCategoryUseCase {
+        DefaultUpdateCategoryUseCase(categoryRepository: categoryRepository)
+    }
+    func makeDeleteCategoryUseCase() -> DeleteCategoryUseCase {
+        DefaultDeleteCategoryUseCase(categoryRepository: categoryRepository)
+    }
 
     // MARK: - PaymentMethod Use Cases
     func makeFetchPaymentMethodsUseCase() -> FetchPaymentMethodsUseCase {
         DefaultFetchPaymentMethodsUseCase(paymentMethodRepository: paymentMethodRepository)
+    }
+    func makeCreatePaymentMethodUseCase() -> CreatePaymentMethodUseCase {
+        DefaultCreatePaymentMethodUseCase(paymentMethodRepository: paymentMethodRepository)
+    }
+    func makeUpdatePaymentMethodUseCase() -> UpdatePaymentMethodUseCase {
+        DefaultUpdatePaymentMethodUseCase(paymentMethodRepository: paymentMethodRepository)
+    }
+    func makeDeletePaymentMethodUseCase() -> DeletePaymentMethodUseCase {
+        DefaultDeletePaymentMethodUseCase(paymentMethodRepository: paymentMethodRepository)
+    }
+
+    // MARK: - User Use Cases
+    func makeCreateUserUseCase() -> CreateUserUseCase {
+        DefaultCreateUserUseCase(userRepository: userRepository)
+    }
+    func makeUpdateUserUseCase() -> UpdateUserUseCase {
+        DefaultUpdateUserUseCase(userRepository: userRepository)
+    }
+    func makeDeleteUserUseCase() -> DeleteUserUseCase {
+        DefaultDeleteUserUseCase(userRepository: userRepository)
     }
 
     // MARK: - Group Use Cases

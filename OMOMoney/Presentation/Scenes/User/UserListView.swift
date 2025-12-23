@@ -7,9 +7,9 @@ struct UserListView: View {
     @State private var showingAddUser = false
     @State private var navigationPath = NavigationPath()
     
+    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
     init(context: NSManagedObjectContext) {
-        let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: UserListViewModel(userService: userService))
+        self._viewModel = StateObject(wrappedValue: UserListViewModel())
     }
     
     var body: some View {

@@ -12,16 +12,16 @@ struct EditUserView: View {
     @StateObject private var viewModel: EditUserViewModel
     @Binding var navigationPath: NavigationPath
 
+    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
     init(user: UserDomain, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
-        let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user, userService: userService))
+        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = navigationPath
     }
 
-    // For use in sheets where navigation is not needed
+    /// For use in sheets where navigation is not needed
+    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
     init(user: UserDomain, context: NSManagedObjectContext) {
-        let userService = UserService(context: context)
-        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user, userService: userService))
+        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = .constant(NavigationPath())
     }
     

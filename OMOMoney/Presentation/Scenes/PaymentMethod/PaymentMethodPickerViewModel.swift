@@ -2,7 +2,7 @@ import Foundation
 
 /// ViewModel for PaymentMethod picker functionality
 /// Handles payment method selection in forms and pickers
-/// ✅ REFACTORED: Uses Domain models
+/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 class PaymentMethodPickerViewModel: ObservableObject {
 
@@ -13,25 +13,31 @@ class PaymentMethodPickerViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // MARK: - Private Properties
-    private let paymentMethodService: any PaymentMethodServiceProtocol
+    private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
     private var currentGroupId: UUID?
-    
+
     // MARK: - Initialization
-    init(paymentMethodService: any PaymentMethodServiceProtocol) {
-        self.paymentMethodService = paymentMethodService
+    init(fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase) {
+        self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
     }
-    
+
+    /// Convenience initializer using DI Container
+    convenience init() {
+        let appContainer = AppDIContainer.shared
+        self.init(fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase())
+    }
+
     // MARK: - Public Methods
 
     /// Load available payment methods for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadAvailablePaymentMethods(forGroupId groupId: UUID) async {
         self.currentGroupId = groupId
         isLoading = true
         errorMessage = nil
 
         do {
-            availablePaymentMethods = try await paymentMethodService.getActivePaymentMethods(forGroupId: groupId)
+            availablePaymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
         } catch {
             errorMessage = "Error loading payment methods: \(error.localizedDescription)"
         }
@@ -40,15 +46,15 @@ class PaymentMethodPickerViewModel: ObservableObject {
     }
 
     /// Load available payment methods by type for a specific group
-    /// ✅ REFACTORED: Accepts UUID parameter
+    /// ✅ CLEAN ARCHITECTURE: Uses Use Case with client-side filtering
     func loadAvailablePaymentMethods(forGroupId groupId: UUID, type: String) async {
         self.currentGroupId = groupId
         isLoading = true
         errorMessage = nil
 
         do {
-            let allPaymentMethods = try await paymentMethodService.getPaymentMethods(forGroupId: groupId, type: type)
-            availablePaymentMethods = allPaymentMethods.filter { $0.isActive }
+            let allPaymentMethods = try await fetchPaymentMethodsUseCase.execute(forGroupId: groupId)
+            availablePaymentMethods = allPaymentMethods.filter { $0.isActive && $0.type == type }
         } catch {
             errorMessage = "Error loading payment methods: \(error.localizedDescription)"
         }
@@ -115,14 +121,14 @@ class PaymentMethodPickerViewModel: ObservableObject {
         guard let currentGroupId = currentGroupId else { return }
         await loadAvailablePaymentMethods(forGroupId: currentGroupId)
     }
-    
+
     // MARK: - Validation
-    
+
     /// Validate that a payment method is selected
     var isValidSelection: Bool {
         return selectedPaymentMethod != nil
     }
-    
+
     /// Get validation error message
     var validationErrorMessage: String? {
         if !isValidSelection {

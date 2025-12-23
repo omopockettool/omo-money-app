@@ -9,15 +9,13 @@ struct CategoryPickerView: View {
 
     @StateObject private var viewModel: CategoryPickerViewModel
 
-    /// ✅ REFACTORED: Accepts UUID parameters, works with Domain models
+    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
     init(selectedCategoryId: Binding<UUID?>, groupId: UUID, context: NSManagedObjectContext) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
 
-        let categoryService = CategoryService(context: context)
-        self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel(
-            categoryService: categoryService
-        ))
+        // Use convenience initializer that gets Use Cases from DI Container
+        self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel())
     }
 
     var body: some View {

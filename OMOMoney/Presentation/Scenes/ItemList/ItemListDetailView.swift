@@ -94,8 +94,7 @@ struct ItemListDetailView: View {
             switch mode {
             case .create:
                 AddItemView(
-                    itemList: itemList,
-                    context: context,
+                    itemListId: itemList.id!,
                     itemToEdit: nil,
                     onItemSaved: { itemDomain in
                         Task {
@@ -108,8 +107,7 @@ struct ItemListDetailView: View {
                 )
             case .edit(let item):
                 AddItemView(
-                    itemList: itemList,
-                    context: context,
+                    itemListId: itemList.id!,
                     itemToEdit: item,
                     onItemSaved: { itemDomain in
                         Task {
@@ -290,8 +288,7 @@ struct AddItemView: View {
     @StateObject private var viewModel: AddItemViewModel
 
     init(
-        itemList: ItemList,
-        context: NSManagedObjectContext,
+        itemListId: UUID,
         itemToEdit: ItemDomain? = nil,
         onItemSaved: @escaping (ItemDomain) -> Void,
         createItemUseCase: CreateItemUseCase,
@@ -299,8 +296,7 @@ struct AddItemView: View {
     ) {
         self.onItemSaved = onItemSaved
         self._viewModel = StateObject(wrappedValue: AddItemViewModel(
-            itemList: itemList,
-            context: context,
+            itemListId: itemListId,
             itemToEdit: itemToEdit,
             createItemUseCase: createItemUseCase,
             updateItemUseCase: updateItemUseCase

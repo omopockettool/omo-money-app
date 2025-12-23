@@ -123,31 +123,10 @@ struct AddItemListView: View {
             }
         }
         .task {
-            print("🔄 AddItemListView: .task triggered - loading categories and payment methods")
-            print("🔄 AddItemListView: Group ID: \(group.id)")
-            print("🔄 AddItemListView: Group Name: '\(group.name)'")
-
-            // Fetch existing Group from Core Data by ID (don't create new one)
-            let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
-            fetchRequest.fetchLimit = 1
-
-            do {
-                if let existingGroup = try viewContext.fetch(fetchRequest).first {
-                    print("✅ AddItemListView: Found Group in Core Data")
-                    // ✅ Clean Architecture: Pass UUID to ViewModel
-                    await viewModel.loadCategories(forGroupId: group.id)
-                    await viewModel.loadPaymentMethods(forGroupId: group.id)
-                    print("✅ AddItemListView: Loaded \(viewModel.categories.count) categories")
-                    print("✅ AddItemListView: Loaded \(viewModel.paymentMethods.count) payment methods")
-                } else {
-                    print("❌ AddItemListView: Could not find Group with ID: \(group.id)")
-                    print("⚠️ AddItemListView: This means categories/payment methods will be empty!")
-                    // TODO: Show error to user or create categories/payment methods
-                }
-            } catch {
-                print("❌ AddItemListView: Error fetching group: \(error.localizedDescription)")
-            }
+            // ✅ Clean Architecture: View just passes Domain model to ViewModel
+            // ViewModel handles all data fetching
+            await viewModel.loadCategories(forGroupId: group.id)
+            await viewModel.loadPaymentMethods(forGroupId: group.id)
         }
     }
     
