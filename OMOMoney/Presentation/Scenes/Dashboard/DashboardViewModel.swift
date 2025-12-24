@@ -523,11 +523,17 @@ class DashboardViewModel: ObservableObject {
             calendar.isDate(itemListDomain.date, equalTo: now, toGranularity: .month)
         }
 
-        // Only update if different to avoid unnecessary redraws
-        if currentMonthItemLists.count != filtered.count {
-            print("🗓️ DashboardViewModel: Updating current month cache")
+        // ✅ FIX: Check if content changed, not just count
+        // Compare by IDs to detect when ItemLists are different (e.g., after group change)
+        let currentIds = Set(currentMonthItemLists.map { $0.id })
+        let filteredIds = Set(filtered.map { $0.id })
+
+        if currentIds != filteredIds {
+            print("🗓️ DashboardViewModel: Updating current month cache (content changed)")
             print("   - Total ItemLists: \(itemLists.count)")
             print("   - Current month ItemLists: \(filtered.count)")
+            print("   - Old IDs: \(currentIds.map { $0.uuidString })")
+            print("   - New IDs: \(filteredIds.map { $0.uuidString })")
             currentMonthItemLists = filtered
         }
     }

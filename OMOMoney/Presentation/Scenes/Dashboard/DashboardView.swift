@@ -201,6 +201,8 @@ struct DashboardView: View {
                         formatter.locale = Locale(identifier: "es_ES")
                         return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
                     } else {
+                        // This should not happen after the currentMonthCache fix
+                        print("⚠️ [UI] ItemList '\(itemList.itemListDescription)' not found in itemListTotals")
                         return "€0.00"
                     }
                 },
