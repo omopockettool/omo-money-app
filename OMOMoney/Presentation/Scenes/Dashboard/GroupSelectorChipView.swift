@@ -6,14 +6,12 @@
 //
 
 import SwiftUI
-import CoreData
 
-/// Chip selector de grupo con popover overlay
+/// ✅ Clean Architecture: Chip selector de grupo - no Core Data dependencies
 /// No mueve el layout, se sobrepone como CategoryPickerView/PaymentMethodPickerView
 struct GroupSelectorChipView: View {
     let currentGroup: GroupDomain  // ✅ Clean Architecture: Domain model
     let availableGroups: [GroupDomain]  // ✅ Clean Architecture: Domain models
-    let context: NSManagedObjectContext
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga del cambio de grupo
     let onGroupChange: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
@@ -53,7 +51,6 @@ struct GroupSelectorChipView: View {
             GroupPickerSheet(
                 currentGroup: currentGroup,
                 availableGroups: availableGroups,
-                context: context,
                 userId: userId,
                 isChangingGroup: isChangingGroup,
                 showingPicker: $showingPicker,  // ✅ Binding para cerrar el sheet
@@ -70,10 +67,10 @@ struct GroupSelectorChipView: View {
 }
 
 // MARK: - Group Picker Sheet
+/// ✅ Clean Architecture: Works with Domain models only
 struct GroupPickerSheet: View {
     let currentGroup: GroupDomain  // ✅ Clean Architecture: Domain model
     @State private var availableGroups: [GroupDomain]  // ✅ Clean Architecture: Domain models
-    let context: NSManagedObjectContext
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga
     @Binding var showingPicker: Bool  // ✅ Para cerrar el sheet
@@ -92,7 +89,6 @@ struct GroupPickerSheet: View {
 
     init(currentGroup: GroupDomain,
          availableGroups: [GroupDomain],
-         context: NSManagedObjectContext,
          userId: UUID,
          isChangingGroup: Bool,
          showingPicker: Binding<Bool>,
@@ -102,7 +98,6 @@ struct GroupPickerSheet: View {
          onGroupDeleted: @escaping (GroupDomain) -> Void) {
         self.currentGroup = currentGroup
         self._availableGroups = State(initialValue: availableGroups)
-        self.context = context
         self.userId = userId
         self.isChangingGroup = isChangingGroup
         self._showingPicker = showingPicker
@@ -327,8 +322,6 @@ struct GroupPickerSheet: View {
 
 // MARK: - Preview
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-
     VStack {
         Spacer()
 
@@ -339,7 +332,6 @@ struct GroupPickerSheet: View {
                     GroupDomain.mock(name: "Personal", currency: "EUR"),
                     GroupDomain.mock(name: "Work", currency: "USD")
                 ],
-                context: context,
                 userId: UUID(),
                 isChangingGroup: false,
                 onGroupChange: { _ in },

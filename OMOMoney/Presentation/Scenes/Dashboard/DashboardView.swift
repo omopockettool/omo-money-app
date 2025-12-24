@@ -6,42 +6,15 @@
 //
 
 import SwiftUI
-import CoreData
 
-/// Wrapper view to fetch existing ItemList from Core Data for navigation
-/// ✅ CRITICAL: Never create a new ItemList object - always fetch the existing one
+/// Wrapper view to navigate to ItemListDetailView with proper currency
+/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailNavigationWrapper: View {
     let itemListDomain: ItemListDomain
-    let context: NSManagedObjectContext
-
-    @State private var itemList: ItemList?
-    @State private var isLoading = true
+    let currencyCode: String
 
     var body: some View {
-        VStack {
-            if isLoading {
-                ProgressView("Cargando...")
-            } else if let itemList = itemList {
-                ItemListDetailView(itemList: itemList, context: context)
-            } else {
-                Text("Error: ItemList no encontrada")
-                    .foregroundColor(.red)
-            }
-        }
-        .task {
-            fetchItemList()
-        }
-    }
-
-    private func fetchItemList() {
-        let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", itemListDomain.id as CVarArg)
-        fetchRequest.fetchLimit = 1
-
-        context.performAndWait {
-            self.itemList = try? context.fetch(fetchRequest).first
-            self.isLoading = false
-        }
+        ItemListDetailView(itemListDomain: itemListDomain, currencyCode: currencyCode)
     }
 }
 
@@ -52,46 +25,17 @@ struct DashboardView: View {
     @State private var hasLoadedInitialData = false  // Track if we've loaded data already
     @State private var showingAddItemList = false
 
-    private let context: NSManagedObjectContext
-    
-    init(context: NSManagedObjectContext) {
-        self.context = context
-
-        // Create services
-        let itemListService = ItemListService(context: context)
-        let userService = UserService(context: context)
-        let groupService = GroupService(context: context)
-        let userGroupService = UserGroupService(context: context)
-
-        // Create services
-        let itemService = ItemService(context: context)
-
-        // Create repositories
-        let itemListRepository = DefaultItemListRepository(itemListService: itemListService, context: context)
-        let itemRepository = DefaultItemRepository(itemService: itemService, context: context)
-        let userRepository = DefaultUserRepository(userService: userService)
-        let groupRepository = DefaultGroupRepository(
-            groupService: groupService,
-            userGroupService: userGroupService,
-            context: context
-        )
-
-        // Create use cases
-        let fetchItemListsUseCase = DefaultFetchItemListsUseCase(itemListRepository: itemListRepository)
-        let fetchItemsUseCase = DefaultFetchItemsUseCase(itemRepository: itemRepository)
-        let deleteItemListUseCase = DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
-        let getCurrentUserUseCase = DefaultGetCurrentUserUseCase(userRepository: userRepository)
-        let fetchGroupsForUserUseCase = DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
-        let fetchCategoriesUseCase = AppDIContainer.shared.makeFetchCategoriesUseCase()
+    init() {
+        // ✅ Clean Architecture: Use DI Container for all dependencies
+        let container = AppDIContainer.shared
 
         self._viewModel = StateObject(wrappedValue: DashboardViewModel(
-            fetchItemListsUseCase: fetchItemListsUseCase,
-            fetchItemsUseCase: fetchItemsUseCase,
-            deleteItemListUseCase: deleteItemListUseCase,
-            getCurrentUserUseCase: getCurrentUserUseCase,
-            fetchGroupsForUserUseCase: fetchGroupsForUserUseCase,
-            fetchCategoriesUseCase: fetchCategoriesUseCase,
-            testContext: context  // ⚠️ ONLY for test data generation
+            fetchItemListsUseCase: container.makeFetchItemListsUseCase(),
+            fetchItemsUseCase: container.makeFetchItemsUseCase(),
+            deleteItemListUseCase: container.makeDeleteItemListUseCase(),
+            getCurrentUserUseCase: container.makeGetCurrentUserUseCase(),
+            fetchGroupsForUserUseCase: container.makeFetchGroupsForUserUseCase(),
+            fetchCategoriesUseCase: container.makeFetchCategoriesUseCase()
         ))
     }
     
@@ -157,9 +101,11 @@ struct DashboardView: View {
             }
             .background(Color(.systemBackground))
             .navigationDestination(for: ItemListDomain.self) { itemListDomain in
-                // ✅ CRITICAL FIX: Fetch the EXISTING ItemList instead of creating a new one
-                // Creating a new object breaks the items relationship!
-                ItemListDetailNavigationWrapper(itemListDomain: itemListDomain, context: context)
+                // ✅ Clean Architecture: Navigate with Domain model and currency
+                ItemListDetailNavigationWrapper(
+                    itemListDomain: itemListDomain,
+                    currencyCode: viewModel.currentGroup?.currency ?? "EUR"
+                )
             }
             .sheet(isPresented: $showingAddItemList) {
                 if let user = viewModel.currentUser,
@@ -282,12 +228,12 @@ struct DashboardView: View {
                 )
                 
                 // Chip selector pegado a la izquierda (debajo del Total)
+                // ✅ Clean Architecture: No Core Data context needed
                 if let currentGroup = viewModel.currentGroup,
                    let userId = viewModel.currentUser?.id {
                     GroupSelectorChipView(
                         currentGroup: currentGroup,  // ✅ GroupDomain
                         availableGroups: viewModel.availableGroups,  // ✅ [GroupDomain]
-                        context: context,
                         userId: userId,
                         isChangingGroup: viewModel.isChangingGroup,  // ✅ Pasar estado de carga
                         onGroupChange: { newGroup in  // ✅ newGroup is GroupDomain
@@ -356,5 +302,5 @@ struct DashboardView: View {
 
 // MARK: - Preview
 #Preview {
-    DashboardView(context: PersistenceController.preview.container.viewContext)
+    DashboardView()
 }

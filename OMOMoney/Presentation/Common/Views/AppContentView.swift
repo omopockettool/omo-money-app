@@ -5,7 +5,6 @@
 //  Created by Dennis Chicaiza A on 13/9/25.
 //
 
-import CoreData
 import SwiftUI
 
 struct AppContentView: View {
@@ -14,14 +13,14 @@ struct AppContentView: View {
     @State private var selectedGroup: GroupDomain?
     @State private var isLoading = true
 
-    private let context: NSManagedObjectContext
-    private let userService: UserService
-    private let groupService: GroupService
-    
-    init(context: NSManagedObjectContext) {
-        self.context = context
-        self.userService = UserService(context: context)
-        self.groupService = GroupService(context: context)
+    // ✅ Clean Architecture: Use DI Container for dependencies
+    private let getCurrentUserUseCase: GetCurrentUserUseCase
+    private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+
+    init() {
+        let container = AppDIContainer.shared
+        self.getCurrentUserUseCase = container.makeGetCurrentUserUseCase()
+        self.fetchGroupsForUserUseCase = container.makeFetchGroupsForUserUseCase()
     }
     
     var body: some View {
@@ -29,8 +28,8 @@ struct AppContentView: View {
             if isLoading {
                 loadingView
             } else if let _ = selectedUser, let _ = selectedGroup {
-                // Use the new DashboardView
-                DashboardView(context: context)
+                // ✅ Clean Architecture: No context passed to DashboardView
+                DashboardView()
                     .navigationBarHidden(true)
             } else {
                 setupRequiredView
@@ -86,21 +85,20 @@ extension AppContentView {
     private func loadInitialData() {
         Task {
             isLoading = true
-            
+
             // Delay mínimo para mostrar el splash screen (mejor UX para branding)
             let startTime = Date()
-            
+
             do {
-                // Get the current user (returns UserDomain)
-                guard let currentUser = try await userService.getCurrentUser() else {
+                // ✅ Clean Architecture: Use Use Case instead of Service
+                guard let currentUser = try await getCurrentUserUseCase.execute() else {
                     print("❌ AppContentView: No users found")
                     isLoading = false
                     return
                 }
 
-                // ✅ Load groups for the current user - Service already returns Domain models
-                let userGroupService = UserGroupService(context: context)
-                let groups = try await userGroupService.getGroups(forUserId: currentUser.id)
+                // ✅ Clean Architecture: Use Use Case to get groups
+                let groups = try await fetchGroupsForUserUseCase.execute(userId: currentUser.id)
 
                 // Calcular tiempo transcurrido y esperar si fue muy rápido
                 let elapsed = Date().timeIntervalSince(startTime)
@@ -117,7 +115,7 @@ extension AppContentView {
                 }
 
                 print("✅ AppContentView: Loaded user: \(currentUser.name), groups: \(groups.count)")
-                
+
             } catch {
                 print("❌ AppContentView: Error loading data: \(error)")
                 await MainActor.run {
@@ -126,11 +124,8 @@ extension AppContentView {
             }
         }
     }
-    
-    // MARK: - Debug function moved to DashboardView
-    // Debug functionality is now accessible through the dashboard header
 }
 
 #Preview {
-    AppContentView(context: PersistenceController.preview.container.viewContext)
+    AppContentView()
 }

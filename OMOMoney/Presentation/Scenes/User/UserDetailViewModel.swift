@@ -1,9 +1,9 @@
-import CoreData
 import Foundation
 
 /// ViewModel for User detail functionality
 /// Handles user detail display and group management
 /// ✅ REFACTORED: Works with Domain models
+/// ⚠️ TODO: Refactor to use Use Cases instead of Services directly
 @MainActor
 class UserDetailViewModel: ObservableObject {
 
@@ -15,17 +15,16 @@ class UserDetailViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // MARK: - Services
+    // ⚠️ TODO: Replace with Use Cases following Clean Architecture
     private let userService: any UserServiceProtocol
     private let userGroupService: any UserGroupServiceProtocol
     private let groupService: any GroupServiceProtocol
-    private let context: NSManagedObjectContext
 
     // MARK: - Initialization
-    init(userService: any UserServiceProtocol, userGroupService: any UserGroupServiceProtocol, groupService: any GroupServiceProtocol, context: NSManagedObjectContext) {
+    init(userService: any UserServiceProtocol, userGroupService: any UserGroupServiceProtocol, groupService: any GroupServiceProtocol) {
         self.userService = userService
         self.userGroupService = userGroupService
         self.groupService = groupService
-        self.context = context
     }
 
     // MARK: - Public Methods

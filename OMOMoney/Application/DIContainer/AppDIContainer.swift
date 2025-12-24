@@ -136,6 +136,9 @@ final class AppDIContainer {
     }
 
     // MARK: - User Use Cases
+    func makeGetCurrentUserUseCase() -> GetCurrentUserUseCase {
+        DefaultGetCurrentUserUseCase(userRepository: userRepository)
+    }
     func makeCreateUserUseCase() -> CreateUserUseCase {
         DefaultCreateUserUseCase(userRepository: userRepository)
     }
@@ -149,6 +152,9 @@ final class AppDIContainer {
     // MARK: - Group Use Cases
     func makeCreateGroupUseCase() -> CreateGroupUseCase {
         DefaultCreateGroupUseCase(groupRepository: groupRepository)
+    }
+    func makeFetchGroupsForUserUseCase() -> FetchGroupsForUserUseCase {
+        DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
     }
 
     // MARK: - UserGroup Use Cases

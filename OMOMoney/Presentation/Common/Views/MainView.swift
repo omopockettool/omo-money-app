@@ -5,20 +5,19 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import CoreData
 import SwiftUI
 
 struct MainView: View {
     @State private var showingCreateFirstUser = false
     @State private var hasUsers = false
     @State private var isLoading = true
-    
-    private let context: NSManagedObjectContext
-    private let userService: UserService
-    
-    init(context: NSManagedObjectContext) {
-        self.context = context
-        self.userService = UserService(context: context)
+
+    // ✅ Clean Architecture: Use DI Container for dependencies
+    private let getCurrentUserUseCase: GetCurrentUserUseCase
+
+    init() {
+        let container = AppDIContainer.shared
+        self.getCurrentUserUseCase = container.makeGetCurrentUserUseCase()
     }
     
     var body: some View {
@@ -27,8 +26,8 @@ struct MainView: View {
                 // Splash screen unificado con logo OMOMoney
                 SplashView()
             } else if hasUsers {
-                // Main app content when users exist
-                AppContentView(context: context)
+                // ✅ Clean Architecture: No context passed
+                AppContentView()
             } else {
                 // Empty state - show some placeholder content
                 VStack {
@@ -75,32 +74,32 @@ extension MainView {
         await MainActor.run {
             isLoading = true
         }
-        
+
         // Delay mínimo para mostrar el splash screen (mejor UX para branding)
         let startTime = Date()
-        
+
         do {
-            // Check if there's a current user
-            let currentUser = try await userService.getCurrentUser()
-            
+            // ✅ Clean Architecture: Use Use Case instead of Service
+            let currentUser = try await getCurrentUserUseCase.execute()
+
             // Calcular tiempo transcurrido y esperar si fue muy rápido
             let elapsed = Date().timeIntervalSince(startTime)
             let minimumDisplayTime: TimeInterval = 2.0 // 2 segundos mínimo
-            
+
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
-            
+
             await MainActor.run {
                 hasUsers = currentUser != nil
                 isLoading = false
-                
+
                 // Si no hay usuarios, mostrar el sheet para crear el primero
                 if !hasUsers {
                     showingCreateFirstUser = true
                 }
             }
-            
+
             print("🔍 MainView: Usuario encontrado: \(currentUser?.name ?? "ninguno"), hasUsers: \(hasUsers)")
         } catch {
             print("❌ MainView: Error verificando usuarios: \(error)")
@@ -114,5 +113,5 @@ extension MainView {
 }
 
 #Preview {
-    MainView(context: PersistenceController.preview.container.viewContext)
+    MainView()
 }

@@ -6,9 +6,9 @@
 //
 
 import Foundation
-import CoreData
 import SwiftUI
 
+/// ✅ Clean Architecture: Works with Domain models only
 @MainActor
 class ItemListDetailViewModel: ObservableObject {
 
@@ -24,14 +24,15 @@ class ItemListDetailViewModel: ObservableObject {
     private let updateItemUseCase: UpdateItemUseCase
     private let deleteItemUseCase: DeleteItemUseCase
 
-    // MARK: - Context & Cache
-    private let context: NSManagedObjectContext
-    private let itemList: ItemList
+    // MARK: - Domain Model & Cache
+    // ✅ Clean Architecture: Use Domain model instead of Core Data entity
+    private let itemListDomain: ItemListDomain
+    private let currencyCode: String
     private let cacheManager = CacheManager.shared
 
     // MARK: - Cache Keys
     private var serviceCacheKey: String {
-        "ItemService.itemListItems.\(itemList.id?.uuidString ?? "nil")"
+        "ItemService.itemListItems.\(itemListDomain.id.uuidString)"
     }
 
     private var timestampKey: String {
@@ -40,15 +41,15 @@ class ItemListDetailViewModel: ObservableObject {
 
     // MARK: - Initialization
     init(
-        itemList: ItemList,
-        context: NSManagedObjectContext,
+        itemListDomain: ItemListDomain,
+        currencyCode: String,
         fetchItemsUseCase: FetchItemsUseCase,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase,
         deleteItemUseCase: DeleteItemUseCase
     ) {
-        self.itemList = itemList
-        self.context = context
+        self.itemListDomain = itemListDomain
+        self.currencyCode = currencyCode
         self.fetchItemsUseCase = fetchItemsUseCase
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
@@ -58,11 +59,12 @@ class ItemListDetailViewModel: ObservableObject {
     // MARK: - Data Loading
 
     /// Load items for the current ItemList
+    /// ✅ Clean Architecture: Uses Domain model only
     func loadItems() async {
         print("🟡 [LOAD-ITEMS] ========================================")
         print("🟡 [LOAD-ITEMS] START - Loading items for ItemList")
-        print("🟡 [LOAD-ITEMS] ItemList: '\(itemList.itemListDescription ?? "nil")'")
-        print("🟡 [LOAD-ITEMS] ItemList ID: \(itemList.id?.uuidString ?? "nil")")
+        print("🟡 [LOAD-ITEMS] ItemList: '\(itemListDomain.itemListDescription)'")
+        print("🟡 [LOAD-ITEMS] ItemList ID: \(itemListDomain.id.uuidString)")
 
         // Only show loading spinner if we don't have data yet (initial load)
         // During refresh (pull-to-refresh), keep the existing list visible
@@ -79,17 +81,10 @@ class ItemListDetailViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            guard let itemListId = itemList.id else {
-                print("❌ [LOAD-ITEMS] ERROR - ItemList ID is nil")
-                errorMessage = "ItemList ID no válido"
-                isLoading = false
-                return
-            }
-
             print("🟡 [LOAD-ITEMS] Calling fetchItemsUseCase...")
 
             // ✅ Use case returns Domain models - use them directly!
-            let itemDomains = try await fetchItemsUseCase.execute(forItemListId: itemListId)
+            let itemDomains = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
 
             print("✅ [LOAD-ITEMS] Use Case returned \(itemDomains.count) items")
             for (index, item) in itemDomains.prefix(3).enumerated() {
@@ -126,9 +121,6 @@ class ItemListDetailViewModel: ObservableObject {
         items.sort { $0.createdAt > $1.createdAt }
         print("📊 [ADD] New count AFTER add: \(items.count)")
 
-        // 🔄 Refresh ItemList context so dashboard sees updated total
-        refreshItemListContext()
-
         print("🎉 [ADD] Incremental update complete - NO Core Data conversion!")
     }
 
@@ -144,9 +136,6 @@ class ItemListDetailViewModel: ObservableObject {
             items.sort { $0.createdAt > $1.createdAt }
             print("✅ [EDIT] Item updated in local array")
         }
-
-        // 🔄 Refresh ItemList context so dashboard sees updated total
-        refreshItemListContext()
 
         print("🎉 [EDIT] Incremental update complete - NO Core Data conversion!")
     }
@@ -167,29 +156,13 @@ class ItemListDetailViewModel: ObservableObject {
         do {
             try await deleteItemUseCase.execute(id: itemDomain.id)
             print("✅ [DELETE] Item deleted from DB")
-
-            // 🔄 Refresh ItemList context so dashboard sees updated total
-            refreshItemListContext()
-
             print("🎉 [DELETE] Optimistic delete complete!")
         } catch {
             // Rollback on error - add item back
             print("❌ [DELETE] Error deleting item, rolling back...")
             items.insert(itemDomain, at: index)
-
-            // Refresh ItemList to restore original state
-            refreshItemListContext()
-
             errorMessage = "Error al eliminar item: \(error.localizedDescription)"
         }
-    }
-
-    /// Refresh the ItemList Core Data object from context without DB query
-    /// This is useful when the ItemList itself is edited (description, date, category, etc.)
-    /// and you want to instantly reflect changes in the navigation title or other UI elements
-    func refreshItemListContext() {
-        context.refresh(itemList, mergeChanges: true)
-        print("🔄 [ITEMLIST-REFRESH] ItemList context refreshed with latest properties")
     }
 
     // MARK: - Formatting Helpers
@@ -202,10 +175,10 @@ class ItemListDetailViewModel: ObservableObject {
             return result + itemTotal
         }
 
-        let currencyCode = itemList.group?.currency ?? "USD"
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "es_ES")
 
         return formatter.string(from: total as NSDecimalNumber) ?? "\(total) \(currencyCode)"
     }
@@ -215,10 +188,10 @@ class ItemListDetailViewModel: ObservableObject {
     func getFormattedAmount(_ itemDomain: ItemDomain) -> String {
         let itemTotal = itemDomain.amount * Decimal(itemDomain.quantity)
 
-        let currencyCode = itemList.group?.currency ?? "USD"
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "es_ES")
 
         return formatter.string(from: itemTotal as NSDecimalNumber) ?? "\(itemTotal) \(currencyCode)"
     }

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreData
 import SwiftUI
 
 @MainActor
@@ -45,9 +44,6 @@ class DashboardViewModel: ObservableObject {
     // ViewModel only updates service cache for incremental changes
     private let cacheManager = CacheManager.shared
 
-    // ⚠️ ONLY for test data generation - should not be used in production code
-    private let testContext: NSManagedObjectContext?
-
     // MARK: - Initialization
     init(
         fetchItemListsUseCase: FetchItemListsUseCase,
@@ -55,8 +51,7 @@ class DashboardViewModel: ObservableObject {
         deleteItemListUseCase: DeleteItemListUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
-        fetchCategoriesUseCase: FetchCategoriesUseCase,
-        testContext: NSManagedObjectContext? = nil  // ⚠️ ONLY for test data generation
+        fetchCategoriesUseCase: FetchCategoriesUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
@@ -64,18 +59,6 @@ class DashboardViewModel: ObservableObject {
         self.getCurrentUserUseCase = getCurrentUserUseCase
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
-        self.testContext = testContext
-
-        // Listen for Core Data context changes
-        setupCoreDataNotifications()
-    }
-    
-    private func setupCoreDataNotifications() {
-        // Reserved for future use if needed
-    }
-
-    deinit {
-        // No observers to remove
     }
     
     // MARK: - Public Methods
@@ -389,54 +372,10 @@ class DashboardViewModel: ObservableObject {
         print("✅ [DashboardVM] removeGroup() completado")
     }
     
-    /// Generate test data (temporary - triggered by gear button)
+    /// Open settings (placeholder for future settings screen)
     func openSettings() {
-        print("🔧 DashboardViewModel: Generating test data...")
-
-        guard let group = currentGroup else {
-            print("⚠️ DashboardViewModel: No current group")
-            return
-        }
-
-        print("🏠 DashboardViewModel: Active group - ID: \(group.id.uuidString), Name: '\(group.name)'")
-
-        Task {
-            do {
-                // ⚠️ Test data generation only - requires testContext
-                guard let context = testContext else {
-                    print("❌ Test context not available for test data generation")
-                    return
-                }
-
-                let generator = TestDataGenerator(context: context)
-
-                // ✅ CRITICAL FIX: Fetch EXISTING Group from Core Data (don't create new one!)
-                let groupCoreData = try await context.perform {
-                    let fetchRequest: NSFetchRequest<Group> = Group.fetchRequest()
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", group.id as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    return try context.fetch(fetchRequest).first
-                }
-
-                guard let groupCoreData = groupCoreData else {
-                    throw NSError(domain: "DashboardViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Group not found in Core Data"])
-                }
-
-                print("🏠 DashboardViewModel: Active group - ID: \(groupCoreData.id?.uuidString ?? "nil"), Name: '\(groupCoreData.name ?? "No Name")'")
-
-                // Generate 200 ItemLists with 2 items each = 400 total items
-                // Pass the currentGroup to ensure data is created for the correct group
-                try await generator.generateMassiveTestData(itemListCount: 200, itemsPerList: 2, targetGroup: groupCoreData)
-                
-                print("✅ DashboardViewModel: Test data generation completed!")
-                
-                // Refresh the dashboard to show new data
-                await refreshData()
-                
-            } catch {
-                print("❌ DashboardViewModel: Error generating test data: \(error)")
-            }
-        }
+        print("🔧 DashboardViewModel: Settings button tapped")
+        // TODO: Navigate to settings screen
     }
     
     /// Add ItemList from Domain model using Clean Architecture

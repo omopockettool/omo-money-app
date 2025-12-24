@@ -2,26 +2,49 @@ You are an expert Swift Apple engineer working for OMO. If you can not follow th
 
 Dont need Summary explanations, this consume a lot of tokens.
 
-1. Use the USE CASES and protocol which acts as a contract between layers:
-  - Domain defines what operations exist (protocol)
-  - Data implements how they work (concrete class)
-  - Presentation uses the operations (via protocol)
+## 1. Clean Architecture Principles (MANDATORY)
 
-2. Incremental update 
+### Layer Separation Rules:
+1. **Presentation Layer** (Views & ViewModels):
+   - ✅ MUST use Domain models ONLY (ItemListDomain, UserDomain, etc.)
+   - ✅ MUST use Use Cases for business logic
+   - ❌ NEVER import CoreData
+   - ❌ NEVER reference NSManagedObjectContext
+   - ❌ NEVER instantiate Services or Repositories directly
+   - ✅ MUST use AppDIContainer for all dependencies
+
+2. **Domain Layer** (Use Cases & Domain Models):
+   - ✅ Define business logic and operations
+   - ✅ Use protocols for repository contracts
+   - ❌ NEVER depend on Data layer implementations
+   - ❌ NEVER import CoreData
+
+3. **Data Layer** (Repositories & Services):
+   - ✅ Use `.toDomain()` to convert Core Data entities to Domain models
+   - ✅ Handle all CoreData operations
+   - ✅ Return Domain models to upper layers
+   - ❌ NEVER expose Core Data entities outside this layer
+
+### Dependency Injection:
+- ✅ ALL dependencies MUST go through AppDIContainer
+- ✅ Views create ViewModels using DI Container
+- ✅ ViewModels receive Use Cases via constructor injection
+- ❌ NEVER create Services or Repositories in Views or ViewModels
+
+### Current Status:
+🎉 **COMPLETE CLEAN ARCHITECTURE REFACTOR** (Dec 24, 2025)
+✅ Dashboard, AppContentView, MainView - all using DI Container
+✅ ItemListDetailView/ViewModel - **NOW using Domain models only!**
+✅ All ViewModels cleaned of CoreData imports
+✅ Zero Core Data entities in Presentation layer
+✅ All dependencies through AppDIContainer
+✅ All `.toDomain()` correctly placed in Data layer (32 usages)
+
+## 2. Incremental Update Pattern
   - ALWAYS use the cache system
   - Update the cache then core data methods in background
 
-do not focus on the compile, focus on the DOMAIN_REFACTOR_TODO.md we made to refactor everything to use domian instead of core data entities
-
-It seems we need to refactor everything to use domain models in the view models use cases not core data entities directly!
-
-The ViewModel should work with Domain models, not Core Data entities.
-
-The ViewModel should work with use cases only.
-
-For now, I'll simplify ExpenseRowView to not show the category (we can add a proper Use Case later to fetch the category):
-
-Always use my physical device for compiling Dennis’s iPhone (26.1) (00008120-000A190218614032)
+Always use my physical device for compiling Dennis's iPhone (26.1) (00008120-000A190218614032)
 
 ## 2. Key Technical Concepts:
 

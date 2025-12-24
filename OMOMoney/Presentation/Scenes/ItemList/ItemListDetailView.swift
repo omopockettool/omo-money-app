@@ -6,11 +6,11 @@
 //
 
 import SwiftUI
-import CoreData
 
+/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailView: View {
-    let itemList: ItemList
-    let context: NSManagedObjectContext
+    let itemListDomain: ItemListDomain
+    let currencyCode: String
 
     @StateObject private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?  // UI state only
@@ -31,27 +31,20 @@ struct ItemListDetailView: View {
         }
     }
 
-    init(itemList: ItemList, context: NSManagedObjectContext) {
-        self.itemList = itemList
-        self.context = context
+    init(itemListDomain: ItemListDomain, currencyCode: String = "EUR") {
+        self.itemListDomain = itemListDomain
+        self.currencyCode = currencyCode
 
-        // ✅ Create use cases here (View layer responsibility)
-        let itemService = ItemService(context: context)
-        let itemRepository = DefaultItemRepository(itemService: itemService, context: context)
+        // ✅ Clean Architecture: Use DI Container for all dependencies
+        let container = AppDIContainer.shared
 
-        let fetchItemsUseCase = DefaultFetchItemsUseCase(itemRepository: itemRepository)
-        let createItemUseCase = DefaultCreateItemUseCase(itemRepository: itemRepository)
-        let updateItemUseCase = DefaultUpdateItemUseCase(itemRepository: itemRepository)
-        let deleteItemUseCase = DefaultDeleteItemUseCase(itemRepository: itemRepository)
-
-        // ✅ Inject use cases into ViewModel (Dependency Injection)
         self._viewModel = StateObject(wrappedValue: ItemListDetailViewModel(
-            itemList: itemList,
-            context: context,
-            fetchItemsUseCase: fetchItemsUseCase,
-            createItemUseCase: createItemUseCase,
-            updateItemUseCase: updateItemUseCase,
-            deleteItemUseCase: deleteItemUseCase
+            itemListDomain: itemListDomain,
+            currencyCode: currencyCode,
+            fetchItemsUseCase: container.makeFetchItemsUseCase(),
+            createItemUseCase: container.makeCreateItemUseCase(),
+            updateItemUseCase: container.makeUpdateItemUseCase(),
+            deleteItemUseCase: container.makeDeleteItemUseCase()
         ))
     }
 
@@ -66,7 +59,7 @@ struct ItemListDetailView: View {
                 mainContentView
             }
         }
-        .navigationTitle(itemList.itemListDescription ?? "Detalle")
+        .navigationTitle(itemListDomain.itemListDescription)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // Only load data on first appearance to avoid DB query on sheet dismiss
@@ -85,38 +78,33 @@ struct ItemListDetailView: View {
             }
         }
         .sheet(item: $sheetMode) { mode in
-            // Create use cases for AddItemView
-            let itemService = ItemService(context: context)
-            let itemRepository = DefaultItemRepository(itemService: itemService, context: context)
-            let createItemUseCase = DefaultCreateItemUseCase(itemRepository: itemRepository)
-            let updateItemUseCase = DefaultUpdateItemUseCase(itemRepository: itemRepository)
+            // ✅ Clean Architecture: Use DI Container for Use Cases
+            let container = AppDIContainer.shared
 
             switch mode {
             case .create:
                 AddItemView(
-                    itemListId: itemList.id!,
+                    itemListId: itemListDomain.id,
                     itemToEdit: nil,
                     onItemSaved: { itemDomain in
                         Task {
-                            // Convert ItemDomain to Core Data entity
                             await viewModel.addItemFromDomain(itemDomain)
                         }
                     },
-                    createItemUseCase: createItemUseCase,
-                    updateItemUseCase: updateItemUseCase
+                    createItemUseCase: container.makeCreateItemUseCase(),
+                    updateItemUseCase: container.makeUpdateItemUseCase()
                 )
             case .edit(let item):
                 AddItemView(
-                    itemListId: itemList.id!,
+                    itemListId: itemListDomain.id,
                     itemToEdit: item,
                     onItemSaved: { itemDomain in
                         Task {
-                            // Convert ItemDomain to Core Data entity
                             await viewModel.updateItemFromDomain(itemDomain)
                         }
                     },
-                    createItemUseCase: createItemUseCase,
-                    updateItemUseCase: updateItemUseCase
+                    createItemUseCase: container.makeCreateItemUseCase(),
+                    updateItemUseCase: container.makeUpdateItemUseCase()
                 )
             }
         }
@@ -352,16 +340,18 @@ struct AddItemView: View {
 
 // MARK: - Preview
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let itemList = ItemList(context: context)
-    itemList.itemListDescription = "Compras del supermercado"
-    itemList.date = Date()
-
-    let group = Group(context: context)
-    group.currency = "EUR"
-    itemList.group = group
+    let itemListDomain = ItemListDomain(
+        id: UUID(),
+        itemListDescription: "Compras del supermercado",
+        date: Date(),
+        categoryId: nil,
+        paymentMethodId: nil,
+        groupId: UUID(),
+        createdAt: Date(),
+        lastModifiedAt: nil
+    )
 
     return NavigationStack {
-        ItemListDetailView(itemList: itemList, context: context)
+        ItemListDetailView(itemListDomain: itemListDomain, currencyCode: "EUR")
     }
 }

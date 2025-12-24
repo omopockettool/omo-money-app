@@ -1,7 +1,7 @@
 
 import Foundation
-import CoreData
 
+/// ✅ Clean Architecture: ViewModel works with Domain models only
 @MainActor
 final class AddItemListViewModel: ObservableObject {
     

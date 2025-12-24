@@ -5,17 +5,15 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import CoreData
 import SwiftUI
 
+/// ✅ Clean Architecture: Entry point - no Core Data dependencies
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
     var body: some View {
-        MainView(context: viewContext)
+        MainView()
     }
 }
 
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
 }

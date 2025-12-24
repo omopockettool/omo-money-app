@@ -1,13 +1,12 @@
 import SwiftUI
-import CoreData
 
+/// ✅ Clean Architecture: Works with Domain models only, no Core Data dependencies
 struct AddItemListView: View {
     let user: UserDomain
     let group: GroupDomain
     let onItemListCreated: (ItemListDomain) -> Void
     let onCancel: () -> Void
 
-    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: AddItemListViewModel
 
     init(user: UserDomain, group: GroupDomain, onItemListCreated: @escaping (ItemListDomain) -> Void, onCancel: @escaping () -> Void) {
