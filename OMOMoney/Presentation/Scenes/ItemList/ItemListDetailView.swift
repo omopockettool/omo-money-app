@@ -299,7 +299,7 @@ struct AddItemView: View {
             Form {
                 Section("Detalles del Item") {
                     TextField("Descripción", text: $viewModel.description)
-                    TextField("Cantidad", text: $viewModel.amount)
+                    TextField("Precio (opcional)", text: $viewModel.amount)
                         .keyboardType(.decimalPad)
                         .onChange(of: viewModel.amount) { oldValue, newValue in
                             viewModel.validateAndCorrectAmount()

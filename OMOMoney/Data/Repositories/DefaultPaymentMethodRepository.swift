@@ -38,7 +38,10 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
     func createPaymentMethod(
         name: String,
         type: String,
+        icon: String,
+        color: String,
         isActive: Bool,
+        isDefault: Bool,
         groupId: UUID?
     ) async throws -> PaymentMethodDomain {
         guard let groupId = groupId else {
@@ -49,7 +52,10 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         return try await paymentMethodService.createPaymentMethod(
             name: name,
             type: type,
+            icon: icon,
+            color: color,
             isActive: isActive,
+            isDefault: isDefault,
             groupId: groupId
         )
     }

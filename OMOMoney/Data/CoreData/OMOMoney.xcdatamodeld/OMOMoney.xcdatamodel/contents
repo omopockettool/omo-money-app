@@ -2,6 +2,8 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Category" representedClassName="Category" syncable="YES" codeGenerationType="class">
         <attribute name="color" optional="YES" attributeType="String" defaultValueString="#8E8E93"/>
+        <attribute name="icon" optional="YES" attributeType="String" defaultValueString="tag.fill"/>
+        <attribute name="isDefault" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="lastModifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -46,9 +48,12 @@
         <relationship name="itemList" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemList" inverseName="items" inverseEntity="ItemList"/>
     </entity>
     <entity name="PaymentMethod" representedClassName="PaymentMethod" syncable="YES" codeGenerationType="class">
+        <attribute name="color" optional="YES" attributeType="String" defaultValueString="#8E8E93"/>
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="icon" optional="YES" attributeType="String" defaultValueString="creditcard.fill"/>
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isActive" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="isDefault" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="lastModifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="type" optional="YES" attributeType="String" defaultValueString="card"/>

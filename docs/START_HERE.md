@@ -109,6 +109,26 @@ context.perform { }                       // ❌ No context in Presentation
 
 ---
 
+## ⚠️ Don't Over-Engineer
+
+**Fix at the lowest layer that makes sense. Don't cascade a change through all layers unless truly required.**
+
+| Situation | ❌ Over-engineered | ✅ Right fix |
+|-----------|-------------------|--------------|
+| UI field should be optional | Change Domain model + UseCase + Repository + Mapping + ViewModel | Handle the empty/nil state in the ViewModel, pass a safe default |
+| Display tweak | New UseCase + new protocol | Change the View or ViewModel directly |
+| Validation relaxation | Refactor all layers | Relax only the layer that owns that rule |
+
+**Real example** — making the amount field optional when creating an item:
+```swift
+// ❌ Wrong: changed ItemDomain, UseCases, Repository, Mapping, ViewModel (7 files)
+
+// ✅ Right: one line in AddItemViewModel.saveItem()
+let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: normalizedAmount) ?? Decimal(0))
+```
+
+---
+
 ## 💡 Development Patterns
 
 ### Adding New Feature
@@ -148,7 +168,7 @@ Task {
 
 ---
 
-**Last Updated**: March 9, 2026  
+**Last Updated**: March 11, 2026
 **Framework**: SwiftUI + CoreData  
 **iOS Version**: 26.1  
 **Architecture**: Clean Architecture (100% compliant)

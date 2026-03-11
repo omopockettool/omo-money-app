@@ -68,6 +68,8 @@ class CategoryListViewModel: ObservableObject {
             let newCategory = try await createCategoryUseCase.execute(
                 name: name,
                 color: color,
+                icon: "tag.fill",
+                isDefault: false,
                 groupId: groupId,
                 limit: nil,
                 limitFrequency: nil

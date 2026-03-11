@@ -17,19 +17,25 @@ extension PaymentMethod {
             id: self.id ?? UUID(),
             name: self.name ?? "",
             type: self.type ?? "card",
+            icon: self.icon ?? "creditcard.fill",
+            color: self.color ?? "#8E8E93",
             isActive: self.isActive,
+            isDefault: self.isDefault,
             groupId: self.group?.id,
             createdAt: self.createdAt ?? Date(),
             lastModifiedAt: self.lastModifiedAt
         )
     }
-    
+
     /// Updates Core Data PaymentMethod entity from Domain model
     /// - Parameter domain: PaymentMethodDomain object with new values
     func update(from domain: PaymentMethodDomain) {
         self.name = domain.name
         self.type = domain.type
+        self.icon = domain.icon
+        self.color = domain.color
         self.isActive = domain.isActive
+        self.isDefault = domain.isDefault
         self.lastModifiedAt = Date()
     }
 }
@@ -44,7 +50,10 @@ extension PaymentMethodDomain {
         paymentMethod.id = self.id
         paymentMethod.name = self.name
         paymentMethod.type = self.type
+        paymentMethod.icon = self.icon
+        paymentMethod.color = self.color
         paymentMethod.isActive = self.isActive
+        paymentMethod.isDefault = self.isDefault
         paymentMethod.createdAt = self.createdAt
         paymentMethod.lastModifiedAt = self.lastModifiedAt
         return paymentMethod

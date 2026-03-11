@@ -66,41 +66,46 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             let paymentMethodService = PaymentMethodService(context: context)
             let categoryService = CategoryService(context: context)
 
-            // Create default payment methods
-            let defaultPaymentMethods: [(String, String)] = [
-                ("Efectivo", "cash"),
-                ("Tarjeta Débito", "card_debit"),
-                ("Tarjeta Crédito", "card_credit"),
-                ("Transferencia", "bank_transfer")
+            // Create default payment methods: (name, type, icon, color, isDefault)
+            let defaultPaymentMethods: [(String, String, String, String, Bool)] = [
+                ("Efectivo",        "cash",          "banknote.fill",           "#4CAF50", true),
+                ("Tarjeta Débito",  "card_debit",    "creditcard.fill",         "#2196F3", false),
+                ("Tarjeta Crédito", "card_credit",   "creditcard.fill",         "#9C27B0", false),
+                ("Transferencia",   "bank_transfer", "arrow.left.arrow.right",  "#FF9800", false)
             ]
 
             print("🔄 [GroupService] Creating \(defaultPaymentMethods.count) default payment methods...")
-            for (pmName, pmType) in defaultPaymentMethods {
+            for (pmName, pmType, pmIcon, pmColor, pmIsDefault) in defaultPaymentMethods {
                 let _ = try await paymentMethodService.createPaymentMethod(
                     name: pmName,
                     type: pmType,
+                    icon: pmIcon,
+                    color: pmColor,
                     isActive: true,
+                    isDefault: pmIsDefault,
                     groupId: groupId
                 )
             }
             print("✅ [GroupService] Payment methods created")
 
-            // Create default categories
-            let defaultCategories = [
-                ("Alimentos", "#FF6B6B"),
-                ("Transporte", "#4ECDC4"),
-                ("Hogar", "#45B7D1"),
-                ("Entretenimiento", "#96CEB4"),
-                ("Salud", "#FFEAA7"),
-                ("Compras", "#DDA0DD"),
-                ("Otros", "#BDC3C7")
+            // Create default categories: (name, color, icon, isDefault)
+            let defaultCategories: [(String, String, String, Bool)] = [
+                ("Alimentos",       "#FF6B6B", "cart.fill",             false),
+                ("Transporte",      "#4ECDC4", "car.fill",              false),
+                ("Hogar",           "#45B7D1", "house.fill",            false),
+                ("Entretenimiento", "#96CEB4", "tv.fill",               false),
+                ("Salud",           "#FFEAA7", "heart.fill",            false),
+                ("Compras",         "#DDA0DD", "bag.fill",              false),
+                ("Otros",           "#BDC3C7", "ellipsis.circle.fill",  true)
             ]
 
             print("🔄 [GroupService] Creating \(defaultCategories.count) default categories...")
-            for (categoryName, color) in defaultCategories {
+            for (categoryName, color, icon, isDefault) in defaultCategories {
                 let _ = try await categoryService.createCategory(
                     name: categoryName,
                     color: color,
+                    icon: icon,
+                    isDefault: isDefault,
                     groupId: groupId
                 )
             }

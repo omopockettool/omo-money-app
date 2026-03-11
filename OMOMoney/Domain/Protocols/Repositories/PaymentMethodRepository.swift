@@ -43,7 +43,10 @@ protocol PaymentMethodRepository {
     func createPaymentMethod(
         name: String,
         type: String,
+        icon: String,
+        color: String,
         isActive: Bool,
+        isDefault: Bool,
         groupId: UUID?
     ) async throws -> PaymentMethodDomain
     

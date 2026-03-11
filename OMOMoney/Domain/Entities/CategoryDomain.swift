@@ -13,16 +13,20 @@ struct CategoryDomain: Identifiable, Equatable, Hashable {
     let id: UUID
     let name: String
     let color: String
+    let icon: String
+    let isDefault: Bool
     let limit: Decimal?
     let limitFrequency: String
     let groupId: UUID?
     let createdAt: Date
     let lastModifiedAt: Date?
-    
+
     init(
         id: UUID = UUID(),
         name: String,
         color: String = "#8E8E93",
+        icon: String = "tag.fill",
+        isDefault: Bool = false,
         limit: Decimal? = nil,
         limitFrequency: String = "monthly",
         groupId: UUID? = nil,
@@ -32,6 +36,8 @@ struct CategoryDomain: Identifiable, Equatable, Hashable {
         self.id = id
         self.name = name
         self.color = color
+        self.icon = icon
+        self.isDefault = isDefault
         self.limit = limit
         self.limitFrequency = limitFrequency
         self.groupId = groupId
@@ -60,6 +66,8 @@ extension CategoryDomain {
         id: UUID = UUID(),
         name: String = "Groceries",
         color: String = "#FF6B6B",
+        icon: String = "cart.fill",
+        isDefault: Bool = false,
         limit: Decimal? = 500.0,
         limitFrequency: String = "monthly",
         groupId: UUID? = nil,
@@ -70,6 +78,8 @@ extension CategoryDomain {
             id: id,
             name: name,
             color: color,
+            icon: icon,
+            isDefault: isDefault,
             limit: limit,
             limitFrequency: limitFrequency,
             groupId: groupId,

@@ -28,7 +28,6 @@ final class AddItemViewModel: ObservableObject {
 
     var canSave: Bool {
         !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !amount.isEmpty &&
         !quantity.isEmpty &&
         !isSaving
     }
@@ -48,7 +47,7 @@ final class AddItemViewModel: ObservableObject {
         // Pre-populate fields if editing
         if let item = itemToEdit {
             self.description = item.itemDescription
-            self.amount = item.amount.description
+            self.amount = item.amount == 0 ? "" : item.amount.description
             self.quantity = String(item.quantity)
         }
     }
@@ -59,11 +58,11 @@ final class AddItemViewModel: ObservableObject {
     /// Returns ItemDomain for incremental cache update (following ItemList pattern)
     func saveItem() async -> ItemDomain? {
         // Normalize: replace comma with period for decimal parsing
-        let normalizedAmount = amount.replacingOccurrences(of: ",", with: ".")
+        let normalizedAmount = amount.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: normalizedAmount) ?? Decimal(0))
 
-        guard let amountDecimal = Decimal(string: normalizedAmount),
-              let quantityInt = Int32(quantity) else {
-            errorMessage = "Cantidad o unidades inválidas"
+        guard let quantityInt = Int32(quantity) else {
+            errorMessage = "Unidades inválidas"
             return nil
         }
 

@@ -133,7 +133,10 @@ class AddPaymentMethodViewModel: ObservableObject {
             _ = try await createPaymentMethodUseCase.execute(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 type: type.trimmingCharacters(in: .whitespacesAndNewlines),
+                icon: "creditcard.fill",
+                color: "#6C63FF",
                 isActive: isActive,
+                isDefault: false,
                 groupId: groupId
             )
             return true

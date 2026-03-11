@@ -77,12 +77,14 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     /// Create a new category
     /// ✅ REFACTORED: Returns Domain model
-    func createCategory(name: String, color: String?, groupId: UUID, limit: Decimal? = nil, limitFrequency: String? = nil) async throws -> CategoryDomain {
+    func createCategory(name: String, color: String?, icon: String = "tag.fill", isDefault: Bool = false, groupId: UUID, limit: Decimal? = nil, limitFrequency: String? = nil) async throws -> CategoryDomain {
         let categoryDomain = try await context.perform {
             let category = Category(context: self.context)
             category.id = UUID()
             category.name = name
             category.color = color ?? "#007AFF"
+            category.icon = icon
+            category.isDefault = isDefault
             category.createdAt = Date()
 
             // Set budget limit and frequency if provided

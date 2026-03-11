@@ -13,7 +13,10 @@ protocol CreatePaymentMethodUseCase {
     func execute(
         name: String,
         type: String,
+        icon: String,
+        color: String,
         isActive: Bool,
+        isDefault: Bool,
         groupId: UUID
     ) async throws -> PaymentMethodDomain
 }
@@ -28,13 +31,19 @@ final class DefaultCreatePaymentMethodUseCase: CreatePaymentMethodUseCase {
     func execute(
         name: String,
         type: String,
+        icon: String = "creditcard.fill",
+        color: String = "#8E8E93",
         isActive: Bool,
+        isDefault: Bool = false,
         groupId: UUID
     ) async throws -> PaymentMethodDomain {
         return try await paymentMethodRepository.createPaymentMethod(
             name: name,
             type: type,
+            icon: icon,
+            color: color,
             isActive: isActive,
+            isDefault: isDefault,
             groupId: groupId
         )
     }

@@ -28,7 +28,7 @@ struct AddItemListView: View {
                     .onChange(of: viewModel.price) { _, _ in
                         viewModel.validateAndCorrectPrice()
                     }
-                    .overlay(
+                    .overlay( 
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(viewModel.isPriceValid ? Color.clear : Color.red, lineWidth: 1)
                     )
@@ -40,49 +40,44 @@ struct AddItemListView: View {
                 }
 
                 DatePicker("Fecha", selection: $viewModel.date, displayedComponents: .date)
-            }
-            .listRowSeparator(.visible)
 
-            Section("Categoría") {
                 Picker("Categoría", selection: Binding(
                     get: { viewModel.selectedCategory?.id },
                     set: { newId in
                         viewModel.selectedCategory = viewModel.categories.first { $0.id == newId }
                     }
                 )) {
-                    Text("Seleccionar Categoría").tag(nil as UUID?)
+                    Text("Seleccionar").tag(nil as UUID?)
                     ForEach(viewModel.categories, id: \.id) { category in
                         HStack {
-                            Circle()
-                                .fill(Color(hex: category.color) ?? Color.gray)
-                                .frame(width: 12, height: 12)
+                            Image(systemName: category.icon)
+                                .foregroundColor(Color(hex: category.color) ?? .gray)
                             Text(category.name)
                         }
                         .tag(category.id as UUID?)
                     }
                 }
-                .pickerStyle(.navigationLink)
-            }
+                .pickerStyle(.menu)
 
-            Section("Método de Pago") {
-                Picker("Método de Pago", selection: Binding(
+                Picker("Pago", selection: Binding(
                     get: { viewModel.selectedPaymentMethod?.id },
                     set: { newId in
                         viewModel.selectedPaymentMethod = viewModel.paymentMethods.first { $0.id == newId }
                     }
                 )) {
-                    Text("Seleccionar Método de Pago").tag(nil as UUID?)
+                    Text("Seleccionar").tag(nil as UUID?)
                     ForEach(viewModel.paymentMethods, id: \.id) { paymentMethod in
                         HStack {
-                            Image(systemName: paymentMethodIcon(for: paymentMethod.type))
-                                .foregroundColor(paymentMethodColor(for: paymentMethod.type))
+                            Image(systemName: paymentMethod.icon)
+                                .foregroundColor(Color(hex: paymentMethod.color) ?? .gray)
                             Text(paymentMethod.name)
                         }
                         .tag(paymentMethod.id as UUID?)
                     }
                 }
-                .pickerStyle(.navigationLink)
+                .pickerStyle(.menu)
             }
+            .listRowSeparator(.visible)
 
             Section("Grupo") {
                 HStack {
@@ -149,37 +144,6 @@ struct AddItemListView: View {
         }
     }
     
-    // MARK: - Helper Methods
-    
-    private func paymentMethodIcon(for type: String) -> String {
-        switch type.lowercased() {
-        case "card_debit", "card_credit", "card":
-            return "creditcard.fill"
-        case "cash":
-            return "banknote.fill"
-        case "bank_transfer", "transfer":
-            return "arrow.left.arrow.right"
-        case "digital":
-            return "iphone"
-        default:
-            return "questionmark.circle.fill"
-        }
-    }
-    
-    private func paymentMethodColor(for type: String) -> Color {
-        switch type.lowercased() {
-        case "card_debit", "card_credit", "card":
-            return .blue
-        case "cash":
-            return .green
-        case "bank_transfer", "transfer":
-            return .orange
-        case "digital":
-            return .purple
-        default:
-            return .gray
-        }
-    }
 }
 
 #Preview {

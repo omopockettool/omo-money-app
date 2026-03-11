@@ -99,7 +99,10 @@ class PaymentMethodListViewModel: ObservableObject {
             let newPaymentMethod = try await createPaymentMethodUseCase.execute(
                 name: name,
                 type: type,
+                icon: "creditcard.fill",
+                color: "#6C63FF",
                 isActive: isActive,
+                isDefault: false,
                 groupId: groupId
             )
             paymentMethods.append(newPaymentMethod)

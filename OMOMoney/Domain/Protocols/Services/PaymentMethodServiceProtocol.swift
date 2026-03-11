@@ -11,7 +11,7 @@ protocol PaymentMethodServiceProtocol {
     func fetchPaymentMethod(by id: UUID) async throws -> PaymentMethodDomain?
 
     /// Create a new paymentMethod
-    func createPaymentMethod(name: String, type: String, isActive: Bool, groupId: UUID) async throws -> PaymentMethodDomain
+    func createPaymentMethod(name: String, type: String, icon: String, color: String, isActive: Bool, isDefault: Bool, groupId: UUID) async throws -> PaymentMethodDomain
 
     /// Update an existing paymentMethod
     func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, isActive: Bool?) async throws

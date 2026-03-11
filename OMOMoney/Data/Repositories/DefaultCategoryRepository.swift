@@ -34,6 +34,8 @@ final class DefaultCategoryRepository: CategoryRepository {
     func createCategory(
         name: String,
         color: String,
+        icon: String,
+        isDefault: Bool,
         limit: Decimal?,
         limitFrequency: String,
         groupId: UUID?
@@ -46,6 +48,8 @@ final class DefaultCategoryRepository: CategoryRepository {
         return try await categoryService.createCategory(
             name: name,
             color: color,
+            icon: icon,
+            isDefault: isDefault,
             groupId: groupId,
             limit: limit,
             limitFrequency: limitFrequency

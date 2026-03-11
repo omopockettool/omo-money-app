@@ -89,6 +89,9 @@ final class AddItemListViewModel: ObservableObject {
 
         do {
             categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
+            if selectedCategory == nil {
+                selectedCategory = categories.first { $0.isDefault } ?? categories.first
+            }
         } catch {
             errorMessage = "Error al cargar categorías: \(error.localizedDescription)"
         }
@@ -104,6 +107,9 @@ final class AddItemListViewModel: ObservableObject {
 
         do {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
+            if selectedPaymentMethod == nil {
+                selectedPaymentMethod = paymentMethods.first { $0.isDefault } ?? paymentMethods.first
+            }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"
         }

@@ -41,13 +41,16 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
 
     /// Create a new paymentMethod
     /// ✅ REFACTORED: Returns Domain model
-    func createPaymentMethod(name: String, type: String, isActive: Bool, groupId: UUID) async throws -> PaymentMethodDomain {
+    func createPaymentMethod(name: String, type: String, icon: String = "creditcard.fill", color: String = "#8E8E93", isActive: Bool, isDefault: Bool = false, groupId: UUID) async throws -> PaymentMethodDomain {
         let paymentMethodDomain = try await context.perform {
             let paymentMethod = PaymentMethod(context: self.context)
             paymentMethod.id = UUID()
             paymentMethod.name = name
             paymentMethod.type = type
+            paymentMethod.icon = icon
+            paymentMethod.color = color
             paymentMethod.isActive = isActive
+            paymentMethod.isDefault = isDefault
             paymentMethod.createdAt = Date()
             paymentMethod.lastModifiedAt = Date()
 
