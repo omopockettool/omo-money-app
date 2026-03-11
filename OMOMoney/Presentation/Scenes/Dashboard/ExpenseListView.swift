@@ -75,16 +75,17 @@ struct ExpenseListView: View {
             Image(systemName: "tray")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
-            
+
             Text("No hay gastos")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            
+
             Text("Pulsa el botón + para agregar tu primer gasto")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
         .padding(.top, 50)
     }
     
