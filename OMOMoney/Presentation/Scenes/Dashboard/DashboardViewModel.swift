@@ -158,11 +158,6 @@ class DashboardViewModel: ObservableObject {
 
             await MainActor.run {
                 isLoading = false
-                print("✅ DashboardViewModel: UI update completed, isLoading = false")
-
-                // Force UI refresh
-                objectWillChange.send()
-                print("🔄 DashboardViewModel: objectWillChange.send() called")
             }
             
         } catch {
@@ -348,9 +343,6 @@ class DashboardViewModel: ObservableObject {
         }
 
         availableGroups.append(newGroup)
-        print("➕ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
-        print("➕ [DashboardVM] Enviando objectWillChange...")
-        objectWillChange.send()
         print("✅ [DashboardVM] addGroup() completado")
     }
     
@@ -364,11 +356,6 @@ class DashboardViewModel: ObservableObject {
         print("🗑️ [DashboardVM] currentUser: '\(currentUser?.name ?? "nil")' (ID: \(currentUser?.id.uuidString ?? "nil"))")
 
         availableGroups.removeAll { $0.id == group.id }  // ✅ Compare by UUID, not objectID
-
-        print("🗑️ [DashboardVM] availableGroups.count DESPUÉS: \(availableGroups.count)")
-        print("🗑️ [DashboardVM] availableGroups DESPUÉS: \(availableGroups.map { $0.name })")
-        print("🗑️ [DashboardVM] Enviando objectWillChange...")
-        objectWillChange.send()
         print("✅ [DashboardVM] removeGroup() completado")
     }
     
@@ -432,8 +419,6 @@ class DashboardViewModel: ObservableObject {
 
         print("✅ [ADD-DOMAIN] ItemList added successfully to UI")
         print("[TOTAL] [ADD-DOMAIN] New total spent: \(formattedTotalSpent)")
-
-        objectWillChange.send()
         print("🟢 [ADD-DOMAIN] Operation complete\n")
     }
 
@@ -684,14 +669,10 @@ class DashboardViewModel: ObservableObject {
         // Update UI on main thread and recalculate total
         await MainActor.run {
             itemLists = updatedItemLists
-            print("✅ DashboardViewModel: ItemList removed successfully")
-            print("📊 DashboardViewModel: UI now shows \(itemLists.count) items")
-            objectWillChange.send()
         }
 
         // Recalculate total spent (following RULES: always recalculate)
         await calculateTotalSpent()
-        print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
     }
 
     /// Update an ItemListDomain in the UI cache (Domain model version)
@@ -722,13 +703,10 @@ class DashboardViewModel: ObservableObject {
         // Update UI on main thread and recalculate total
         await MainActor.run {
             itemLists = updatedItemLists
-            print("✅ DashboardViewModel: ItemList updated successfully")
-            objectWillChange.send()
         }
 
         // Recalculate total spent (following RULES: always recalculate)
         await calculateTotalSpent()
-        print("[TOTAL] DashboardViewModel: New total spent: \(formattedTotalSpent)")
     }
 
     /// Verify if an ItemListDomain belongs to the current dashboard context
