@@ -86,6 +86,7 @@ struct ItemListDetailView: View {
                 AddItemView(
                     itemListId: itemListDomain.id,
                     itemToEdit: nil,
+                    currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
                             await viewModel.addItemFromDomain(itemDomain)
@@ -98,6 +99,7 @@ struct ItemListDetailView: View {
                 AddItemView(
                     itemListId: itemListDomain.id,
                     itemToEdit: item,
+                    currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
                             await viewModel.updateItemFromDomain(itemDomain)
@@ -274,18 +276,24 @@ struct ItemRowView: View {
 
 struct AddItemView: View {
     let onItemSaved: (ItemDomain) -> Void
+    let currencyCode: String
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddItemViewModel
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case description, amount, quantity }
 
     init(
         itemListId: UUID,
         itemToEdit: ItemDomain? = nil,
+        currencyCode: String = "EUR",
         onItemSaved: @escaping (ItemDomain) -> Void,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
         self.onItemSaved = onItemSaved
+        self.currencyCode = currencyCode
         self._viewModel = StateObject(wrappedValue: AddItemViewModel(
             itemListId: itemListId,
             itemToEdit: itemToEdit,
@@ -294,18 +302,69 @@ struct AddItemView: View {
         ))
     }
 
+    private var currencySymbol: String {
+        Locale.current.localizedString(forCurrencyCode: currencyCode) ?? currencyCode
+    }
+
+    private var totalPreviewText: String {
+        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
+        guard let price = Decimal(string: normalized), price > 0,
+              let qty = Int(viewModel.quantity), qty > 1 else {
+            return "Total = Precio (€) × Unidades (uds.)"
+        }
+        let total = price * Decimal(qty)
+        let formatted = NSDecimalNumber(decimal: total).doubleValue
+        return "\(viewModel.amount) \(currencySymbol) × \(qty) uds. = \(String(format: "%.2f", formatted)) \(currencySymbol)"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Detalles del Item") {
-                    TextField("Descripción", text: $viewModel.description)
-                    TextField("Precio (opcional)", text: $viewModel.amount)
-                        .keyboardType(.decimalPad)
-                        .onChange(of: viewModel.amount) { oldValue, newValue in
-                            viewModel.validateAndCorrectAmount()
+                    LabeledContent("Descripción") {
+                        TextField("", text: $viewModel.description)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .description)
+                            .onChange(of: viewModel.description) { _, newValue in
+                                if newValue.count > 30 {
+                                    viewModel.description = String(newValue.prefix(30))
+                                }
+                            }
+                    }
+                    LabeledContent("Precio") {
+                        HStack(spacing: 4) {
+                            TextField("0.00", text: $viewModel.amount)
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.decimalPad)
+                                .focused($focusedField, equals: .amount)
+                                .onChange(of: viewModel.amount) { _, _ in
+                                    viewModel.validateAndCorrectAmount()
+                                }
+                            Text(currencySymbol)
+                                .foregroundColor(.secondary)
                         }
-                    TextField("Unidades", text: $viewModel.quantity)
-                        .keyboardType(.numberPad)
+                    }
+                    LabeledContent("Unidades") {
+                        TextField("1", text: $viewModel.quantity)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numberPad)
+                            .focused($focusedField, equals: .quantity)
+                            .onChange(of: viewModel.quantity) { _, newValue in
+                                if newValue.count > 5 {
+                                    viewModel.quantity = String(newValue.prefix(5))
+                                }
+                            }
+                    }
+                }
+
+                Section {
+                    HStack(spacing: 4) {
+                        Image(systemName: "info.circle")
+                        Text(totalPreviewText)
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .listRowBackground(Color.clear)
                 }
 
                 if let error = viewModel.errorMessage {
@@ -322,6 +381,11 @@ struct AddItemView: View {
                     Button("Cancelar") {
                         dismiss()
                     }
+                }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Listo") { focusedField = nil }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {

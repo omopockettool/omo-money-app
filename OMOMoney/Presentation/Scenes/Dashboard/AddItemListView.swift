@@ -8,6 +8,9 @@ struct AddItemListView: View {
     let onCancel: () -> Void
 
     @StateObject private var viewModel: AddItemListViewModel
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case description, price }
 
     init(user: UserDomain, group: GroupDomain, onItemListCreated: @escaping (ItemListDomain) -> Void, onCancel: @escaping () -> Void) {
         self.user = user
@@ -22,9 +25,16 @@ struct AddItemListView: View {
         Form {
             Section("Detalles del Gasto") {
                 TextField("Descripción", text: $viewModel.description)
+                    .focused($focusedField, equals: .description)
+                    .onChange(of: viewModel.description) { _, newValue in
+                        if newValue.count > 30 {
+                            viewModel.description = String(newValue.prefix(30))
+                        }
+                    }
 
                 TextField("Precio (opcional)", text: $viewModel.price)
                     .keyboardType(.decimalPad)
+                    .focused($focusedField, equals: .price)
                     .onChange(of: viewModel.price) { _, _ in
                         viewModel.validateAndCorrectPrice()
                     }
@@ -102,6 +112,11 @@ struct AddItemListView: View {
                 Button("Cancelar") {
                     onCancel()
                 }
+            }
+
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Listo") { focusedField = nil }
             }
 
             ToolbarItem(placement: .confirmationAction) {
