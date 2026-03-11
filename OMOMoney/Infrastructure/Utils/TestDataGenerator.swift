@@ -185,7 +185,7 @@ class TestDataGenerator {
     
     private func generateRandomDescription(index: Int) -> String {
         let prefixes = ["Compra", "Gasto", "Pago", "Factura", "Recibo", "Ticket", "Consumo", "Adquisición"]
-        let suffixes = ["supermercado", "gasolina", "restaurante", "farmacia", "ropa", "electrónicos", "hogar", "entretenimiento", "transporte", "salud", "educación", "servicios"]
+        let suffixes = ["supermercado", "gasolina", "restaurante", "farmacia", "ropa", "electrónicos", "hogar", "ocio", "transporte", "salud", "educación", "servicios"]
         
         let prefix = prefixes.randomElement() ?? "Gasto"
         let suffix = suffixes.randomElement() ?? "general"

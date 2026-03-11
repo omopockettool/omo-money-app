@@ -93,9 +93,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
                 ("Alimentos",       "#FF6B6B", "cart.fill",             false),
                 ("Transporte",      "#4ECDC4", "car.fill",              false),
                 ("Hogar",           "#45B7D1", "house.fill",            false),
-                ("Entretenimiento", "#96CEB4", "tv.fill",               false),
+                ("Ocio",            "#96CEB4", "theatermasks.fill",     false),
                 ("Salud",           "#FFEAA7", "heart.fill",            false),
-                ("Compras",         "#DDA0DD", "bag.fill",              false),
                 ("Otros",           "#BDC3C7", "ellipsis.circle.fill",  true)
             ]
 
