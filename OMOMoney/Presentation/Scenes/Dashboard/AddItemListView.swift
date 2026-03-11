@@ -25,6 +25,9 @@ struct AddItemListView: View {
 
                 TextField("Precio (opcional)", text: $viewModel.price)
                     .keyboardType(.decimalPad)
+                    .onChange(of: viewModel.price) { _, _ in
+                        viewModel.validateAndCorrectPrice()
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(viewModel.isPriceValid ? Color.clear : Color.red, lineWidth: 1)
@@ -41,8 +44,13 @@ struct AddItemListView: View {
             .listRowSeparator(.visible)
 
             Section("Categoría") {
-                Picker("Categoría", selection: $viewModel.selectedCategory) {
-                    Text("Seleccionar Categoría").tag(nil as CategoryDomain?)
+                Picker("Categoría", selection: Binding(
+                    get: { viewModel.selectedCategory?.id },
+                    set: { newId in
+                        viewModel.selectedCategory = viewModel.categories.first { $0.id == newId }
+                    }
+                )) {
+                    Text("Seleccionar Categoría").tag(nil as UUID?)
                     ForEach(viewModel.categories, id: \.id) { category in
                         HStack {
                             Circle()
@@ -50,22 +58,27 @@ struct AddItemListView: View {
                                 .frame(width: 12, height: 12)
                             Text(category.name)
                         }
-                        .tag(category as CategoryDomain?)
+                        .tag(category.id as UUID?)
                     }
                 }
                 .pickerStyle(.navigationLink)
             }
 
             Section("Método de Pago") {
-                Picker("Método de Pago", selection: $viewModel.selectedPaymentMethod) {
-                    Text("Seleccionar Método de Pago").tag(nil as PaymentMethodDomain?)
+                Picker("Método de Pago", selection: Binding(
+                    get: { viewModel.selectedPaymentMethod?.id },
+                    set: { newId in
+                        viewModel.selectedPaymentMethod = viewModel.paymentMethods.first { $0.id == newId }
+                    }
+                )) {
+                    Text("Seleccionar Método de Pago").tag(nil as UUID?)
                     ForEach(viewModel.paymentMethods, id: \.id) { paymentMethod in
                         HStack {
                             Image(systemName: paymentMethodIcon(for: paymentMethod.type))
                                 .foregroundColor(paymentMethodColor(for: paymentMethod.type))
                             Text(paymentMethod.name)
                         }
-                        .tag(paymentMethod as PaymentMethodDomain?)
+                        .tag(paymentMethod.id as UUID?)
                     }
                 }
                 .pickerStyle(.navigationLink)
@@ -73,17 +86,10 @@ struct AddItemListView: View {
 
             Section("Grupo") {
                 HStack {
-                    Image(systemName: "person.3.fill")
+                    Image(systemName: "folder.fill")
                         .foregroundColor(.blue)
-
                     Text(group.name)
                         .foregroundColor(.primary)
-
-                    Spacer()
-
-                    Text("(No editable)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
             }
 
@@ -122,8 +128,6 @@ struct AddItemListView: View {
             }
         }
         .task {
-            // ✅ Clean Architecture: View just passes Domain model to ViewModel
-            // ViewModel handles all data fetching
             await viewModel.loadCategories(forGroupId: group.id)
             await viewModel.loadPaymentMethods(forGroupId: group.id)
         }
@@ -134,9 +138,6 @@ struct AddItemListView: View {
     private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
 
-        print("🔄 AddItemListView: Creating ItemList...")
-
-        // ✅ Clean Architecture: Pass UUIDs instead of Core Data entities
         if let createdItemList = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
@@ -144,16 +145,7 @@ struct AddItemListView: View {
             groupId: group.id,
             paymentMethodId: viewModel.selectedPaymentMethod?.id
         ) {
-            // ✅ SUCCESS: ItemList created successfully
-            print("✅ AddItemListView: ItemList created: '\(createdItemList.itemListDescription)'")
-            print("🔄 AddItemListView: Calling onItemListCreated callback with ItemList...")
-            
-            // Pass the created ItemListDomain to the callback for incremental cache update
             onItemListCreated(createdItemList)
-
-            print("✅ AddItemListView: Callback executed")
-        } else {
-            print("❌ AddItemListView: Failed to create ItemList")
         }
     }
     

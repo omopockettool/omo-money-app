@@ -1,72 +1,198 @@
-You are an expert Swift Apple engineer working for OMO. If you can not follow the architecture layers you are FIRED.
+# 🔥 OMOMoney Architecture Rules - MANDATORY
 
-Dont need Summary explanations, this consume a lot of tokens.
+> **You are an expert Swift iOS engineer. Violating these rules = FIRED.**
 
-## 1. Clean Architecture Principles (MANDATORY)
+---
 
-### Layer Separation Rules:
-1. **Presentation Layer** (Views & ViewModels):
-   - ✅ MUST use Domain models ONLY (ItemListDomain, UserDomain, etc.)
-   - ✅ MUST use Use Cases for business logic
-   - ❌ NEVER import CoreData
-   - ❌ NEVER reference NSManagedObjectContext
-   - ❌ NEVER instantiate Services or Repositories directly
-   - ✅ MUST use AppDIContainer for all dependencies
+## 🎯 Rule #1: Clean Architecture Boundaries
 
-2. **Domain Layer** (Use Cases & Domain Models):
-   - ✅ Define business logic and operations
-   - ✅ Use protocols for repository contracts
-   - ❌ NEVER depend on Data layer implementations
-   - ❌ NEVER import CoreData
+### Layer Dependency Flow (STRICT)
+```
+View → ViewModel → UseCase → Repository → Service → CoreData
+  ✅       ✅         ✅          ✅          ✅        ⚠️
+Domain   Domain    Domain     Domain     Domain    DATA LAYER
+Models   Models    Models     Protocols  Protocols  ONLY
+```
 
-3. **Data Layer** (Repositories & Services):
-   - ✅ Use `.toDomain()` to convert Core Data entities to Domain models
-   - ✅ Handle all CoreData operations
-   - ✅ Return Domain models to upper layers
-   - ❌ NEVER expose Core Data entities outside this layer
+### What Each Layer Can/Cannot Do
 
-### Dependency Injection:
-- ✅ ALL dependencies MUST go through AppDIContainer
-- ✅ Views create ViewModels using DI Container
-- ✅ ViewModels receive Use Cases via constructor injection
-- ❌ NEVER create Services or Repositories in Views or ViewModels
+#### ✅ Presentation Layer (Views & ViewModels)
+**CAN:**
+- Use Domain models (`UserDomain`, `GroupDomain`, `ItemListDomain`)
+- Call UseCases for business logic
+- Use `AppDIContainer` for ALL dependencies
+- Use `@MainActor` for ViewModels
+- Import SwiftUI only
 
-### Current Status:
-🎉 **COMPLETE CLEAN ARCHITECTURE REFACTOR** (Dec 24, 2025)
-✅ Dashboard, AppContentView, MainView - all using DI Container
-✅ ItemListDetailView/ViewModel - **NOW using Domain models only!**
-✅ All ViewModels cleaned of CoreData imports
-✅ Zero Core Data entities in Presentation layer
-✅ All dependencies through AppDIContainer
-✅ All `.toDomain()` correctly placed in Data layer (32 usages)
+**CANNOT (AUTO-REJECT):**
+```swift
+import CoreData                          // ❌ FORBIDDEN
+@Environment(\.managedObjectContext)     // ❌ FORBIDDEN  
+let service = UserService(context: ...)  // ❌ Use DI Container
+NSFetchRequest<User>(...)                // ❌ Use UseCases
+NSManagedObjectContext                   // ❌ FORBIDDEN
+```
 
-## 2. Incremental Update Pattern
-  - ALWAYS use the cache system
-  - Update the cache then core data methods in background
+#### ✅ Domain Layer (UseCases, Protocols, Entities)
+**CAN:**
+- Define business logic in UseCases
+- Define repository/service protocols
+- Use pure Swift structs/classes (entities)
+- Import Foundation ONLY
 
-Always use my physical device for compiling Dennis's iPhone (26.1) (00008120-000A190218614032)
+**CANNOT:**
+```swift
+import CoreData      // ❌ FORBIDDEN
+import SwiftUI       // ❌ FORBIDDEN
+// Any Data or Presentation layer imports
+```
 
-## 2. Key Technical Concepts:
+#### ✅ Data Layer (Repositories, Services)
+**CAN:**
+- Import CoreData
+- Implement Domain protocols
+- Use `.toDomain()` to convert entities
+- Use `context.perform { }` for threading
+- Return Domain models to upper layers
 
-- **Clean Architecture** - 5 layers: View → ViewModel → Use Case → Repository → Service
-- **Domain-Driven Design** - Domain models (`ItemListDomain`) vs Core Data entities (`ItemList`)
-- **Threading** - Main thread for UI only, background threads for Core Data via `context.perform()`
-- **Swift Concurrency** - async/await, `withTaskGroup` for concurrent operations
-- **Use Case Pattern** - Business logic layer between ViewModel and Repository
-- **Repository Pattern** - Data access abstraction with `context.perform()` threading
-- **Core Data** - NSManagedObjectContext, NSFetchRequest, relationship management
-- **SwiftUI** - @Published properties, @MainActor, ObservableObject
-- **Incremental Refactoring** - Drop-by-drop approach to maintain progress without full compilation
+**CANNOT:**
+```swift
+// Expose NSManagedObject to other layers
+func getUser() -> User { ... }  // ❌ Return UserDomain instead
+```
 
+---
 
-Check these docs if need more context:
-- PROJECT_STRUCTURE.md
-- ARCHITECTURE_DIAGRAMS.md 
-- CLEAN_ARCHITECTURE_GUIDE.md 
+## 🎯 Rule #2: Dependency Injection (100% Required)
 
+### ✅ CORRECT Pattern
+```swift
+// 1. Add factory to AppDIContainer
+extension AppDIContainer {
+    func makeMyViewModel() -> MyViewModel {
+        MyViewModel(useCase: makeMyUseCase())
+    }
+}
 
-read the RULES.md to get context of the project and then start reviewing the current bugs
+// 2. View uses container
+struct MyView: View {
+    @StateObject private var viewModel: MyViewModel
+    
+    init(container: AppDIContainer) {
+        _viewModel = StateObject(wrappedValue: container.makeMyViewModel())
+    }
+}
+```
 
-Framework concerns stay in the Data layer where they belong.
+### ❌ WRONG Pattern (Auto-Reject)
+```swift
+// NEVER instantiate directly
+struct MyView: View {
+    @StateObject private var viewModel = MyViewModel(
+        service: UserService()  // ❌ FIRED!
+    )
+}
+```
 
-Priority 4: Other Dependencies - currentGroup, currentUser, availableGroups - Still using Core Data entities
+---
+
+## 🎯 Rule #3: Threading Model
+
+| Context | Rule | Pattern |
+|---------|------|---------|
+| **UI Updates** | Main thread only | `@MainActor` on ViewModels |
+| **CoreData** | Background thread | `context.perform { ... }` |
+| **Async Ops** | Structured concurrency | `async/await`, `withTaskGroup` |
+| **Published Props** | Main thread | `@Published` in `@MainActor` class |
+
+---
+
+## 🎯 Rule #4: Data Update Pattern (Cache-First)
+
+```swift
+// ✅ CORRECT - Incremental Update Pattern
+Task {
+    // 1. Update cache immediately (instant UI update)
+    CacheManager.shared.updateCache(newData)
+    
+    // 2. Persist to CoreData in background
+    await repository.save(newData)
+}
+
+// ❌ WRONG - Direct CoreData, then cache
+await repository.save(newData)
+CacheManager.shared.updateCache(newData)
+```
+
+---
+
+## 🎯 Rule #5: File Organization
+
+```
+Application/DIContainer/
+  └── AppDIContainer.swift ← ALL dependency factories here
+
+Domain/
+  ├── Entities/ ← Pure Swift models (UserDomain, etc.)
+  ├── Protocols/ ← Repository & Service contracts  
+  └── UseCases/ ← One operation per UseCase
+
+Data/
+  ├── CoreData/ ← NSManagedObjectContext, .xcdatamodeld
+  ├── Repositories/ ← Implement protocols, use .toDomain()
+  └── Services/ ← CoreData CRUD operations
+
+Presentation/Scenes/
+  └── [Feature]/ ← Dashboard, User, Group, ItemList, etc.
+      ├── Views/
+      └── ViewModels/
+```
+
+---
+
+## 📊 Current Status (March 2026)
+
+✅ **100% Clean Architecture Compliant**
+- 0 CoreData imports in Presentation
+- 0 NSManagedObjectContext in Views/ViewModels
+- 0 Direct Service/Repository instantiation
+- 32 `.toDomain()` conversions (all in Data layer)
+
+---
+
+## 🔍 Quick Reference Docs
+
+**Need more context? Read in this order:**
+1. `docs/START_HERE.md` ← Quick start (THIS FIRST!)
+2. `docs/architecture/QUICK_START.md` ← Layer overview
+3. `docs/architecture/CLEAN_ARCHITECTURE_GUIDE.md` ← Detailed patterns
+4. `docs/architecture/PROJECT_STRUCTURE.md` ← File organization
+5. `docs/CLEAN_ARCHITECTURE_REFACTOR_SUMMARY.md` ← What was fixed
+
+---
+
+## 🧪 Development Info
+
+- **Device**: Dennis's iPhone (26.1) - `00008120-000A190218614032`
+- **Framework**: SwiftUI + CoreData
+- **iOS Target**: 26.1
+- **Response Style**: Concise, no verbose summaries (saves tokens)
+
+---
+
+## 🚨 Auto-Reject Checklist
+
+Before committing code, verify:
+- [ ] No `import CoreData` in Presentation layer
+- [ ] No `NSManagedObjectContext` outside Data layer
+- [ ] All dependencies through `AppDIContainer`
+- [ ] All ViewModels use `@MainActor`
+- [ ] All CoreData ops use `context.perform { }`
+- [ ] All Data→Presentation returns use `.toDomain()`
+
+**If ANY checklist fails → REFACTOR IMMEDIATELY**
+
+---
+
+**Last Updated**: March 9, 2026  
+**Status**: Production-Ready Clean Architecture

@@ -226,7 +226,7 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         // Fetch from Core Data and convert to Domain
         let groupDomains: [GroupDomain] = try await context.perform {
             let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
-            request.predicate = NSPredicate(format: "userId == %@", userId as CVarArg)
+            request.predicate = NSPredicate(format: "userId == %@ AND group != nil", userId as CVarArg)
             request.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.joinedAt, ascending: true)]
             request.relationshipKeyPathsForPrefetching = ["group"]
 
@@ -277,5 +277,13 @@ class UserGroupService: CoreDataService, UserGroupServiceProtocol {
         await CacheManager.shared.clearDataCache(for: CacheKeys.usersInGroup)
         await CacheManager.shared.clearDataCache(for: CacheKeys.groupsForUser)
         await CacheManager.shared.clearValidationCache(for: CacheKeys.isMember)
+    }
+
+    /// Invalidate the groups-for-user cache
+    /// Called when a group is deleted to ensure the user's group list is refreshed
+    func invalidateGroupsForUserCache() async {
+        print("🗑️ [UserGroupService] Invalidating groupsForUser cache...")
+        await CacheManager.shared.clearDataCache(for: CacheKeys.groupsForUser)
+        print("✅ [UserGroupService] groupsForUser cache cleared")
     }
 }

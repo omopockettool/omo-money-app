@@ -55,4 +55,10 @@ protocol UserGroupServiceProtocol {
     ///   - groupId: UUID of the group
     /// - Returns: Boolean indicating membership
     func isUserMember(userId: UUID, groupId: UUID) async throws -> Bool
+
+    // MARK: - Cache Management
+
+    /// Invalidate the groups-for-user cache
+    /// Called when a group is deleted to ensure the user's group list is refreshed
+    func invalidateGroupsForUserCache() async
 }

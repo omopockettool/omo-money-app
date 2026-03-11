@@ -39,8 +39,16 @@ final class DefaultGroupRepository: GroupRepository {
     }
 
     func createGroup(name: String, currency: String) async throws -> GroupDomain {
-        // Simple passthrough - Service returns Domain model directly
-        return try await groupService.createGroup(name: name, currency: currency)
+        print("🎬 [DefaultGroupRepository] createGroup() called for '\(name)'")
+
+        // Create the group
+        // NOTE: Cache invalidation is NOT done here because the UserGroup relationship
+        // hasn't been created yet. The cache will be invalidated by UserGroupService
+        // when the UserGroup is created.
+        let groupDomain = try await groupService.createGroup(name: name, currency: currency)
+
+        print("✅ [DefaultGroupRepository] Group created (cache will be invalidated after UserGroup creation)")
+        return groupDomain
     }
 
     func updateGroup(_ group: GroupDomain) async throws {
@@ -53,8 +61,16 @@ final class DefaultGroupRepository: GroupRepository {
     }
 
     func deleteGroup(id: UUID) async throws {
-        // Simple passthrough - Service accepts UUID parameter
+        print("🗑️ [DefaultGroupRepository] deleteGroup() called for ID: \(id.uuidString)")
+
+        // Delete the group
         try await groupService.deleteGroup(groupId: id)
+
+        // ✅ FIX: Invalidate UserGroupService cache so deleted groups don't appear in user's group list
+        // This ensures AddItemListView gets fresh data after group deletion
+        await userGroupService.invalidateGroupsForUserCache()
+
+        print("✅ [DefaultGroupRepository] Group deleted and all related caches invalidated")
     }
 
     func fetchGroups(forUserId userId: UUID) async throws -> [GroupDomain] {

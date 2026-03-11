@@ -36,8 +36,13 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     
     /// Create a new itemList
     func createItemList(description: String?, date: Date, categoryId: UUID, groupId: UUID, paymentMethodId: UUID?) async throws -> ItemList {
-        print("🔄 ItemListService: Creating ItemList with description: \(description ?? "nil")")
-        print("🔄 ItemListService: GroupId: \(groupId), CategoryId: \(categoryId)")
+        print("🎬 [SERVICE] ItemListService.createItemList()")
+        print("   📋 Input Parameters:")
+        print("      - Description: \(description ?? "nil")")
+        print("      - Date: \(date)")
+        print("      - Category ID: \(categoryId)")
+        print("      - Group ID: \(groupId)")
+        print("      - Payment Method ID: \(paymentMethodId?.uuidString ?? "nil")")
         
         let itemList = try await context.perform {
             let itemList = ItemList(context: self.context)
@@ -87,7 +92,8 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             print("   - Group: \(itemList.group?.name ?? "nil") (ID: \(itemList.group?.id?.uuidString ?? "nil"))")
             print("   - Category: \(itemList.category?.name ?? "nil") (ID: \(itemList.category?.id?.uuidString ?? "nil"))")
             print("   - PaymentMethod: \(itemList.paymentMethod?.name ?? "nil") (ID: \(itemList.paymentMethod?.id?.uuidString ?? "nil"))")
-            
+
+            print("✅ [SERVICE] Returning ItemList Core Data entity to Repository")
             return itemList
         }
         

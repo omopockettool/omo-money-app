@@ -386,6 +386,31 @@ class DashboardViewModel: ObservableObject {
         print("📋 [ADD-DOMAIN] Adding ItemList: '\(itemListDesc)'")
         print("🟢 ============================================")
 
+        print("🔙 [CALLBACK] DashboardViewModel.addItemListFromDomain()")
+        print("   📋 Received from: AddItemListView → DashboardView → DashboardViewModel")
+        print("   📋 ItemListDomain Details:")
+        print("      - ID: \(itemListDomain.id)")
+        print("      - Description: \(itemListDomain.itemListDescription)")
+        print("      - Category ID: \(itemListDomain.categoryId?.uuidString ?? "nil")")
+        print("      - Group ID: \(itemListDomain.groupId?.uuidString ?? "nil")")
+
+        // ✅ FIX: Check if ItemList belongs to the current dashboard group
+        guard let currentGroupId = currentGroup?.id else {
+            print("⚠️ [ADD-DOMAIN] No current group selected - skipping")
+            return
+        }
+
+        if itemListDomain.groupId != currentGroupId {
+            print("⚠️ [ADD-DOMAIN] ItemList belongs to different group")
+            print("   - ItemList group: \(itemListDomain.groupId?.uuidString ?? "nil")")
+            print("   - Current dashboard group: \(currentGroupId.uuidString)")
+            print("   - Action: Skipping incremental update (ItemList saved to DB but not shown in current view)")
+            return
+        }
+
+        print("   ✅ ItemList belongs to current group - proceeding with incremental update")
+        print("   🔄 Performing incremental cache update (no DB query)")
+
         // Check if already exists (compare by ID)
         if itemLists.contains(where: { $0.id == itemListDomain.id }) {
             print("⚠️ [ADD-DOMAIN] ItemList already exists in dashboard")
@@ -401,6 +426,8 @@ class DashboardViewModel: ObservableObject {
 
         // Update UI (ViewModel is @MainActor)
         itemLists = sortedItemLists
+        print("   ✅ ItemList added to local itemLists array")
+        print("   🔄 Triggering didSet → updateCurrentMonthCache()")
         await calculateTotalSpent()
 
         print("✅ [ADD-DOMAIN] ItemList added successfully to UI")
@@ -440,8 +467,8 @@ class DashboardViewModel: ObservableObject {
         let totals = await withTaskGroup(of: (UUID, Double).self) { group in
             var results: [UUID: Double] = [:]
 
-            // Add tasks for each ItemList
-            for itemListDomain in itemLists {
+            // Add tasks for each ItemList (current month only)
+            for itemListDomain in currentMonthItemLists {
                 group.addTask {
                     let total = await self.getItemListTotal(itemListDomain)
                     return (itemListDomain.id, total)

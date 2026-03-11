@@ -35,7 +35,6 @@ final class AddItemListViewModel: ObservableObject {
         self.createItemUseCase = createItemUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
-        print("🔄 AddItemListViewModel: Initialized")
     }
 
     /// Convenience initializer using DI Container
@@ -62,13 +61,21 @@ final class AddItemListViewModel: ObservableObject {
     /// Check if price is valid (empty or valid decimal)
     var isPriceValid: Bool {
         if price.isEmpty { return true }
-        return NSDecimalNumber(string: price) != NSDecimalNumber.notANumber
+
+        // ✅ FIX: Normalize comma to period for European decimal format (3,58 → 3.58)
+        let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
+
+        return NSDecimalNumber(string: normalizedPrice) != NSDecimalNumber.notANumber
     }
 
     /// Get price as Decimal, returns nil if empty or invalid
     var priceAsDecimal: Decimal? {
         guard !price.isEmpty else { return nil }
-        guard let decimal = Decimal(string: price) else { return nil }
+
+        // ✅ FIX: Normalize comma to period for European decimal format (3,58 → 3.58)
+        let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
+
+        guard let decimal = Decimal(string: normalizedPrice) else { return nil }
         return decimal
     }
     
@@ -103,7 +110,7 @@ final class AddItemListViewModel: ObservableObject {
 
         isLoading = false
     }
-    
+
     /// Create a new itemList with the specified details
     /// If price is provided, also creates an automatic Item
     /// Returns the created ItemListDomain if successful, nil otherwise
@@ -121,12 +128,6 @@ final class AddItemListViewModel: ObservableObject {
         do {
             let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            print("🔄 AddItemListViewModel: Creating ItemList...")
-            print("📝 Description: \(trimmedDescription)")
-            print("💰 Price: \(price.isEmpty ? "None (ItemList only)" : price)")
-            print("📂 Category ID: \(categoryId)")
-            print("💳 Payment Method ID: \(paymentMethodId?.uuidString ?? "None")")
-
             // Step 1: Create ItemList
             let itemList = try await createItemListUseCase.execute(
                 description: trimmedDescription,
@@ -136,25 +137,16 @@ final class AddItemListViewModel: ObservableObject {
                 groupId: groupId
             )
 
-            print("✅ AddItemListViewModel: ItemList created successfully: \(itemList.itemListDescription)")
-
             // Step 2: If price provided, create automatic Item
             if let priceDecimal = priceAsDecimal {
-                print("🔄 AddItemListViewModel: Creating automatic Item with price: \(priceDecimal)")
-
                 let _ = try await createItemUseCase.execute(
-                    description: trimmedDescription,  // Same description as ItemList
+                    description: trimmedDescription,
                     amount: priceDecimal,
                     quantity: 1,
                     itemListId: itemList.id
                 )
-
-                print("✅ AddItemListViewModel: Automatic Item created successfully")
-            } else {
-                print("ℹ️ AddItemListViewModel: No price provided, ItemList created without Items")
             }
 
-            print("💡 AddItemListViewModel: Returning ItemListDomain for incremental cache update")
             isLoading = false
             return itemList
         } catch {
@@ -165,6 +157,64 @@ final class AddItemListViewModel: ObservableObject {
         }
     }
     
+    /// Validate and correct price input
+    /// - Maximum 10 digits before decimal
+    /// - Maximum 2 decimal places
+    /// - Allows both comma and period as decimal separator
+    func validateAndCorrectPrice() {
+        price = correctPriceInput(price)
+    }
+
+    // MARK: - Private Methods
+
+    /// Correct price input to meet constraints
+    /// - Maximum 10 digits before decimal
+    /// - Maximum 2 decimal places
+    /// - Allows both comma and period as decimal separator
+    private func correctPriceInput(_ input: String) -> String {
+        // Allow empty string
+        if input.isEmpty {
+            return input
+        }
+
+        // Filter: only allow digits, comma, and period
+        let allowedCharacters = CharacterSet(charactersIn: "0123456789.,")
+        var filtered = input.filter { char in
+            return char.unicodeScalars.allSatisfy { allowedCharacters.contains($0) }
+        }
+
+        // Normalize: replace comma with period for consistent handling
+        filtered = filtered.replacingOccurrences(of: ",", with: ".")
+
+        // Handle multiple decimal separators - keep only the first one
+        let components = filtered.components(separatedBy: ".")
+        if components.count > 2 {
+            filtered = components[0] + "." + components[1...].joined()
+        }
+
+        // Split into integer and decimal parts
+        let parts = filtered.components(separatedBy: ".")
+        var integerPart = parts[0]
+        var decimalPart = parts.count > 1 ? parts[1] : ""
+
+        // Limit integer part to 10 digits
+        if integerPart.count > 10 {
+            integerPart = String(integerPart.prefix(10))
+        }
+
+        // Limit decimal part to 2 digits
+        if decimalPart.count > 2 {
+            decimalPart = String(decimalPart.prefix(2))
+        }
+
+        // Reconstruct the string
+        if parts.count > 1 {
+            return integerPart + "." + decimalPart
+        } else {
+            return integerPart
+        }
+    }
+
     /// Clear any error messages
     func clearError() {
         errorMessage = nil

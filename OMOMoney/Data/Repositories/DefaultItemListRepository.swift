@@ -70,10 +70,23 @@ final class DefaultItemListRepository: ItemListRepository {
         paymentMethodId: UUID?,
         groupId: UUID?
     ) async throws -> ItemListDomain {
+        print("🎬 [REPOSITORY] DefaultItemListRepository.createItemList()")
+        print("   📋 Input Parameters:")
+        print("      - Description: \(description)")
+        print("      - Date: \(date)")
+        print("      - Category ID: \(categoryId?.uuidString ?? "nil")")
+        print("      - Payment Method ID: \(paymentMethodId?.uuidString ?? "nil")")
+        print("      - Group ID: \(groupId?.uuidString ?? "nil")")
+
         // The protocol expects non-optional values, so we need to handle nils.
         guard let categoryId = categoryId, let groupId = groupId else {
+            print("❌ [REPOSITORY] Validation failed: categoryId and groupId are required")
             throw NSError(domain: "DefaultItemListRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "categoryId and groupId are required"])
         }
+
+        print("✅ [REPOSITORY] Validation passed: categoryId and groupId present")
+        print("➡️ DefaultItemListRepository → ItemListService")
+
         let itemList = try await itemListService.createItemList(
             description: description,
             date: date,
@@ -81,7 +94,22 @@ final class DefaultItemListRepository: ItemListRepository {
             groupId: groupId,
             paymentMethodId: paymentMethodId
         )
-        return itemList.toDomain()
+
+        print("🔙 ItemListService → DefaultItemListRepository")
+        print("   ✅ ItemList Core Data entity received: ID = \(itemList.id?.uuidString ?? "nil")")
+        print("🔄 [REPOSITORY] Converting Core Data entity → Domain model (.toDomain())")
+
+        let domainModel = itemList.toDomain()
+
+        print("✅ [REPOSITORY] Conversion complete")
+        print("   📋 Domain Model:")
+        print("      - ID: \(domainModel.id)")
+        print("      - Description: \(domainModel.itemListDescription)")
+        print("      - Category ID: \(domainModel.categoryId?.uuidString ?? "nil")")
+        print("      - Payment Method ID: \(domainModel.paymentMethodId?.uuidString ?? "nil")")
+        print("      - Group ID: \(domainModel.groupId?.uuidString ?? "nil")")
+
+        return domainModel
     }
     
     func updateItemList(_ itemList: ItemListDomain) async throws {
