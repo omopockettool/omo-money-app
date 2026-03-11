@@ -10,46 +10,48 @@ import SwiftUI
 struct ExpenseRowView: View {
     let itemList: ItemListDomain
     let formattedAmount: String
-    let categoryName: String?  // ✅ NEW: Pass category info from parent
-    let categoryColor: String?  // ✅ NEW: Pass category color from parent
+    let itemCount: Int
     let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: AppConstants.UserInterface.padding) {
+        HStack(alignment: .center, spacing: AppConstants.UserInterface.padding) {
             // Check mark circle
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
                 .foregroundColor(.green)
 
             // Content area
-            VStack(alignment: .leading, spacing: 4) {
-                // ItemList description
-                Text(itemList.itemListDescription)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 12) {
+                // Top row: description + amount
+                HStack(alignment: .firstTextBaseline) {
+                    Text(itemList.itemListDescription)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
 
-                Spacer()
+                    Spacer()
 
-                // Category tag
-                if let categoryName = categoryName {
-                    Text(categoryName)
+                    Text(formattedAmount)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
+
+                // Bottom row: item count (left) + chevron (right)
+                HStack {
+                    Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
                         .font(.caption)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                        .padding(.vertical, 4)
-                        .background(getCategoryColorFromHex())
-                        .cornerRadius(AppConstants.UserInterface.cornerRadius / 2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
                 }
             }
-
-            Spacer()
-
-            // Amount
-            Text(formattedAmount)
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
         }
         .padding(AppConstants.UserInterface.padding)
         .background(Color(.systemGray5))
@@ -60,21 +62,11 @@ struct ExpenseRowView: View {
         }
     }
     
-    // MARK: - Helper Methods
-
-    /// Get the color from hex string
-    private func getCategoryColorFromHex() -> Color {
-        guard let colorString = categoryColor else {
-            return Color.gray
-        }
-        return Color(hex: colorString) ?? Color.gray
-    }
 }
 
 // MARK: - Preview
 #Preview {
     VStack(spacing: 10) {
-        // Preview with sample data
         ExpenseRowView(
             itemList: ItemListDomain(
                 id: UUID(),
@@ -86,14 +78,10 @@ struct ExpenseRowView: View {
                 createdAt: Date(),
                 lastModifiedAt: nil
             ),
-            formattedAmount: "12.89 €",
-            categoryName: "Hogar",
-            categoryColor: "#4CAF50",
-            onTap: {
-                print("Expense row tapped")
-            }
+            formattedAmount: "12,89 €",
+            itemCount: 1,
+            onTap: {}
         )
-
         ExpenseRowView(
             itemList: ItemListDomain(
                 id: UUID(),
@@ -105,12 +93,9 @@ struct ExpenseRowView: View {
                 createdAt: Date(),
                 lastModifiedAt: nil
             ),
-            formattedAmount: "45.60 €",
-            categoryName: "Alimentación",
-            categoryColor: "#FF9800",
-            onTap: {
-                print("Expense row tapped")
-            }
+            formattedAmount: "45,60 €",
+            itemCount: 3,
+            onTap: {}
         )
     }
     .padding()

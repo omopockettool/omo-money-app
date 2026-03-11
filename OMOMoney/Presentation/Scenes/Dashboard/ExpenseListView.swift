@@ -10,7 +10,7 @@ import SwiftUI
 struct ExpenseListView: View {
     let itemLists: [ItemListDomain]
     let getFormattedAmount: (ItemListDomain) -> String
-    let categories: [UUID: (name: String, color: String)]  // ✅ NEW: Category lookup dictionary
+    let itemListCounts: [UUID: Int]
     let onItemTap: (ItemListDomain) -> Void
     let onRefresh: () async -> Void
     let onDelete: (ItemListDomain) async -> Void
@@ -30,8 +30,7 @@ struct ExpenseListView: View {
                                 ExpenseRowView(
                                     itemList: itemList,
                                     formattedAmount: getFormattedAmount(itemList),
-                                    categoryName: getCategoryName(for: itemList),
-                                    categoryColor: getCategoryColor(for: itemList),
+                                    itemCount: itemListCounts[itemList.id] ?? 0,
                                     onTap: {
                                         onItemTap(itemList)
                                     }
@@ -99,18 +98,6 @@ struct ExpenseListView: View {
     
     // MARK: - Helper Methods
 
-    /// Get category name for an ItemList
-    private func getCategoryName(for itemList: ItemListDomain) -> String? {
-        guard let categoryId = itemList.categoryId else { return nil }
-        return categories[categoryId]?.name
-    }
-
-    /// Get category color for an ItemList
-    private func getCategoryColor(for itemList: ItemListDomain) -> String? {
-        guard let categoryId = itemList.categoryId else { return nil }
-        return categories[categoryId]?.color
-    }
-
     /// Group ItemLists by date for sectioned display
     private var groupedItemLists: [Date: [ItemListDomain]] {
         let calendar = Calendar.current
@@ -144,8 +131,8 @@ struct ExpenseListView: View {
 #Preview {
     ExpenseListView(
         itemLists: [],
-        getFormattedAmount: { _ in "12.89 €" },
-        categories: [:],
+        getFormattedAmount: { _ in "12,89 €" },
+        itemListCounts: [:],
         onItemTap: { _ in },
         onRefresh: { },
         onDelete: { _ in }

@@ -226,38 +226,41 @@ struct ItemRowView: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: AppConstants.UserInterface.padding) {
+            HStack(alignment: .center, spacing: AppConstants.UserInterface.padding) {
                 // Checkmark circle
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.blue)
 
                 // Content area
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.itemDescription)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 8) {
+                    // Top row: description + amount
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(item.itemDescription)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
 
-                    Spacer()
+                        Spacer()
 
-                    // Quantity badge
+                        Text(formattedAmount)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                    }
+
+                    // Bottom row: quantity badge
                     Text("Cantidad: \(item.quantity)")
                         .font(.caption)
                         .foregroundColor(.white)
+                        .lineLimit(1)
                         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
                         .padding(.vertical, 4)
                         .background(Color.blue)
                         .cornerRadius(AppConstants.UserInterface.cornerRadius / 2)
                 }
-
-                Spacer()
-
-                // Amount
-                Text(formattedAmount)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemGray5))

@@ -206,7 +206,7 @@ struct DashboardView: View {
                         return "€0.00"
                     }
                 },
-                categories: viewModel.categories,  // ✅ NEW: Pass categories for display
+                itemListCounts: viewModel.itemListCounts,
                 onItemTap: { itemList in
                     navigationPath.append(itemList)
                 },

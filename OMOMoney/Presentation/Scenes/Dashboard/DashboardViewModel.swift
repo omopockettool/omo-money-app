@@ -22,7 +22,8 @@ class DashboardViewModel: ObservableObject {
     @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
     @Published var itemListTotals: [UUID: Double] = [:]  // ✅ Cache for individual ItemList totals
-    @Published var categories: [UUID: (name: String, color: String)] = [:]  // ✅ NEW: Category lookup for display
+    @Published var itemListCounts: [UUID: Int] = [:]    // ✅ Cache for item counts per ItemList
+    @Published var categories: [UUID: (name: String, color: String)] = [:]  // Category lookup for display
     @Published var isLoading = false
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
@@ -359,10 +360,85 @@ class DashboardViewModel: ObservableObject {
         print("✅ [DashboardVM] removeGroup() completado")
     }
     
-    /// Open settings (placeholder for future settings screen)
+    /// Generate seed data for testing — creates 20 item lists with random items in current group
     func openSettings() {
-        print("🔧 DashboardViewModel: Settings button tapped")
-        // TODO: Navigate to settings screen
+        Task {
+            await generateSeedData()
+        }
+    }
+
+    private func generateSeedData() async {
+        guard let group = currentGroup else {
+            print("⚠️ [SEED] No current group selected")
+            return
+        }
+
+        let container = AppDIContainer.shared
+        let createItemListUseCase = container.makeCreateItemListUseCase()
+        let createItemUseCase = container.makeCreateItemUseCase()
+        let fetchPaymentMethodsUseCase = container.makeFetchPaymentMethodsUseCase()
+
+        do {
+            let categoryIds = Array(categories.keys)
+            guard !categoryIds.isEmpty else {
+                print("⚠️ [SEED] No categories available")
+                return
+            }
+
+            let paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: group.id)
+            guard !paymentMethods.isEmpty else {
+                print("⚠️ [SEED] No payment methods available")
+                return
+            }
+
+            let descriptions = ["Supermercado", "Gasolina", "Restaurante", "Netflix", "Gym",
+                                 "Farmacia", "Amazon", "Electricidad", "Agua", "Internet",
+                                 "Ropa", "Café", "Taxi", "Cine", "Libro",
+                                 "Dentista", "Peluquería", "Comida rápida", "Seguro", "Parking"]
+
+            let calendar = Calendar.current
+            let now = Date()
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            let daysPassed = calendar.dateComponents([.day], from: startOfMonth, to: now).day ?? 0
+
+            print("🌱 [SEED] Generating 20 ItemLists in group '\(group.name)'...")
+
+            for i in 0..<20 {
+                let dayOffset = Int.random(in: 0...max(0, daysPassed))
+                let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonth) ?? now
+                let description = descriptions[i % descriptions.count]
+                let categoryId = categoryIds[Int.random(in: 0..<categoryIds.count)]
+                let paymentMethodId = paymentMethods[Int.random(in: 0..<paymentMethods.count)].id
+                let rawAmount = Double.random(in: 1.0...200.0)
+                let amount = Decimal((rawAmount * 100).rounded() / 100)
+
+                let itemList = try await createItemListUseCase.execute(
+                    description: description,
+                    date: date,
+                    categoryId: categoryId,
+                    paymentMethodId: paymentMethodId,
+                    groupId: group.id
+                )
+
+                let itemSubDescriptions = ["Leche", "Huevos", "Pan", "Agua", "Refresco", "Yogur", "Mantequilla", "Queso", "Jamón", "Fruta"]
+                let itemsToCreate = Int.random(in: 1...10)
+                for j in 0..<itemsToCreate {
+                    let itemAmount = Decimal((Double.random(in: 0.5...50.0) * 100).rounded() / 100)
+                    let _ = try await createItemUseCase.execute(
+                        description: itemSubDescriptions[j % itemSubDescriptions.count],
+                        amount: itemAmount,
+                        quantity: 1,
+                        itemListId: itemList.id
+                    )
+                }
+            }
+
+            print("✅ [SEED] 20 ItemLists created. Refreshing dashboard...")
+            await loadDashboardData()
+
+        } catch {
+            print("❌ [SEED] Error generating seed data: \(error)")
+        }
     }
     
     /// Add ItemList from Domain model using Clean Architecture
@@ -448,29 +524,31 @@ class DashboardViewModel: ObservableObject {
     /// ✅ Clean Architecture: Uses async getItemListTotal for Domain models
     /// ✅ Also populates itemListTotals cache for UI display
     private func calculateTotalSpent() async {
-        // Calculate totals concurrently for better performance
-        let totals = await withTaskGroup(of: (UUID, Double).self) { group in
-            var results: [UUID: Double] = [:]
+        // Calculate totals and counts concurrently for better performance
+        typealias ItemListData = (id: UUID, total: Double, count: Int)
+        let results = await withTaskGroup(of: ItemListData.self) { group in
+            var items: [ItemListData] = []
 
-            // Add tasks for each ItemList (current month only)
             for itemListDomain in currentMonthItemLists {
                 group.addTask {
-                    let total = await self.getItemListTotal(itemListDomain)
-                    return (itemListDomain.id, total)
+                    let (total, count) = await self.getItemListTotalAndCount(itemListDomain)
+                    return (itemListDomain.id, total, count)
                 }
             }
 
-            // Collect results
-            for await (id, total) in group {
-                results[id] = total
+            for await result in group {
+                items.append(result)
             }
 
-            return results
+            return items
         }
 
-        // Update individual ItemList totals cache on main thread
+        let totals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.total) })
+        let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
+
         await MainActor.run {
             itemListTotals = totals
+            itemListCounts = counts
         }
 
         // Sum all totals
@@ -560,6 +638,19 @@ class DashboardViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
+    private func getItemListTotalAndCount(_ itemListDomain: ItemListDomain) async -> (Double, Int) {
+        do {
+            let items = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
+            let total = items.reduce(0.0) { acc, item in
+                let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
+                return value.isFinite ? acc + value : acc
+            }
+            return (total.isFinite ? max(0, total) : 0.0, items.count)
+        } catch {
+            return (0.0, 0)
+        }
+    }
+
     /// ✅ Clean Architecture: Uses Use Case, no Core Data knowledge
     func getItemListTotal(_ itemListDomain: ItemListDomain) async -> Double {
         do {
