@@ -314,98 +314,180 @@ struct AddItemView: View {
         let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
         guard let price = Decimal(string: normalized), price > 0,
               let qty = Int(viewModel.quantity), qty > 1 else {
-            return "Total = Precio (€) × Unidades (uds.)"
+            return ""
         }
         let total = price * Decimal(qty)
         let formatted = NSDecimalNumber(decimal: total).doubleValue
         return "\(viewModel.amount) \(currencySymbol) × \(qty) uds. = \(String(format: "%.2f", formatted)) \(currencySymbol)"
     }
 
+    private var showsTotalPreview: Bool {
+        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
+        guard let price = Decimal(string: normalized), price > 0,
+              let qty = Int(viewModel.quantity), qty > 1 else { return false }
+        return true
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Detalles del Item") {
-                    LabeledContent("Descripción") {
-                        TextField("", text: $viewModel.description)
-                            .multilineTextAlignment(.trailing)
-                            .focused($focusedField, equals: .description)
-                            .onChange(of: viewModel.description) { _, newValue in
-                                if newValue.count > 30 {
-                                    viewModel.description = String(newValue.prefix(30))
-                                }
-                            }
-                    }
-                    LabeledContent("Precio") {
-                        HStack(spacing: 4) {
-                            TextField("0.00", text: $viewModel.amount)
-                                .multilineTextAlignment(.trailing)
-                                .keyboardType(.decimalPad)
-                                .focused($focusedField, equals: .amount)
-                                .onChange(of: viewModel.amount) { _, _ in
-                                    viewModel.validateAndCorrectAmount()
-                                }
-                            Text(currencySymbol)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    LabeledContent("Unidades") {
-                        TextField("1", text: $viewModel.quantity)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.numberPad)
-                            .focused($focusedField, equals: .quantity)
-                            .onChange(of: viewModel.quantity) { _, newValue in
-                                if newValue.count > 5 {
-                                    viewModel.quantity = String(newValue.prefix(5))
-                                }
-                            }
-                    }
+            ScrollView {
+                VStack(spacing: 20) {
+                    descriptionCard
+                    priceCard
+                    quantityCard
+                    if showsTotalPreview { totalPreviewRow }
                 }
-
-                Section {
-                    HStack(spacing: 4) {
-                        Image(systemName: "info.circle")
-                        Text(totalPreviewText)
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .listRowBackground(Color.clear)
-                }
-
-                if let error = viewModel.errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                    }
-                }
+                .padding(AppConstants.UserInterface.padding)
+                .padding(.bottom, 8)
             }
+            .safeAreaInset(edge: .bottom) { bottomBar }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle(viewModel.isEditMode ? "Editar Item" : "Nuevo Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") {
-                        dismiss()
-                    }
-                }
-
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Listo") { focusedField = nil }
                 }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") {
-                        Task {
-                            if let itemDomain = await viewModel.saveItem() {
-                                print("✅ AddItemView: Item saved, calling callback with ItemDomain")
-                                onItemSaved(itemDomain)
-                                dismiss()
-                            }
-                        }
-                    }
-                    .disabled(!viewModel.canSave)
-                }
             }
         }
+    }
+
+    // MARK: - Cards
+
+    private var descriptionCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "text.alignleft")
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            TextField("Descripción", text: $viewModel.description)
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .focused($focusedField, equals: .description)
+                .onChange(of: viewModel.description) { _, newValue in
+                    if newValue.count > 20 { viewModel.description = String(newValue.prefix(20)) }
+                }
+            Text("\(viewModel.description.count)/20")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .monospacedDigit()
+        }
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                .stroke(focusedField == .description ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+        )
+    }
+
+    private var priceCard: some View {
+        HStack(spacing: 12) {
+            Text(currencySymbol)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            TextField("0,00", text: $viewModel.amount)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .keyboardType(.decimalPad)
+                .focused($focusedField, equals: .amount)
+                .onChange(of: viewModel.amount) { _, _ in
+                    viewModel.validateAndCorrectAmount()
+                }
+            Spacer()
+            Text("Requerido")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .opacity(viewModel.amount.isEmpty ? 1 : 0)
+        }
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                .stroke(focusedField == .amount ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+        )
+    }
+
+    private var quantityCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "number")
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            TextField("1", text: $viewModel.quantity)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .keyboardType(.numberPad)
+                .focused($focusedField, equals: .quantity)
+                .onChange(of: viewModel.quantity) { _, newValue in
+                    if newValue.count > 5 { viewModel.quantity = String(newValue.prefix(5)) }
+                }
+            Spacer()
+            Text("uds.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                .stroke(focusedField == .quantity ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+        )
+    }
+
+    private var totalPreviewRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle")
+            Text(totalPreviewText)
+        }
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+    }
+
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Cancelar")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(.white)
+                }
+                .background(Color(.systemGray4))
+                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+
+                Button {
+                    Task {
+                        if let itemDomain = await viewModel.saveItem() {
+                            onItemSaved(itemDomain)
+                            dismiss()
+                        }
+                    }
+                } label: {
+                    Text("Guardar")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(viewModel.canSave ? .white : .secondary)
+                }
+                .background(viewModel.canSave ? Color.accentColor : Color(.tertiarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+                .disabled(!viewModel.canSave)
+                .animation(AnimationHelper.quickEase, value: viewModel.canSave)
+            }
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, AppConstants.UserInterface.padding)
+        }
+        .background(.bar)
     }
 }
 
