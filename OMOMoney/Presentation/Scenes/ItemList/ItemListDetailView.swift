@@ -133,6 +133,7 @@ struct ItemListDetailView: View {
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
+            .ignoresSafeArea(.keyboard)
         }
     }
 

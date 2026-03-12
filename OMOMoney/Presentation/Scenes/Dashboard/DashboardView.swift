@@ -41,7 +41,7 @@ struct DashboardView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            GeometryReader { geometry in
+            ZStack {
                 VStack(spacing: 0) {
                     if viewModel.isLoading {
                         // Solo mostrar splash, sin header
@@ -59,7 +59,7 @@ struct DashboardView: View {
                             }
                         )
                         .background(Color(.systemBackground))
-                        
+
                         errorView(errorMessage)
                     } else {
                         // Header + Main content
@@ -74,12 +74,12 @@ struct DashboardView: View {
                             }
                         )
                         .background(Color(.systemBackground))
-                        
-                        mainContentView(geometry: geometry)
+
+                        mainContentView
                     }
                 }
                 .opacity(viewModel.isLoading ? 1.0 : contentOpacity)
-                
+
                 // Overlay sutil para cambio de grupo (NO splash completo)
                 if viewModel.isChangingGroup {
                     Color.black.opacity(0.3)
@@ -89,7 +89,7 @@ struct DashboardView: View {
                                 ProgressView()
                                     .scaleEffect(1.2)
                                     .tint(.white)
-                                
+
                                 Text("Cambiando grupo...")
                                     .font(.subheadline)
                                     .foregroundColor(.white)
@@ -187,7 +187,7 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    private func mainContentView(geometry: GeometryProxy) -> some View {
+    private var mainContentView: some View {
         VStack(spacing: 0) {
             // Expense list - ONLY this component has refresh behavior
             ExpenseListView(
@@ -262,6 +262,7 @@ struct DashboardView: View {
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
+            .ignoresSafeArea(.keyboard)
         }
     }
     
