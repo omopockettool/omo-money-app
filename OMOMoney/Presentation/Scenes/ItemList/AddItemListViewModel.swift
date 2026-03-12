@@ -61,10 +61,9 @@ final class AddItemListViewModel: ObservableObject {
     /// Check if price is valid (empty or valid decimal)
     var isPriceValid: Bool {
         if price.isEmpty { return true }
-
-        // ✅ FIX: Normalize comma to period for European decimal format (3,58 → 3.58)
         let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
-
+        // Allow trailing decimal separator — user is still typing (e.g. "123.")
+        if normalizedPrice.hasSuffix(".") { return true }
         return NSDecimalNumber(string: normalizedPrice) != NSDecimalNumber.notANumber
     }
 
@@ -164,7 +163,7 @@ final class AddItemListViewModel: ObservableObject {
     }
     
     /// Validate and correct price input
-    /// - Maximum 10 digits before decimal
+    /// - Maximum 7 digits before decimal (9 total including 2 decimals)
     /// - Maximum 2 decimal places
     /// - Allows both comma and period as decimal separator
     func validateAndCorrectPrice() {
@@ -174,7 +173,7 @@ final class AddItemListViewModel: ObservableObject {
     // MARK: - Private Methods
 
     /// Correct price input to meet constraints
-    /// - Maximum 10 digits before decimal
+    /// - Maximum 7 digits before decimal (9 total including 2 decimals, e.g. 1234567.89)
     /// - Maximum 2 decimal places
     /// - Allows both comma and period as decimal separator
     private func correctPriceInput(_ input: String) -> String {
@@ -203,9 +202,9 @@ final class AddItemListViewModel: ObservableObject {
         var integerPart = parts[0]
         var decimalPart = parts.count > 1 ? parts[1] : ""
 
-        // Limit integer part to 10 digits
-        if integerPart.count > 10 {
-            integerPart = String(integerPart.prefix(10))
+        // Limit integer part to 7 digits (9 total including 2 decimals)
+        if integerPart.count > 7 {
+            integerPart = String(integerPart.prefix(7))
         }
 
         // Limit decimal part to 2 digits

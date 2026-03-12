@@ -9,6 +9,7 @@ struct AddItemListView: View {
 
     @StateObject private var viewModel: AddItemListViewModel
     @FocusState private var focusedField: Field?
+    @State private var showDatePicker = false
 
     private enum Field { case description, price }
 
@@ -17,121 +18,65 @@ struct AddItemListView: View {
         self.group = group
         self.onItemListCreated = onItemListCreated
         self.onCancel = onCancel
-        print("🔄 AddItemListView: Initializing with Clean Architecture DI")
         self._viewModel = StateObject(wrappedValue: AddItemListViewModel())
     }
-    
+
+    // MARK: - Computed
+
+    private var currencySymbol: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = group.currency
+        return formatter.currencySymbol
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.locale = Locale(identifier: "es_ES")
+        return formatter.string(from: viewModel.date)
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        Form {
-            Section("Detalles del Gasto") {
-                TextField("Descripción", text: $viewModel.description)
-                    .focused($focusedField, equals: .description)
-                    .onChange(of: viewModel.description) { _, newValue in
-                        if newValue.count > 30 {
-                            viewModel.description = String(newValue.prefix(30))
-                        }
-                    }
-
-                TextField("Precio (opcional)", text: $viewModel.price)
-                    .keyboardType(.decimalPad)
-                    .focused($focusedField, equals: .price)
-                    .onChange(of: viewModel.price) { _, _ in
-                        viewModel.validateAndCorrectPrice()
-                    }
-                    .overlay( 
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(viewModel.isPriceValid ? Color.clear : Color.red, lineWidth: 1)
-                    )
-
-                if !viewModel.price.isEmpty && !viewModel.isPriceValid {
-                    Text("Precio inválido")
-                        .font(.caption)
-                        .foregroundColor(.red)
+        ScrollView {
+            VStack(spacing: 20) {
+                heroPriceSection
+                descriptionCard
+                dateCard
+                if !viewModel.categories.isEmpty {
+                    categorySection
                 }
-
-                DatePicker("Fecha", selection: $viewModel.date, displayedComponents: .date)
-
-                Picker("Categoría", selection: Binding(
-                    get: { viewModel.selectedCategory?.id },
-                    set: { newId in
-                        viewModel.selectedCategory = viewModel.categories.first { $0.id == newId }
-                    }
-                )) {
-                    Text("Seleccionar").tag(nil as UUID?)
-                    ForEach(viewModel.categories, id: \.id) { category in
-                        HStack {
-                            Image(systemName: category.icon)
-                                .foregroundColor(Color(hex: category.color) ?? .gray)
-                            Text(category.name)
-                        }
-                        .tag(category.id as UUID?)
-                    }
+                if !viewModel.paymentMethods.isEmpty {
+                    paymentMethodSection
                 }
-                .pickerStyle(.menu)
-
-                Picker("Pago", selection: Binding(
-                    get: { viewModel.selectedPaymentMethod?.id },
-                    set: { newId in
-                        viewModel.selectedPaymentMethod = viewModel.paymentMethods.first { $0.id == newId }
-                    }
-                )) {
-                    Text("Seleccionar").tag(nil as UUID?)
-                    ForEach(viewModel.paymentMethods, id: \.id) { paymentMethod in
-                        HStack {
-                            Image(systemName: paymentMethod.icon)
-                                .foregroundColor(Color(hex: paymentMethod.color) ?? .gray)
-                            Text(paymentMethod.name)
-                        }
-                        .tag(paymentMethod.id as UUID?)
-                    }
-                }
-                .pickerStyle(.menu)
+                groupBadge
             }
-            .listRowSeparator(.visible)
-
-            Section("Grupo") {
-                HStack {
-                    Image(systemName: "folder.fill")
-                        .foregroundColor(.blue)
-                    Text(group.name)
-                        .foregroundColor(.primary)
-                }
-            }
-
-            if let error = viewModel.errorMessage {
-                Section {
-                    Text(error)
-                        .foregroundColor(.red)
-                }
-            }
+            .padding(AppConstants.UserInterface.padding)
+            .padding(.bottom, 32)
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Nuevo Gasto")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") {
-                    onCancel()
-                }
+                Button("Cancelar") { onCancel() }
             }
-
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Listo") { focusedField = nil }
             }
-
             ToolbarItem(placement: .confirmationAction) {
                 Button("Guardar") {
-                    Task {
-                        await saveItemList()
-                    }
+                    Task { await saveItemList() }
                 }
                 .disabled(!viewModel.canSave)
+                .fontWeight(.semibold)
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.clearError()
-            }
+            Button("OK") { viewModel.clearError() }
         } message: {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
@@ -142,12 +87,223 @@ struct AddItemListView: View {
             await viewModel.loadPaymentMethods(forGroupId: group.id)
         }
     }
-    
+
+    // MARK: - Sections
+
+    private var heroPriceSection: some View {
+        VStack(spacing: 3) {
+            Text(currencySymbol)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+
+            TextField("0,00", text: $viewModel.price)
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundStyle(.secondary)
+                .keyboardType(.decimalPad)
+                .focused($focusedField, equals: .price)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .onChange(of: viewModel.price) { _, _ in
+                    viewModel.validateAndCorrectPrice()
+                }
+
+            Text("(opcional)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, AppConstants.UserInterface.padding)
+        .padding(.bottom, AppConstants.UserInterface.smallPadding)
+        .onTapGesture { focusedField = .price }
+    }
+
+    private var descriptionCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "text.alignleft")
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+
+            TextField("Descripción", text: $viewModel.description)
+                .focused($focusedField, equals: .description)
+                .onChange(of: viewModel.description) { _, newValue in
+                    if newValue.count > 20 {
+                        viewModel.description = String(newValue.prefix(20))
+                    }
+                }
+
+            Text("\(viewModel.description.count)/20")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .monospacedDigit()
+                .animation(AnimationHelper.quickEase, value: viewModel.description.count)
+        }
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                .stroke(focusedField == .description ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                .animation(AnimationHelper.formFocus, value: focusedField == .description)
+        )
+    }
+
+    private var dateCard: some View {
+        VStack(spacing: 0) {
+            Button {
+                focusedField = nil
+                withAnimation(AnimationHelper.smoothSpring) {
+                    showDatePicker.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 20)
+
+                    Text("Fecha")
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    Text(formattedDate)
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+
+                    Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(AppConstants.UserInterface.padding)
+            }
+            .buttonStyle(.plain)
+
+            if showDatePicker {
+                Divider()
+                    .padding(.horizontal, AppConstants.UserInterface.padding)
+                DatePicker("", selection: $viewModel.date, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, AppConstants.UserInterface.smallPadding)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Categoría")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(viewModel.categories.sorted { $0.isDefault && !$1.isDefault }) { category in
+                        let isSelected = viewModel.selectedCategory?.id == category.id
+                        let chipColor = Color(hex: category.color) ?? Color.accentColor
+                        Button {
+                            withAnimation(AnimationHelper.quickSpring) {
+                                viewModel.selectedCategory = category
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: category.icon)
+                                    .font(.subheadline)
+                                    .foregroundStyle(isSelected ? .white : chipColor)
+                                Text(category.name)
+                                    .font(.subheadline)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                    .foregroundStyle(isSelected ? .white : .primary)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var paymentMethodSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Método de pago")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(viewModel.paymentMethods.sorted { $0.isDefault && !$1.isDefault }) { method in
+                        let isSelected = viewModel.selectedPaymentMethod?.id == method.id
+                        let chipColor = Color(hex: method.color) ?? Color.accentColor
+                        Button {
+                            withAnimation(AnimationHelper.quickSpring) {
+                                viewModel.selectedPaymentMethod = method
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: method.icon)
+                                    .font(.subheadline)
+                                    .foregroundStyle(isSelected ? .white : chipColor)
+                                Text(method.name)
+                                    .font(.subheadline)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                    .foregroundStyle(isSelected ? .white : .primary)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var groupBadge: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.2.fill")
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 20)
+            Text("Grupo")
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            Spacer()
+            Text(group.name)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    }
+
     // MARK: - Actions
-    
+
     private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
-
         if let createdItemList = await viewModel.createItemList(
             description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
             date: viewModel.date,
@@ -158,24 +314,17 @@ struct AddItemListView: View {
             onItemListCreated(createdItemList)
         }
     }
-    
 }
 
 #Preview {
-    let user = UserDomain(
-        id: UUID(),
-        name: "Test User",
-        email: "test@example.com"
-    )
-    let group = GroupDomain(
-        id: UUID(),
-        name: "Test Group",
-        currency: "USD"
-    )
-    AddItemListView(
-        user: user,
-        group: group,
-        onItemListCreated: { _ in },
-        onCancel: { }
-    )
+    let user = UserDomain(id: UUID(), name: "Test User", email: "test@example.com")
+    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
+    NavigationStack {
+        AddItemListView(
+            user: user,
+            group: group,
+            onItemListCreated: { _ in },
+            onCancel: { }
+        )
+    }
 }
