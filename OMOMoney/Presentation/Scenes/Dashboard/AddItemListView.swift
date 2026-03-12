@@ -10,6 +10,8 @@ struct AddItemListView: View {
     @StateObject private var viewModel: AddItemListViewModel
     @FocusState private var focusedField: Field?
     @State private var showDatePicker = false
+    @State private var orderedCategories: [CategoryDomain] = []
+    @State private var orderedPaymentMethods: [PaymentMethodDomain] = []
 
     private enum Field { case description, price }
 
@@ -22,6 +24,38 @@ struct AddItemListView: View {
     }
 
     // MARK: - Computed
+
+    private var lastUsedNonDefaultCategoryId: UUID? {
+        UserDefaults.standard
+            .string(forKey: "lastUsedNonDefaultCategoryId_\(group.id.uuidString)")
+            .flatMap { UUID(uuidString: $0) }
+    }
+
+    private var lastUsedNonDefaultPaymentMethodId: UUID? {
+        UserDefaults.standard
+            .string(forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
+            .flatMap { UUID(uuidString: $0) }
+    }
+
+    private func sortedCategories() -> [CategoryDomain] {
+        viewModel.categories.sorted {
+            chipRank($0.id, isDefault: $0.isDefault, lastUsed: lastUsedNonDefaultCategoryId) <
+            chipRank($1.id, isDefault: $1.isDefault, lastUsed: lastUsedNonDefaultCategoryId)
+        }
+    }
+
+    private func sortedPaymentMethods() -> [PaymentMethodDomain] {
+        viewModel.paymentMethods.sorted {
+            chipRank($0.id, isDefault: $0.isDefault, lastUsed: lastUsedNonDefaultPaymentMethodId) <
+            chipRank($1.id, isDefault: $1.isDefault, lastUsed: lastUsedNonDefaultPaymentMethodId)
+        }
+    }
+
+    private func chipRank(_ id: UUID, isDefault: Bool, lastUsed: UUID?) -> Int {
+        if isDefault { return 0 }
+        if id == lastUsed { return 1 }
+        return 2
+    }
 
     private var currencySymbol: String {
         let formatter = NumberFormatter()
@@ -43,8 +77,8 @@ struct AddItemListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                heroPriceSection
                 descriptionCard
+                priceCard
                 dateCard
                 if !viewModel.categories.isEmpty {
                     categorySection
@@ -55,25 +89,16 @@ struct AddItemListView: View {
                 groupBadge
             }
             .padding(AppConstants.UserInterface.padding)
-            .padding(.bottom, 32)
+            .padding(.bottom, 8)
         }
+        .safeAreaInset(edge: .bottom) { bottomBar }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Nuevo Gasto")
+        .navigationTitle("Nueva Lista")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") { onCancel() }
-            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Listo") { focusedField = nil }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
-                    Task { await saveItemList() }
-                }
-                .disabled(!viewModel.canSave)
-                .fontWeight(.semibold)
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -86,36 +111,53 @@ struct AddItemListView: View {
         .task {
             await viewModel.loadCategories(forGroupId: group.id)
             await viewModel.loadPaymentMethods(forGroupId: group.id)
+            orderedCategories = sortedCategories()
+            orderedPaymentMethods = sortedPaymentMethods()
         }
     }
 
     // MARK: - Sections
 
-    private var heroPriceSection: some View {
-        VStack(spacing: 3) {
-            Text(currencySymbol)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
+    private var priceCard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Text(currencySymbol)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
 
-            TextField("0,00", text: $viewModel.price)
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .keyboardType(.decimalPad)
-                .focused($focusedField, equals: .price)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .onChange(of: viewModel.price) { _, _ in
-                    viewModel.validateAndCorrectPrice()
-                }
+                TextField("0,00", text: $viewModel.price)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .keyboardType(.decimalPad)
+                    .focused($focusedField, equals: .price)
+                    .onChange(of: viewModel.price) { _, _ in
+                        viewModel.validateAndCorrectPrice()
+                    }
 
-            Text("(opcional)")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                Spacer()
+
+                Text("Opcional")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(AppConstants.UserInterface.padding)
+
+            Divider()
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+            HStack(spacing: 4) {
+                Image(systemName: "info.circle")
+                Text("Si añades un valor se creará un artículo")
+            }
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, AppConstants.UserInterface.smallPadding)
+            
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, AppConstants.UserInterface.padding)
-        .padding(.bottom, AppConstants.UserInterface.smallPadding)
-        .onTapGesture { focusedField = .price }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
     }
 
     private var descriptionCard: some View {
@@ -125,6 +167,9 @@ struct AddItemListView: View {
                 .frame(width: 20)
 
             TextField("Descripción", text: $viewModel.description)
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .fontWeight(.semibold)
                 .focused($focusedField, equals: .description)
                 .onChange(of: viewModel.description) { _, newValue in
                     if newValue.count > 20 {
@@ -162,7 +207,9 @@ struct AddItemListView: View {
                         .frame(width: 20)
 
                     Text("Fecha")
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
 
                     Spacer()
 
@@ -202,12 +249,15 @@ struct AddItemListView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(viewModel.categories.sorted { $0.isDefault && !$1.isDefault }) { category in
+                    ForEach(orderedCategories) { category in
                         let isSelected = viewModel.selectedCategory?.id == category.id
                         let chipColor = Color(hex: category.color) ?? Color.accentColor
                         Button {
                             withAnimation(AnimationHelper.quickSpring) {
                                 viewModel.selectedCategory = category
+                                if !category.isDefault {
+                                    UserDefaults.standard.set(category.id.uuidString, forKey: "lastUsedNonDefaultCategoryId_\(group.id.uuidString)")
+                                }
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -247,12 +297,15 @@ struct AddItemListView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(viewModel.paymentMethods.sorted { $0.isDefault && !$1.isDefault }) { method in
+                    ForEach(orderedPaymentMethods) { method in
                         let isSelected = viewModel.selectedPaymentMethod?.id == method.id
                         let chipColor = Color(hex: method.color) ?? Color.accentColor
                         Button {
                             withAnimation(AnimationHelper.quickSpring) {
                                 viewModel.selectedPaymentMethod = method
+                                if !method.isDefault {
+                                    UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
+                                }
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -299,6 +352,42 @@ struct AddItemListView: View {
         .padding(AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    }
+
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                Button {
+                    onCancel()
+                } label: {
+                    Text("Cancelar")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(.white)
+                }
+                .background(Color(.systemGray4))
+                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+
+                Button {
+                    Task { await saveItemList() }
+                } label: {
+                    Text("Guardar")
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(viewModel.canSave ? .white : .secondary)
+                }
+                .background(viewModel.canSave ? Color.accentColor : Color(.tertiarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+                .disabled(!viewModel.canSave)
+                .animation(AnimationHelper.quickEase, value: viewModel.canSave)
+            }
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, AppConstants.UserInterface.padding)
+        }
+        .background(.bar)
     }
 
     // MARK: - Actions
