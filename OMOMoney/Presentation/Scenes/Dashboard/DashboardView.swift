@@ -158,7 +158,7 @@ struct DashboardView: View {
     // MARK: - Private Views
     
     private var loadingView: some View {
-        SplashView()
+        Color(.systemBackground).ignoresSafeArea()
     }
     
     private func errorView(_ message: String) -> some View {

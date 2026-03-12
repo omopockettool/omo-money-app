@@ -68,9 +68,6 @@ class DashboardViewModel: ObservableObject {
     func loadDashboardData() async {
         print("🔄 DashboardViewModel: loadDashboardData() starting...")
         
-        // Delay mínimo para mostrar el splash screen (mejor UX para branding)
-        let startTime = Date()
-        
         // Update UI on main thread
         await MainActor.run {
             print("🔄 DashboardViewModel: Setting isLoading = true")
@@ -128,14 +125,6 @@ class DashboardViewModel: ObservableObject {
                 } else {
                     print("   ⚠️ ItemList '\(itemList.itemListDescription)' → NO CATEGORY ID!")
                 }
-            }
-
-            // Calcular tiempo transcurrido y esperar si fue muy rápido
-            let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 0.3 // 0.3 segundos mínimo (reducido para mejor UX)
-
-            if elapsed < minimumDisplayTime {
-                try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
             }
 
             // 5. Update UI on main thread (✅ Domain models only!)

@@ -21,10 +21,17 @@ struct DashboardHeaderView: View {
     var body: some View {
         HStack {
             // App title with tap gesture for debug access
-            Text("OMOMoney")
+            Text("OMO")
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
+                .onTapGesture {
+                    handleDebugAccess()
+                }
+            Text("Ni")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
                 .onTapGesture {
                     handleDebugAccess()
                 }

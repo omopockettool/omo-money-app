@@ -84,7 +84,7 @@ extension MainView {
 
             // Calcular tiempo transcurrido y esperar si fue muy rápido
             let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 2.0 // 2 segundos mínimo
+            let minimumDisplayTime: TimeInterval = 1.2
 
             if elapsed < minimumDisplayTime {
                 try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))

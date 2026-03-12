@@ -45,7 +45,7 @@ struct AppContentView: View {
     
     // MARK: - Loading View
     private var loadingView: some View {
-        SplashView()
+        Color(.systemBackground).ignoresSafeArea()
     }
     
     // MARK: - Setup Required View
@@ -86,9 +86,6 @@ extension AppContentView {
         Task {
             isLoading = true
 
-            // Delay mínimo para mostrar el splash screen (mejor UX para branding)
-            let startTime = Date()
-
             do {
                 // ✅ Clean Architecture: Use Use Case instead of Service
                 guard let currentUser = try await getCurrentUserUseCase.execute() else {
@@ -99,14 +96,6 @@ extension AppContentView {
 
                 // ✅ Clean Architecture: Use Use Case to get groups
                 let groups = try await fetchGroupsForUserUseCase.execute(userId: currentUser.id)
-
-                // Calcular tiempo transcurrido y esperar si fue muy rápido
-                let elapsed = Date().timeIntervalSince(startTime)
-                let minimumDisplayTime: TimeInterval = 1.5 // 1.5 segundos mínimo
-
-                if elapsed < minimumDisplayTime {
-                    try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
-                }
 
                 await MainActor.run {
                     selectedUser = currentUser
