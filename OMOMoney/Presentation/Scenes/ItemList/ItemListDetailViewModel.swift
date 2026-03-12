@@ -167,6 +167,19 @@ class ItemListDetailViewModel: ObservableObject {
 
     // MARK: - Formatting Helpers
 
+    private func makeCurrencyFormatter() -> NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "es_ES")
+        let sym = NumberFormatter()
+        sym.numberStyle = .currency
+        sym.currencyCode = currencyCode
+        sym.locale = Locale(identifier: "en_US")
+        formatter.currencySymbol = sym.currencySymbol
+        return formatter
+    }
+
     /// Get formatted total for all items in this ItemList
     /// ✅ Clean Architecture: Works with Domain models only
     func getFormattedTotal() -> String {
@@ -174,25 +187,13 @@ class ItemListDetailViewModel: ObservableObject {
             let itemTotal = item.amount * Decimal(item.quantity)
             return result + itemTotal
         }
-
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        formatter.locale = Locale(identifier: "es_ES")
-
-        return formatter.string(from: total as NSDecimalNumber) ?? "\(total) \(currencyCode)"
+        return makeCurrencyFormatter().string(from: total as NSDecimalNumber) ?? "\(total) \(currencyCode)"
     }
 
     /// Get formatted amount for a specific item
     /// ✅ Clean Architecture: Works with Domain models only
     func getFormattedAmount(_ itemDomain: ItemDomain) -> String {
         let itemTotal = itemDomain.amount * Decimal(itemDomain.quantity)
-
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        formatter.locale = Locale(identifier: "es_ES")
-
-        return formatter.string(from: itemTotal as NSDecimalNumber) ?? "\(itemTotal) \(currencyCode)"
+        return makeCurrencyFormatter().string(from: itemTotal as NSDecimalNumber) ?? "\(itemTotal) \(currencyCode)"
     }
 }

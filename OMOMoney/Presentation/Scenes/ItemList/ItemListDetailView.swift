@@ -303,7 +303,11 @@ struct AddItemView: View {
     }
 
     private var currencySymbol: String {
-        Locale.current.localizedString(forCurrencyCode: currencyCode) ?? currencyCode
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "en_US")
+        return formatter.currencySymbol
     }
 
     private var totalPreviewText: String {

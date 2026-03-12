@@ -195,10 +195,16 @@ struct DashboardView: View {
                 getFormattedAmount: { itemList in
                     // ✅ Use cached total from itemListTotals dictionary
                     if let total = viewModel.itemListTotals[itemList.id] {
+                        let code = viewModel.currentGroup?.currency ?? "EUR"
                         let formatter = NumberFormatter()
                         formatter.numberStyle = .currency
-                        formatter.currencyCode = viewModel.currentGroup?.currency ?? "EUR"
+                        formatter.currencyCode = code
                         formatter.locale = Locale(identifier: "es_ES")
+                        let sym = NumberFormatter()
+                        sym.numberStyle = .currency
+                        sym.currencyCode = code
+                        sym.locale = Locale(identifier: "en_US")
+                        formatter.currencySymbol = sym.currencySymbol
                         return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
                     } else {
                         // This should not happen after the currentMonthCache fix

@@ -27,6 +27,7 @@ struct AddItemListView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = group.currency
+        formatter.locale = Locale(identifier: "en_US")
         return formatter.currencySymbol
     }
 

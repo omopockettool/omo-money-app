@@ -571,7 +571,23 @@ class DashboardViewModel: ObservableObject {
     }
     
     // MARK: - Helper Methods
-    
+
+    /// Returns a NumberFormatter using es_ES number formatting but with the native
+    /// currency symbol (e.g. "$" for USD instead of "US$" from the Spanish locale).
+    private func makeCurrencyFormatter() -> NumberFormatter {
+        let code = currentGroup?.currency ?? "EUR"
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = code
+        formatter.locale = Locale(identifier: "es_ES")
+        let sym = NumberFormatter()
+        sym.numberStyle = .currency
+        sym.currencyCode = code
+        sym.locale = Locale(identifier: "en_US")
+        formatter.currencySymbol = sym.currencySymbol
+        return formatter
+    }
+
     /// Get formatted total spent string
     var formattedTotalSpent: String {
         // Protect against NaN before formatting
@@ -580,11 +596,7 @@ class DashboardViewModel: ObservableObject {
             return "€0.00"
         }
         
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currentGroup?.currency ?? "EUR"
-        formatter.locale = Locale(identifier: "es_ES") // Spanish locale for Euro formatting
-        
+        let formatter = makeCurrencyFormatter()
         let formattedValue = formatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
         
         // Debug: Verify the formatted string is valid
@@ -697,11 +709,7 @@ class DashboardViewModel: ObservableObject {
             return "€0.00"
         }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currentGroup?.currency ?? "EUR"
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
+        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
     }
 
     /// Delete an ItemListDomain (Domain model version)
