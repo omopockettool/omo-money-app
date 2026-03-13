@@ -91,7 +91,11 @@ struct AddItemListView: View {
             .padding(AppConstants.UserInterface.padding)
             .padding(.bottom, 8)
         }
-        .safeAreaInset(edge: .bottom) { bottomBar }
+        .safeAreaInset(edge: .bottom) {
+            bottomBar
+                .opacity(focusedField == nil ? 1 : 0)
+                .allowsHitTesting(focusedField == nil)
+        }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Nueva Lista")
         .navigationBarTitleDisplayMode(.inline)

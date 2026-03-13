@@ -129,6 +129,7 @@ struct DashboardView: View {
                             }
                         )
                     }
+                    .ignoresSafeArea(.keyboard)
                 }
             }
         }
@@ -262,7 +263,6 @@ struct DashboardView: View {
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
-            .ignoresSafeArea(.keyboard)
         }
     }
     
