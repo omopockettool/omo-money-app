@@ -97,7 +97,7 @@ struct AddItemListView: View {
                 .allowsHitTesting(focusedField == nil)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Nueva Lista")
+        .navigationTitle("Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -151,7 +151,7 @@ struct AddItemListView: View {
                 .padding(.horizontal, AppConstants.UserInterface.padding)
             HStack(spacing: 4) {
                 Image(systemName: "info.circle")
-                Text("Si añades un valor se creará un artículo")
+                Text("Precio del registro (crea un artículo automáticamente)")
             }
             .font(.caption)
             .foregroundStyle(.tertiary)
