@@ -129,7 +129,6 @@ struct DashboardView: View {
                             }
                         )
                     }
-                    .ignoresSafeArea(.keyboard)
                 }
             }
         }
@@ -264,8 +263,9 @@ struct DashboardView: View {
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
         }
+        .ignoresSafeArea(.keyboard)
     }
-    
+
     // MARK: - Debug Helper
     
     /// Debug function to log all entities in the database (moved from AppContentView)

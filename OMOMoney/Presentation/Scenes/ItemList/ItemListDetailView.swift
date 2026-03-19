@@ -86,6 +86,7 @@ struct ItemListDetailView: View {
                 AddItemView(
                     itemListId: itemListDomain.id,
                     itemToEdit: nil,
+                    itemListDescription: itemListDomain.itemListDescription,
                     currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
@@ -99,6 +100,7 @@ struct ItemListDetailView: View {
                 AddItemView(
                     itemListId: itemListDomain.id,
                     itemToEdit: item,
+                    itemListDescription: itemListDomain.itemListDescription,
                     currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
@@ -134,6 +136,7 @@ struct ItemListDetailView: View {
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.systemBackground))
         }
+        .ignoresSafeArea(.keyboard)
     }
 
     private var itemsListView: some View {
@@ -281,12 +284,12 @@ struct AddItemView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddItemViewModel
     @FocusState private var focusedField: Field?
-
     private enum Field { case description, amount, quantity }
 
     init(
         itemListId: UUID,
         itemToEdit: ItemDomain? = nil,
+        itemListDescription: String,
         currencyCode: String = "EUR",
         onItemSaved: @escaping (ItemDomain) -> Void,
         createItemUseCase: CreateItemUseCase,
@@ -297,6 +300,7 @@ struct AddItemView: View {
         self._viewModel = StateObject(wrappedValue: AddItemViewModel(
             itemListId: itemListId,
             itemToEdit: itemToEdit,
+            itemListDescription: itemListDescription,
             createItemUseCase: createItemUseCase,
             updateItemUseCase: updateItemUseCase
         ))
@@ -340,18 +344,30 @@ struct AddItemView: View {
                 .padding(AppConstants.UserInterface.padding)
                 .padding(.bottom, 8)
             }
-            .safeAreaInset(edge: .bottom) { bottomBar }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(viewModel.isEditMode ? "Editar Item" : "Nuevo Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") {
+                        Task {
+                            if let itemDomain = await viewModel.saveItem() {
+                                onItemSaved(itemDomain)
+                                dismiss()
+                            }
+                        }
+                    }
+                    .disabled(!viewModel.canSave)
+                }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Listo") { focusedField = nil }
                 }
             }
         }
-        .ignoresSafeArea(.keyboard)
     }
 
     // MARK: - Cards
@@ -369,7 +385,7 @@ struct AddItemView: View {
                 .onChange(of: viewModel.description) { _, newValue in
                     if newValue.count > 20 { viewModel.description = String(newValue.prefix(20)) }
                 }
-            Text("\(viewModel.description.count)/20")
+            Text(viewModel.description.isEmpty ? "Opcional" : "\(viewModel.description.count)/20")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .monospacedDigit()
@@ -398,8 +414,8 @@ struct AddItemView: View {
                     viewModel.validateAndCorrectAmount()
                 }
             Spacer()
-            Text("Requerido")
-                .font(.caption)
+            Text("Opcional")
+                .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .opacity(viewModel.amount.isEmpty ? 1 : 0)
         }
@@ -450,46 +466,6 @@ struct AddItemView: View {
         .padding(.horizontal, 4)
     }
 
-    private var bottomBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 12) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Cancelar")
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .foregroundStyle(.white)
-                }
-                .background(Color(.systemGray4))
-                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-
-                Button {
-                    Task {
-                        if let itemDomain = await viewModel.saveItem() {
-                            onItemSaved(itemDomain)
-                            dismiss()
-                        }
-                    }
-                } label: {
-                    Text("Guardar")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .foregroundStyle(viewModel.canSave ? .white : .secondary)
-                }
-                .background(viewModel.canSave ? Color.accentColor : Color(.tertiarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-                .disabled(!viewModel.canSave)
-                .animation(AnimationHelper.quickEase, value: viewModel.canSave)
-            }
-            .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.vertical, AppConstants.UserInterface.padding)
-        }
-        .background(.bar)
-    }
 }
 
 // MARK: - Preview

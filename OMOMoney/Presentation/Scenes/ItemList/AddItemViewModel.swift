@@ -20,6 +20,7 @@ final class AddItemViewModel: ObservableObject {
     // MARK: - Dependencies
     private let itemListId: UUID
     private let itemToEdit: ItemDomain?
+    private let itemListDescription: String
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
 
@@ -27,20 +28,22 @@ final class AddItemViewModel: ObservableObject {
     var isEditMode: Bool { itemToEdit != nil }
 
     var canSave: Bool {
-        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !quantity.isEmpty &&
-        !isSaving
+        let hasDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasAmount = !amount.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return (hasDescription || hasAmount) && !quantity.isEmpty && !isSaving
     }
 
     // MARK: - Initialization
     init(
         itemListId: UUID,
         itemToEdit: ItemDomain? = nil,
+        itemListDescription: String,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
         self.itemListId = itemListId
         self.itemToEdit = itemToEdit
+        self.itemListDescription = itemListDescription
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
 
@@ -57,6 +60,10 @@ final class AddItemViewModel: ObservableObject {
     /// Save the item (create or update)
     /// Returns ItemDomain for incremental cache update (following ItemList pattern)
     func saveItem() async -> ItemDomain? {
+        // Resolve description: fall back to itemList name if user left it blank
+        let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalDescription = trimmed.isEmpty ? itemListDescription : trimmed
+
         // Normalize: replace comma with period for decimal parsing
         let normalizedAmount = amount.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: normalizedAmount) ?? Decimal(0))
@@ -76,7 +83,7 @@ final class AddItemViewModel: ObservableObject {
                 // Edit mode - use Update Use Case
                 let updatedItemDomain = ItemDomain(
                     id: existingItem.id,
-                    itemDescription: description,
+                    itemDescription: finalDescription,
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId,
@@ -91,7 +98,7 @@ final class AddItemViewModel: ObservableObject {
             } else {
                 // Create mode - use Create Use Case
                 itemDomain = try await createItemUseCase.execute(
-                    description: description,
+                    description: finalDescription,
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId

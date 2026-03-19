@@ -91,15 +91,19 @@ struct AddItemListView: View {
             .padding(AppConstants.UserInterface.padding)
             .padding(.bottom, 8)
         }
-        .safeAreaInset(edge: .bottom) {
-            bottomBar
-                .opacity(focusedField == nil ? 1 : 0)
-                .allowsHitTesting(focusedField == nil)
-        }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancelar") { onCancel() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Guardar") {
+                    Task { await saveItemList() }
+                }
+                .disabled(!viewModel.canSave)
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Listo") { focusedField = nil }
@@ -142,7 +146,7 @@ struct AddItemListView: View {
                 Spacer()
 
                 Text("Opcional")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
             .padding(AppConstants.UserInterface.padding)
@@ -356,42 +360,6 @@ struct AddItemListView: View {
         .padding(AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-    }
-
-    private var bottomBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 12) {
-                Button {
-                    onCancel()
-                } label: {
-                    Text("Cancelar")
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .foregroundStyle(.white)
-                }
-                .background(Color(.systemGray4))
-                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-
-                Button {
-                    Task { await saveItemList() }
-                } label: {
-                    Text("Guardar")
-                        .fontWeight(.medium)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .foregroundStyle(viewModel.canSave ? .white : .secondary)
-                }
-                .background(viewModel.canSave ? Color.accentColor : Color(.tertiarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-                .disabled(!viewModel.canSave)
-                .animation(AnimationHelper.quickEase, value: viewModel.canSave)
-            }
-            .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.vertical, AppConstants.UserInterface.padding)
-        }
-        .background(.bar)
     }
 
     // MARK: - Actions
