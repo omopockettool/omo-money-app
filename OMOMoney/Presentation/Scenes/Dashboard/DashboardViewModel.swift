@@ -646,7 +646,8 @@ class DashboardViewModel: ObservableObject {
                 let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
                 return value.isFinite ? acc + value : acc
             }
-            return (total.isFinite ? max(0, total) : 0.0, items.count)
+            let totalUnits = items.reduce(0) { $0 + Int($1.quantity) }
+            return (total.isFinite ? max(0, total) : 0.0, totalUnits)
         } catch {
             return (0.0, 0)
         }
