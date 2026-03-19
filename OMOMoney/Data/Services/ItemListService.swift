@@ -140,9 +140,14 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             try self.context.save()
         }
         
-        // 🎯 INCREMENTAL CACHE STRATEGY: NO invalidate cache here
-        // The ViewModel will handle incremental cache updates
-        print("💡 ItemListService: Using incremental cache - NOT invalidating group cache after update")
+        // ✅ INVALIDATE CACHE: Essential for refreshData() to get correct data
+        if let groupId = itemList.group?.id {
+            let cacheKey = "\(CacheKeys.groupItemLists).\(groupId.uuidString)"
+            let timestampKey = "\(cacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: cacheKey)
+            await CacheManager.shared.clearDataCache(for: timestampKey)
+            print("🗑️ ItemListService: Cache invalidated for group after update")
+        }
     }
     
     /// Delete an itemList

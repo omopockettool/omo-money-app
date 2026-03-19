@@ -113,23 +113,20 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func updateItemList(_ itemList: ItemListDomain) async throws {
-        // Fetch and update on background thread
-        try await context.perform {
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", itemList.id as CVarArg)
-
-            guard let coreDataItemList = try self.context.fetch(fetchRequest).first else {
-                throw RepositoryError.notFound
-            }
-
-            // Update the entity
-            coreDataItemList.itemListDescription = itemList.itemListDescription
-            coreDataItemList.date = itemList.date
-            coreDataItemList.lastModifiedAt = Date()
-
-            // Save context
-            try self.context.save()
+        guard let coreDataItemList = try await itemListService.fetchItemList(by: itemList.id) else {
+            throw RepositoryError.notFound
         }
+        guard let categoryId = itemList.categoryId else {
+            throw RepositoryError.invalidData
+        }
+        // Route through service: handles category/paymentMethod fields + cache invalidation
+        try await itemListService.updateItemList(
+            coreDataItemList,
+            description: itemList.itemListDescription,
+            date: itemList.date,
+            categoryId: categoryId,
+            paymentMethodId: itemList.paymentMethodId
+        )
     }
     
     func deleteItemList(id: UUID) async throws {

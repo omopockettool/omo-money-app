@@ -12,9 +12,16 @@ import SwiftUI
 struct ItemListDetailNavigationWrapper: View {
     let itemListDomain: ItemListDomain
     let currencyCode: String
+    let group: GroupDomain
+    let onItemListUpdated: (ItemListDomain) -> Void
 
     var body: some View {
-        ItemListDetailView(itemListDomain: itemListDomain, currencyCode: currencyCode)
+        ItemListDetailView(
+            itemListDomain: itemListDomain,
+            currencyCode: currencyCode,
+            group: group,
+            onItemListUpdated: onItemListUpdated
+        )
     }
 }
 
@@ -102,17 +109,21 @@ struct DashboardView: View {
             .background(Color(.systemBackground))
             .navigationDestination(for: ItemListDomain.self) { itemListDomain in
                 // ✅ Clean Architecture: Navigate with Domain model and currency
-                ItemListDetailNavigationWrapper(
-                    itemListDomain: itemListDomain,
-                    currencyCode: viewModel.currentGroup?.currency ?? "EUR"
-                )
+                if let group = viewModel.currentGroup {
+                    ItemListDetailNavigationWrapper(
+                        itemListDomain: itemListDomain,
+                        currencyCode: group.currency,
+                        group: group,
+                        onItemListUpdated: { updated in
+                            Task { await viewModel.updateItemListDomain(updated) }
+                        }
+                    )
+                }
             }
             .sheet(isPresented: $showingAddItemList) {
-                if let user = viewModel.currentUser,
-                   let group = viewModel.currentGroup {
+                if let group = viewModel.currentGroup {
                     NavigationStack {
                         AddItemListView(
-                            user: user,  // ✅ Already a Domain model
                             group: group,  // ✅ Already a Domain model
                             onItemListCreated: { createdItemList in
                                 print("🔄 DashboardView: onItemListCreated callback triggered")

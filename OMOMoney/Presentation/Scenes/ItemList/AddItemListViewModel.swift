@@ -4,7 +4,7 @@ import Foundation
 /// ✅ Clean Architecture: ViewModel works with Domain models only
 @MainActor
 final class AddItemListViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
     // ✅ Clean Architecture: Use Domain models, not Core Data entities
     @Published var categories: [CategoryDomain] = []
@@ -20,34 +20,52 @@ final class AddItemListViewModel: ObservableObject {
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
     private let createItemUseCase: CreateItemUseCase
+    private let updateItemListUseCase: UpdateItemListUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
+    private let itemListToEdit: ItemListDomain?
+
+    // MARK: - Computed
+
+    var isEditMode: Bool { itemListToEdit != nil }
 
     // MARK: - Initialization
 
     init(
+        itemListToEdit: ItemListDomain? = nil,
         createItemListUseCase: CreateItemListUseCase,
         createItemUseCase: CreateItemUseCase,
+        updateItemListUseCase: UpdateItemListUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
         fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
     ) {
+        self.itemListToEdit = itemListToEdit
         self.createItemListUseCase = createItemListUseCase
         self.createItemUseCase = createItemUseCase
+        self.updateItemListUseCase = updateItemListUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
+
+        // Pre-populate fields when editing
+        if let toEdit = itemListToEdit {
+            self.description = toEdit.itemListDescription
+            self.date = toEdit.date
+        }
     }
 
     /// Convenience initializer using DI Container
-    convenience init() {
+    convenience init(itemListToEdit: ItemListDomain? = nil) {
         let appContainer = AppDIContainer.shared
         self.init(
+            itemListToEdit: itemListToEdit,
             createItemListUseCase: appContainer.makeCreateItemListUseCase(),
             createItemUseCase: appContainer.makeCreateItemUseCase(),
+            updateItemListUseCase: appContainer.makeUpdateItemListUseCase(),
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
             fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase()
         )
     }
-    
+
     // MARK: - Computed Properties
 
     /// Check if the form can be saved
@@ -77,9 +95,9 @@ final class AddItemListViewModel: ObservableObject {
         guard let decimal = Decimal(string: normalizedPrice) else { return nil }
         return decimal
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Load categories for the specified group
     /// ✅ Clean Architecture: Accept UUID, use Use Case to fetch Domain models
     func loadCategories(forGroupId groupId: UUID) async {
@@ -88,7 +106,12 @@ final class AddItemListViewModel: ObservableObject {
 
         do {
             categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
-            if selectedCategory == nil {
+            if isEditMode {
+                // Pre-select the existing category when editing
+                selectedCategory = categories.first { $0.id == itemListToEdit?.categoryId }
+                    ?? categories.first { $0.isDefault }
+                    ?? categories.first
+            } else if selectedCategory == nil {
                 selectedCategory = categories.first { $0.isDefault } ?? categories.first
             }
         } catch {
@@ -97,7 +120,7 @@ final class AddItemListViewModel: ObservableObject {
 
         isLoading = false
     }
-    
+
     /// Load active payment methods for the specified group
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case instead of Service
     func loadPaymentMethods(forGroupId groupId: UUID) async {
@@ -106,7 +129,12 @@ final class AddItemListViewModel: ObservableObject {
 
         do {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
-            if selectedPaymentMethod == nil {
+            if isEditMode {
+                // Pre-select the existing payment method when editing
+                selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethodId }
+                    ?? paymentMethods.first { $0.isDefault }
+                    ?? paymentMethods.first
+            } else if selectedPaymentMethod == nil {
                 selectedPaymentMethod = paymentMethods.first { $0.isDefault } ?? paymentMethods.first
             }
         } catch {
@@ -161,7 +189,37 @@ final class AddItemListViewModel: ObservableObject {
             return nil
         }
     }
-    
+
+    /// Update the existing itemList with current form values
+    /// Returns the updated ItemListDomain if successful, nil otherwise
+    func updateItemList(groupId: UUID) async -> ItemListDomain? {
+        guard let toEdit = itemListToEdit,
+              let category = selectedCategory else { return nil }
+        isLoading = true
+        errorMessage = nil
+
+        let updated = ItemListDomain(
+            id: toEdit.id,
+            itemListDescription: description.trimmingCharacters(in: .whitespacesAndNewlines),
+            date: date,
+            categoryId: category.id,
+            paymentMethodId: selectedPaymentMethod?.id,
+            groupId: toEdit.groupId,
+            createdAt: toEdit.createdAt,
+            lastModifiedAt: Date()
+        )
+
+        do {
+            try await updateItemListUseCase.execute(updated)
+            isLoading = false
+            return updated
+        } catch {
+            errorMessage = "Error al actualizar: \(error.localizedDescription)"
+            isLoading = false
+            return nil
+        }
+    }
+
     /// Validate and correct price input
     /// - Maximum 7 digits before decimal (9 total including 2 decimals)
     /// - Maximum 2 decimal places

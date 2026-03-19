@@ -2,9 +2,9 @@ import SwiftUI
 
 /// ✅ Clean Architecture: Works with Domain models only, no Core Data dependencies
 struct AddItemListView: View {
-    let user: UserDomain
     let group: GroupDomain
     let onItemListCreated: (ItemListDomain) -> Void
+    let onItemListUpdated: ((ItemListDomain) -> Void)?
     let onCancel: () -> Void
 
     @StateObject private var viewModel: AddItemListViewModel
@@ -15,12 +15,18 @@ struct AddItemListView: View {
 
     private enum Field { case description, price }
 
-    init(user: UserDomain, group: GroupDomain, onItemListCreated: @escaping (ItemListDomain) -> Void, onCancel: @escaping () -> Void) {
-        self.user = user
+    init(
+        group: GroupDomain,
+        itemListToEdit: ItemListDomain? = nil,
+        onItemListCreated: @escaping (ItemListDomain) -> Void,
+        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        onCancel: @escaping () -> Void
+    ) {
         self.group = group
         self.onItemListCreated = onItemListCreated
+        self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel())
+        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit))
     }
 
     // MARK: - Computed
@@ -78,7 +84,7 @@ struct AddItemListView: View {
         ScrollView {
             VStack(spacing: 20) {
                 descriptionCard
-                priceCard
+                if !viewModel.isEditMode { priceCard }
                 dateCard
                 if !viewModel.categories.isEmpty {
                     categorySection
@@ -92,7 +98,7 @@ struct AddItemListView: View {
             .padding(.bottom, 8)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Nuevo Registro")
+        .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -162,7 +168,7 @@ struct AddItemListView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.vertical, AppConstants.UserInterface.smallPadding)
-            
+
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
@@ -366,24 +372,28 @@ struct AddItemListView: View {
 
     private func saveItemList() async {
         guard let category = viewModel.selectedCategory else { return }
-        if let createdItemList = await viewModel.createItemList(
-            description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
-            date: viewModel.date,
-            categoryId: category.id,
-            groupId: group.id,
-            paymentMethodId: viewModel.selectedPaymentMethod?.id
-        ) {
-            onItemListCreated(createdItemList)
+        if viewModel.isEditMode {
+            if let updated = await viewModel.updateItemList(groupId: group.id) {
+                onItemListUpdated?(updated)
+            }
+        } else {
+            if let created = await viewModel.createItemList(
+                description: viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines),
+                date: viewModel.date,
+                categoryId: category.id,
+                groupId: group.id,
+                paymentMethodId: viewModel.selectedPaymentMethod?.id
+            ) {
+                onItemListCreated(created)
+            }
         }
     }
 }
 
 #Preview {
-    let user = UserDomain(id: UUID(), name: "Test User", email: "test@example.com")
     let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
     NavigationStack {
         AddItemListView(
-            user: user,
             group: group,
             onItemListCreated: { _ in },
             onCancel: { }

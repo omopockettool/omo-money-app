@@ -11,15 +11,19 @@ import SwiftUI
 struct ItemListDetailView: View {
     let itemListDomain: ItemListDomain
     let currencyCode: String
+    let group: GroupDomain
+    let onItemListUpdated: ((ItemListDomain) -> Void)?
 
     @StateObject private var viewModel: ItemListDetailViewModel
-    @State private var sheetMode: ItemSheetMode?  // UI state only
-    @State private var hasLoadedInitialData = false  // Track if we've loaded data already
+    @State private var sheetMode: ItemSheetMode?
+    @State private var hasLoadedInitialData = false
+    @State private var currentItemList: ItemListDomain  // reactive source of truth for title/metadata
 
     // MARK: - Sheet Mode (UI State)
     enum ItemSheetMode: Identifiable {
         case create
         case edit(ItemDomain)
+        case editRegistry
 
         var id: String {
             switch self {
@@ -27,13 +31,23 @@ struct ItemListDetailView: View {
                 return "create"
             case .edit(let item):
                 return "edit-\(item.id)"
+            case .editRegistry:
+                return "editRegistry"
             }
         }
     }
 
-    init(itemListDomain: ItemListDomain, currencyCode: String = "EUR") {
+    init(
+        itemListDomain: ItemListDomain,
+        currencyCode: String = "EUR",
+        group: GroupDomain,
+        onItemListUpdated: ((ItemListDomain) -> Void)? = nil
+    ) {
         self.itemListDomain = itemListDomain
         self.currencyCode = currencyCode
+        self.group = group
+        self.onItemListUpdated = onItemListUpdated
+        self._currentItemList = State(initialValue: itemListDomain)
 
         // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
@@ -59,8 +73,19 @@ struct ItemListDetailView: View {
                 mainContentView
             }
         }
-        .navigationTitle(itemListDomain.itemListDescription)
+        .navigationTitle(currentItemList.itemListDescription)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Editar Registro", systemImage: "pencil") {
+                        sheetMode = .editRegistry
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
         .onAppear {
             // Only load data on first appearance to avoid DB query on sheet dismiss
             guard !hasLoadedInitialData else {
@@ -84,9 +109,9 @@ struct ItemListDetailView: View {
             switch mode {
             case .create:
                 AddItemView(
-                    itemListId: itemListDomain.id,
+                    itemListId: currentItemList.id,
                     itemToEdit: nil,
-                    itemListDescription: itemListDomain.itemListDescription,
+                    itemListDescription: currentItemList.itemListDescription,
                     currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
@@ -98,9 +123,9 @@ struct ItemListDetailView: View {
                 )
             case .edit(let item):
                 AddItemView(
-                    itemListId: itemListDomain.id,
+                    itemListId: currentItemList.id,
                     itemToEdit: item,
-                    itemListDescription: itemListDomain.itemListDescription,
+                    itemListDescription: currentItemList.itemListDescription,
                     currencyCode: currencyCode,
                     onItemSaved: { itemDomain in
                         Task {
@@ -110,6 +135,20 @@ struct ItemListDetailView: View {
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
                 )
+            case .editRegistry:
+                NavigationStack {
+                    AddItemListView(
+                        group: group,
+                        itemListToEdit: currentItemList,
+                        onItemListCreated: { _ in },
+                        onItemListUpdated: { updated in
+                            currentItemList = updated
+                            onItemListUpdated?(updated)
+                            sheetMode = nil
+                        },
+                        onCancel: { sheetMode = nil }
+                    )
+                }
             }
         }
     }
@@ -480,8 +519,13 @@ struct AddItemView: View {
         createdAt: Date(),
         lastModifiedAt: nil
     )
+    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
 
     return NavigationStack {
-        ItemListDetailView(itemListDomain: itemListDomain, currencyCode: "EUR")
+        ItemListDetailView(
+            itemListDomain: itemListDomain,
+            currencyCode: "EUR",
+            group: group
+        )
     }
 }
