@@ -62,6 +62,11 @@ struct AddItemListView: View {
         id == lastUsed ? 0 : 1
     }
 
+    private var amountFontSize: CGFloat {
+        let count = CGFloat(viewModel.price.count)
+        return max(30, 54 - (count / 9) * 24)
+    }
+
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -84,6 +89,7 @@ struct AddItemListView: View {
     // MARK: - Body
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 20) {
                 if !viewModel.isEditMode {
@@ -97,6 +103,14 @@ struct AddItemListView: View {
             .padding(AppConstants.UserInterface.padding)
             .padding(.bottom, 8)
         }
+        .task(id: showDetails) {
+            guard showDetails else { return }
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                proxy.scrollTo("moreDetailsAnchor", anchor: .bottom)
+            }
+        }
+        } // ScrollViewReader
         .background(Color(.systemGroupedBackground))
         .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
@@ -141,24 +155,29 @@ struct AddItemListView: View {
         VStack(spacing: 6) {
             if viewModel.price.isEmpty {
                 Text("¿Cuánto has gastado?")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Color(.tertiaryLabel))
                     .transition(.opacity)
             }
 
-            // HStack centra número + cursor como unidad; TextField invisible como overlay
-            HStack(alignment: .center, spacing: 3) {
+            // HStack centra número + cursor + currency como unidad; TextField invisible como overlay
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(viewModel.price.isEmpty ? "0,00" : viewModel.price)
-                    .font(.system(size: 54, weight: .bold, design: .rounded))
+                    .font(.system(size: amountFontSize, weight: .bold, design: .rounded))
                     .foregroundStyle(viewModel.price.isEmpty ? Color(.tertiaryLabel) : .primary)
                     .contentTransition(.numericText())
+                    .animation(.snappy(duration: 0.15), value: amountFontSize)
                     .animation(.snappy(duration: 0.2), value: viewModel.price)
 
                 if focusedField == .price {
-                    BlinkingCursor()
+                    BlinkingCursor(height: amountFontSize * 0.78)
                         .foregroundStyle(.primary)
                         .transition(.opacity)
                 }
+
+                Text(currencySymbol)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .animation(.easeInOut(duration: 0.15), value: focusedField == .price)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -171,14 +190,10 @@ struct AddItemListView: View {
                         viewModel.validateAndCorrectPrice()
                     }
             )
-
-            Text(currencySymbol)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundStyle(Color(.tertiaryLabel))
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.price.isEmpty)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        .padding(.vertical, 18)
         .padding(.horizontal, AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
@@ -245,21 +260,22 @@ struct AddItemListView: View {
         VStack(spacing: 16) {
             if !viewModel.isEditMode {
                 Button {
-                    withAnimation(AnimationHelper.smoothSpring) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                         showDetails.toggle()
                     }
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: showDetails ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                    HStack {
                         Text("Más detalles")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                         Spacer()
+                        Image(systemName: showDetails ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -273,8 +289,13 @@ struct AddItemListView: View {
                     }
 
                     dateGroupCard
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id("moreDetailsAnchor")
                 }
-                .transition(viewModel.isEditMode ? .identity : .opacity.combined(with: .move(edge: .top)))
+                .transition(viewModel.isEditMode ? .identity : .opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                .animation(viewModel.isEditMode ? nil : .spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
             }
         }
     }
@@ -456,11 +477,12 @@ struct AddItemListView: View {
 }
 
 private struct BlinkingCursor: View {
+    let height: CGFloat
     @State private var visible = true
 
     var body: some View {
         Rectangle()
-            .frame(width: 2.5, height: 46)
+            .frame(width: 2.5, height: height)
             .cornerRadius(1.5)
             .opacity(visible ? 1 : 0)
             .onAppear {
