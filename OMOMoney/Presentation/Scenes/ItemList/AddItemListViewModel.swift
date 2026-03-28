@@ -70,7 +70,6 @@ final class AddItemListViewModel: ObservableObject {
 
     /// Check if the form can be saved
     var canSave: Bool {
-        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         selectedCategory != nil &&
         selectedPaymentMethod != nil &&
         isPriceValid
@@ -100,7 +99,7 @@ final class AddItemListViewModel: ObservableObject {
 
     /// Load categories for the specified group
     /// ✅ Clean Architecture: Accept UUID, use Use Case to fetch Domain models
-    func loadCategories(forGroupId groupId: UUID) async {
+    func loadCategories(forGroupId groupId: UUID, lastUsedCategoryId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
 
@@ -109,10 +108,11 @@ final class AddItemListViewModel: ObservableObject {
             if isEditMode {
                 // Pre-select the existing category when editing
                 selectedCategory = categories.first { $0.id == itemListToEdit?.categoryId }
-                    ?? categories.first { $0.isDefault }
-                    ?? categories.first
-            } else if selectedCategory == nil {
-                selectedCategory = categories.first { $0.isDefault } ?? categories.first
+            } else {
+                // Pre-select last used only — nil if first time (forces conscious choice)
+                selectedCategory = lastUsedCategoryId.flatMap { id in
+                    categories.first { $0.id == id }
+                }
             }
         } catch {
             errorMessage = "Error al cargar categorías: \(error.localizedDescription)"
@@ -123,7 +123,7 @@ final class AddItemListViewModel: ObservableObject {
 
     /// Load active payment methods for the specified group
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case instead of Service
-    func loadPaymentMethods(forGroupId groupId: UUID) async {
+    func loadPaymentMethods(forGroupId groupId: UUID, lastUsedPaymentMethodId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
 
@@ -132,10 +132,11 @@ final class AddItemListViewModel: ObservableObject {
             if isEditMode {
                 // Pre-select the existing payment method when editing
                 selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethodId }
-                    ?? paymentMethods.first { $0.isDefault }
-                    ?? paymentMethods.first
-            } else if selectedPaymentMethod == nil {
-                selectedPaymentMethod = paymentMethods.first { $0.isDefault } ?? paymentMethods.first
+            } else {
+                // Pre-select last used only — nil if first time (forces conscious choice)
+                selectedPaymentMethod = lastUsedPaymentMethodId.flatMap { id in
+                    paymentMethods.first { $0.id == id }
+                }
             }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"
