@@ -153,12 +153,13 @@ struct AddItemListView: View {
 
     private var heroAmountInput: some View {
         VStack(spacing: 6) {
-            if viewModel.price.isEmpty {
-                Text("¿Cuánto has gastado?")
-                    .font(.caption)
-                    .foregroundStyle(Color(.tertiaryLabel))
-                    .transition(.opacity)
-            }
+            // TODO: comentado para revisar 
+            // if viewModel.price.isEmpty {
+            //     Text("¿Cuánto has gastado?")
+            //         .font(.caption)
+            //         .foregroundStyle(Color(.tertiaryLabel))
+            //         .transition(.opacity)
+            // }
 
             // HStack centra número + cursor + currency como unidad; TextField invisible como overlay
             HStack(alignment: .lastTextBaseline, spacing: 4) {
@@ -199,7 +200,7 @@ struct AddItemListView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .price ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                .stroke(focusedField == .price ? Color(.systemGray3) : Color.clear, lineWidth: 2.5)
                 .animation(AnimationHelper.formFocus, value: focusedField == .price)
         )
         .contentShape(Rectangle())
