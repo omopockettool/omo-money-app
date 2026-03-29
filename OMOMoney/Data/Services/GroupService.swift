@@ -69,8 +69,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             // Create default payment methods: (name, type, icon, color, isDefault)
             let defaultPaymentMethods: [(String, String, String, String, Bool)] = [
                 ("Efectivo",        "cash",          "banknote.fill",           "#4CAF50", true),
-                ("Tarjeta Débito",  "card_debit",    "creditcard.fill",         "#2196F3", false),
-                ("Tarjeta Crédito", "card_credit",   "creditcard.fill",         "#9C27B0", false),
+                ("T. Débito",       "card_debit",    "creditcard.fill",         "#2196F3", false),
+                ("T. Crédito",      "card_credit",   "creditcard.fill",         "#9C27B0", false),
                 ("Transferencia",   "bank_transfer", "arrow.left.arrow.right",  "#FF9800", false)
             ]
 

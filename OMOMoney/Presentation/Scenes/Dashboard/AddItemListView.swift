@@ -11,6 +11,7 @@ struct AddItemListView: View {
     @FocusState private var focusedField: Field?
     @State private var showDatePicker = false
     @State private var showDetails = false
+    @State private var showCategoryOverflow = false
     @State private var orderedCategories: [CategoryDomain] = []
     @State private var orderedPaymentMethods: [PaymentMethodDomain] = []
 
@@ -32,10 +33,11 @@ struct AddItemListView: View {
 
     // MARK: - Computed
 
-    private var lastUsedNonDefaultCategoryId: UUID? {
+    private var lastUsedCategoryIds: [UUID] {
         UserDefaults.standard
-            .string(forKey: "lastUsedNonDefaultCategoryId_\(group.id.uuidString)")
-            .flatMap { UUID(uuidString: $0) }
+            .string(forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
+            .map { $0.components(separatedBy: ",").compactMap { UUID(uuidString: $0) } }
+            ?? []
     }
 
     private var lastUsedNonDefaultPaymentMethodId: UUID? {
@@ -46,8 +48,8 @@ struct AddItemListView: View {
 
     private func sortedCategories() -> [CategoryDomain] {
         viewModel.categories.sorted {
-            chipRank($0.id, lastUsed: lastUsedNonDefaultCategoryId) <
-            chipRank($1.id, lastUsed: lastUsedNonDefaultCategoryId)
+            chipRank($0.id, lastUsed: lastUsedCategoryIds) <
+            chipRank($1.id, lastUsed: lastUsedCategoryIds)
         }
     }
 
@@ -58,13 +60,45 @@ struct AddItemListView: View {
         }
     }
 
+    private func chipRank(_ id: UUID, lastUsed: [UUID]) -> Int {
+        lastUsed.firstIndex(of: id) ?? lastUsed.count
+    }
+
     private func chipRank(_ id: UUID, lastUsed: UUID?) -> Int {
         id == lastUsed ? 0 : 1
+    }
+
+    private static let gridCategoryLimit = 5
+
+    private var gridCategories: [CategoryDomain] {
+        orderedCategories.filter { !$0.isDefault }.prefix(Self.gridCategoryLimit).map { $0 }
+    }
+
+    private var overflowCategories: [CategoryDomain] {
+        let extra = orderedCategories.filter { !$0.isDefault }.dropFirst(Self.gridCategoryLimit)
+        let defaults = orderedCategories.filter { $0.isDefault }
+        return Array(extra) + defaults
+    }
+
+    private func recordCategoryUsage(_ category: CategoryDomain) {
+        var ids = lastUsedCategoryIds
+        ids.removeAll { $0 == category.id }
+        ids.insert(category.id, at: 0)
+        let stored = ids.prefix(Self.gridCategoryLimit).map { $0.uuidString }.joined(separator: ",")
+        UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
     }
 
     private var amountFontSize: CGFloat {
         let count = CGFloat(viewModel.price.count)
         return max(30, 54 - (count / 9) * 24)
+    }
+
+    private var categoryChipMinHeight: CGFloat {
+        showDetails ? 44 : 88
+    }
+
+    private var categoryChipCornerRadius: CGFloat {
+        showDetails ? 12 : 16
     }
 
     private var currencySymbol: String {
@@ -129,6 +163,13 @@ struct AddItemListView: View {
                 Button("Listo") { focusedField = nil }
             }
         }
+        .sheet(isPresented: $showCategoryOverflow) {
+            categoryOverflowSheet
+                .presentationDetents([.height(CGFloat(ceil(Double(overflowCategories.count) / 2)) * 56 + 80)])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
+                .presentationBackgroundInteraction(.enabled(upThrough: .large))
+        }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
         } message: {
@@ -137,7 +178,7 @@ struct AddItemListView: View {
             }
         }
         .task {
-            await viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedNonDefaultCategoryId)
+            await viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
             await viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedNonDefaultPaymentMethodId)
             orderedCategories = sortedCategories()
             orderedPaymentMethods = sortedPaymentMethods()
@@ -218,15 +259,91 @@ struct AddItemListView: View {
                 .padding(.horizontal, 4)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(orderedCategories) { category in
+                ForEach(gridCategories) { category in
+                    categoryChip(category)
+                }
+
+                if !overflowCategories.isEmpty {
+                    overflowChip
+                }
+            }
+
+        }
+    }
+
+    @ViewBuilder
+    private func categoryChip(_ category: CategoryDomain) -> some View {
+        let isSelected = viewModel.selectedCategory?.id == category.id
+        let chipColor = Color(hex: category.color) ?? Color.accentColor
+        Button {
+            withAnimation(AnimationHelper.quickSpring) {
+                viewModel.selectedCategory = category
+                recordCategoryUsage(category)
+                showCategoryOverflow = false
+            }
+        } label: {
+            ZStack {
+                HStack(spacing: 8) {
+                    Image(systemName: category.icon)
+                        .font(.subheadline)
+                        .foregroundStyle(isSelected ? .white : chipColor)
+                    Text(category.name)
+                        .font(.subheadline)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .foregroundStyle(isSelected ? .white : .primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .opacity(showDetails ? 1 : 0)
+                .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
+
+                VStack(spacing: 6) {
+                    Image(systemName: category.icon)
+                        .font(.title2)
+                        .foregroundStyle(isSelected ? .white : chipColor)
+                    Text(category.name)
+                        .font(.subheadline)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .foregroundStyle(isSelected ? .white : .primary)
+                        .lineLimit(1)
+                        .multilineTextAlignment(.center)
+                }
+                .opacity(showDetails ? 0 : 1)
+                .scaleEffect(showDetails ? 0.85 : 1, anchor: .center)
+                .frame(maxHeight: showDetails ? 0 : .infinity)
+                .clipped()
+            }
+            .frame(maxWidth: .infinity, minHeight: categoryChipMinHeight)
+            .padding(.horizontal, showDetails ? 14 : 12)
+            .padding(.vertical, showDetails ? 12 : 10)
+            .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: categoryChipCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: categoryChipCornerRadius)
+                    .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+            )
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var categoryOverflowSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Más categorías")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(overflowCategories) { category in
                     let isSelected = viewModel.selectedCategory?.id == category.id
                     let chipColor = Color(hex: category.color) ?? Color.accentColor
                     Button {
                         withAnimation(AnimationHelper.quickSpring) {
                             viewModel.selectedCategory = category
-                            if !category.isDefault {
-                                UserDefaults.standard.set(category.id.uuidString, forKey: "lastUsedNonDefaultCategoryId_\(group.id.uuidString)")
-                            }
+                            recordCategoryUsage(category)
+                            showCategoryOverflow = false
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -253,6 +370,77 @@ struct AddItemListView: View {
                 }
             }
         }
+        .padding(AppConstants.UserInterface.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var overflowChip: some View {
+        let overflowSelected = overflowCategories.first { $0.id == viewModel.selectedCategory?.id }
+        let chipColor = overflowSelected.flatMap { Color(hex: $0.color) } ?? Color(.systemGray3)
+        let icon = overflowSelected?.icon ?? "ellipsis.circle.fill"
+        let label = overflowSelected?.name ?? "Más"
+        let isActive = overflowSelected != nil
+
+        return Button {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                showCategoryOverflow.toggle()
+            }
+        } label: {
+            ZStack {
+                // Compacto
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.subheadline)
+                        .foregroundStyle(isActive ? .white : chipColor)
+                    Text(label)
+                        .font(.subheadline)
+                        .fontWeight(isActive ? .semibold : .regular)
+                        .foregroundStyle(isActive ? .white : .primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isActive ? .white.opacity(0.8) : Color(.tertiaryLabel))
+                        .rotationEffect(.degrees(showCategoryOverflow ? 180 : 0))
+                }
+                .opacity(showDetails ? 1 : 0)
+                .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
+
+                // Grande
+                VStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundStyle(isActive ? .white : chipColor)
+                    HStack(spacing: 4) {
+                        Text(label)
+                            .font(.subheadline)
+                            .fontWeight(isActive ? .semibold : .regular)
+                            .foregroundStyle(isActive ? .white : .primary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(isActive ? .white.opacity(0.8) : Color(.tertiaryLabel))
+                            .rotationEffect(.degrees(showCategoryOverflow ? 180 : 0))
+                    }
+                }
+                .opacity(showDetails ? 0 : 1)
+                .scaleEffect(showDetails ? 0.85 : 1, anchor: .center)
+                .frame(maxHeight: showDetails ? 0 : .infinity)
+                .clipped()
+            }
+            .frame(maxWidth: .infinity, minHeight: categoryChipMinHeight)
+            .padding(.horizontal, showDetails ? 14 : 12)
+            .padding(.vertical, showDetails ? 12 : 10)
+            .background(isActive ? chipColor : Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: categoryChipCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: categoryChipCornerRadius)
+                    .stroke(chipColor.opacity(isActive ? 0 : 0.3), lineWidth: 1)
+            )
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showCategoryOverflow)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - More Details Section
@@ -369,6 +557,7 @@ struct AddItemListView: View {
                                 .lineLimit(1)
                             Spacer(minLength: 0)
                         }
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
                         .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
