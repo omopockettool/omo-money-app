@@ -185,14 +185,13 @@ struct AddItemListView: View {
             }
         }
         .task {
-            await viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
-            await viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedNonDefaultPaymentMethodId)
+            async let categories: () = viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedNonDefaultPaymentMethodId)
+            _ = await (categories, paymentMethods)
             orderedCategories = sortedCategories()
             orderedPaymentMethods = sortedPaymentMethods()
             if viewModel.isEditMode {
                 showDetails = true
-            } else {
-                focusedField = .price
             }
         }
     }
