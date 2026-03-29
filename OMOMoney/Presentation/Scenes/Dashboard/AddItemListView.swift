@@ -144,6 +144,13 @@ struct AddItemListView: View {
                 proxy.scrollTo("moreDetailsAnchor", anchor: .bottom)
             }
         }
+        .task(id: showDatePicker) {
+            guard showDatePicker else { return }
+            try? await Task.sleep(for: .milliseconds(400))
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) {
+                proxy.scrollTo("datePickerAnchor", anchor: .bottom)
+            }
+        }
         } // ScrollViewReader
         .background(Color(.systemGroupedBackground))
         .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
@@ -580,7 +587,7 @@ struct AddItemListView: View {
             // Date row
             Button {
                 focusedField = nil
-                withAnimation(AnimationHelper.smoothSpring) {
+                withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) {
                     showDatePicker.toggle()
                 }
             } label: {
@@ -612,6 +619,7 @@ struct AddItemListView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, AppConstants.UserInterface.smallPadding)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .id("datePickerAnchor")
             }
 
             Divider()
