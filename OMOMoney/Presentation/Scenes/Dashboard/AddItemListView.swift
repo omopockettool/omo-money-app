@@ -138,7 +138,7 @@ struct AddItemListView: View {
             .padding(.bottom, 8)
         }
         .task(id: showDetails) {
-            guard showDetails else { return }
+            guard showDetails, !viewModel.isEditMode else { return }
             try? await Task.sleep(for: .milliseconds(300))
             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                 proxy.scrollTo("moreDetailsAnchor", anchor: .bottom)
