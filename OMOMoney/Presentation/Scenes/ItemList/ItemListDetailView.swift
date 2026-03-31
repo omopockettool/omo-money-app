@@ -184,9 +184,8 @@ struct ItemListDetailView: View {
                 ItemRowView(
                     item: item,
                     formattedAmount: viewModel.getFormattedAmount(item),
-                    onTap: {
-                        sheetMode = .edit(item)
-                    }
+                    currencyCode: currencyCode,
+                    onTap: { sheetMode = .edit(item) }
                 )
                 .listRowInsets(EdgeInsets(
                     top: 4,
@@ -265,50 +264,53 @@ struct ItemListDetailView: View {
 
 struct ItemRowView: View {
     let item: ItemDomain
-    let formattedAmount: String
+    let formattedAmount: String  // total = unit × qty
+    let currencyCode: String
     let onTap: () -> Void
+
+    private var showsBreakdown: Bool { item.quantity > 1 }
+
+    private var formattedUnitPrice: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = Locale(identifier: "es_ES")
+        return formatter.string(from: item.amount as NSDecimalNumber) ?? "\(item.amount)"
+    }
 
     var body: some View {
         Button(action: onTap) {
-            HStack(alignment: .center, spacing: AppConstants.UserInterface.padding) {
-                // Checkmark circle
-                Image(systemName: "checkmark.circle.fill")
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "circle")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(Color(.systemGray3))
 
-                // Content area
-                VStack(alignment: .leading, spacing: 8) {
-                    // Top row: description + amount
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(item.itemDescription)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        Text(formattedAmount)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .layoutPriority(1)
-                    }
-
-                    // Bottom row: quantity badge
-                    Text("Cantidad: \(item.quantity)")
-                        .font(.caption)
-                        .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.itemDescription)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
-                        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                        .padding(.vertical, 4)
-                        .background(Color.blue)
-                        .cornerRadius(AppConstants.UserInterface.cornerRadius / 2)
+
+                    if showsBreakdown {
+                        Text("\(formattedUnitPrice) × \(item.quantity) uds.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+
+                Spacer()
+
+                Text(formattedAmount)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
             }
             .padding(AppConstants.UserInterface.padding)
-            .background(Color(.systemGray5))
-            .cornerRadius(AppConstants.UserInterface.cornerRadius)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         }
         .buttonStyle(.plain)
     }
@@ -319,6 +321,7 @@ struct ItemRowView: View {
 struct AddItemView: View {
     let onItemSaved: (ItemDomain) -> Void
     let currencyCode: String
+    let itemListDescription: String
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddItemViewModel
@@ -336,6 +339,7 @@ struct AddItemView: View {
     ) {
         self.onItemSaved = onItemSaved
         self.currencyCode = currencyCode
+        self.itemListDescription = itemListDescription
         self._viewModel = StateObject(wrappedValue: AddItemViewModel(
             itemListId: itemListId,
             itemToEdit: itemToEdit,
@@ -428,31 +432,12 @@ struct AddItemView: View {
     // MARK: - Description Card
 
     private var descriptionCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "text.alignleft")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-            TextField("Descripción", text: $viewModel.description)
-                .foregroundStyle(.secondary)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .focused($focusedField, equals: .description)
-                .onChange(of: viewModel.description) { _, newValue in
-                    if newValue.count > 20 { viewModel.description = String(newValue.prefix(20)) }
-                }
-            Text(viewModel.description.isEmpty ? "Opcional" : "\(viewModel.description.count)/20")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .monospacedDigit()
-                .animation(AnimationHelper.quickEase, value: viewModel.description.count)
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .description ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
-                .animation(AnimationHelper.formFocus, value: focusedField == .description)
+        LimitedTextField(
+            icon: "text.alignleft",
+            placeholder: itemListDescription,
+            text: $viewModel.description,
+            focusedField: $focusedField,
+            fieldValue: .description
         )
     }
 

@@ -224,6 +224,7 @@ struct DashboardView: View {
                     }
                 },
                 itemListCounts: viewModel.itemListCounts,
+                categories: viewModel.categories,
                 onItemTap: { itemList in
                     navigationPath.append(itemList)
                 },

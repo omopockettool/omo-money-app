@@ -448,35 +448,12 @@ struct AddItemListView: View {
     // MARK: - Description Card
 
     private var descriptionCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "text.alignleft")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-            TextField(descriptionPlaceholder, text: $viewModel.description)
-                .foregroundStyle(.secondary)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .focused($focusedField, equals: .description)
-                .onChange(of: viewModel.description) { _, newValue in
-                    if newValue.count > 20 {
-                        viewModel.description = String(newValue.prefix(20))
-                    }
-                }
-
-            Text("\(viewModel.description.count)/20")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .monospacedDigit()
-                .animation(AnimationHelper.quickEase, value: viewModel.description.count)
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .description ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
-                .animation(AnimationHelper.formFocus, value: focusedField == .description)
+        LimitedTextField(
+            icon: "text.alignleft",
+            placeholder: descriptionPlaceholder,
+            text: $viewModel.description,
+            focusedField: $focusedField,
+            fieldValue: .description
         )
     }
 

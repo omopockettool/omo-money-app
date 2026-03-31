@@ -11,6 +11,7 @@ struct ExpenseListView: View {
     let itemLists: [ItemListDomain]
     let getFormattedAmount: (ItemListDomain) -> String
     let itemListCounts: [UUID: Int]
+    let categories: [UUID: (name: String, color: String)]
     let onItemTap: (ItemListDomain) -> Void
     let onRefresh: () async -> Void
     let onDelete: (ItemListDomain) async -> Void
@@ -31,9 +32,9 @@ struct ExpenseListView: View {
                                     itemList: itemList,
                                     formattedAmount: getFormattedAmount(itemList),
                                     itemCount: itemListCounts[itemList.id] ?? 0,
-                                    onTap: {
-                                        onItemTap(itemList)
-                                    }
+                                    categoryName: itemList.categoryId.flatMap { categories[$0]?.name },
+                                    categoryColor: itemList.categoryId.flatMap { categories[$0]?.color }.flatMap { Color(hex: $0) },
+                                    onTap: { onItemTap(itemList) }
                                 )
                                 .listRowInsets(EdgeInsets(
                                     top: AppConstants.UserInterface.smallPadding / 2,
@@ -134,6 +135,7 @@ struct ExpenseListView: View {
         itemLists: [],
         getFormattedAmount: { _ in "12,89 €" },
         itemListCounts: [:],
+        categories: [:],
         onItemTap: { _ in },
         onRefresh: { },
         onDelete: { _ in }

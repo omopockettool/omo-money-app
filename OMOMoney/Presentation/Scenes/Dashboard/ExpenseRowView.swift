@@ -1,67 +1,52 @@
-//
-//  ExpenseRowView.swift
-//  OMOMoney
-//
-//  Created by System on 3/11/25.
-//
-
 import SwiftUI
 
 struct ExpenseRowView: View {
     let itemList: ItemListDomain
     let formattedAmount: String
     let itemCount: Int
+    let categoryName: String?
+    let categoryColor: Color?
     let onTap: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: AppConstants.UserInterface.padding) {
-            // Check mark circle
-            Image(systemName: "checkmark.circle.fill")
+        HStack(alignment: .center, spacing: 12) {
+            // Check circle (future: mark as paid)
+            Image(systemName: "circle")
                 .font(.title2)
-                .foregroundColor(.green)
+                .foregroundStyle(Color(.systemGray3))
 
-            // Content area
-            VStack(alignment: .leading, spacing: 12) {
-                // Top row: description + amount
-                HStack(alignment: .firstTextBaseline) {
-                    Text(itemList.itemListDescription)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(itemList.itemListDescription)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
 
-                    Spacer()
-
-                    Text(formattedAmount)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                }
-
-                // Bottom row: item count (left) + chevron (right)
-                HStack {
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(categoryColor ?? Color(.systemGray3))
+                        .frame(width: 7, height: 7)
                     Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
                         .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
+
+            Spacer()
+
+            Text(formattedAmount)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .layoutPriority(1)
         }
         .padding(AppConstants.UserInterface.padding)
-        .background(Color(.systemGray5))
-        .cornerRadius(AppConstants.UserInterface.cornerRadius)
-        .contentShape(Rectangle())  // ✅ FIX: Define explicit tap area
-        .onTapGesture {  // ✅ FIX: Use onTapGesture instead of Button for better swipe discrimination
-            onTap()
-        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
-    
 }
 
 // MARK: - Preview
@@ -79,7 +64,9 @@ struct ExpenseRowView: View {
                 lastModifiedAt: nil
             ),
             formattedAmount: "12,89 €",
-            itemCount: 1,
+            itemCount: 3,
+            categoryName: "Supermercado",
+            categoryColor: .green,
             onTap: {}
         )
         ExpenseRowView(
@@ -94,10 +81,12 @@ struct ExpenseRowView: View {
                 lastModifiedAt: nil
             ),
             formattedAmount: "45,60 €",
-            itemCount: 3,
+            itemCount: 1,
+            categoryName: nil,
+            categoryColor: nil,
             onTap: {}
         )
     }
     .padding()
-    .background(Color.black)
+    .background(Color(.systemGroupedBackground))
 }
