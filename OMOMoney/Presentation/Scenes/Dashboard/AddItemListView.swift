@@ -88,11 +88,6 @@ struct AddItemListView: View {
         UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
     }
 
-    private var amountFontSize: CGFloat {
-        let count = CGFloat(viewModel.price.count)
-        return max(30, 54 - (count / 9) * 24)
-    }
-
     private var categoryChipMinHeight: CGFloat {
         showDetails ? 44 : 88
     }
@@ -200,59 +195,13 @@ struct AddItemListView: View {
     // MARK: - Hero Amount Input
 
     private var heroAmountInput: some View {
-        VStack(spacing: 6) {
-            // TODO: comentado para revisar 
-            // if viewModel.price.isEmpty {
-            //     Text("¿Cuánto has gastado?")
-            //         .font(.caption)
-            //         .foregroundStyle(Color(.tertiaryLabel))
-            //         .transition(.opacity)
-            // }
-
-            // HStack centra número + cursor + currency como unidad; TextField invisible como overlay
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text(viewModel.price.isEmpty ? "0,00" : viewModel.price)
-                    .font(.system(size: amountFontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(viewModel.price.isEmpty ? Color(.tertiaryLabel) : .primary)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.15), value: amountFontSize)
-                    .animation(.snappy(duration: 0.2), value: viewModel.price)
-
-                if focusedField == .price {
-                    BlinkingCursor(height: amountFontSize * 0.78)
-                        .foregroundStyle(.primary)
-                        .transition(.opacity)
-                }
-
-                Text(currencySymbol)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color(.tertiaryLabel))
-            }
-            .animation(.easeInOut(duration: 0.15), value: focusedField == .price)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .overlay(
-                TextField("", text: $viewModel.price)
-                    .keyboardType(.decimalPad)
-                    .focused($focusedField, equals: .price)
-                    .opacity(0)
-                    .onChange(of: viewModel.price) { _, _ in
-                        viewModel.validateAndCorrectPrice()
-                    }
-            )
-        }
-        .animation(.easeInOut(duration: 0.2), value: viewModel.price.isEmpty)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .price ? Color(.systemGray3) : Color.clear, lineWidth: 2.5)
-                .animation(AnimationHelper.formFocus, value: focusedField == .price)
+        HeroAmountInputView(
+            text: $viewModel.price,
+            currencySymbol: currencySymbol,
+            onValidate: viewModel.validateAndCorrectPrice,
+            focusedField: $focusedField,
+            fieldValue: .price
         )
-        .contentShape(Rectangle())
-        .onTapGesture { focusedField = .price }
     }
 
     // MARK: - Category Grid
@@ -674,22 +623,6 @@ struct AddItemListView: View {
     }
 }
 
-private struct BlinkingCursor: View {
-    let height: CGFloat
-    @State private var visible = true
-
-    var body: some View {
-        Rectangle()
-            .frame(width: 2.5, height: height)
-            .cornerRadius(1.5)
-            .opacity(visible ? 1 : 0)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-                    visible = false
-                }
-            }
-    }
-}
 
 #Preview {
     let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")

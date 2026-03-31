@@ -345,6 +345,8 @@ struct AddItemView: View {
         ))
     }
 
+    // MARK: - Computed
+
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -353,31 +355,33 @@ struct AddItemView: View {
         return formatter.currencySymbol
     }
 
-    private var totalPreviewText: String {
-        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0,
-              let qty = Int(viewModel.quantity), qty > 1 else {
-            return ""
-        }
-        let total = price * Decimal(qty)
-        let formatted = NSDecimalNumber(decimal: total).doubleValue
-        return "\(viewModel.amount) \(currencySymbol) × \(qty) uds. = \(String(format: "%.2f", formatted)) \(currencySymbol)"
+    private var quantityValue: Int {
+        Int(viewModel.quantity) ?? 1
     }
 
     private var showsTotalPreview: Bool {
         let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0,
-              let qty = Int(viewModel.quantity), qty > 1 else { return false }
+        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return false }
         return true
     }
+
+    private var totalPreviewText: String {
+        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
+        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return "" }
+        let total = price * Decimal(quantityValue)
+        let formatted = NSDecimalNumber(decimal: total).doubleValue
+        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds. = \(String(format: "%.2f", formatted)) \(currencySymbol)"
+    }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    heroAmountInput
                     descriptionCard
-                    priceCard
-                    quantityCard
+                    quantityStepper
                     if showsTotalPreview { totalPreviewRow }
                 }
                 .padding(AppConstants.UserInterface.padding)
@@ -409,7 +413,19 @@ struct AddItemView: View {
         }
     }
 
-    // MARK: - Cards
+    // MARK: - Hero Amount Input
+
+    private var heroAmountInput: some View {
+        HeroAmountInputView(
+            text: $viewModel.amount,
+            currencySymbol: currencySymbol,
+            onValidate: viewModel.validateAndCorrectAmount,
+            focusedField: $focusedField,
+            fieldValue: .amount
+        )
+    }
+
+    // MARK: - Description Card
 
     private var descriptionCard: some View {
         HStack(spacing: 12) {
@@ -428,6 +444,7 @@ struct AddItemView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .monospacedDigit()
+                .animation(AnimationHelper.quickEase, value: viewModel.description.count)
         }
         .padding(AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
@@ -435,64 +452,56 @@ struct AddItemView: View {
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
                 .stroke(focusedField == .description ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                .animation(AnimationHelper.formFocus, value: focusedField == .description)
         )
     }
 
-    private var priceCard: some View {
-        HStack(spacing: 12) {
-            Text(currencySymbol)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-            TextField("0,00", text: $viewModel.amount)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .keyboardType(.decimalPad)
-                .focused($focusedField, equals: .amount)
-                .onChange(of: viewModel.amount) { _, _ in
-                    viewModel.validateAndCorrectAmount()
-                }
-            Spacer()
-            Text("Opcional")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .opacity(viewModel.amount.isEmpty ? 1 : 0)
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .amount ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+    // MARK: - Quantity Stepper
+
+    private var quantityBinding: Binding<Int> {
+        Binding(
+            get: { max(1, Int(viewModel.quantity) ?? 1) },
+            set: { viewModel.quantity = String($0) }
         )
     }
 
-    private var quantityCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "number")
+    private var quantityStepper: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Cantidad")
+                .font(.subheadline)
+                .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
-                .frame(width: 20)
-            TextField("1", text: $viewModel.quantity)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .keyboardType(.numberPad)
-                .focused($focusedField, equals: .quantity)
-                .onChange(of: viewModel.quantity) { _, newValue in
-                    if newValue.count > 5 { viewModel.quantity = String(newValue.prefix(5)) }
-                }
-            Spacer()
-            Text("uds.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 4)
+
+            HStack(spacing: 12) {
+                Image(systemName: "number")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+
+                TextField("1", text: $viewModel.quantity)
+                    .keyboardType(.numberPad)
+                    .font(.subheadline.weight(.semibold))
+                    .focused($focusedField, equals: .quantity)
+                    .onChange(of: viewModel.quantity) { _, newValue in
+                        let digits = newValue.filter { $0.isNumber }
+                        if let n = Int(digits) {
+                            viewModel.quantity = String(min(n, 999999))
+                        } else {
+                            viewModel.quantity = digits
+                        }
+                    }
+
+                Stepper("", value: quantityBinding, in: 1...999999)
+                    .labelsHidden()
+                    .fixedSize()
+            }
+            .padding(AppConstants.UserInterface.padding)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(focusedField == .quantity ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
-        )
     }
+
+    // MARK: - Total Preview
 
     private var totalPreviewRow: some View {
         HStack(spacing: 6) {
@@ -503,9 +512,11 @@ struct AddItemView: View {
         .foregroundStyle(.tertiary)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(AnimationHelper.quickEase, value: showsTotalPreview)
     }
-
 }
+
 
 // MARK: - Preview
 #Preview {
