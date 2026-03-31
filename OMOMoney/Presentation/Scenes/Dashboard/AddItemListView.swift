@@ -152,6 +152,7 @@ struct AddItemListView: View {
             }
         }
         } // ScrollViewReader
+        .scrollDisabled(!showDetails && !viewModel.isEditMode)
         .background(Color(.systemGroupedBackground))
         .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
