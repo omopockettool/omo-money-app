@@ -120,6 +120,19 @@ struct DashboardView: View {
                     )
                 }
             }
+            .sheet(isPresented: $viewModel.showingSettings) {
+                Task { await viewModel.refreshCategories() }
+            } content: {
+                if let group = viewModel.currentGroup, let user = viewModel.currentUser {
+                    SettingsSheetView(
+                        group: group,
+                        user: user,
+                        onUserUpdated: { updated in
+                            viewModel.updateCurrentUser(updated)
+                        }
+                    )
+                }
+            }
             .sheet(isPresented: $showingAddItemList) {
                 if let group = viewModel.currentGroup {
                     NavigationStack {

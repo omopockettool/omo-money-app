@@ -40,7 +40,7 @@ struct DashboardHeaderView: View {
             
             // Settings button (debug/test data)
             Button(action: onSettingsTap) {
-                Image(systemName: "gearshape.fill")
+                Image(systemName: "slider.horizontal.3")
                     .font(.title3)
                     .foregroundColor(.secondary)
             }

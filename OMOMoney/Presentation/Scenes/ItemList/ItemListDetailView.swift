@@ -82,7 +82,7 @@ struct ItemListDetailView: View {
                         sheetMode = .editRegistry
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                 }
             }
         }

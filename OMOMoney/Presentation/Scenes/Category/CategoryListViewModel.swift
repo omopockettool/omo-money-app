@@ -60,7 +60,7 @@ class CategoryListViewModel: ObservableObject {
 
     /// Create a new category
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func createCategory(name: String, color: String? = nil, groupId: UUID) async -> Bool {
+    func createCategory(name: String, color: String? = nil, icon: String = "tag.fill", groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -68,7 +68,7 @@ class CategoryListViewModel: ObservableObject {
             let newCategory = try await createCategoryUseCase.execute(
                 name: name,
                 color: color,
-                icon: "tag.fill",
+                icon: icon,
                 isDefault: false,
                 groupId: groupId,
                 limit: nil,

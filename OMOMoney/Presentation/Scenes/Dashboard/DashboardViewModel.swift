@@ -31,6 +31,7 @@ class DashboardViewModel: ObservableObject {
     @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
+    @Published var showingSettings = false
     
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
@@ -349,8 +350,26 @@ class DashboardViewModel: ObservableObject {
         print("✅ [DashboardVM] removeGroup() completado")
     }
     
-    /// Generate seed data for testing — creates 20 item lists with random items in current group
     func openSettings() {
+        showingSettings = true
+    }
+
+    func updateCurrentUser(_ user: UserDomain) {
+        currentUser = user
+    }
+
+    func refreshCategories() async {
+        guard let groupId = currentGroup?.id else { return }
+        do {
+            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
+            var dict: [UUID: (name: String, color: String)] = [:]
+            for cat in categoryDomains { dict[cat.id] = (name: cat.name, color: cat.color) }
+            categories = dict
+        } catch {}
+    }
+
+    /// Generate seed data for testing — creates 20 item lists with random items in current group
+    func generateSeedDataDebug() {
         Task {
             await generateSeedData()
         }
