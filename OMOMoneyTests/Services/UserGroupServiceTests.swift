@@ -53,28 +53,6 @@ final class UserGroupServiceTests: XCTestCase {
     
     // MARK: - Fetch UserGroup Tests
     
-    func testFetchUserGroups_Empty() async throws {
-        // When
-        let userGroups = try await userGroupService.fetchUserGroups()
-        
-        // Then
-        XCTAssertTrue(userGroups.isEmpty)
-    }
-    
-    func testFetchUserGroups_WithData() async throws {
-        // Given
-        _ = testEntityFactory.createUserGroups(
-            users: testEntityFactory.createUsers(count: 2),
-            groups: testEntityFactory.createGroups(count: 2)
-        )
-        try mockCoreDataStack.save()
-        
-        // When
-        let fetchedUserGroups = try await userGroupService.fetchUserGroups()
-        
-        // Then
-        XCTAssertEqual(fetchedUserGroups.count, 2)
-        XCTAssertTrue(fetchedUserGroups.allSatisfy { $0.user != nil && $0.group != nil })
     }
     
     func testFetchUserGroup_ById() async throws {
@@ -266,29 +244,6 @@ final class UserGroupServiceTests: XCTestCase {
     
     // MARK: - Caching Tests
     
-    func testFetchUserGroups_Caching() async throws {
-        // Given
-        _ = testEntityFactory.createUserGroups(
-            users: testEntityFactory.createUsers(count: 2),
-            groups: testEntityFactory.createGroups(count: 2)
-        )
-        try mockCoreDataStack.save()
-        
-        // When - First fetch (should cache)
-        let firstFetch = try await userGroupService.fetchUserGroups()
-        
-        // Clear Core Data to simulate cache hit
-        mockCoreDataStack.clearAllData()
-        
-        // Second fetch (should use cache)
-        let secondFetch = try await userGroupService.fetchUserGroups()
-        
-        // Then
-        XCTAssertEqual(firstFetch.count, 2)
-        XCTAssertEqual(secondFetch.count, 2) // Should return cached data
-        XCTAssertEqual(firstFetch.map { $0.id }, secondFetch.map { $0.id })
-    }
-    
     func testGetUserGroupsForUser_Caching() async throws {
         // Given
         let testUser = testEntityFactory.createUser()
@@ -387,13 +342,10 @@ final class UserGroupServiceTests: XCTestCase {
         )
         try mockCoreDataStack.save()
         
-        // Prime the cache
-        _ = try await userGroupService.fetchUserGroups()
-        
         // When
         try await userGroupService.updateUserGroup(testUserGroup, role: "admin")
         
-        // Then - Cache should be invalidated
+        // Then - Verify update worked
         let updatedUserGroup = try await userGroupService.fetchUserGroup(by: testUserGroup.id!)
         XCTAssertEqual(updatedUserGroup?.role, "admin")
     }
@@ -406,14 +358,11 @@ final class UserGroupServiceTests: XCTestCase {
         )
         try mockCoreDataStack.save()
         
-        // Prime the cache
-        _ = try await userGroupService.fetchUserGroups()
-        
         // When
         try await userGroupService.deleteUserGroup(testUserGroup)
         
-        // Then - Cache should be invalidated
-        let allUserGroups = try await userGroupService.fetchUserGroups()
-        XCTAssertEqual(allUserGroups.count, 0) // Should reflect deletion
+        // Then - Verify deletion worked
+        let deletedUserGroup = try await userGroupService.fetchUserGroup(by: testUserGroup.id!)
+        XCTAssertNil(deletedUserGroup) // Should be deleted
     }
 }

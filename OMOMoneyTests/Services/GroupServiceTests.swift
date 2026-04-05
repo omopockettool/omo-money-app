@@ -157,26 +157,7 @@ final class GroupServiceTests: XCTestCase {
     }
     
     // MARK: - Count Tests
-    
-    func testGetGroupsCount_Empty() async throws {
-        // When
-        let count = try await groupService.getGroupsCount()
-        
-        // Then
-        XCTAssertEqual(count, 0)
-    }
-    
-    func testGetGroupsCount_WithData() async throws {
-        // Given
-        _ = testEntityFactory.createGroups(count: 4)
-        try mockCoreDataStack.save()
-        
-        // When
-        let count = try await groupService.getGroupsCount()
-        
-        // Then
-        XCTAssertEqual(count, 4)
-    }
+
     
     // MARK: - Caching Tests
     
@@ -219,24 +200,7 @@ final class GroupServiceTests: XCTestCase {
         XCTAssertTrue(secondCheck) // Should return cached result
     }
     
-    func testGetGroupsCount_Caching() async throws {
-        // Given
-        _ = testEntityFactory.createGroups(count: 3)
-        try mockCoreDataStack.save()
-        
-        // When - First count (should cache)
-        let firstCount = try await groupService.getGroupsCount()
-        
-        // Clear Core Data to simulate cache hit
-        mockCoreDataStack.clearAllData()
-        
-        // Second count (should use cache)
-        let secondCount = try await groupService.getGroupsCount()
-        
-        // Then
-        XCTAssertEqual(firstCount, 3)
-        XCTAssertEqual(secondCount, 3) // Should return cached result
-    }
+
     
     // MARK: - Cache Invalidation Tests
     

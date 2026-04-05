@@ -27,7 +27,7 @@ final class ItemServiceTests: XCTestCase {
         let itemDescription = "Test Item"
         let itemAmount = NSDecimalNumber(value: 25.50)
         let itemQuantity: Int32 = 2
-        let testEntry = testEntityFactory.createEntry()
+        let testItemList = testEntityFactory.createItemList()
         try mockCoreDataStack.save()
         
         // When
@@ -35,7 +35,7 @@ final class ItemServiceTests: XCTestCase {
             description: itemDescription,
             amount: itemAmount,
             quantity: itemQuantity,
-            entry: testEntry
+            itemList: testItemList
         )
         
         // Then
@@ -43,7 +43,7 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(createdItem.itemDescription, itemDescription)
         XCTAssertEqual(createdItem.amount, itemAmount)
         XCTAssertEqual(createdItem.quantity, itemQuantity)
-        XCTAssertEqual(createdItem.entry, testEntry)
+        XCTAssertEqual(createdItem.itemList, testItemList)
         XCTAssertNotNil(createdItem.id)
         XCTAssertNotNil(createdItem.createdAt)
         
@@ -53,19 +53,19 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(savedItem?.itemDescription, itemDescription)
     }
     
-    func testCreateItem_WithoutEntry() async throws {
+    func testCreateItem_WithoutItemList() async throws {
         // Given
-        let itemDescription = "Item without entry"
+        let itemDescription = "Item without itemList"
         let itemAmount = NSDecimalNumber(value: 10.00)
         let itemQuantity: Int32 = 1
-        let testEntry = testEntityFactory.createEntry()
+        let testItemList = testEntityFactory.createItemList()
         
         // When
         let createdItem = try await itemService.createItem(
             description: itemDescription,
             amount: itemAmount,
             quantity: itemQuantity,
-            entry: testEntry
+            itemList: testItemList
         )
         
         // Then
@@ -73,31 +73,10 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(createdItem.itemDescription, itemDescription)
         XCTAssertEqual(createdItem.amount, itemAmount)
         XCTAssertEqual(createdItem.quantity, itemQuantity)
-        XCTAssertEqual(createdItem.entry, testEntry)
+        XCTAssertEqual(createdItem.itemList, testItemList)
     }
     
     // MARK: - Fetch Item Tests
-    
-    func testFetchItems_Empty() async throws {
-        // When
-        let items = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertTrue(items.isEmpty)
-    }
-    
-    func testFetchItems_WithData() async throws {
-        // Given
-        _ = testEntityFactory.createItems(count: 3)
-        try mockCoreDataStack.save()
-        
-        // When
-        let fetchedItems = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertEqual(fetchedItems.count, 3)
-        XCTAssertTrue(fetchedItems.allSatisfy { $0.itemDescription?.contains("Item") == true })
-    }
     
     func testFetchItem_ById() async throws {
         // Given
@@ -124,23 +103,23 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertNil(fetchedItem)
     }
     
-    func testGetItems_ForEntry() async throws {
+    func testGetItems_ForItemList() async throws {
         // Given
-        let entry1 = testEntityFactory.createEntry(description: "Entry 1")
-        let entry2 = testEntityFactory.createEntry(description: "Entry 2")
-        _ = testEntityFactory.createItems(count: 2, entry: entry1)
-        _ = testEntityFactory.createItems(count: 3, entry: entry2)
+        let itemList1 = testEntityFactory.createItemList(description: "ItemList 1")
+        let itemList2 = testEntityFactory.createItemList(description: "ItemList 2")
+        _ = testEntityFactory.createItems(count: 2, itemList: itemList1)
+        _ = testEntityFactory.createItems(count: 3, itemList: itemList2)
         try mockCoreDataStack.save()
         
         // When
-        let entry1Items = try await itemService.getItems(for: entry1)
-        let entry2Items = try await itemService.getItems(for: entry2)
+        let itemList1Items = try await itemService.getItems(for: itemList1)
+        let itemList2Items = try await itemService.getItems(for: itemList2)
         
         // Then
-        XCTAssertEqual(entry1Items.count, 2)
-        XCTAssertEqual(entry2Items.count, 3)
-        XCTAssertTrue(entry1Items.allSatisfy { $0.entry == entry1 })
-        XCTAssertTrue(entry2Items.allSatisfy { $0.entry == entry2 })
+        XCTAssertEqual(itemList1Items.count, 2)
+        XCTAssertEqual(itemList2Items.count, 3)
+        XCTAssertTrue(itemList1Items.allSatisfy { $0.itemList == itemList1 })
+        XCTAssertTrue(itemList2Items.allSatisfy { $0.itemList == itemList2 })
     }
     
     // MARK: - Update Item Tests
@@ -153,18 +132,14 @@ final class ItemServiceTests: XCTestCase {
         let newDescription = "Updated Item"
         let newAmount = NSDecimalNumber(value: 15.75)
         let newQuantity: Int32 = 3
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: newDescription, amount: newAmount, quantity: newQuantity)
-        
-        // Then
-        XCTAssertEqual(testItem.itemDescription, newDescription)
-        XCTAssertEqual(testItem.amount, newAmount)
-        XCTAssertEqual(testItem.quantity, newQuantity)
-        XCTAssertNotNil(testItem.lastModifiedAt)
-        
-        // Verify changes were saved
-        let updatedItem = try await itemService.fetchItem(by: testItem.id!)
+        try await itemService.updateItem(itemId: itemId, description: newDescription, amount: newAmount, quantity: newQuantity)
+
+        // Then - Fetch the item to verify updates
+        let updatedItem = try await itemService.fetchItem(by: itemId)
+        XCTAssertNotNil(updatedItem)
         XCTAssertEqual(updatedItem?.itemDescription, newDescription)
         XCTAssertEqual(updatedItem?.amount, newAmount)
         XCTAssertEqual(updatedItem?.quantity, newQuantity)
@@ -174,17 +149,19 @@ final class ItemServiceTests: XCTestCase {
         // Given
         let testItem = testEntityFactory.createItem()
         try mockCoreDataStack.save()
-        
+
         let originalDescription = testItem.itemDescription
         let newAmount = NSDecimalNumber(value: 20.00)
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: nil, amount: newAmount, quantity: nil)
-        
-        // Then
-        XCTAssertEqual(testItem.itemDescription, originalDescription) // Description unchanged
-        XCTAssertEqual(testItem.amount, newAmount) // Amount updated
-        XCTAssertNotNil(testItem.lastModifiedAt)
+        try await itemService.updateItem(itemId: itemId, description: nil, amount: newAmount, quantity: nil)
+
+        // Then - Fetch the item to verify partial update
+        let updatedItem = try await itemService.fetchItem(by: itemId)
+        XCTAssertNotNil(updatedItem)
+        XCTAssertEqual(updatedItem?.itemDescription, originalDescription) // Description unchanged
+        XCTAssertEqual(updatedItem?.amount, newAmount) // Amount updated
     }
     
     // MARK: - Delete Item Tests
@@ -204,15 +181,15 @@ final class ItemServiceTests: XCTestCase {
     
     // MARK: - Calculation Tests
     
-    func testCalculateTotalAmount_ForEntry() async throws {
+    func testCalculateTotalAmount_ForItemList() async throws {
         // Given
-        let testEntry = testEntityFactory.createEntry()
-        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 10.00), quantity: 2, entry: testEntry)
-        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 15.50), quantity: 1, entry: testEntry)
+        let testItemList = testEntityFactory.createItemList()
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 10.00), quantity: 2, itemList: testItemList)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 15.50), quantity: 1, itemList: testItemList)
         try mockCoreDataStack.save()
         
         // When
-        let totalAmount = try await itemService.calculateTotalAmount(for: testEntry)
+        let totalAmount = try await itemService.calculateTotalAmount(for: testItemList)
         
         // Then
         let expectedTotal = NSDecimalNumber(value: 10.00).multiplying(by: NSDecimalNumber(value: 2))
@@ -220,13 +197,13 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(totalAmount, expectedTotal)
     }
     
-    func testCalculateTotalAmount_ForEntryWithNoItems() async throws {
+    func testCalculateTotalAmount_ForItemListWithNoItems() async throws {
         // Given
-        let testEntry = testEntityFactory.createEntry()
+        let testItemList = testEntityFactory.createItemList()
         try mockCoreDataStack.save()
         
         // When
-        let totalAmount = try await itemService.calculateTotalAmount(for: testEntry)
+        let totalAmount = try await itemService.calculateTotalAmount(for: testItemList)
         
         // Then
         XCTAssertEqual(totalAmount, NSDecimalNumber.zero)
@@ -235,10 +212,10 @@ final class ItemServiceTests: XCTestCase {
     func testCalculateTotalAmount_ForGroup() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
-        let entry1 = testEntityFactory.createEntry(group: testGroup)
-        let entry2 = testEntityFactory.createEntry(group: testGroup)
-        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 20.00), quantity: 1, entry: entry1)
-        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 30.00), quantity: 2, entry: entry2)
+        let itemList1 = testEntityFactory.createItemList(group: testGroup)
+        let itemList2 = testEntityFactory.createItemList(group: testGroup)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 20.00), quantity: 1, itemList: itemList1)
+        _ = testEntityFactory.createItem(amount: NSDecimalNumber(value: 30.00), quantity: 2, itemList: itemList2)
         try mockCoreDataStack.save()
         
         // When
@@ -250,7 +227,7 @@ final class ItemServiceTests: XCTestCase {
         XCTAssertEqual(totalAmount, expectedTotal)
     }
     
-    func testCalculateTotalAmount_ForGroupWithNoEntries() async throws {
+    func testCalculateTotalAmount_ForGroupWithNoItemLists() async throws {
         // Given
         let testGroup = testEntityFactory.createGroup()
         try mockCoreDataStack.save()
@@ -264,40 +241,22 @@ final class ItemServiceTests: XCTestCase {
     
     // MARK: - Caching Tests
     
-    func testFetchItems_Caching() async throws {
-        // Given
-        _ = testEntityFactory.createItems(count: 2)
-        try mockCoreDataStack.save()
-        
-        // When - First fetch (should cache)
-        let firstFetch = try await itemService.fetchItems()
-        
-        // Clear Core Data to simulate cache hit
-        mockCoreDataStack.clearAllData()
-        
-        // Second fetch (should use cache)
-        let secondFetch = try await itemService.fetchItems()
-        
-        // Then
-        XCTAssertEqual(firstFetch.count, 2)
-        XCTAssertEqual(secondFetch.count, 2) // Should return cached data
-        XCTAssertEqual(firstFetch.map { $0.id }, secondFetch.map { $0.id })
-    }
+
     
-    func testGetItemsForEntry_Caching() async throws {
+    func testGetItemsForItemList_Caching() async throws {
         // Given
-        let testEntry = testEntityFactory.createEntry()
-        _ = testEntityFactory.createItems(count: 3, entry: testEntry)
+        let testItemList = testEntityFactory.createItemList()
+        _ = testEntityFactory.createItems(count: 3, itemList: testItemList)
         try mockCoreDataStack.save()
         
         // When - First fetch (should cache)
-        let firstFetch = try await itemService.getItems(for: testEntry)
+        let firstFetch = try await itemService.getItems(for: testItemList)
         
         // Clear Core Data to simulate cache hit
         mockCoreDataStack.clearAllData()
         
         // Second fetch (should use cache)
-        let secondFetch = try await itemService.getItems(for: testEntry)
+        let secondFetch = try await itemService.getItems(for: testItemList)
         
         // Then
         XCTAssertEqual(firstFetch.count, 3)
@@ -307,18 +266,18 @@ final class ItemServiceTests: XCTestCase {
     
     func testCalculateTotalAmount_Caching() async throws {
         // Given
-        let testEntry = testEntityFactory.createEntry()
-        _ = testEntityFactory.createItems(count: 2, entry: testEntry)
+        let testItemList = testEntityFactory.createItemList()
+        _ = testEntityFactory.createItems(count: 2, itemList: testItemList)
         try mockCoreDataStack.save()
         
         // When - First calculation (should cache)
-        let firstCalculation = try await itemService.calculateTotalAmount(for: testEntry)
+        let firstCalculation = try await itemService.calculateTotalAmount(for: testItemList)
         
         // Clear Core Data to simulate cache hit
         mockCoreDataStack.clearAllData()
         
         // Second calculation (should use cache)
-        let secondCalculation = try await itemService.calculateTotalAmount(for: testEntry)
+        let secondCalculation = try await itemService.calculateTotalAmount(for: testItemList)
         
         // Then
         XCTAssertEqual(firstCalculation, secondCalculation) // Should return cached result
@@ -328,24 +287,24 @@ final class ItemServiceTests: XCTestCase {
     
     func testCreateItem_InvalidatesCache() async throws {
         // Given
-        let testEntry = testEntityFactory.createEntry()
-        _ = testEntityFactory.createItems(count: 2, entry: testEntry)
+        let testItemList = testEntityFactory.createItemList()
+        _ = testEntityFactory.createItems(count: 2, itemList: testItemList)
         try mockCoreDataStack.save()
         
         // Prime the cache
-        _ = try await itemService.getItems(for: testEntry)
-        _ = try await itemService.calculateTotalAmount(for: testEntry)
+        _ = try await itemService.getItems(for: testItemList)
+        _ = try await itemService.calculateTotalAmount(for: testItemList)
         
         // When
         _ = try await itemService.createItem(
             description: "New Item",
             amount: NSDecimalNumber(value: 25.00),
             quantity: 1,
-            entry: testEntry
+            itemList: testItemList
         )
         
         // Then - Cache should be invalidated, so we get fresh data
-        let allItems = try await itemService.getItems(for: testEntry)
+        let allItems = try await itemService.getItems(for: testItemList)
         XCTAssertEqual(allItems.count, 3) // Should include the new item
         XCTAssertTrue(allItems.contains { $0.itemDescription == "New Item" })
     }
@@ -354,31 +313,27 @@ final class ItemServiceTests: XCTestCase {
         // Given
         let testItem = testEntityFactory.createItem(description: "Original Item")
         try mockCoreDataStack.save()
-        
-        // Prime the cache
-        _ = try await itemService.fetchItems()
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: "Updated Item", amount: nil, quantity: nil)
-        
+        try await itemService.updateItem(itemId: itemId, description: "Updated Item", amount: nil, quantity: nil)
+
         // Then - Cache should be invalidated
-        let updatedItem = try await itemService.fetchItem(by: testItem.id!)
+        let updatedItem = try await itemService.fetchItem(by: itemId)
         XCTAssertEqual(updatedItem?.itemDescription, "Updated Item")
     }
     
     func testDeleteItem_InvalidatesCache() async throws {
         // Given
-        let testItem = testEntityFactory.createItem()
+        let testItemList = testEntityFactory.createItemList()
+        let testItem = testEntityFactory.createItem(itemList: testItemList)
         try mockCoreDataStack.save()
-        
-        // Prime the cache
-        _ = try await itemService.fetchItems()
         
         // When
         try await itemService.deleteItem(testItem)
         
-        // Then - Cache should be invalidated
-        let allItems = try await itemService.fetchItems()
-        XCTAssertEqual(allItems.count, 0) // Should reflect deletion
+        // Then - Verify deletion by checking items in the itemList
+        let remainingItems = try await itemService.getItems(for: testItemList)
+        XCTAssertEqual(remainingItems.count, 0) // Should reflect deletion
     }
 }

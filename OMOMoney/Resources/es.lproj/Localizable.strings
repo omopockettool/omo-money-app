@@ -1,0 +1,125 @@
+/* 
+  Localizable.strings
+  OMOMoney - Español
+
+  Created on 11/18/25.
+*/
+
+// MARK: - General
+"app.name" = "OMO Money";
+"general.ok" = "Aceptar";
+"general.cancel" = "Cancelar";
+"general.save" = "Guardar";
+"general.delete" = "Eliminar";
+"general.edit" = "Editar";
+"general.add" = "Añadir";
+"general.back" = "Atrás";
+"general.done" = "Hecho";
+"general.error" = "Error";
+"general.loading" = "Cargando...";
+"general.search" = "Buscar";
+"general.close" = "Cerrar";
+
+// MARK: - Navigation
+"nav.dashboard" = "Panel";
+"nav.groups" = "Grupos";
+"nav.categories" = "Categorías";
+"nav.entries" = "Entradas";
+"nav.settings" = "Ajustes";
+"nav.users" = "Usuarios";
+
+// MARK: - User
+"user.title" = "Usuarios";
+"user.name" = "Nombre";
+"user.email" = "Correo electrónico";
+"user.create" = "Crear Usuario";
+"user.edit" = "Editar Usuario";
+"user.delete.confirm" = "¿Estás seguro de que quieres eliminar este usuario?";
+"user.empty.message" = "No se encontraron usuarios";
+
+// MARK: - Group
+"group.title" = "Grupos";
+"group.name" = "Nombre del Grupo";
+"group.currency" = "Moneda";
+"group.create" = "Crear Grupo";
+"group.edit" = "Editar Grupo";
+"group.delete.confirm" = "¿Estás seguro de que quieres eliminar este grupo?";
+"group.empty.message" = "No se encontraron grupos";
+"group.members" = "Miembros";
+
+// MARK: - Category
+"category.title" = "Categorías";
+"category.name" = "Nombre de Categoría";
+"category.color" = "Color";
+"category.limit" = "Límite de Presupuesto";
+"category.create" = "Crear Categoría";
+"category.edit" = "Editar Categoría";
+"category.delete.confirm" = "¿Estás seguro de que quieres eliminar esta categoría?";
+"category.empty.message" = "No se encontraron categorías";
+
+// MARK: - Entry/ItemList
+"entry.title" = "Entradas";
+"entry.description" = "Descripción";
+"entry.date" = "Fecha";
+"entry.amount" = "Monto";
+"entry.category" = "Categoría";
+"entry.paymentMethod" = "Método de Pago";
+"entry.create" = "Añadir Entrada";
+"entry.edit" = "Editar Entrada";
+"entry.delete.confirm" = "¿Estás seguro de que quieres eliminar esta entrada?";
+"entry.empty.message" = "No se encontraron entradas";
+
+// MARK: - Item
+"item.description" = "Descripción del Artículo";
+"item.quantity" = "Cantidad";
+"item.amount" = "Monto";
+"item.total" = "Total";
+"item.add" = "Añadir Artículo";
+
+// MARK: - Payment Method
+"payment.title" = "Métodos de Pago";
+"payment.name" = "Nombre del Método de Pago";
+"payment.type" = "Tipo";
+"payment.active" = "Activo";
+"payment.create" = "Crear Método de Pago";
+"payment.edit" = "Editar Método de Pago";
+"payment.delete.confirm" = "¿Estás seguro de que quieres eliminar este método de pago?";
+"payment.empty.message" = "No se encontraron métodos de pago";
+
+// MARK: - Dashboard
+"dashboard.title" = "Panel";
+"dashboard.totalExpenses" = "Gastos Totales";
+"dashboard.totalIncome" = "Ingresos Totales";
+"dashboard.balance" = "Balance";
+"dashboard.thisMonth" = "Este Mes";
+"dashboard.recentEntries" = "Entradas Recientes";
+
+// MARK: - Settings
+"settings.title" = "Ajustes";
+"settings.language" = "Idioma";
+"settings.currency" = "Moneda Predeterminada";
+"settings.theme" = "Tema";
+"settings.notifications" = "Notificaciones";
+"settings.about" = "Acerca de";
+
+// MARK: - Validation Errors
+"error.validation.emptyName" = "El nombre no puede estar vacío";
+"error.validation.emptyEmail" = "El correo electrónico no puede estar vacío";
+"error.validation.invalidEmail" = "El correo electrónico debe ser válido";
+"error.validation.emptyGroupName" = "El nombre del grupo no puede estar vacío";
+"error.validation.invalidAmount" = "El monto debe ser mayor que cero";
+"error.validation.emptyItemDescription" = "La descripción del artículo no puede estar vacía";
+"error.validation.emptyCategoryName" = "El nombre de la categoría no puede estar vacío";
+"error.validation.emptyPaymentMethodName" = "El nombre del método de pago no puede estar vacío";
+
+// MARK: - Repository Errors
+"error.repository.notFound" = "El elemento solicitado no se encontró";
+"error.repository.invalidData" = "Los datos proporcionados no son válidos";
+"error.repository.saveFailed" = "No se pudo guardar el elemento";
+"error.repository.deleteFailed" = "No se pudo eliminar el elemento";
+
+// MARK: - Success Messages
+"success.created" = "Creado exitosamente";
+"success.updated" = "Actualizado exitosamente";
+"success.deleted" = "Eliminado exitosamente";
+"success.saved" = "Guardado exitosamente";
