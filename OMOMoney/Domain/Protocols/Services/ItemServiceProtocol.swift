@@ -21,10 +21,10 @@ protocol ItemServiceProtocol {
     func deleteItem(_ item: Item) async throws
     
     /// Get items for a specific item list
-    func getItems(for itemList: ItemList) async throws -> [Item]
-    
+    func getItems(for itemList: ItemList) async throws -> [ItemDomain]
+
     /// Get items for a specific group
-    func getItems(for group: Group) async throws -> [Item]
+    func getItems(for group: Group) async throws -> [ItemDomain]
     
     /// Calculate total amount for a specific item list
     func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber

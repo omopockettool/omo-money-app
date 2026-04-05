@@ -179,29 +179,27 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     }
     
     /// Get itemLists for a specific group with caching
-    func getItemLists(for group: Group) async throws -> [ItemList] {
+    func getItemLists(for group: Group) async throws -> [ItemListDomain] {
         let cacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
         let timestampKey = "\(cacheKey).timestamp"
-        
+
         print("🔍 ItemListService: Getting ItemLists for group '\(group.name ?? "Unknown")'")
         print("🔍 ItemListService: Cache key: \(cacheKey)")
-        
+
         // Check cache first with TTL validation
-        if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey),
+        if let cachedItemLists: [ItemListDomain] = await CacheManager.shared.getCachedData(for: cacheKey),
            let timestamp: Date = await CacheManager.shared.getCachedData(for: timestampKey) {
-            
-            // Validate cache freshness
-            // TTL: 30 minutes (local-only app, will reduce to 5 min when cloud sync is added)
+
             let cacheAge = Date().timeIntervalSince(timestamp)
-            let cacheTTL: TimeInterval = 1800 // 30 minutes (30 * 60)
-            
+            let cacheTTL: TimeInterval = 300 // 5 minutes
+
             let minutesOld = Int(cacheAge / 60)
             let secondsOld = Int(cacheAge.truncatingRemainder(dividingBy: 60))
-            
+
             if cacheAge < cacheTTL {
                 print("🟢 [TTL CHECK] CACHE HIT - Data is FRESH ✅")
                 print("   📊 Cache Age: \(minutesOld)m \(secondsOld)s old")
-                print("   ⏰ TTL Limit: 30 minutes (1800 seconds)")
+                print("   ⏰ TTL Limit: 5 minutes (300 seconds)")
                 print("   ✅ Status: VALID (age < TTL)")
                 print("   📦 Items: \(cachedItemLists.count)")
                 print("   🎯 Source: IN-MEMORY CACHE")
@@ -209,7 +207,7 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             } else {
                 print("🔴 [TTL CHECK] CACHE EXPIRED - Data is STALE ❌")
                 print("   📊 Cache Age: \(minutesOld)m \(secondsOld)s old")
-                print("   ⏰ TTL Limit: 30 minutes (1800 seconds)")
+                print("   ⏰ TTL Limit: 5 minutes (300 seconds)")
                 print("   ❌ Status: EXPIRED (age >= TTL)")
                 print("   🔄 Action: Fetching from Core Data...")
             }
@@ -217,10 +215,9 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
             print("⚪️ [TTL CHECK] NO CACHE - First time fetch")
             print("   🔄 Action: Fetching from Core Data...")
         }
-        
+
         print("🔄 ItemListService: Cache miss - fetching from Core Data...")
 
-        // ✅ Fetch from Core Data using UUID instead of relationship
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         if let groupId = group.id {
             request.predicate = NSPredicate(format: "group.id == %@", groupId as CVarArg)
@@ -229,77 +226,81 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         }
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
 
-        let itemLists = try await fetch(request)
-        
-        // Log each ItemList found (only first few to avoid spam)
+        let domainItemLists: [ItemListDomain] = try await context.perform {
+            let results = try self.context.fetch(request)
+            return results.map { $0.toDomain() }
+        }
+
         let maxLogItems = 5
-        let loggedItems = itemLists.prefix(maxLogItems)
-        for itemList in loggedItems {
-            print("   - \(itemList.itemListDescription ?? "No description") (ID: \(itemList.id?.uuidString ?? "nil"))")
+        for itemList in domainItemLists.prefix(maxLogItems) {
+            print("   - \(itemList.itemListDescription) (ID: \(itemList.id))")
         }
-        if itemLists.count > maxLogItems {
-            print("   - (...and \(itemLists.count - maxLogItems) more...)")
+        if domainItemLists.count > maxLogItems {
+            print("   - (...and \(domainItemLists.count - maxLogItems) more...)")
         }
-        
-        // Cache the result with timestamp
-        await CacheManager.shared.cacheData(itemLists, for: cacheKey)
+
+        await CacheManager.shared.cacheData(domainItemLists, for: cacheKey)
         await CacheManager.shared.cacheData(Date(), for: timestampKey)
         print("💾 [DATABASE] ItemLists fetched from CORE DATA and cached ✅")
-        print("   📦 Items: \(itemLists.count)")
-        print("   ⏰ Cache valid for: 30 minutes")
+        print("   📦 Items: \(domainItemLists.count)")
+        print("   ⏰ Cache valid for: 5 minutes")
         print("   🎯 Source: CORE DATA (SQLite)")
-        
-        return itemLists
+
+        return domainItemLists
     }
     
     /// Get itemLists for a specific user across all their groups with caching
-    func getItemLists(for user: User) async throws -> [ItemList] {
+    func getItemLists(for user: User) async throws -> [ItemListDomain] {
         let cacheKey = "\(CacheKeys.userItemLists).\(user.id?.uuidString ?? "nil")"
-        
-        // Check cache first
-        if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey) {
+
+        if let cachedItemLists: [ItemListDomain] = await CacheManager.shared.getCachedData(for: cacheKey) {
             return cachedItemLists
         }
-        
-        // Fetch from Core Data through UserGroup relationship
+
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
-        let itemLists = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(itemLists, for: cacheKey)
-        
-        return itemLists
+
+        let domainItemLists: [ItemListDomain] = try await context.perform {
+            let results = try self.context.fetch(request)
+            return results.map { $0.toDomain() }
+        }
+
+        await CacheManager.shared.cacheData(domainItemLists, for: cacheKey)
+        return domainItemLists
     }
-    
+
     /// Get itemLists for a specific category with caching
-    func getItemLists(for category: Category) async throws -> [ItemList] {
+    func getItemLists(for category: Category) async throws -> [ItemListDomain] {
         let cacheKey = "\(CacheKeys.categoryItemLists).\(category.id?.uuidString ?? "nil")"
-        
-        // Check cache first
-        if let cachedItemLists: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey) {
+
+        if let cachedItemLists: [ItemListDomain] = await CacheManager.shared.getCachedData(for: cacheKey) {
             return cachedItemLists
         }
-        
-        // Fetch from Core Data
+
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "category == %@", category)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
-        let itemLists = try await fetch(request)
-        
-        // Cache the result
-        await CacheManager.shared.cacheData(itemLists, for: cacheKey)
-        
-        return itemLists
+
+        let domainItemLists: [ItemListDomain] = try await context.perform {
+            let results = try self.context.fetch(request)
+            return results.map { $0.toDomain() }
+        }
+
+        await CacheManager.shared.cacheData(domainItemLists, for: cacheKey)
+        return domainItemLists
     }
-    
+
     /// Get itemLists within a date range
-    func getItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemList] {
+    func getItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemListDomain] {
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "date >= %@ AND date <= %@", startDate as NSDate, endDate as NSDate)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
-        return try await fetch(request)
+
+        return try await context.perform {
+            let results = try self.context.fetch(request)
+            return results.map { $0.toDomain() }
+        }
     }
     
     /// Get itemLists count for a specific group

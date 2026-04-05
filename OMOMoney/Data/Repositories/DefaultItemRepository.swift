@@ -31,46 +31,17 @@ final class DefaultItemRepository: ItemRepository {
     }
 
     func fetchItems(forItemListId itemListId: UUID) async throws -> [ItemDomain] {
-        print("🔶 [REPO-FETCH] ========================================")
-        print("🔶 [REPO-FETCH] Repository fetching items for ItemList ID: \(itemListId.uuidString)")
-        print("🔶 [REPO-FETCH] Fetching ItemList entity from Core Data...")
-
-        // ✅ CRITICAL FIX: Fetch AND convert to Domain models inside context.perform
-        // This ensures thread-safe access to Core Data properties
-        let domainItems = try await context.perform {
+        let itemList = try await context.perform {
             let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
             fetchRequest.fetchLimit = 1
-
             guard let itemList = try self.context.fetch(fetchRequest).first else {
-                print("❌ [REPO-FETCH] ERROR - ItemList not found")
                 throw RepositoryError.notFound
             }
-
-            print("✅ [REPO-FETCH] ItemList found: '\(itemList.itemListDescription ?? "nil")'")
-            print("🔶 [REPO-FETCH] Fetching items from ItemList relationship...")
-
-            // Fetch items directly from the relationship
-            let itemsRequest: NSFetchRequest<Item> = Item.fetchRequest()
-            itemsRequest.predicate = NSPredicate(format: "itemList == %@", itemList)
-            itemsRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-            itemsRequest.returnsObjectsAsFaults = false  // Force full object load
-
-            let items = try self.context.fetch(itemsRequest)
-
-            print("✅ [REPO-FETCH] Service returned \(items.count) Core Data items")
-            print("🔶 [REPO-FETCH] Converting to Domain models (inside context.perform)...")
-
-            // Convert to Domain models INSIDE context.perform for thread safety
-            let domainItems = items.map { $0.toDomain() }
-
-            print("✅ [REPO-FETCH] Converted to \(domainItems.count) Domain models")
-
-            return domainItems
+            return itemList
         }
-
-        print("🔶 [REPO-FETCH] ========================================")
-        return domainItems
+        // Service handles caching and domain conversion
+        return try await itemService.getItems(for: itemList)
     }
 
     func createItem(

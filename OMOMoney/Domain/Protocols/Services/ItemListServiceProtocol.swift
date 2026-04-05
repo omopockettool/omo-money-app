@@ -20,16 +20,16 @@ protocol ItemListServiceProtocol {
     func deleteItemList(_ itemList: ItemList) async throws
     
     /// Get itemLists for a specific group
-    func getItemLists(for group: Group) async throws -> [ItemList]
-    
+    func getItemLists(for group: Group) async throws -> [ItemListDomain]
+
     /// Get itemLists for a specific user across all their groups
-    func getItemLists(for user: User) async throws -> [ItemList]
-    
+    func getItemLists(for user: User) async throws -> [ItemListDomain]
+
     /// Get itemLists for a specific category
-    func getItemLists(for category: Category) async throws -> [ItemList]
-    
+    func getItemLists(for category: Category) async throws -> [ItemListDomain]
+
     /// Get itemLists within a date range
-    func getItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemList]
+    func getItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemListDomain]
     
     /// Get itemLists count for a specific group
     func getItemListsCount(for group: Group) async throws -> Int

@@ -102,10 +102,12 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         print("✅ [CREATE-ITEM] Back from context.perform")
         print("🔵 [CREATE-ITEM] Item persisted with ID: \(itemId?.uuidString ?? "nil")")
 
-        // ✅ BUG FIX: Invalidate calculation caches (ItemList totals and Group totals)
-        // NOTE: Item data caches removed - Core Data objects cannot be safely cached
+        // Invalidate item data cache and calculation caches
         print("🔵 [CREATE-ITEM] ----------------------------------------")
         print("🔵 [CREATE-ITEM] Starting cache invalidation...")
+
+        let itemListItemsCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+        await CacheManager.shared.clearDataCache(for: itemListItemsCacheKey)
 
         // Invalidate ItemList calculation caches
         let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
@@ -181,21 +183,19 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             return (itemListId, groupId)
         }
 
-        // ✅ CRITICAL FIX: Invalidate only calculation caches, not item data caches
-        // NOTE: Item data caches removed - Core Data objects cannot be safely cached
-
-        // Invalidate ItemList calculation caches
+        // Invalidate item data cache and calculation caches
         if let itemListId = itemListId {
+            let itemListItemsCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: itemListItemsCacheKey)
+
             let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
             await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
         }
 
-        // Invalidate group-level caches (if itemList belongs to a group)
         if let groupId = groupId {
             let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
             await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
 
-            // ✅ CRITICAL: Also invalidate ItemListService cache for the group
             let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
             let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
             await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
@@ -220,21 +220,19 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         await delete(item)
         try await save()
 
-        // ✅ CRITICAL FIX: Invalidate only calculation caches, not item data caches
-        // NOTE: Item data caches removed - Core Data objects cannot be safely cached
-
-        // Invalidate ItemList calculation caches
+        // Invalidate item data cache and calculation caches
         if let itemListId = itemListId {
+            let itemListItemsCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: itemListItemsCacheKey)
+
             let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
             await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
         }
 
-        // Invalidate group-level caches (if itemList belongs to a group)
         if let groupId = groupId {
             let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
             await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
 
-            // ✅ CRITICAL: Also invalidate ItemListService cache for the group
             let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
             let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
             await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
@@ -247,46 +245,45 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     }
     
     /// Get items for a specific itemList
-    /// ⚠️ CRITICAL FIX: Removed caching of Core Data objects - they become invalid when contexts refresh
-    /// TODO: Refactor to return ItemDomain and cache Domain models instead
-    func getItems(for itemList: ItemList) async throws -> [Item] {
-        print("🟣 [GET-ITEMS] ========================================")
-        print("🟣 [GET-ITEMS] Getting items for ItemList: '\(itemList.itemListDescription ?? "nil")'")
-        print("🟣 [GET-ITEMS] ItemList ID: \(itemList.id?.uuidString ?? "nil")")
-        print("⚪️ [GET-ITEMS] Fetching from Core Data (caching disabled for Core Data objects)...")
+    func getItems(for itemList: ItemList) async throws -> [ItemDomain] {
+        let cacheKey = "\(CacheKeys.itemListItems).\(itemList.id?.uuidString ?? "nil")"
 
-        // Fetch from Core Data - DO NOT CACHE Core Data objects
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        request.predicate = NSPredicate(format: "itemList == %@", itemList)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        request.returnsObjectsAsFaults = false  // Force full object load
-        let items = try await fetch(request)
-
-        print("💾 [GET-ITEMS] ✅ DATABASE FETCH complete")
-        print("💾 [GET-ITEMS] Fetched \(items.count) items from Core Data")
-        for (index, item) in items.prefix(3).enumerated() {
-            print("   \(index + 1). \(item.itemDescription ?? "nil") - \(item.amount ?? 0)")
+        if let cached: [ItemDomain] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cached
         }
-        if items.count > 3 {
-            print("   ...and \(items.count - 3) more items")
-        }
-        print("🟣 [GET-ITEMS] ========================================")
 
-        return items
+        let domainItems: [ItemDomain] = try await context.perform {
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "itemList == %@", itemList)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
+            request.returnsObjectsAsFaults = false
+            let items = try self.context.fetch(request)
+            return items.map { $0.toDomain() }
+        }
+
+        await CacheManager.shared.cacheData(domainItems, for: cacheKey)
+        return domainItems
     }
-    
-    /// Get items for a specific group
-    /// ⚠️ CRITICAL FIX: Removed caching of Core Data objects - they become invalid when contexts refresh
-    /// TODO: Refactor to return ItemDomain and cache Domain models instead
-    func getItems(for group: Group) async throws -> [Item] {
-        // Fetch from Core Data - DO NOT CACHE Core Data objects
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        request.predicate = NSPredicate(format: "itemList.group == %@", group)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
-        request.returnsObjectsAsFaults = false  // Force full object load
-        let items = try await fetch(request)
 
-        return items
+    /// Get items for a specific group
+    func getItems(for group: Group) async throws -> [ItemDomain] {
+        let cacheKey = "\(CacheKeys.groupItems).\(group.id?.uuidString ?? "nil")"
+
+        if let cached: [ItemDomain] = await CacheManager.shared.getCachedData(for: cacheKey) {
+            return cached
+        }
+
+        let domainItems: [ItemDomain] = try await context.perform {
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "itemList.group == %@", group)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
+            request.returnsObjectsAsFaults = false
+            let items = try self.context.fetch(request)
+            return items.map { $0.toDomain() }
+        }
+
+        await CacheManager.shared.cacheData(domainItems, for: cacheKey)
+        return domainItems
     }
     
     /// Set isPaid on all items belonging to a specific item list
@@ -303,7 +300,10 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             return items.first?.itemList?.groupId
         }
 
-        // Clear calculation caches
+        // Invalidate item data cache and calculation caches
+        let itemListItemsCacheKey = "\(CacheKeys.itemListItems).\(itemListId.uuidString)"
+        await CacheManager.shared.clearDataCache(for: itemListItemsCacheKey)
+
         let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
         await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
 
@@ -321,42 +321,32 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     /// Calculate total amount for a specific itemList with caching
     func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber {
         let cacheKey = "\(CacheKeys.itemListTotalAmount).\(itemList.id?.uuidString ?? "nil")"
-        
-        // Check cache first
+
         if let cachedAmount: NSDecimalNumber = await CacheManager.shared.getCachedCalculation(for: cacheKey) {
             return cachedAmount
         }
-        
-        // Calculate from Core Data
+
         let items = try await getItems(for: itemList)
-        let total = items.reduce(NSDecimalNumber.zero) { total, item in
-            total.adding(item.amount ?? NSDecimalNumber.zero)
-        }
-        
-        // Cache the result
-        await CacheManager.shared.cacheCalculation(total, for: cacheKey)
-        
-        return total
+        let total = items.reduce(Decimal.zero) { $0 + $1.amount }
+        let result = NSDecimalNumber(decimal: total)
+
+        await CacheManager.shared.cacheCalculation(result, for: cacheKey)
+        return result
     }
-    
+
     /// Calculate total amount for a specific group with caching
     func calculateTotalAmount(for group: Group) async throws -> NSDecimalNumber {
         let cacheKey = "\(CacheKeys.groupTotalAmount).\(group.id?.uuidString ?? "nil")"
-        
-        // Check cache first
+
         if let cachedAmount: NSDecimalNumber = await CacheManager.shared.getCachedCalculation(for: cacheKey) {
             return cachedAmount
         }
-        
-        // Calculate from Core Data
+
         let items = try await getItems(for: group)
-        let total = items.reduce(NSDecimalNumber.zero) { total, item in
-            total.adding(item.amount ?? NSDecimalNumber.zero)
-        }
-        
-        // Cache the result
-        await CacheManager.shared.cacheCalculation(total, for: cacheKey)
-        
-        return total
+        let total = items.reduce(Decimal.zero) { $0 + $1.amount }
+        let result = NSDecimalNumber(decimal: total)
+
+        await CacheManager.shared.cacheCalculation(result, for: cacheKey)
+        return result
     }
 }

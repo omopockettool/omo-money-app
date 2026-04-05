@@ -43,9 +43,8 @@ final class DefaultItemListRepository: ItemListRepository {
             throw RepositoryError.notFound
         }
 
-        // Get item lists using service (already uses context.perform internally)
-        let itemLists = try await itemListService.getItemLists(for: group)
-        return itemLists.map { $0.toDomain() }
+        // Get item lists using service — already returns [ItemListDomain]
+        return try await itemListService.getItemLists(for: group)
     }
     
     func fetchItemLists(forCategoryId categoryId: UUID) async throws -> [ItemListDomain] {
@@ -59,8 +58,7 @@ final class DefaultItemListRepository: ItemListRepository {
     }
     
     func fetchItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemListDomain] {
-        let itemLists = try await itemListService.getItemLists(from: startDate, to: endDate)
-        return itemLists.map { $0.toDomain() }
+        return try await itemListService.getItemLists(from: startDate, to: endDate)
     }
     
     func createItemList(
