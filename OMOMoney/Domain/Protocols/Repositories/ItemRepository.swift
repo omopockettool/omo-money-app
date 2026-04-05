@@ -39,7 +39,8 @@ protocol ItemRepository {
         description: String,
         amount: Decimal,
         quantity: Int32,
-        itemListId: UUID?
+        itemListId: UUID?,
+        isPaid: Bool
     ) async throws -> ItemDomain
     
     /// Update an existing item
@@ -51,4 +52,7 @@ protocol ItemRepository {
     /// - Parameter id: Item UUID to delete
     /// - Throws: Repository errors
     func deleteItem(id: UUID) async throws
+
+    /// Set isPaid on all items belonging to a specific item list
+    func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws
 }

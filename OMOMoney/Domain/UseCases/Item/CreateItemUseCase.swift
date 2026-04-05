@@ -15,13 +15,15 @@ protocol CreateItemUseCase {
     ///   - amount: Item amount
     ///   - quantity: Item quantity
     ///   - itemListId: Associated item list ID
+    ///   - isPaid: Whether the item is already paid
     /// - Returns: Created ItemDomain object
     /// - Throws: Repository or validation errors
     func execute(
         description: String,
         amount: Decimal,
         quantity: Int32,
-        itemListId: UUID?
+        itemListId: UUID?,
+        isPaid: Bool
     ) async throws -> ItemDomain
 }
 
@@ -36,9 +38,9 @@ final class DefaultCreateItemUseCase: CreateItemUseCase {
         description: String,
         amount: Decimal,
         quantity: Int32,
-        itemListId: UUID?
+        itemListId: UUID?,
+        isPaid: Bool = false
     ) async throws -> ItemDomain {
-        // Business logic: Validate inputs
         let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedDescription.isEmpty else {
@@ -53,12 +55,12 @@ final class DefaultCreateItemUseCase: CreateItemUseCase {
             throw ValidationError.invalidQuantity
         }
 
-        // Create the item
         return try await itemRepository.createItem(
             description: trimmedDescription,
             amount: amount,
             quantity: quantity,
-            itemListId: itemListId
+            itemListId: itemListId,
+            isPaid: isPaid
         )
     }
 }

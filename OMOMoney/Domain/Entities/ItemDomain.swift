@@ -17,7 +17,8 @@ struct ItemDomain: Identifiable, Equatable, Hashable {
     let itemListId: UUID?
     let createdAt: Date
     let lastModifiedAt: Date?
-    
+    let isPaid: Bool
+
     init(
         id: UUID = UUID(),
         itemDescription: String = "",
@@ -25,7 +26,8 @@ struct ItemDomain: Identifiable, Equatable, Hashable {
         quantity: Int32 = 1,
         itemListId: UUID? = nil,
         createdAt: Date = Date(),
-        lastModifiedAt: Date? = nil
+        lastModifiedAt: Date? = nil,
+        isPaid: Bool = false
     ) {
         self.id = id
         self.itemDescription = itemDescription
@@ -34,6 +36,7 @@ struct ItemDomain: Identifiable, Equatable, Hashable {
         self.itemListId = itemListId
         self.createdAt = createdAt
         self.lastModifiedAt = lastModifiedAt
+        self.isPaid = isPaid
     }
 }
 
@@ -71,7 +74,8 @@ extension ItemDomain {
         quantity: Int32 = 1,
         itemListId: UUID? = nil,
         createdAt: Date = Date(),
-        lastModifiedAt: Date? = nil
+        lastModifiedAt: Date? = nil,
+        isPaid: Bool = false
     ) -> ItemDomain {
         ItemDomain(
             id: id,
@@ -80,7 +84,8 @@ extension ItemDomain {
             quantity: quantity,
             itemListId: itemListId,
             createdAt: createdAt,
-            lastModifiedAt: lastModifiedAt
+            lastModifiedAt: lastModifiedAt,
+            isPaid: isPaid
         )
     }
 }

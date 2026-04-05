@@ -32,7 +32,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
     }
     
     /// Create a new item
-    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID) async throws -> Item {
+    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID, isPaid: Bool = false) async throws -> Item {
         print("🔵 [CREATE-ITEM] ========================================")
         print("🔵 [CREATE-ITEM] START - Creating new item")
         print("🔵 [CREATE-ITEM] Description: '\(description ?? "nil")'")
@@ -76,6 +76,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
             item.amount = amount
             item.quantity = quantity
             item.itemList = itemListInContext
+            item.isPaid = isPaid
             item.createdAt = Date()
 
             print("🔵 [CREATE-ITEM] Item object created with ID: \(item.id?.uuidString ?? "nil")")
@@ -288,6 +289,35 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         return items
     }
     
+    /// Set isPaid on all items belonging to a specific item list
+    func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws {
+        let groupId: UUID? = try await context.perform {
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "itemList.id == %@", itemListId as CVarArg)
+            request.returnsObjectsAsFaults = false
+            let items = try self.context.fetch(request)
+            for item in items {
+                item.isPaid = isPaid
+            }
+            try self.context.save()
+            return items.first?.itemList?.groupId
+        }
+
+        // Clear calculation caches
+        let itemListTotalCacheKey = "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)"
+        await CacheManager.shared.clearCalculationCache(for: itemListTotalCacheKey)
+
+        if let groupId = groupId {
+            let groupTotalCacheKey = "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)"
+            await CacheManager.shared.clearCalculationCache(for: groupTotalCacheKey)
+
+            let itemListServiceCacheKey = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            let itemListServiceTimestampKey = "\(itemListServiceCacheKey).timestamp"
+            await CacheManager.shared.clearDataCache(for: itemListServiceCacheKey)
+            await CacheManager.shared.clearDataCache(for: itemListServiceTimestampKey)
+        }
+    }
+
     /// Calculate total amount for a specific itemList with caching
     func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber {
         let cacheKey = "\(CacheKeys.itemListTotalAmount).\(itemList.id?.uuidString ?? "nil")"

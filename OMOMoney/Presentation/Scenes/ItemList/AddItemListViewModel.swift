@@ -171,13 +171,14 @@ final class AddItemListViewModel: ObservableObject {
                 groupId: groupId
             )
 
-            // Step 2: If price provided, create automatic Item
+            // Step 2: If price provided, create automatic Item (marked paid if amount > 0)
             if let priceDecimal = priceAsDecimal {
                 let _ = try await createItemUseCase.execute(
                     description: trimmedDescription,
                     amount: priceDecimal,
                     quantity: 1,
-                    itemListId: itemList.id
+                    itemListId: itemList.id,
+                    isPaid: priceDecimal > 0
                 )
             }
 

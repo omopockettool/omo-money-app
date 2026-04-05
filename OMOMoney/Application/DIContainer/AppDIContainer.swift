@@ -106,6 +106,9 @@ final class AppDIContainer {
     func makeFetchItemsUseCase() -> FetchItemsUseCase {
         DefaultFetchItemsUseCase(itemRepository: itemRepository)
     }
+    func makeToggleAllItemsPaidInListUseCase() -> ToggleAllItemsPaidInListUseCase {
+        DefaultToggleAllItemsPaidInListUseCase(itemRepository: itemRepository)
+    }
 
     // MARK: - Category Use Cases
     func makeFetchCategoriesUseCase() -> FetchCategoriesUseCase {

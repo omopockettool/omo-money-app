@@ -8,9 +8,15 @@
 import Foundation
 import SwiftUI
 
+enum ItemListPaidStatus {
+    case none       // 0 items, or all unpaid
+    case partial    // some paid, some not
+    case all        // all items paid
+}
+
 @MainActor
 class DashboardViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
     // ✅ Clean Architecture: Store Domain models, not Core Data entities
     @Published var itemLists: [ItemListDomain] = [] {
@@ -21,8 +27,10 @@ class DashboardViewModel: ObservableObject {
     }
     @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
-    @Published var itemListTotals: [UUID: Double] = [:]  // ✅ Cache for individual ItemList totals
-    @Published var itemListCounts: [UUID: Int] = [:]    // ✅ Cache for item counts per ItemList
+    @Published var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
+    @Published var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
+    @Published var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
+    @Published var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]  // Derived paid state per ItemList
     @Published var categories: [UUID: (name: String, color: String)] = [:]  // Category lookup for display
     @Published var isLoading = false
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
@@ -40,6 +48,7 @@ class DashboardViewModel: ObservableObject {
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
+    private let toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
 
     // MARK: - Cache
     // Note: Cache is managed by Service layer (ItemListService)
@@ -53,7 +62,8 @@ class DashboardViewModel: ObservableObject {
         deleteItemListUseCase: DeleteItemListUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
-        fetchCategoriesUseCase: FetchCategoriesUseCase
+        fetchCategoriesUseCase: FetchCategoriesUseCase,
+        toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
@@ -61,6 +71,7 @@ class DashboardViewModel: ObservableObject {
         self.getCurrentUserUseCase = getCurrentUserUseCase
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
+        self.toggleAllItemsPaidInListUseCase = toggleAllItemsPaidInListUseCase
     }
     
     // MARK: - Public Methods
@@ -436,7 +447,8 @@ class DashboardViewModel: ObservableObject {
                         description: itemSubDescriptions[j % itemSubDescriptions.count],
                         amount: itemAmount,
                         quantity: 1,
-                        itemListId: itemList.id
+                        itemListId: itemList.id,
+                        isPaid: true
                     )
                 }
             }
@@ -517,6 +529,19 @@ class DashboardViewModel: ObservableObject {
         print("🗂️ DashboardViewModel: Cache cleared for group \(groupId)")
     }
     
+    /// Toggle paid status for all items in an ItemList (Option A: if all paid → unpay all; else → pay all)
+    func togglePaid(for itemList: ItemListDomain) {
+        let currentStatus = itemListPaidStatus[itemList.id] ?? .none
+        let newValue = currentStatus == .all ? false : true
+        // Optimistic UI update for the icon
+        itemListPaidStatus[itemList.id] = newValue ? .all : .none
+        Task {
+            // Persist first — calculateTotalSpent reads from CoreData, so it must run after the write
+            try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
+            await calculateTotalSpent()
+        }
+    }
+
     /// Force refresh by clearing cache and reloading
     func forceRefresh() async {
         await clearCache()
@@ -532,15 +557,13 @@ class DashboardViewModel: ObservableObject {
     /// ✅ Clean Architecture: Uses async getItemListTotal for Domain models
     /// ✅ Also populates itemListTotals cache for UI display
     private func calculateTotalSpent() async {
-        // Calculate totals and counts concurrently for better performance
-        typealias ItemListData = (id: UUID, total: Double, count: Int)
+        typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus)
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
 
             for itemListDomain in currentMonthItemLists {
                 group.addTask {
-                    let (total, count) = await self.getItemListTotalAndCount(itemListDomain)
-                    return (itemListDomain.id, total, count)
+                    return await self.getItemListData(itemListDomain)
                 }
             }
 
@@ -551,29 +574,26 @@ class DashboardViewModel: ObservableObject {
             return items
         }
 
-        let totals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.total) })
+        let totals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidTotal) })
+        let unpaidTotals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.unpaidTotal) })
         let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
+        let paidStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidStatus) })
 
         await MainActor.run {
             itemListTotals = totals
+            itemListUnpaidTotals = unpaidTotals
             itemListCounts = counts
+            itemListPaidStatus = paidStatuses
         }
 
-        // Sum all totals
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
-            // Protect against NaN or infinite values
-            guard itemListTotal.isFinite else {
-                print("⚠️ DashboardViewModel: Invalid itemList total detected (NaN/Infinite), skipping")
-                return total
-            }
+            guard itemListTotal.isFinite else { return total }
             return total + itemListTotal
         }
 
-        // Final protection against NaN
         if newTotal.isFinite {
-            totalSpent = max(0, newTotal)  // Ensure non-negative
+            totalSpent = max(0, newTotal)
         } else {
-            print("❌ DashboardViewModel: Total spent calculation resulted in NaN/Infinite, setting to 0")
             totalSpent = 0.0
         }
     }
@@ -664,17 +684,31 @@ class DashboardViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
-    private func getItemListTotalAndCount(_ itemListDomain: ItemListDomain) async -> (Double, Int) {
+    private func getItemListData(_ itemListDomain: ItemListDomain) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus) {
         do {
             let items = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
-            let total = items.reduce(0.0) { acc, item in
+            let paidItems = items.filter { $0.isPaid }
+            let unpaidItems = items.filter { !$0.isPaid }
+            let paidTotal = paidItems.reduce(0.0) { acc, item in
+                let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
+                return value.isFinite ? acc + value : acc
+            }
+            let unpaidTotal = unpaidItems.reduce(0.0) { acc, item in
                 let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
                 return value.isFinite ? acc + value : acc
             }
             let totalUnits = items.reduce(0) { $0 + Int($1.quantity) }
-            return (total.isFinite ? max(0, total) : 0.0, totalUnits)
+            let paidStatus: ItemListPaidStatus
+            if items.isEmpty || paidItems.isEmpty {
+                paidStatus = .none
+            } else if paidItems.count == items.count {
+                paidStatus = .all
+            } else {
+                paidStatus = .partial
+            }
+            return (itemListDomain.id, max(0, paidTotal.isFinite ? paidTotal : 0.0), max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0), totalUnits, paidStatus)
         } catch {
-            return (0.0, 0)
+            return (itemListDomain.id, 0.0, 0.0, 0, .none)
         }
     }
 

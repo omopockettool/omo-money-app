@@ -11,7 +11,7 @@ protocol ItemServiceProtocol {
     func fetchItem(by id: UUID) async throws -> Item?
     
     /// Create a new item
-    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID) async throws -> Item
+    func createItem(description: String?, amount: NSDecimalNumber, quantity: Int32, itemListId: UUID, isPaid: Bool) async throws -> Item
     
     /// Update an existing item
     /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data object
@@ -31,4 +31,7 @@ protocol ItemServiceProtocol {
     
     /// Calculate total amount for a specific group
     func calculateTotalAmount(for group: Group) async throws -> NSDecimalNumber
+
+    /// Set isPaid on all items belonging to a specific item list
+    func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws
 }

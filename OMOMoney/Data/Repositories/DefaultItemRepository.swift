@@ -77,18 +77,19 @@ final class DefaultItemRepository: ItemRepository {
         description: String,
         amount: Decimal,
         quantity: Int32,
-        itemListId: UUID?
+        itemListId: UUID?,
+        isPaid: Bool = false
     ) async throws -> ItemDomain {
         guard let itemListId = itemListId else {
             throw ValidationError.invalidItemList
         }
 
-        // ✅ SIMPLE FIX: Pass itemListId directly - Service will fetch ItemList in its own context
         let item = try await itemService.createItem(
             description: description,
             amount: NSDecimalNumber(decimal: amount),
             quantity: quantity,
-            itemListId: itemListId
+            itemListId: itemListId,
+            isPaid: isPaid
         )
 
         return item.toDomain()
@@ -113,5 +114,9 @@ final class DefaultItemRepository: ItemRepository {
 
         // Delete using service
         try await itemService.deleteItem(item)
+    }
+
+    func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws {
+        try await itemService.setAllItemsPaid(forItemListId: itemListId, isPaid: isPaid)
     }
 }

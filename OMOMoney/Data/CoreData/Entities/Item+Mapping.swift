@@ -20,7 +20,8 @@ extension Item {
             quantity: self.quantity,
             itemListId: self.itemList?.id,
             createdAt: self.createdAt ?? Date(),
-            lastModifiedAt: self.lastModifiedAt
+            lastModifiedAt: self.lastModifiedAt,
+            isPaid: self.isPaid
         )
     }
     
@@ -30,6 +31,7 @@ extension Item {
         self.itemDescription = domain.itemDescription
         self.amount = domain.amount as NSDecimalNumber
         self.quantity = domain.quantity
+        self.isPaid = domain.isPaid
         self.lastModifiedAt = Date()
     }
 }
@@ -45,6 +47,7 @@ extension ItemDomain {
         item.itemDescription = self.itemDescription
         item.amount = self.amount as NSDecimalNumber
         item.quantity = self.quantity
+        item.isPaid = self.isPaid
         item.createdAt = self.createdAt
         item.lastModifiedAt = self.lastModifiedAt
         return item

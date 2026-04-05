@@ -42,7 +42,8 @@ struct DashboardView: View {
             deleteItemListUseCase: container.makeDeleteItemListUseCase(),
             getCurrentUserUseCase: container.makeGetCurrentUserUseCase(),
             fetchGroupsForUserUseCase: container.makeFetchGroupsForUserUseCase(),
-            fetchCategoriesUseCase: container.makeFetchCategoriesUseCase()
+            fetchCategoriesUseCase: container.makeFetchCategoriesUseCase(),
+            toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase()
         ))
     }
     
@@ -236,10 +237,31 @@ struct DashboardView: View {
                         return "€0.00"
                     }
                 },
+                getFormattedUnpaidAmount: { itemList in
+                    guard let status = viewModel.itemListPaidStatus[itemList.id],
+                          status != .all,
+                          let unpaid = viewModel.itemListUnpaidTotals[itemList.id],
+                          unpaid > 0 else { return nil }
+                    let code = viewModel.currentGroup?.currency ?? "EUR"
+                    let formatter = NumberFormatter()
+                    formatter.numberStyle = .currency
+                    formatter.currencyCode = code
+                    formatter.locale = Locale(identifier: "es_ES")
+                    let sym = NumberFormatter()
+                    sym.numberStyle = .currency
+                    sym.currencyCode = code
+                    sym.locale = Locale(identifier: "en_US")
+                    formatter.currencySymbol = sym.currencySymbol
+                    return formatter.string(from: NSNumber(value: unpaid))
+                },
                 itemListCounts: viewModel.itemListCounts,
                 categories: viewModel.categories,
+                itemListPaidStatus: viewModel.itemListPaidStatus,
                 onItemTap: { itemList in
                     navigationPath.append(itemList)
+                },
+                onTogglePaid: { itemList in
+                    viewModel.togglePaid(for: itemList)
                 },
                 onRefresh: {
                     await viewModel.refreshData()
