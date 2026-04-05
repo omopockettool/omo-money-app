@@ -55,4 +55,7 @@ protocol ItemRepository {
 
     /// Set isPaid on all items belonging to a specific item list
     func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws
+
+    /// Toggle isPaid on a single item
+    func toggleItemPaid(id: UUID, isPaid: Bool) async throws
 }

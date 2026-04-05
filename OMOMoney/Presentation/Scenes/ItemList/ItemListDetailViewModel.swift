@@ -23,6 +23,7 @@ class ItemListDetailViewModel: ObservableObject {
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
     private let deleteItemUseCase: DeleteItemUseCase
+    private let toggleItemPaidUseCase: ToggleItemPaidUseCase
 
     // MARK: - Domain Model & Cache
     // ✅ Clean Architecture: Use Domain model instead of Core Data entity
@@ -46,7 +47,8 @@ class ItemListDetailViewModel: ObservableObject {
         fetchItemsUseCase: FetchItemsUseCase,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase,
-        deleteItemUseCase: DeleteItemUseCase
+        deleteItemUseCase: DeleteItemUseCase,
+        toggleItemPaidUseCase: ToggleItemPaidUseCase
     ) {
         self.itemListDomain = itemListDomain
         self.currencyCode = currencyCode
@@ -54,6 +56,7 @@ class ItemListDetailViewModel: ObservableObject {
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
         self.deleteItemUseCase = deleteItemUseCase
+        self.toggleItemPaidUseCase = toggleItemPaidUseCase
     }
 
     // MARK: - Data Loading
@@ -165,6 +168,32 @@ class ItemListDetailViewModel: ObservableObject {
         }
     }
 
+    /// Toggle isPaid on a single item (optimistic update + rollback on error)
+    func toggleItemPaid(_ item: ItemDomain) async {
+        let newIsPaid = !item.isPaid
+        let updated = ItemDomain(
+            id: item.id,
+            itemDescription: item.itemDescription,
+            amount: item.amount,
+            quantity: item.quantity,
+            itemListId: item.itemListId,
+            createdAt: item.createdAt,
+            lastModifiedAt: Date(),
+            isPaid: newIsPaid
+        )
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            items[index] = updated
+        }
+        do {
+            try await toggleItemPaidUseCase.execute(itemId: item.id, isPaid: newIsPaid)
+        } catch {
+            if let index = items.firstIndex(where: { $0.id == updated.id }) {
+                items[index] = item
+            }
+            errorMessage = "Error al actualizar item"
+        }
+    }
+
     // MARK: - Formatting Helpers
 
     private func makeCurrencyFormatter() -> NumberFormatter {
@@ -183,7 +212,7 @@ class ItemListDetailViewModel: ObservableObject {
     /// Get formatted total for all items in this ItemList
     /// ✅ Clean Architecture: Works with Domain models only
     func getFormattedTotal() -> String {
-        let total = items.reduce(Decimal.zero) { result, item in
+        let total = items.filter { $0.isPaid }.reduce(Decimal.zero) { result, item in
             let itemTotal = item.amount * Decimal(item.quantity)
             return result + itemTotal
         }

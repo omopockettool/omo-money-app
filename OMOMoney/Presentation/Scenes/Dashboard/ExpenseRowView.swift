@@ -13,14 +13,12 @@ struct ExpenseRowView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Button {
-                onTogglePaid()
-            } label: {
+            Button(action: onTogglePaid) {
                 Image(systemName: paidStatusIcon)
                     .font(.title2)
                     .foregroundStyle(paidStatusColor)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressHapticButtonStyle())
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(itemList.itemListDescription)
