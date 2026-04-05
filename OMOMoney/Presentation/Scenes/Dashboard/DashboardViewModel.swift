@@ -289,6 +289,11 @@ class DashboardViewModel: ObservableObject {
 
             await MainActor.run {
                 currentGroup = newGroup  // ✅ Domain model
+                // Pre-populate totals with zeros so the view never hits a missing key before calculateTotalSpent() runs
+                itemListTotals = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0.0) })
+                itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0.0) })
+                itemListCounts = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0) })
+                itemListPaidStatus = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, ItemListPaidStatus.none) })
                 itemLists = itemListDomains
                 categories = categoriesDict  // ✅ FIX: Update categories when changing groups
             }
@@ -506,6 +511,12 @@ class DashboardViewModel: ObservableObject {
         }
 
         print("📊 [ADD-DOMAIN] New count: \(sortedItemLists.count)")
+
+        // Pre-populate with zeros so the view never hits a missing key before calculateTotalSpent() runs
+        itemListTotals[itemListDomain.id] = 0.0
+        itemListUnpaidTotals[itemListDomain.id] = 0.0
+        itemListCounts[itemListDomain.id] = 0
+        itemListPaidStatus[itemListDomain.id] = .none
 
         // Update UI (ViewModel is @MainActor)
         itemLists = sortedItemLists
