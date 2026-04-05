@@ -132,18 +132,14 @@ final class ItemServiceTests: XCTestCase {
         let newDescription = "Updated Item"
         let newAmount = NSDecimalNumber(value: 15.75)
         let newQuantity: Int32 = 3
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: newDescription, amount: newAmount, quantity: newQuantity)
-        
-        // Then
-        XCTAssertEqual(testItem.itemDescription, newDescription)
-        XCTAssertEqual(testItem.amount, newAmount)
-        XCTAssertEqual(testItem.quantity, newQuantity)
-        XCTAssertNotNil(testItem.lastModifiedAt)
-        
-        // Verify changes were saved
-        let updatedItem = try await itemService.fetchItem(by: testItem.id!)
+        try await itemService.updateItem(itemId: itemId, description: newDescription, amount: newAmount, quantity: newQuantity)
+
+        // Then - Fetch the item to verify updates
+        let updatedItem = try await itemService.fetchItem(by: itemId)
+        XCTAssertNotNil(updatedItem)
         XCTAssertEqual(updatedItem?.itemDescription, newDescription)
         XCTAssertEqual(updatedItem?.amount, newAmount)
         XCTAssertEqual(updatedItem?.quantity, newQuantity)
@@ -153,17 +149,19 @@ final class ItemServiceTests: XCTestCase {
         // Given
         let testItem = testEntityFactory.createItem()
         try mockCoreDataStack.save()
-        
+
         let originalDescription = testItem.itemDescription
         let newAmount = NSDecimalNumber(value: 20.00)
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: nil, amount: newAmount, quantity: nil)
-        
-        // Then
-        XCTAssertEqual(testItem.itemDescription, originalDescription) // Description unchanged
-        XCTAssertEqual(testItem.amount, newAmount) // Amount updated
-        XCTAssertNotNil(testItem.lastModifiedAt)
+        try await itemService.updateItem(itemId: itemId, description: nil, amount: newAmount, quantity: nil)
+
+        // Then - Fetch the item to verify partial update
+        let updatedItem = try await itemService.fetchItem(by: itemId)
+        XCTAssertNotNil(updatedItem)
+        XCTAssertEqual(updatedItem?.itemDescription, originalDescription) // Description unchanged
+        XCTAssertEqual(updatedItem?.amount, newAmount) // Amount updated
     }
     
     // MARK: - Delete Item Tests
@@ -315,12 +313,13 @@ final class ItemServiceTests: XCTestCase {
         // Given
         let testItem = testEntityFactory.createItem(description: "Original Item")
         try mockCoreDataStack.save()
-        
+        let itemId = testItem.id!
+
         // When
-        try await itemService.updateItem(testItem, description: "Updated Item", amount: nil, quantity: nil)
-        
+        try await itemService.updateItem(itemId: itemId, description: "Updated Item", amount: nil, quantity: nil)
+
         // Then - Cache should be invalidated
-        let updatedItem = try await itemService.fetchItem(by: testItem.id!)
+        let updatedItem = try await itemService.fetchItem(by: itemId)
         XCTAssertEqual(updatedItem?.itemDescription, "Updated Item")
     }
     

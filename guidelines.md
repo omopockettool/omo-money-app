@@ -1,0 +1,1221 @@
+Prompt para Cursor:
+# OMOMoney - SwiftUI Expense Tracker App Development
+
+## 🚨 REGLAS ESTRICTAS DE DESARROLLO - OBLIGATORIAS
+
+### 📱 VERSIÓN DE PLATAFORMA - OBLIGATORIO
+- **iOS Target**: iOS 18.5+ (2025)
+- **SwiftUI**: Usar APIs más modernas disponibles
+- **Compatibilidad**: No usar APIs deprecadas
+
+### 🏗️ ARQUITECTURA MVVM - NO NEGOCIABLE
+- **Views**: ❌ NO contienen lógica, ❌ NO cálculos, ❌ NO formateo, ✅ SOLO SwiftUI Views
+- **ViewModels**: ❌ NO contienen UI, ✅ SOLO lógica de presentación, ✅ @MainActor, ✅ @Published
+- **Services**: ✅ SOLO lógica CRUD y operaciones de datos, ✅ NO lógica de presentación
+- **Models**: ❌ NO contienen lógica, ✅ SOLO entidades Core Data
+- **Core Data Integration**: ✅ SIEMPRE usar NSFetchedResultsController para respetar MVVM
+
+### 🧵 THREADING - CRÍTICO
+- **Main Thread**: ✅ SOLO UI, ✅ navegación, ✅ gestos, ✅ animaciones
+- **Background Thread**: ✅ Core Data CRUD, ✅ cálculos complejos, ✅ filtros pesados
+- **Patrón obligatorio**: `DispatchQueue.global` → operación pesada → `DispatchQueue.main.async`
+
+### 🗄️ CORE DATA + MVVM - OBLIGATORIO
+- **NSFetchedResultsController**: ✅ SIEMPRE usar para respetar MVVM y arquitectura limpia
+- **Beneficios**:
+  - ✅ **Reactividad automática**: Se actualiza solo cuando Core Data cambia
+  - ✅ **Performance**: Solo carga datos cuando es necesario
+  - ✅ **MVVM puro**: ViewModel no maneja lógica de Core Data
+  - ✅ **Nativo**: Usa las APIs oficiales de Apple
+  - ✅ **Eficiente**: No polling, no notificaciones manuales
+- **Implementación**:
+  - ViewModel implementa `NSFetchedResultsControllerDelegate`
+  - `@Published var itemLists` se actualiza automáticamente
+  - SwiftUI re-renderiza cuando `@Published` cambia
+  - **NO usar NotificationCenter** para cambios de Core Data
+
+### 📱 SWIFTUI - REACTIVIDAD AUTOMÁTICA (iOS 18.5+)
+- ✅ Usar `@Published` - SwiftUI se redibuja automáticamente
+- ❌ NO usar Timers para delays artificiales
+- ❌ NO usar `Task.sleep` para esperas
+- ❌ NO usar callbacks manuales (a menos que sea absolutamente necesario)
+- ✅ Usar nueva sintaxis de `onChange` - `{ oldValue, newValue in }`
+- ✅ Usar `@Observable` macro moderno (opcional)
+- ✅ Usar `NavigationStack` moderno
+
+#### 🖼️ PREVIEW MACRO - USO CORRECTO
+- **#Preview es SOLO para SwiftUI Views**: ✅ El macro `#Preview` está diseñado para previsualizar SwiftUI Views que conforman al protocolo `View`
+- **ViewModels NO usan #Preview**: ❌ NO usar `#Preview` en ViewModels, Services, o cualquier clase que NO sea una SwiftUI View
+- **Error común**: `'buildExpression' is unavailable: this expression does not conform to 'View'` ocurre cuando se intenta previsualizar un tipo no-View
+- **Uso correcto**: 
+  ```swift
+  // ✅ CORRECTO: En View files
+  #Preview {
+      MyView()
+  }
+  
+  // ❌ INCORRECTO: En ViewModel files
+  #Preview {
+      MyViewModel()  // ¡ERROR! ViewModel no es View
+  }
+  ```
+- **Principio**: Solo previsualizar Views, nunca ViewModels o Services
+
+### 🆕 NUEVAS REGLAS MVVM APRENDIDAS HOY - OBLIGATORIAS
+
+#### 🔄 GESTIÓN DEL CICLO DE VIDA DEL VIEWMODEL
+- **ViewModel Protocol**: ✅ Debe conformar `ObservableObject`
+- **@StateObject en Views**: ✅ Usar `@StateObject` cuando la vista crea y posee el ViewModel
+- **Beneficio**: Evita reinicialización del ViewModel en cada redibujo, previene pérdida de estado
+- **Ejemplo**: `@StateObject private var viewModel = UserListViewModel()`
+
+#### 💉 INYECCIÓN DE DEPENDENCIAS EN VIEWMODEL
+- **Service Injection**: ✅ ViewModel debe recibir service como parámetro de inicialización
+- **Principio**: Dependency Injection para aislar lógica de persistencia/red
+- **Beneficio**: Facilita mocking en tests unitarios y separación de responsabilidades
+- **Ejemplo**:
+```swift
+init(service: UserServiceProtocol) {
+    self.service = service
+}
+```
+
+#### 📁 ESTRUCTURA DEL PROYECTO - ORGANIZACIÓN PARA ESCALABILIDAD
+- **Directorio Base**: ✅ Mantener para componentes reusables (ej. Loading)
+- **Ruta sugerida**: `Base/View/Loading/Loading.swift`
+- **Organización**: Separar claramente Views, ViewModels, Services, Models
+- **Services Organization**: 
+  - `Services/Protocols/` - Todos los protocolos de servicios
+  - `Services/Implementation/` - Implementaciones concretas de servicios
+  - `Services/CoreDataService.swift` - Clase base para servicios Core Data
+- **ViewModels Organization**: 
+  - `ViewModel/User/` - ViewModels relacionados con usuarios
+  - `ViewModel/Group/` - ViewModels relacionados con grupos
+  - `ViewModel/ItemList/` - ViewModels relacionados con entradas
+  - `ViewModel/Item/` - ViewModels relacionados con items
+  - `ViewModel/Category/` - ViewModels relacionados con categorías
+- **Views Organization**: 
+  - `View/User/` - Vistas relacionadas con usuarios
+  - `View/Group/` - Vistas relacionadas con grupos
+  - `View/ItemList/` - Vistas relacionadas con entradas
+  - `View/Base/` - Componentes reusables (Loading, etc.)
+
+#### ⚡ CONCURRENCIA Y ASINCRONÍA
+- **Swift Concurrency**: ✅ Usar `async/await` en lugar de callbacks anidados o Combine
+- **Beneficios**:
+  - Código más limpio y legible
+  - Manejo integrado de errores con `try/catch`
+  - Evita errores de concurrencia al actualizar UI
+- **@MainActor**: ✅ Usar cuando sea necesario para operaciones de UI
+
+#### 🎯 RESUMEN DE ROLES
+- **ViewModel**: `ObservableObject` que expone datos y lógica a la vista
+- **Service**: Encapsula acceso a datos (API, Core Data, etc.) y se inyecta en ViewModel
+- **View**: Usa `@StateObject` para instanciar ViewModel y reaccionar a cambios
+
+#### 🚀 OPTIMIZACIONES DE FLUIDEZ - DIFERENCIADORAS
+- **@MainActor**: ✅ Usar correctamente en propiedades que actualizan UI
+- **Lazy Loading**: ✅ Usar `LazyVStack`, `List` para vistas grandes
+- **Procesamiento Pesado**: ❌ NO en cuerpo de vista, ✅ TODO en ViewModel o Services
+- **Caching**: ✅ Cachear datos cuando tenga sentido (imágenes, resultados Core Data)
+- **Animaciones**: ✅ Usar `withAnimation` y transiciones nativas SwiftUI
+
+### 🧭 NAVEGACIÓN MODERNA - OBLIGATORIA (iOS 18.5+)
+- **NavigationStack**: ✅ SIEMPRE usar NavigationStack en lugar de NavigationView
+- **NavigationDestination**: ✅ Definir destinos de navegación con tipos específicos
+- **NavigationPath**: ✅ Usar NavigationPath para gestión de estado de navegación
+- **NavigationLink**: ✅ Usar NavigationLink para navegación declarativa
+- **Navegación Programática**: ✅ Implementar `navigationPath.append()` para navegación dinámica
+
+### 🔧 CORE DATA + NAVIGATION - PATRÓN CALLBACK OBLIGATORIO
+- **Problema**: NavigationStack con Core Data puede usar diferentes contextos
+- **Síntoma**: Vista padre no se actualiza después de cambios en vista hija
+- **Solución OBLIGATORIA**: **Callback-based refresh pattern**
+- **Implementación**:
+  ```swift
+  // Vista padre pasa mismo contexto + callback
+  .navigationDestination(for: DestinationType.self) { destination in
+      ChildView(context: context, onDataChanged: {
+          Task { await parentViewModel.refreshData() }
+      })
+  }
+  
+  // Vista hija ejecuta callback después de cambios
+  private func saveData() async {
+      let success = await service.save(...)
+      if success {
+          onDataChanged()  // ✅ Trigger parent refresh
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+              navigationPath.removeLast()  // ✅ Navigate back
+          }
+      }
+  }
+  ```
+- **Reglas**:
+  - ✅ MISMO contexto entre padre e hija
+  - ✅ CALLBACK obligatorio para cambios Core Data
+  - ✅ DELAY mínimo (0.1s) antes de navegación
+  - ✅ REFRESH manual en vista padre via callback
+
+### 🎯 MEJORES PRÁCTICAS DE NAVEGACIÓN APRENDIDAS
+
+#### 📋 **IMPLEMENTACIÓN COMPLETA PASO A PASO**
+
+1. **PASO 1: Definir Enums de Navegación en MainView**:
+   ```swift
+   // ✅ CORRECTO: Definir todos los destinos en MainView
+   enum CreateGroupDestination: Hashable {
+       case createGroup(User)
+   }
+   
+   enum SettingsDestination: Hashable {
+       case settings
+   }
+   
+   enum AddItemListDestination: Hashable {
+       case addItemList(User, Group)
+   }
+   ```
+
+2. **PASO 2: Configurar NavigationStack en MainView**:
+   ```swift
+   struct MainView: View {
+       @State private var navigationPath = NavigationPath()
+       
+       var body: some View {
+           NavigationStack(path: $navigationPath) {
+               DetailedGroupView(navigationPath: $navigationPath)
+                   
+               // ✅ CORRECTO: Definir TODOS los destinos aquí
+               .navigationDestination(for: CreateGroupDestination.self) { destination in
+                   switch destination {
+                   case .createGroup(let user):
+                       CreateGroupView(user: user, navigationPath: $navigationPath)
+                   }
+               }
+               .navigationDestination(for: SettingsDestination.self) { destination in
+                   switch destination {
+                   case .settings:
+                       SettingsView(navigationPath: $navigationPath)
+                   }
+               }
+               .navigationDestination(for: AddItemListDestination.self) { destination in
+                   switch destination {
+                   case .addItemList(let user, let group):
+                       AddItemListView(user: user, group: group, navigationPath: $navigationPath)
+                   }
+               }
+           }
+       }
+   }
+   ```
+
+3. **PASO 3: Pasar NavigationPath a Vistas Hijas**:
+   ```swift
+   // ✅ CORRECTO: Pasar navigationPath como @Binding
+   struct DetailedGroupView: View {
+       @Binding var navigationPath: NavigationPath
+       
+       var body: some View {
+           // Botones de navegación
+           Button("Crear Grupo") {
+               if let selectedUser = viewModel.selectedUser {
+                   navigationPath.append(CreateGroupDestination.createGroup(selectedUser))
+               }
+           }
+           
+           Button("Settings") {
+               navigationPath.append(SettingsDestination.settings)
+           }
+           
+           Button("Add ItemList") {
+               if let user = viewModel.selectedUser, let group = viewModel.selectedGroup {
+                   navigationPath.append(AddItemListDestination.addItemList(user, group))
+               }
+           }
+       }
+   }
+   ```
+
+4. **PASO 4: Implementar Navegación de Retorno en Vistas Destino**:
+   ```swift
+   struct CreateGroupView: View {
+       @Binding var navigationPath: NavigationPath
+       
+       var body: some View {
+           // ✅ CORRECTO: Usar navigationPath.removeLast() para regresar
+           Button("Cancelar") {
+               navigationPath.removeLast()
+           }
+           
+           // ✅ CORRECTO: Regresar automáticamente después de crear
+           .onChange(of: viewModel.groupCreatedSuccessfully) { _, newValue in
+               if newValue {
+                   navigationPath.removeLast()
+               }
+           }
+       }
+   }
+   ```
+
+5. **PASO 5: Actualizar Datos al Regresar**:
+   ```swift
+   struct DetailedGroupView: View {
+       var body: some View {
+           // ✅ CORRECTO: Refrescar datos cuando la vista aparezca
+           .onAppear {
+               Task {
+                   await viewModel.loadData()
+                   await viewModel.autoSelectFirstUserAndGroup()
+               }
+           }
+       }
+   }
+   ```
+
+#### 🚫 **ERRORES COMUNES A EVITAR**
+
+1. **NavigationStack Anidados**:
+   ```swift
+   // ❌ INCORRECTO: NO hacer esto
+   NavigationStack {
+       NavigationStack { }  // ¡ERROR! Doble NavigationStack
+   }
+   ```
+
+2. **Definir Destinos en Múltiples Lugares**:
+   ```swift
+   // ❌ INCORRECTO: NO definir en DetailedGroupView
+   .navigationDestination(for: CreateGroupDestination.self) { ... }
+   
+   // ✅ CORRECTO: Solo en MainView
+   ```
+
+3. **Usar @Environment(\.dismiss)**:
+   ```swift
+   // ❌ INCORRECTO: NO usar esto
+   @Environment(\.dismiss) private var dismiss
+   
+   // ✅ CORRECTO: Usar navigationPath.removeLast()
+   @Binding var navigationPath: NavigationPath
+   ```
+
+4. **Sheets para Navegación**:
+   ```swift
+   // ❌ INCORRECTO: NO usar sheets
+   .sheet(isPresented: $showingCreateGroup) { ... }
+   
+   // ✅ CORRECTO: Usar NavigationStack
+   navigationPath.append(CreateGroupDestination.createGroup(user))
+   ```
+
+#### 🔄 **PATRÓN COMPLETO DE IMPLEMENTACIÓN**
+
+1. **MainView**: Define NavigationStack y todos los NavigationDestination
+2. **Vistas Hijas**: Reciben `@Binding var navigationPath: NavigationPath`
+3. **Botones**: Usan `navigationPath.append(Destination.enumCase(data))`
+4. **Vistas Destino**: Usan `navigationPath.removeLast()` para regresar
+5. **Retorno**: Implementar `.onAppear` para refrescar datos si es necesario
+
+#### 📱 **COMPATIBILIDAD iOS 18.5+**
+
+- ✅ `NavigationStack` (reemplaza NavigationView)
+- ✅ `NavigationDestination` (navegación tipo-segura)
+- ✅ `NavigationPath` (gestión de estado de navegación)
+- ✅ `onChange` con nueva sintaxis `{ oldValue, newValue in }`
+- ✅ `@MainActor` para ViewModels
+- ✅ `async/await` para operaciones asíncronas
+
+#### 🎯 **REGLAS DE ORO FINALES**
+
+1. **Un solo NavigationStack** en MainView
+2. **NavigationPath compartido** entre todas las vistas
+3. **Enums tipados** para todos los destinos de navegación
+4. **Sin NavigationStacks anidados** ni sheets para navegación
+5. **Actualización de datos** al regresar usando `.onAppear`
+6. **Navegación programática** con `navigationPath.append()`
+7. **Retorno programático** con `navigationPath.removeLast()`
+
+### ⚡ SWIFT CONCURRENCY AVANZADO - OBLIGATORIO
+- **async/await**: ✅ SIEMPRE usar async/await en lugar de callbacks o Combine
+- **Task**: ✅ Usar Task para operaciones asíncronas desde Views
+- **@MainActor**: ✅ Usar @MainActor para ViewModels que actualizan UI
+- **Background Context**: ✅ Usar `context.perform` para operaciones Core Data
+- **Error Handling**: ✅ Implementar try/catch con manejo de errores apropiado
+- **Patrón de Concurrencia**:
+```swift
+// ✅ CORRECTO: Operación en background, UI en main
+func createGroup() async {
+    isLoading = true
+    
+    do {
+        let newGroup = try await groupService.createGroup(name: name, currency: currency)
+        await MainActor.run {
+            groups.append(newGroup)
+            isLoading = false
+        }
+    } catch {
+        await MainActor.run {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+}
+```
+
+### 🚫 PROHIBIDO
+- Operaciones pesadas en main thread
+- Lógica de negocio en Views
+- UI elements en ViewModels
+- Delays artificiales o polling
+- ViewModels sin Dependency Injection
+- Views sin @StateObject para ViewModels propios
+- ViewModels sin protocolo ObservableObject
+- Falta de lazy loading en listas grandes
+- Falta de caching para datos frecuentes
+- Falta de animaciones suaves
+- **🚨 SHEETS - PROHIBIDOS A MENOS QUE SE SOLICITE ESPECÍFICAMENTE**
+  - ❌ NO usar `.sheet()` para modales
+  - ❌ NO usar `.fullScreenCover()` para pantallas completas
+  - ✅ SIEMPRE usar `NavigationStack` con `NavigationDestination`
+  - ✅ SIEMPRE usar `NavigationLink` para navegación
+  - ✅ SIEMPRE usar `NavigationPath` para gestión de estado de navegación
+  - ✅ SIEMPRE implementar navegación programática con `navigationPath.append()`
+  - ✅ SIEMPRE usar `@State private var navigationPath = NavigationPath()`
+  - ✅ SIEMPRE usar `NavigationStack(path: $navigationPath)` para navegación compleja
+
+### 🆕 REGLAS AVANZADAS IMPLEMENTADAS Y FUNCIONANDO - OBLIGATORIAS
+
+#### � CORE DATA UI SYNCHRONIZATION - PATRÓN MAESTRO
+- **NSManagedObjectContextDidSave**: ✅ Patrón nativo iOS implementado y funcionando
+- **Real-time UI Updates**: ✅ UI se actualiza automáticamente sin reiniciar app
+- **Threading Safety**: ✅ Notificaciones en main queue, operaciones Core Data en background
+- **Memory Management**: ✅ Weak references para evitar retain cycles
+- **Implementation Pattern**:
+```swift
+private func setupCoreDataNotifications() {
+    NotificationCenter.default.addObserver(
+        forName: .NSManagedObjectContextDidSave,
+        object: nil,
+        queue: .main
+    ) { [weak self] _ in
+        Task { @MainActor in
+            await self?.refreshData()
+        }
+    }
+}
+
+deinit {
+    NotificationCenter.default.removeObserver(self)
+}
+```
+
+#### 🗄️ INTELLIGENT CACHE MANAGEMENT - SISTEMA AVANZADO
+- **Multi-level Caching**: ✅ Sistema inteligente con CacheManager implementado
+- **Automatic Invalidation**: ✅ Cache se limpia automáticamente al cambiar datos
+- **Performance Optimization**: ✅ Queries optimizadas con cache consciente
+- **Cache Synchronization**: ✅ Cache keys sincronizados entre services
+- **Implementation Pattern**:
+```swift
+private func clearDataCache() {
+    cacheManager.clearCache(forKey: "all_itemlists")
+    cacheManager.clearCache(forKey: "group_\(groupId)_itemlists")
+    cacheManager.clearCache(forKey: "user_\(userId)_itemlists")
+}
+```
+
+#### 🎯 MVVM + CORE DATA INTEGRATION - PATRÓN PERFECCIONADO
+- **Service Layer Pattern**: ✅ Services manejan Core Data, ViewModels manejan UI state
+- **Callback Architecture**: ✅ Callbacks para comunicación View ↔ ViewModel
+- **Reactive Updates**: ✅ @Published properties con reactividad automática
+- **Clean Architecture**: ✅ Separación perfecta de responsabilidades
+- **Threading Model**: ✅ Background operations, main thread UI updates
+
+#### � CONCURRENCY SAFETY - PRODUCTION READY
+- **Protection Flags**: ✅ Flags para prevenir ejecuciones simultáneas implementados
+- **State Consistency**: ✅ Estado consistente garantizado
+- **Race Condition Prevention**: ✅ Sin condiciones de carrera
+- **MainActor Isolation**: ✅ UI operations properly isolated
+- **Async/Await Patterns**: ✅ Modern concurrency throughout
+
+#### 🚀 PERFORMANCE PATTERNS - OPTIMIZADO
+- **Background Core Data**: ✅ Operaciones pesadas en background threads
+- **Intelligent Loading**: ✅ Loading states y progress indicators
+- **Smooth Animations**: ✅ withAnimation patterns implementados
+- **Memory Efficiency**: ✅ Proper object lifecycle management
+- **Cache-Aware Queries**: ✅ Queries optimizadas con cache inteligente
+
+## Project Overview
+Building a native iOS personal expense tracker app using SwiftUI (iOS 18.5+) with strict MVVM architecture, Core Data persistence, and NavigationStack navigation building into the view model for simplicity.
+
+## Development Strategy
+- **Incremental Development**: Small, focused commits for each feature
+- **MVVM First**: All business logic in ViewModels, Views only display
+- **Core Data Foundation**: Start with data model, build UI on top
+- **Test-Driven**: Unit tests for each component
+- **Physical Device Testing**: Always test on physical device, not simulator
+- **Device ID**: ALWAYS use "Dennis's iPhone (18.6) (00008120-000A190218614032)" for all testing and build
+- **Dependency Injection**: Services injected into ViewModels for testability
+- **Lifecycle Management**: Proper @StateObject usage for ViewModel persistence
+
+### Performance Considerations
+- Use background queues for Core Data operations
+- Implement proper error handling
+- Optimize for smooth UI updates
+- Follow Apple's native UI/UX conventions
+- Use lazy loading for large lists and views
+- Cache frequently accessed data
+- Implement smooth animations and transitions
+
+Para empezar 
+
+Genera el modelo de datos de Core Data en Swift usando NSManagedObject para cada entidad descrita a continuación, junto con su correspondiente ViewModel siguiendo la arquitectura MVVM.
+
+## 🆕 REQUISITOS DE ARQUITECTURA ACTUALIZADOS
+
+### 📁 Estructura del Proyecto
+- **Model/**: Entidades Core Data
+- **ViewModel/**: ViewModels con inyección de dependencias
+- **Service/**: Capa de servicios para operaciones CRUD
+- **View/**: Vistas SwiftUI
+- **Base/**: Componentes reusables (Loading, etc.)
+
+### 🏗️ Modelo (Model/)
+- **IMPORTANTE**: Las entidades están configuradas con "Codegen: Class Definition" en Xcode
+- **NO crear archivos manuales**: Xcode genera automáticamente las clases Core Data en tiempo de compilación
+- **Verificar configuración**: Cada entidad en .xcdatamodel debe tener "Codegen: Class Definition"
+- **Entidades generadas automáticamente**: User, Group, ItemList, Item, Category, UserGroup
+- **Tipos correctos**: UUID?, Date?, NSDecimalNumber?, Int32, String?, Set<Entity>?
+- **Relaciones**: Ya configuradas en .xcdatamodel con delete rules apropiadas
+
+### 💉 Vista Modelo (ViewModel/) - ACTUALIZADO
+- **Crear un ViewModel por entidad que sea ObservableObject**
+- **Incluir un @Published array de la entidad ([Entity]) para la lista de resultados**
+- **Incluir un inicializador que reciba Service como parámetro (Dependency Injection)**
+- **Implementar métodos CRUD (create, fetch, update, delete) para interactuar con Core Data**
+- **Gestionar errores y usar try? context.save() de forma segura**
+- **ViewModels deben exponer datos ya formateados para uso en SwiftUI (por ejemplo, fecha como String)**
+- **Usar @MainActor para operaciones de UI**
+- **Implementar lazy loading para listas grandes**
+- **Implementar caching para datos frecuentemente accedidos**
+
+### 🔧 Service Layer - NUEVO
+- **Crear un Service por entidad que maneje operaciones CRUD**
+- **Services deben ser inyectados en ViewModels**
+- **Implementar protocols para cada Service (ej: UserServiceProtocol)**
+- **Usar background queues para operaciones Core Data**
+- **Retornar resultados al main thread para actualizaciones de UI**
+
+### 👁️ Vista (View/)
+- **No es necesario generar vistas completas, pero los ViewModels deben estar listos para enlazarse con SwiftUI**
+- **Usar @StateObject para ViewModels que la vista posee**
+- **Implementar lazy loading con LazyVStack y List**
+- **Usar withAnimation para transiciones suaves**
+
+## Estilo de código
+- Swift 5, Xcode 16+ compatible
+- Nombrado limpio y consistente con Swift
+- Evitar force unwrap (!)
+- Incluir comentarios claros para cada relación explicando el deleteRule
+- Separar carpetas Model/, ViewModel/, Service/, View/, y Base/
+- **Usar async/await para operaciones asíncronas**
+- **Implementar proper error handling con try/catch**
+- **Usar @MainActor para operaciones de UI**
+
+## Entidades y atributos:
+Category
+- id: UUID,
+- name: String, default ""
+- color: String?, optional, default "#8E8E93"
+- createdAt: Date?, optional
+- lastModifiedAt: Date?, optional
+- Relaciones:
+  - itemLists: Set<ItemList>?, to-many, inverse category, delete rule Nullify
+  - group: Group?, to-one, inverse categories, delete rule Cascade
+
+ItemList
+- id: UUID,
+- description: String?, optional, default ""
+- date: Date,
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- categoryId: UUID,
+- groupId: UUID,
+- Relaciones:
+  - category: Category?, to-one, inverse itemLists, delete rule Nullify
+  - group: Group?, to-one, inverse itemLists, delete rule Nullify
+  - items: Set<Item>?, to-many, inverse itemList, delete rule Cascade
+
+Group
+- id: UUID,
+- name: String?, optional, default ""
+- currency: String?, optional, default "USD"
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - itemLists: Set<ItemList>?, to-many, inverse group, delete rule Cascade
+  - categories: Set<Category>?, to-many, inverse group, delete rule Cascade
+  - userGroups: Set<UserGroup>?, to-many, inverse group, delete rule Cascade
+
+Item
+- id: UUID,
+- description: String?, optional, default ""
+- amount: NSDecimalNumber?, optional, default 0.0
+- quantity: Int32, optional, default 1
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - itemList: ItemList?, to-one, inverse items, delete rule Nullify
+
+User
+- id: UUID?, optional
+- name: String?, optional, default ""
+- email: String,
+- createdAt: Date?, optional auto generated
+- lastModifiedAt: Date?, optional auto generated
+- Relaciones:
+  - userGroups: Set<UserGroup>?, to-many, inverse user, delete rule Cascade
+
+UserGroup
+- id: UUID,
+- role: String?, optional, default "owner"
+- joinedAt: Date?, optional auto generated
+- userId: UUID,
+- groupId: UUID,
+- Relaciones:
+  - user: User?, to-one, inverse userGroups, delete rule Cascade
+  - group: Group?, to-one, inverse userGroups, delete rule Cascade
+
+## 🆕 Requisitos adicionales actualizados:
+- **IMPORTANTE**: Las entidades Core Data están configuradas con "Codegen: Class Definition" en Xcode
+- **NO crear archivos manuales**: Xcode genera automáticamente las clases Core Data en tiempo de compilación
+- **Implementa Service layer con protocols para cada entidad**
+- **ViewModels deben recibir Services como parámetros de inicialización**
+- **Usa @StateObject en Views para ViewModels propios**
+- **Implementa lazy loading y caching para performance**
+- **Usa async/await para operaciones asíncronas**
+- **Implementa proper error handling con try/catch**
+- **Usa @MainActor para operaciones de UI**
+- **Implementa animaciones suaves con withAnimation**
+
+## 🏗️ **ESTRUCTURA DE DIRECTORIOS OBLIGATORIA PARA ESCALABILIDAD**
+
+### **Services/**
+```
+Services/
+├── Protocols/              # Protocolos de servicios para DI
+│   ├── UserServiceProtocol.swift
+│   ├── GroupServiceProtocol.swift
+│   ├── ItemListServiceProtocol.swift
+│   ├── ItemServiceProtocol.swift
+│   ├── CategoryServiceProtocol.swift
+│   └── UserGroupServiceProtocol.swift
+├── Implementation/         # Implementaciones concretas
+│   ├── UserService.swift
+│   ├── GroupService.swift
+│   ├── ItemListService.swift
+│   ├── ItemService.swift
+│   ├── CategoryService.swift
+│   └── UserGroupService.swift
+└── CoreDataService.swift   # Clase base para servicios
+```
+
+### **ViewModels/**
+```
+ViewModel/
+├── User/                   # ViewModels relacionados con usuarios
+├── Group/                  # ViewModels relacionados con grupos
+├── ItemList/                  # ViewModels relacionados con entradas
+├── Item/                   # ViewModels relacionados con items
+└── Category/               # ViewModels relacionados con categorías
+```
+
+### **Views/**
+```
+View/
+├── User/                   # Vistas relacionadas con usuarios
+├── Group/                  # Vistas relacionadas con grupos
+├── ItemList/                  # Vistas relacionadas con entradas
+└── Base/                   # Componentes reusables (Loading, etc.)
+```
+
+### **Imports en Swift - IMPORTANTE**
+- **NO usar @_exported import**: En Swift, cuando todos los archivos están en el mismo target, son automáticamente visibles
+- **Imports automáticos**: Los protocolos y clases se importan automáticamente dentro del mismo módulo
+- **Mantener imports básicos**: Solo `import Foundation` e `import CoreData` son necesarios
+- **Simplicidad**: No necesitamos archivos de imports centralizados en Swift
+- **Uso de protocolos**: Usar `any ProtocolName` para evitar warnings de Swift
+
+## 🚨 RECORDATORIOS CRÍTICOS - REVISAR ANTES DE CADA IMPLEMENTACIÓN
+
+### ✅ VERIFICAR ANTES DE IMPLEMENTAR:
+1. **Views**: ¿Solo contienen SwiftUI Views sin lógica?
+2. **ViewModels**: ¿Solo contienen lógica de negocio sin UI?
+3. **Threading**: ¿Operaciones pesadas en background, UI en main?
+4. **@Published**: ¿Se usa para reactividad automática?
+5. **@MainActor**: ¿Se usa en ViewModels para operaciones de UI?
+6. **Delays**: ¿NO hay Timers o delays artificiales?
+7. **iOS 18.5+**: ¿Se usan APIs modernas, no deprecadas?
+8. **onChange**: ¿Se usa nueva sintaxis `{ oldValue, newValue in }`?
+9. **@StateObject**: ¿Se usa para ViewModels que la vista posee?
+10. **Dependency Injection**: ¿Los ViewModels reciben services como parámetros?
+11. **ObservableObject**: ¿Todos los ViewModels conforman el protocolo?
+12. **Lazy Loading**: ¿Se usa para listas y vistas grandes?
+13. **Caching**: ¿Se implementa para datos frecuentemente accedidos?
+14. **Animations**: ¿Se usan withAnimation y transiciones nativas?
+
+### 🎯 OBJETIVO FINAL
+**UI completamente fluida, sin bloqueos, con operaciones pesadas ejecutándose en background y actualizaciones automáticas en main thread usando la reactividad automática de SwiftUI, implementando las mejores prácticas MVVM aprendidas hoy.**
+
+---
+
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**
+
+---
+
+## 🎓 LECCIONES APRENDIDAS - ANTI-PATRONES EVITADOS (v0.12.0)
+
+### 🚫 ANTI-PATRÓN 1: CALLBACKS MANUALES CON CORE DATA COMPARTIDO
+**❌ NO HACER ESTO:**
+```swift
+// Vista padre pasa callback manual
+QuickExpenseView(
+    onItemListCreated: { 
+        await viewModel.loadData() 
+    }
+)
+
+// Vista hija ejecuta callback manualmente
+func createExpense() {
+    await service.create()
+    onItemListCreated?()  // ❌ DUPLICA el trabajo
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+// Vista padre solo pasa el mismo NSManagedObjectContext
+QuickExpenseView(
+    user: user,
+    group: group,
+    context: context  // ✅ MISMO contexto
+)
+
+// ViewModel configura observador Core Data UNA VEZ
+private func setupCoreDataNotifications() {
+    NotificationCenter.default.addObserver(
+        forName: .NSManagedObjectContextDidSave,
+        object: context,
+        queue: .main
+    ) { [weak self] _ in
+        Task { @MainActor in
+            await self?.refreshData()
+        }
+    }
+}
+```
+
+**📋 REGLAS:**
+- ✅ **NSManagedObjectContext compartido**: Mismo contexto entre vistas padre e hija
+- ✅ **NSManagedObjectContextDidSave**: Patrón nativo de Apple para auto-actualización
+- ✅ **SIN callbacks manuales**: No son necesarios si se comparte contexto
+- ✅ **Observador con prevención de duplicados**: `guard !itemLists.contains(where: { $0.objectID == newItem.objectID })`
+- ✅ **Memoria segura**: `[weak self]` en closures para evitar retain cycles
+- ✅ **Main thread**: `.queue = .main` para actualizaciones de UI
+- ✅ **Cleanup**: `deinit { NotificationCenter.default.removeObserver(self) }`
+
+**⚡ BENEFICIOS:**
+- Sin código duplicado
+- Auto-actualización nativa de iOS
+- Sin condiciones de carrera
+- Mejor rendimiento (1 actualización vs N callbacks)
+
+---
+
+### 🚫 ANTI-PATRÓN 2: INVALIDACIÓN TOTAL DE CACHE EN CADA OPERACIÓN
+**❌ NO HACER ESTO:**
+```swift
+func createItemList() async -> ItemList? {
+    let newItem = // ... crear item
+    
+    // ❌ INVALIDA todo el cache → DB query innecesario
+    cacheManager.clearCache(forKey: "dashboard_items_\(groupId)")
+    
+    return newItem
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+// Service: SIN invalidación de cache
+func createItemList() async -> ItemList? {
+    let newItem = // ... crear item
+    
+    // ✅ NO invalida cache
+    print("[CACHE] Using incremental cache - NOT invalidating")
+    
+    return newItem
+}
+
+// ViewModel: Actualización incremental
+func addItemList(_ newItemList: ItemList) {
+    // ✅ Agregar a array existente (NO query DB)
+    itemLists.append(newItemList)
+    
+    // ✅ Ordenar
+    itemLists.sort { $0.date ?? Date() > $1.date ?? Date() }
+    
+    // ✅ Actualizar cache con array nuevo
+    let cacheKey = "dashboard_items_\(groupId)"
+    cacheManager.cacheData(itemLists, for: cacheKey)
+    
+    // ✅ Actualizar vista filtrada
+    updateCurrentMonthCache()
+}
+```
+
+**📋 REGLAS:**
+- ✅ **Incremental cache updates**: Agregar/remover del array sin DB queries
+- ✅ **Service sin invalidación**: Services NO invalidan cache, solo crean/modifican/eliminan
+- ✅ **ViewModel gestiona cache**: ViewModel actualiza cache incrementalmente
+- ✅ **Optimistic UI updates**: UI se actualiza inmediatamente, DB en background
+- ✅ **Rollback en errores**: Si falla DB, revertir cambio en array
+
+**⚡ BENEFICIOS:**
+- 0 DB queries en operaciones comunes
+- UI instantánea (sin loading)
+- Rendimiento similar a apps nativas de Apple
+- Escalable a miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 3: COMPUTED PROPERTIES PARA DATOS FILTRADOS
+**❌ NO HACER ESTO:**
+```swift
+// ❌ RECALCULA en CADA redibujado de SwiftUI
+var currentMonthItemLists: [ItemList] {
+    itemLists.filter { itemList in
+        // ... filtrado pesado de 1400+ items ...
+    }
+}
+
+// Resultado: 100+ recálculos por segundo en field taps
+```
+
+**✅ HACER ESTO:**
+```swift
+// ✅ Variable @Published cacheada
+@Published var currentMonthItemLists: [ItemList] = []
+
+// ✅ Actualizar solo cuando itemLists cambia
+@Published var itemLists: [ItemList] = [] {
+    didSet {
+        updateCurrentMonthCache()
+    }
+}
+
+private func updateCurrentMonthCache() {
+    let calendar = Calendar.current
+    let now = Date()
+    
+    currentMonthItemLists = itemLists.filter { itemList in
+        guard let date = itemList.date else { return false }
+        return calendar.isDate(date, equalTo: now, toGranularity: .month)
+    }
+}
+```
+
+**📋 REGLAS:**
+- ✅ **@Published var en lugar de computed**: Cache explícito para datos filtrados
+- ✅ **didSet observer**: Actualizar automáticamente cuando cambian datos fuente
+- ✅ **Método privado de actualización**: Reutilizable y testeable
+- ✅ **Una sola ejecución**: Solo cuando `itemLists` realmente cambia
+- ❌ **NO computed properties**: No para filtros/transformaciones de arrays grandes
+
+**⚡ BENEFICIOS:**
+- De 100+ cálculos/segundo a 1 cálculo/cambio
+- CPU 0% en taps de field inputs
+- Escalable a miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 4: SIN PROTECCIÓN CONTRA NaN EN CÁLCULOS
+**❌ NO HACER ESTO:**
+```swift
+func calculateTotal() -> Double {
+    let total = items.reduce(0.0) { sum, item in
+        sum + item.amount  // ❌ Puede ser NaN
+    }
+    
+    return total  // ❌ Puede causar crash en CoreGraphics
+}
+```
+
+**✅ HACER ESTO:**
+```swift
+func calculateTotalSpent() -> Double {
+    var total: Double = 0.0
+    
+    for itemList in itemLists {
+        var itemListTotal: Double = 0.0
+        
+        // Nivel 1: Cálculo por item
+        for item in itemList.items?.allObjects as? [Item] ?? [] {
+            let quantity = Double(item.quantity)
+            let amount = item.amount?.doubleValue ?? 0.0
+            let itemValue = amount * quantity
+            
+            // ✅ Protección nivel item
+            guard itemValue.isFinite else {
+                print("[WARNING] Item has invalid value: \(itemValue)")
+                continue
+            }
+            
+            itemListTotal += itemValue
+        }
+        
+        // ✅ Protección nivel itemList
+        guard itemListTotal.isFinite else {
+            print("[WARNING] ItemList total is invalid: \(itemListTotal)")
+            continue
+        }
+        
+        total += itemListTotal
+    }
+    
+    // ✅ Protección nivel total final
+    guard total.isFinite else {
+        print("[ERROR] Final total is invalid, returning 0")
+        return 0.0
+    }
+    
+    return total
+}
+```
+
+**📋 REGLAS:**
+- ✅ **3 niveles de protección**: item → itemList → total
+- ✅ **isFinite checks**: Valida antes de usar en CoreGraphics
+- ✅ **Logging detallado**: Identificar exactamente dónde ocurre NaN
+- ✅ **Fallback values**: Retornar 0.0 en caso de error
+- ✅ **Continue en lugar de crash**: Omitir items inválidos, no fallar todo
+
+**⚡ BENEFICIOS:**
+- 0 crashes en CoreGraphics
+- Identificación rápida de datos corruptos
+- App robusta con miles de registros
+
+---
+
+### 🚫 ANTI-PATRÓN 5: EMOJIS EN LOGS DE PRODUCCIÓN
+**❌ NO HACER ESTO:**
+```swift
+print("💰 Total calculated: \(total)")
+print("✅ Item created successfully")
+print("🔄 Refreshing data...")
+```
+
+**✅ HACER ESTO:**
+```swift
+print("[TOTAL] Total calculated: \(total)")
+print("[SUCCESS] Item created successfully")
+print("[REFRESH] Refreshing data...")
+```
+
+**📋 REGLAS:**
+- ✅ **Prefijos de texto**: [INFO], [WARNING], [ERROR], [TOTAL], [CACHE], [SUCCESS]
+- ✅ **Encoding confiable**: Texto ASCII siempre funciona
+- ✅ **Grep/search friendly**: Búsqueda fácil en logs
+- ✅ **Consistencia**: Mismo formato en toda la app
+- ❌ **NO emojis**: Pueden corromperse según encoding de console
+
+**⚡ BENEFICIOS:**
+- Logs legibles en cualquier console
+- Búsqueda eficiente de logs específicos
+- Profesional para debugging en equipo
+
+---
+
+### 📊 PATRÓN MAESTRO: INCREMENTAL CACHE + CORE DATA NOTIFICATIONS
+
+**FLUJO COMPLETO DE CREAR ITEMLIST:**
+
+1. **Usuario toca "Crear"** → QuickExpenseView
+2. **Service crea en DB** → `ItemListService.createItemList()` (sin invalidar cache)
+3. **Core Data dispara** → `NSManagedObjectContextDidSave`
+4. **ViewModel detecta** → `setupCoreDataNotifications()` observador
+5. **Prevención duplicados** → `guard !itemLists.contains(where: { $0.objectID == ... })`
+6. **Agregar a array** → `itemLists.append(newItem)`
+7. **Ordenar** → `itemLists.sort { $0.date > $1.date }`
+8. **Actualizar cache** → `cacheManager.cacheData(itemLists, for: cacheKey)`
+9. **Actualizar vista filtrada** → `didSet` trigger → `updateCurrentMonthCache()`
+10. **SwiftUI re-dibuja** → @Published trigger → UI actualizada
+
+**FLUJO COMPLETO DE ELIMINAR ITEMLIST:**
+
+1. **Usuario swipe → Delete** → ExpenseListView
+2. **ViewModel optimistic** → `removeItemList(itemList)` (remueve de array + cache)
+3. **Service elimina DB** → `ItemListService.deleteItemList()`
+4. **Si éxito** → Ya actualizado (optimistic fue correcto)
+5. **Si error** → `rollback`: volver a agregar item a array y cache
+
+**🎯 RESULTADO FINAL:**
+- ✅ 0% CPU en operaciones normales
+- ✅ 35.3MB memoria con 1420 registros
+- ✅ UI instantánea (sin loading)
+- ✅ 0 crashes por NaN
+- ✅ Patrón nativo de iOS
+- ✅ Escalable a 10k+ registros
+
+---
+
+### 🎯 CHECKLIST ANTES DE IMPLEMENTAR NUEVAS FEATURES
+
+**CACHE STRATEGY:**
+- [ ] ¿Service invalida cache? → ❌ NO, usar incremental
+- [ ] ¿ViewModel actualiza array directamente? → ✅ SÍ
+- [ ] ¿Se actualiza cache después de modificar array? → ✅ SÍ
+- [ ] ¿Hay rollback en caso de error? → ✅ SÍ
+- [ ] ¿Cache tiene TTL configurado? → ✅ SÍ (30 min para local-only)
+
+**CORE DATA SYNC:**
+- [ ] ¿Vistas comparten NSManagedObjectContext? → ✅ SÍ
+- [ ] ¿Hay observer de NSManagedObjectContextDidSave? → ✅ SÍ
+- [ ] ¿Previene duplicados el observer? → ✅ SÍ (objectID check)
+- [ ] ¿Hay callbacks manuales? → ❌ NO, usar notifications
+
+**PERFORMANCE:**
+- [ ] ¿Datos filtrados usan @Published var? → ✅ SÍ (no computed)
+- [ ] ¿didSet actualiza vistas derivadas? → ✅ SÍ
+- [ ] ¿Hay protección isFinite en cálculos? → ✅ SÍ (3 niveles)
+- [ ] ¿Logs usan texto en lugar de emojis? → ✅ SÍ
+
+**CACHE TTL (Time-To-Live):**
+- [ ] ¿Service valida timestamp del cache? → ✅ SÍ
+- [ ] ¿TTL apropiado para el tipo de app? → ✅ SÍ (30 min local-only)
+- [ ] ¿Timestamp se actualiza en operaciones incrementales? → ✅ SÍ
+- [ ] ¿Logs muestran edad del cache? → ✅ SÍ (Xm Ys format)
+
+**MEMORY & THREADING:**
+- [ ] ¿Observers usan [weak self]? → ✅ SÍ
+- [ ] ¿Hay deinit con removeObserver? → ✅ SÍ
+- [ ] ¿UI updates en .main queue? → ✅ SÍ
+- [ ] ¿DB operations en background? → ✅ SÍ
+
+---
+
+## 🆕 CACHE TTL STRATEGY - IMPLEMENTADO (v0.13.0)
+
+### 📋 PATRÓN DE CACHE CON TIME-TO-LIVE
+
+**PROBLEMA IDENTIFICADO:**
+- Cache nunca expiraba automáticamente
+- Datos podían quedar obsoletos indefinidamente
+- Sin estrategia de invalidación temporal
+- Solo invalidación manual (pull-to-refresh)
+
+**SOLUCIÓN IMPLEMENTADA:**
+- **TTL (Time-To-Live)**: 30 minutos para apps local-only
+- **Timestamp tracking**: Cada cache tiene timestamp de creación
+- **Validación automática**: Cada acceso valida edad del cache
+- **Logs transparentes**: Muestra edad del cache y estado
+
+### 🎯 CONFIGURACIÓN ACTUAL
+
+```swift
+// ItemListService.swift
+let cacheTTL: TimeInterval = 1800 // 30 minutes (30 * 60)
+
+// Razón: Local-only app (Core Data)
+// Sin sincronización cloud aún
+// Single user, single device
+// Datos solo se modifican localmente
+```
+
+### ⏰ CUÁNDO SE CONSULTA LA BASE DE DATOS
+
+| Escenario | Acción | Explicación |
+|-----------|--------|-------------|
+| **Primera carga** | ✅ BD | No hay cache |
+| **< 30 minutos** | ✅ Cache | Datos frescos |
+| **> 30 minutos** | ✅ BD | Cache expirado |
+| **Pull-to-refresh** | ✅ Cache/BD* | Valida TTL |
+| **Crear ItemList** | ✅ Incremental | Actualiza cache + timestamp |
+| **Eliminar ItemList** | ✅ Incremental | Actualiza cache + timestamp |
+
+*Si cache < 30 min → usa cache, si > 30 min → consulta BD
+
+### 📊 ESTRATEGIA POR TIPO DE APP
+
+| Tipo de App | TTL Recomendado | OMOMoney Actual |
+|-------------|-----------------|-----------------|
+| **Local-only (Core Data)** | 30-60 min | ✅ 30 min |
+| **Cloud sync (Supabase)** | 2-5 min | 🔮 Futuro |
+| **Realtime colaborativo** | 30 seg - 2 min | 🔮 Futuro |
+| **Banking apps** | 5-15 min | N/A |
+
+### 🔄 FLUJO COMPLETO CON TTL
+
+**PRIMERA CARGA:**
+```
+App abre
+  → ¿Hay cache? NO
+  → Query BD
+  → Cache data + timestamp
+  → Cache válido hasta: Now + 30 min
+```
+
+**ACCESO DENTRO DE TTL:**
+```
+Usuario pull-to-refresh (5 min después)
+  → ¿Hay cache? SÍ
+  → ¿Edad < 30 min? SÍ (5 min)
+  → Usa cache ✅
+  → Log: "CACHE HIT (Fresh data: 5m 23s old)"
+```
+
+**ACCESO DESPUÉS DE TTL:**
+```
+Usuario pull-to-refresh (35 min después)
+  → ¿Hay cache? SÍ
+  → ¿Edad < 30 min? NO (35 min)
+  → Cache EXPIRADO
+  → Query BD
+  → Actualiza cache + timestamp
+  → Log: "Cache EXPIRED (age: 35 minutes, TTL: 30 minutes)"
+```
+
+**OPERACIÓN INCREMENTAL (Crear/Eliminar):**
+```
+Usuario crea ItemList
+  → Guarda en BD
+  → Actualiza array en memoria
+  → Actualiza cache + RESET timestamp
+  → Próximos 30 min: Cache válido ✅
+```
+
+### 🎨 LOGS CON TTL
+
+**Cache Hit:**
+```
+🟢 ItemListService: ✅ CACHE HIT (Fresh data: 15m 34s old)
+   (1745 items, TTL: 30 min)
+```
+
+**Cache Expired:**
+```
+🟡 ItemListService: ⚠️ Cache EXPIRED (age: 32 minutes, TTL: 30 minutes)
+   Refreshing from Core Data...
+```
+
+**New Cache Created:**
+```
+🟡 ItemListService: ✅ ItemLists fetched from DATABASE and cached (1745 items)
+   Cache valid for 30 minutes (local-only, will reduce when cloud sync added)
+```
+
+**Incremental Update (Reset TTL):**
+```
+✅ [ADD] Service cache UPDATED with 1745 items
+💾 Cache timestamp refreshed (TTL reset to 30 min)
+```
+
+### 🔮 ROADMAP: FUTURO CON SUPABASE
+
+```swift
+// Fase actual: Local-only
+let cacheTTL: TimeInterval = 1800 // 30 min
+
+// Fase futura: Con Supabase sync
+let cacheTTL: TimeInterval = 300 // 5 min
+
+// Fase futura: Realtime colaborativo
+let cacheTTL: TimeInterval = 120 // 2 min
+```
+
+### 💡 BENEFICIOS DE ESTA IMPLEMENTACIÓN
+
+1. **Balance perfecto**: Frescura vs Performance
+   - 30 min: Datos lo suficientemente frescos
+   - Reduce queries BD en 90%+
+   - Performance similar a apps nativas
+
+2. **Previene inconsistencias**: Actualización automática
+   - Cache no queda obsoleto indefinidamente
+   - Refresco automático cada 30 min
+   - Sin intervención manual requerida
+
+3. **Optimiza batería**: Menos operaciones de disco
+   - Core Data queries son costosas
+   - Cache reduce acceso a disco
+   - Mejor experiencia de usuario
+
+4. **Escalable**: Preparado para cloud sync
+   - Comentarios en código para futuro
+   - Fácil ajuste de TTL cuando sea necesario
+   - Arquitectura lista para Supabase
+
+5. **Transparente**: Logs claros para debugging
+   - Edad del cache visible
+   - Estado de expiración claro
+   - Fácil identificar problemas
+
+### 🎯 IMPLEMENTACIÓN TÉCNICA
+
+**Service Layer (ItemListService.swift):**
+```swift
+func getItemLists(for group: Group) async throws -> [ItemList] {
+    let cacheKey = "\(CacheKeys.groupItemLists).\(group.id?.uuidString ?? "nil")"
+    let timestampKey = "\(cacheKey).timestamp"
+    
+    // Check cache with TTL validation
+    if let cached: [ItemList] = await CacheManager.shared.getCachedData(for: cacheKey),
+       let timestamp: Date = await CacheManager.shared.getCachedData(for: timestampKey) {
+        
+        let cacheAge = Date().timeIntervalSince(timestamp)
+        let cacheTTL: TimeInterval = 1800 // 30 minutes
+        
+        if cacheAge < cacheTTL {
+            // Cache valid - use it
+            return cached
+        } else {
+            // Cache expired - fetch from DB
+        }
+    }
+    
+    // Fetch from DB and cache with timestamp
+    let items = try await fetch(...)
+    await CacheManager.shared.cacheData(items, for: cacheKey)
+    await CacheManager.shared.cacheData(Date(), for: timestampKey)
+    return items
+}
+```
+
+**ViewModel Layer (DashboardViewModel.swift):**
+```swift
+func addItemList(_ itemList: ItemList) async {
+    // ... update array ...
+    
+    // Update cache + timestamp (reset TTL)
+    if let groupId = groupId {
+        let serviceCacheKey = "ItemListService.groupItemLists.\(groupId)"
+        let timestampKey = "\(serviceCacheKey).timestamp"
+        cacheManager.cacheData(sortedItemLists, for: serviceCacheKey)
+        cacheManager.cacheData(Date(), for: timestampKey) // Reset TTL
+    }
+}
+```
+
+### 📝 NOTAS IMPORTANTES
+
+1. **Single Source of Truth**: Service layer gestiona cache + TTL
+2. **Timestamp Reset**: Operaciones incrementales resetean TTL
+3. **Validación en cada acceso**: Cada query valida edad del cache
+4. **Logs transparentes**: Fácil debugging del estado del cache
+5. **Preparado para futuro**: Arquitectura lista para cloud sync
+
+---
+
+**RECUERDA: Cada línea de código debe seguir estas reglas estrictas. La arquitectura MVVM, el threading correcto, la inyección de dependencias, y la gestión del ciclo de vida del ViewModel son OBLIGATORIOS para mantener la fluidez de la UI y la mantenibilidad del código.**
+
+````

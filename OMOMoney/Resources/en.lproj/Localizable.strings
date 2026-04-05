@@ -1,0 +1,125 @@
+/* 
+  Localizable.strings
+  OMOMoney - English
+
+  Created on 11/18/25.
+*/
+
+// MARK: - General
+"app.name" = "OMO Money";
+"general.ok" = "OK";
+"general.cancel" = "Cancel";
+"general.save" = "Save";
+"general.delete" = "Delete";
+"general.edit" = "Edit";
+"general.add" = "Add";
+"general.back" = "Back";
+"general.done" = "Done";
+"general.error" = "Error";
+"general.loading" = "Loading...";
+"general.search" = "Search";
+"general.close" = "Close";
+
+// MARK: - Navigation
+"nav.dashboard" = "Dashboard";
+"nav.groups" = "Groups";
+"nav.categories" = "Categories";
+"nav.entries" = "Entries";
+"nav.settings" = "Settings";
+"nav.users" = "Users";
+
+// MARK: - User
+"user.title" = "Users";
+"user.name" = "Name";
+"user.email" = "Email";
+"user.create" = "Create User";
+"user.edit" = "Edit User";
+"user.delete.confirm" = "Are you sure you want to delete this user?";
+"user.empty.message" = "No users found";
+
+// MARK: - Group
+"group.title" = "Groups";
+"group.name" = "Group Name";
+"group.currency" = "Currency";
+"group.create" = "Create Group";
+"group.edit" = "Edit Group";
+"group.delete.confirm" = "Are you sure you want to delete this group?";
+"group.empty.message" = "No groups found";
+"group.members" = "Members";
+
+// MARK: - Category
+"category.title" = "Categories";
+"category.name" = "Category Name";
+"category.color" = "Color";
+"category.limit" = "Budget Limit";
+"category.create" = "Create Category";
+"category.edit" = "Edit Category";
+"category.delete.confirm" = "Are you sure you want to delete this category?";
+"category.empty.message" = "No categories found";
+
+// MARK: - Entry/ItemList
+"entry.title" = "Entries";
+"entry.description" = "Description";
+"entry.date" = "Date";
+"entry.amount" = "Amount";
+"entry.category" = "Category";
+"entry.paymentMethod" = "Payment Method";
+"entry.create" = "Add Entry";
+"entry.edit" = "Edit Entry";
+"entry.delete.confirm" = "Are you sure you want to delete this entry?";
+"entry.empty.message" = "No entries found";
+
+// MARK: - Item
+"item.description" = "Item Description";
+"item.quantity" = "Quantity";
+"item.amount" = "Amount";
+"item.total" = "Total";
+"item.add" = "Add Item";
+
+// MARK: - Payment Method
+"payment.title" = "Payment Methods";
+"payment.name" = "Payment Method Name";
+"payment.type" = "Type";
+"payment.active" = "Active";
+"payment.create" = "Create Payment Method";
+"payment.edit" = "Edit Payment Method";
+"payment.delete.confirm" = "Are you sure you want to delete this payment method?";
+"payment.empty.message" = "No payment methods found";
+
+// MARK: - Dashboard
+"dashboard.title" = "Dashboard";
+"dashboard.totalExpenses" = "Total Expenses";
+"dashboard.totalIncome" = "Total Income";
+"dashboard.balance" = "Balance";
+"dashboard.thisMonth" = "This Month";
+"dashboard.recentEntries" = "Recent Entries";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.language" = "Language";
+"settings.currency" = "Default Currency";
+"settings.theme" = "Theme";
+"settings.notifications" = "Notifications";
+"settings.about" = "About";
+
+// MARK: - Validation Errors
+"error.validation.emptyName" = "Name cannot be empty";
+"error.validation.emptyEmail" = "Email cannot be empty";
+"error.validation.invalidEmail" = "Email must be valid";
+"error.validation.emptyGroupName" = "Group name cannot be empty";
+"error.validation.invalidAmount" = "Amount must be greater than zero";
+"error.validation.emptyItemDescription" = "Item description cannot be empty";
+"error.validation.emptyCategoryName" = "Category name cannot be empty";
+"error.validation.emptyPaymentMethodName" = "Payment method name cannot be empty";
+
+// MARK: - Repository Errors
+"error.repository.notFound" = "The requested item was not found";
+"error.repository.invalidData" = "The provided data is invalid";
+"error.repository.saveFailed" = "Failed to save the item";
+"error.repository.deleteFailed" = "Failed to delete the item";
+
+// MARK: - Success Messages
+"success.created" = "Created successfully";
+"success.updated" = "Updated successfully";
+"success.deleted" = "Deleted successfully";
+"success.saved" = "Saved successfully";

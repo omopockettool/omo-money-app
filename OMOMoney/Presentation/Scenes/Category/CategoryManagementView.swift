@@ -1,0 +1,253 @@
+import SwiftUI
+
+struct CategoryManagementView: View {
+    let group: GroupDomain
+
+    @StateObject private var viewModel = CategoryListViewModel()
+    @State private var sheetMode: SheetMode?
+
+    enum SheetMode: Identifiable {
+        case add
+        case edit(CategoryDomain)
+        var id: String {
+            switch self { case .add: return "add"; case .edit(let c): return c.id.uuidString }
+        }
+    }
+
+    var body: some View {
+        List {
+            ForEach(viewModel.categories) { category in
+                categoryRow(category)
+                    .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if !category.isDefault {
+                            Button(role: .destructive) {
+                                Task { await viewModel.deleteCategory(category) }
+                            } label: {
+                                Label("Eliminar", systemImage: "trash")
+                            }
+                        }
+                    }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Categorías")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { sheetMode = .add } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(item: $sheetMode) { mode in
+            NavigationStack {
+                switch mode {
+                case .add:
+                    CategoryFormView(group: group, categoryToEdit: nil) { _ in
+                        Task { await viewModel.loadCategories(forGroupId: group.id) }
+                    }
+                case .edit(let category):
+                    CategoryFormView(group: group, categoryToEdit: category) { _ in
+                        Task { await viewModel.loadCategories(forGroupId: group.id) }
+                    }
+                }
+            }
+        }
+        .task { await viewModel.loadCategories(forGroupId: group.id) }
+    }
+
+    private func categoryRow(_ category: CategoryDomain) -> some View {
+        Button { if !category.isDefault { sheetMode = .edit(category) } } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill((Color(hex: category.color) ?? .accentColor).opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: category.icon)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color(hex: category.color) ?? .accentColor)
+                }
+                Text(category.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                if category.isDefault {
+                    Text("Predeterminada")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
+            }
+            .padding(AppConstants.UserInterface.padding)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Category Form
+
+struct CategoryFormView: View {
+    let group: GroupDomain
+    let categoryToEdit: CategoryDomain?
+    let onSaved: (CategoryDomain) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = CategoryListViewModel()
+
+    @State private var name = ""
+    @State private var selectedColor = "#0A84FF"
+    @State private var selectedIcon = "tag.fill"
+    @FocusState private var nameFocused: Bool?
+
+    private var isEditMode: Bool { categoryToEdit != nil }
+
+    private let colorOptions = [
+        "#FF453A", "#FF9F0A", "#FFD60A", "#30D158",
+        "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF375F",
+        "#64D2FF", "#FF6B35", "#4ECDC4", "#95A5A6"
+    ]
+
+    private let iconOptions = [
+        "cart.fill", "fork.knife", "car.fill", "house.fill",
+        "gamecontroller.fill", "tshirt.fill", "heart.fill", "book.fill",
+        "airplane", "bus.fill", "pill.fill", "dog.fill",
+        "music.note", "dumbbell.fill", "bag.fill", "gift.fill",
+        "tag.fill", "star.fill", "bolt.fill", "leaf.fill",
+        "cup.and.saucer.fill", "tv.fill", "phone.fill", "wifi"
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Preview
+                ZStack {
+                    Circle()
+                        .fill((Color(hex: selectedColor) ?? .accentColor).opacity(0.15))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: selectedIcon)
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(Color(hex: selectedColor) ?? .accentColor)
+                }
+                .animation(AnimationHelper.quickSpring, value: selectedColor)
+                .animation(AnimationHelper.quickSpring, value: selectedIcon)
+
+                // Name
+                LimitedTextField(
+                    icon: "textformat",
+                    placeholder: "Nombre",
+                    text: $name,
+                    maxLength: 20,
+                    focusedField: $nameFocused,
+                    fieldValue: true
+                )
+
+                // Color picker
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Color")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 10) {
+                        ForEach(colorOptions, id: \.self) { hex in
+                            Circle()
+                                .fill(Color(hex: hex) ?? .accentColor)
+                                .frame(height: 36)
+                                .overlay(
+                                    Circle().stroke(Color.white, lineWidth: selectedColor == hex ? 3 : 0)
+                                )
+                                .shadow(color: (Color(hex: hex) ?? .clear).opacity(0.4), radius: selectedColor == hex ? 4 : 0)
+                                .onTapGesture {
+                                    withAnimation(AnimationHelper.quickSpring) { selectedColor = hex }
+                                }
+                        }
+                    }
+                    .padding(AppConstants.UserInterface.padding)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+                }
+
+                // Icon picker (only on create)
+                if !isEditMode {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Icono")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 10) {
+                            ForEach(iconOptions, id: \.self) { icon in
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedIcon == icon ? (Color(hex: selectedColor) ?? .accentColor) : Color(.tertiarySystemGroupedBackground))
+                                        .frame(height: 44)
+                                    Image(systemName: icon)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(selectedIcon == icon ? .white : .secondary)
+                                }
+                                .onTapGesture {
+                                    withAnimation(AnimationHelper.quickSpring) { selectedIcon = icon }
+                                }
+                            }
+                        }
+                        .padding(AppConstants.UserInterface.padding)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+                    }
+                }
+            }
+            .padding(AppConstants.UserInterface.padding)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(isEditMode ? "Editar categoría" : "Nueva categoría")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancelar") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Guardar") {
+                    Task { await save() }
+                }
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+            }
+        }
+        .onAppear {
+            if let cat = categoryToEdit {
+                name = cat.name
+                selectedColor = cat.color
+                selectedIcon = cat.icon
+            }
+            nameFocused = true
+        }
+    }
+
+    private func save() async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        if let cat = categoryToEdit {
+            let success = await viewModel.updateCategory(cat, name: trimmed, color: selectedColor)
+            if success {
+                onSaved(cat)
+                dismiss()
+            }
+        } else {
+            let success = await viewModel.createCategory(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id)
+            if success {
+                onSaved(viewModel.categories.last ?? CategoryDomain(id: UUID(), name: trimmed, color: selectedColor, icon: selectedIcon, isDefault: false, limit: nil, limitFrequency: "", groupId: group.id, createdAt: Date(), lastModifiedAt: nil))
+                dismiss()
+            }
+        }
+    }
+}
