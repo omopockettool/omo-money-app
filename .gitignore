@@ -102,3 +102,4 @@ iOSInjectionProject/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/contents.xcworkspacedata

@@ -5,6 +5,128 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## [0.34.0] - 2026-04-05
+
+### Added
+- **Per-item paid toggle** in `ItemListDetailView` — tap the circle icon on any item to mark it paid/unpaid individually
+- **`PressHapticButtonStyle`** shared component in `Infrastructure/Helpers/` — rigid haptic on press, soft on release; used on all paid toggle buttons app-wide
+- Haptic feedback on dashboard paid toggle (`ExpenseRowView`) using `PressHapticButtonStyle`
+
+### Changed
+- `getFormattedTotal()` in `ItemListDetailViewModel` now sums only items where `isPaid == true` — total reflects money already paid
+- `itemListTotals` and `itemListPaidStatus` pre-populated with zero/default values before async calculation to eliminate "not found" warnings on group switch and new ItemList creation
+
+### Fixed
+- `⚠️ [UI] ItemList not found in itemListTotals` warning no longer fires during group switch or after adding a new ItemList
+
+---
+
+## [0.33.0] - 2026-04-05
+
+### Changed
+- **Cache refactor: domain models instead of CoreData objects**
+  - `ItemListService`: caches `[ItemListDomain]` instead of `[ItemList]`; domain conversion now happens inside `context.perform`; TTL reduced from 30 min to 5 min
+  - `ItemService`: `getItems(for:)` methods now cache `[ItemDomain]` (resolves long-standing TODO); cache invalidation added to all write operations (`createItem`, `updateItem`, `deleteItem`, `setAllItemsPaid`)
+  - `DefaultItemListRepository` / `DefaultItemRepository`: removed redundant `.map { $0.toDomain() }` calls now handled by services
+  - Protocols updated: `getItemLists` returns `[ItemListDomain]`, `getItems` returns `[ItemDomain]`
+
+---
+
+## [0.32.0] - 2026-04-05
+
+### Added
+- **Paid/unpaid check system** for ItemLists on the dashboard
+  - `ToggleAllItemsPaidInListUseCase` — bulk toggle all items in an ItemList paid/unpaid
+  - Dashboard row icon reflects paid status: `circle` (none), `circle.lefthalf.filled` (partial), `checkmark.circle.fill` (all)
+  - `itemListPaidStatus` and `itemListUnpaidTotals` tracked per ItemList in `DashboardViewModel`
+
+---
+
+## [0.31.0] - 2026-04-03
+
+### Added
+- **Settings views** for User, Category, and Payment Method management
+  - Edit user profile, manage categories with icon/color, manage payment methods
+
+---
+
+## [0.30.0] - 2026-03-31
+
+### Changed
+- Redesigned item list row (`ExpenseRowView`) and item row (`ItemRowView`) with updated layout and visual hierarchy
+
+---
+
+## [0.29.0] - 2026-03-31
+
+### Changed
+- **Redesigned `AddItemView`** with hero price input and refactored shared components
+- Scroll disabled when "more details" section is closed in item list form
+
+---
+
+## [0.28.0] - 2026-03-29
+
+### Added
+- Category grid with morph animation, overflow sheet, and payment method chip height fix
+
+### Fixed
+- Auto-focus removed on open; parallel data load on form; scroll bugs; date picker animation
+- Neutral gray border on amount input focus; edit mode auto-scroll prevented
+
+---
+
+## [0.27.0] - 2026-03-28
+
+### Changed
+- **Redesigned `AddItemListView`** with dynamic amount input, font scaling, inline currency symbol, and smart last-used category/payment method ordering
+
+---
+
+## [0.26.0] - 2026-03-19
+
+### Added
+- Edit registry feature — edit ItemList metadata (date, category, payment method) from inside `ItemListDetailView`
+- Animation for total money widget on dashboard
+
+### Fixed
+- Article count shows item quantity instead of item count
+- Phantom keyboard inset no longer pushes dashboard and item detail views
+- Stale dashboard totals after editing an ItemList
+
+---
+
+## [0.25.0] - 2026-03-11 → 2026-03-13
+
+### Added
+- Complete Add Item List flow with incremental cache update and correct total propagation
+- `icon`, `color`, `isDefault` properties added to Category and PaymentMethod entities
+- Default categories updated
+- Item form: input limits, keyboard dismiss button, total preview (unit × qty)
+- Item list rows now show item count instead of category name
+
+### Fixed
+- `emptyStateView` properly centered on dashboard
+- Phantom keyboard inset pushing "Total Gastado" widget
+- USD currency displayed correctly
+- Sheet action buttons repositioned following iOS HIG
+
+---
+
+## [0.24.0] - 2025-12-11 → 2025-12-24
+
+### Changed
+- **Clean Architecture 100% completion**
+  - Category, PaymentMethod, User, and Group management fully migrated to Domain models
+  - All CoreData entity usage removed from Presentation layer
+  - 0 `import CoreData` in ViewModels/Views; 32 `.toDomain()` conversions all in Data layer
+
+### Fixed
+- Bug when switching between groups (stale cache returned wrong ItemLists)
+
+---
 
 ## [0.23.0] - 2025-12-10
 

@@ -561,9 +561,14 @@ class DashboardViewModel: ObservableObject {
     }
     
     // MARK: - Private Methods
-    
+
+    /// Refresh paid/unpaid totals — called when per-item paid status changes in ItemListDetailView
+    func refreshTotals() async {
+        await calculateTotalSpent()
+    }
+
     /// Update total spent for a specific ItemList (incremental calculation)
-    
+
     /// Calculate total spent across all ItemLists (async, uses Domain models)
     /// ✅ Clean Architecture: Uses async getItemListTotal for Domain models
     /// ✅ Also populates itemListTotals cache for UI display

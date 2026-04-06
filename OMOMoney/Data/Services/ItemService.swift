@@ -318,6 +318,31 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         }
     }
 
+    /// Toggle isPaid on a single item
+    func toggleItemPaid(itemId: UUID, isPaid: Bool) async throws {
+        let (itemListId, groupId): (UUID?, UUID?) = try await context.perform {
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", itemId as CVarArg)
+            request.fetchLimit = 1
+            guard let item = try self.context.fetch(request).first else {
+                throw NSError(domain: "ItemService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Item not found"])
+            }
+            item.isPaid = isPaid
+            try self.context.save()
+            return (item.itemList?.id, item.itemList?.groupId)
+        }
+        if let itemListId {
+            await CacheManager.shared.clearDataCache(for: "\(CacheKeys.itemListItems).\(itemListId.uuidString)")
+            await CacheManager.shared.clearCalculationCache(for: "\(CacheKeys.itemListTotalAmount).\(itemListId.uuidString)")
+        }
+        if let groupId {
+            await CacheManager.shared.clearCalculationCache(for: "\(CacheKeys.groupTotalAmount).\(groupId.uuidString)")
+            let key = "ItemListService.groupItemLists.\(groupId.uuidString)"
+            await CacheManager.shared.clearDataCache(for: key)
+            await CacheManager.shared.clearDataCache(for: "\(key).timestamp")
+        }
+    }
+
     /// Calculate total amount for a specific itemList with caching
     func calculateTotalAmount(for itemList: ItemList) async throws -> NSDecimalNumber {
         let cacheKey = "\(CacheKeys.itemListTotalAmount).\(itemList.id?.uuidString ?? "nil")"

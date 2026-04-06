@@ -37,16 +37,20 @@ struct ItemListDetailView: View {
         }
     }
 
+    let onPaidStatusChanged: (() -> Void)?
+
     init(
         itemListDomain: ItemListDomain,
         currencyCode: String = "EUR",
         group: GroupDomain,
-        onItemListUpdated: ((ItemListDomain) -> Void)? = nil
+        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        onPaidStatusChanged: (() -> Void)? = nil
     ) {
         self.itemListDomain = itemListDomain
         self.currencyCode = currencyCode
         self.group = group
         self.onItemListUpdated = onItemListUpdated
+        self.onPaidStatusChanged = onPaidStatusChanged
         self._currentItemList = State(initialValue: itemListDomain)
 
         // ✅ Clean Architecture: Use DI Container for all dependencies
@@ -58,7 +62,8 @@ struct ItemListDetailView: View {
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             createItemUseCase: container.makeCreateItemUseCase(),
             updateItemUseCase: container.makeUpdateItemUseCase(),
-            deleteItemUseCase: container.makeDeleteItemUseCase()
+            deleteItemUseCase: container.makeDeleteItemUseCase(),
+            toggleItemPaidUseCase: container.makeToggleItemPaidUseCase()
         ))
     }
 
@@ -185,7 +190,13 @@ struct ItemListDetailView: View {
                     item: item,
                     formattedAmount: viewModel.getFormattedAmount(item),
                     currencyCode: currencyCode,
-                    onTap: { sheetMode = .edit(item) }
+                    onTap: { sheetMode = .edit(item) },
+                    onTogglePaid: {
+                        Task {
+                            await viewModel.toggleItemPaid(item)
+                            onPaidStatusChanged?()
+                        }
+                    }
                 )
                 .listRowInsets(EdgeInsets(
                     top: 4,
@@ -267,6 +278,7 @@ struct ItemRowView: View {
     let formattedAmount: String  // total = unit × qty
     let currencyCode: String
     let onTap: () -> Void
+    let onTogglePaid: () -> Void
 
     private var showsBreakdown: Bool { item.quantity > 1 }
 
@@ -281,9 +293,12 @@ struct ItemRowView: View {
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 12) {
-                Image(systemName: "circle")
-                    .font(.title2)
-                    .foregroundStyle(Color(.systemGray3))
+                Button(action: onTogglePaid) {
+                    Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(item.isPaid ? Color.green : Color(.systemGray3))
+                }
+                .buttonStyle(PressHapticButtonStyle())
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.itemDescription)

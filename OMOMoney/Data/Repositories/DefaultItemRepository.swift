@@ -90,4 +90,8 @@ final class DefaultItemRepository: ItemRepository {
     func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws {
         try await itemService.setAllItemsPaid(forItemListId: itemListId, isPaid: isPaid)
     }
+
+    func toggleItemPaid(id: UUID, isPaid: Bool) async throws {
+        try await itemService.toggleItemPaid(itemId: id, isPaid: isPaid)
+    }
 }
