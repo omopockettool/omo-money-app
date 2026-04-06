@@ -14,13 +14,15 @@ struct ItemListDetailNavigationWrapper: View {
     let currencyCode: String
     let group: GroupDomain
     let onItemListUpdated: (ItemListDomain) -> Void
+    let onPaidStatusChanged: (() -> Void)?
 
     var body: some View {
         ItemListDetailView(
             itemListDomain: itemListDomain,
             currencyCode: currencyCode,
             group: group,
-            onItemListUpdated: onItemListUpdated
+            onItemListUpdated: onItemListUpdated,
+            onPaidStatusChanged: onPaidStatusChanged
         )
     }
 }
@@ -117,6 +119,9 @@ struct DashboardView: View {
                         group: group,
                         onItemListUpdated: { updated in
                             Task { await viewModel.updateItemListDomain(updated) }
+                        },
+                        onPaidStatusChanged: {
+                            Task { await viewModel.refreshTotals() }
                         }
                     )
                 }

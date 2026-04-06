@@ -129,6 +129,32 @@ let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: nor
 
 ---
 
+## ♻️ Reusable Components (MANDATORY thinking)
+
+**Before writing any UI component, helper, or style — ask: "Could this be used in more than one place?"**
+
+If yes, put it in the right shared location instead of scoping it to a single file:
+
+| Type | Where |
+|------|-------|
+| `ButtonStyle`, visual modifiers | `Infrastructure/Helpers/` |
+| SwiftUI shared views (cards, inputs) | `Presentation/Common/Components/` |
+| Extensions (`Color`, `String`, etc.) | `Infrastructure/Extensions/` |
+| Animation constants | `Infrastructure/Helpers/AnimationHelper.swift` |
+
+**Real example** — haptic button style needed in two views:
+```swift
+// ❌ Wrong: defined as `private struct` inside ItemListDetailView.swift
+
+// ✅ Right: Infrastructure/Helpers/PressHapticButtonStyle.swift
+struct PressHapticButtonStyle: ButtonStyle { ... }
+// Now any view can use: .buttonStyle(PressHapticButtonStyle())
+```
+
+**Rule**: if you catch yourself copy-pasting a component into a second file, stop and extract it first.
+
+---
+
 ## 💡 Development Patterns
 
 ### Adding New Feature
@@ -168,7 +194,7 @@ Task {
 
 ---
 
-**Last Updated**: March 11, 2026
+**Last Updated**: April 5, 2026
 **Framework**: SwiftUI + CoreData  
 **iOS Version**: 26.1  
 **Architecture**: Clean Architecture (100% compliant)

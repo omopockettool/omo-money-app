@@ -34,4 +34,7 @@ protocol ItemServiceProtocol {
 
     /// Set isPaid on all items belonging to a specific item list
     func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws
+
+    /// Toggle isPaid on a single item
+    func toggleItemPaid(itemId: UUID, isPaid: Bool) async throws
 }
