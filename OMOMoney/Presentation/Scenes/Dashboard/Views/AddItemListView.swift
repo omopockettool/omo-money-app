@@ -470,7 +470,7 @@ struct AddItemListView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(orderedPaymentMethods) { method in
                     let isSelected = viewModel.selectedPaymentMethod?.id == method.id
-                    let chipColor = Color(hex: method.color) ?? Color.accentColor
+                    let chipColor = paymentMethodColor(method.type)
                     Button {
                         withAnimation(AnimationHelper.quickSpring) {
                             viewModel.selectedPaymentMethod = method
@@ -480,7 +480,7 @@ struct AddItemListView: View {
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: method.icon)
+                            Image(systemName: paymentMethodIcon(method))
                                 .font(.subheadline)
                                 .foregroundStyle(isSelected ? .white : chipColor)
                             Text(method.name)
@@ -569,6 +569,30 @@ struct AddItemListView: View {
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    }
+
+    // MARK: - Payment Method Helpers
+
+    private func paymentMethodColor(_ type: String) -> Color {
+        switch type {
+        case "cash":          return .green
+        case "bank_transfer": return .orange
+        case "card_credit":   return .purple
+        default:              return .blue
+        }
+    }
+
+    private func paymentMethodIcon(_ method: PaymentMethodDomain) -> String {
+        method.icon.isEmpty ? defaultIcon(for: method.type) : method.icon
+    }
+
+    private func defaultIcon(for type: String) -> String {
+        switch type {
+        case "cash":          return "banknote.fill"
+        case "bank_transfer": return "arrow.left.arrow.right"
+        case "card_credit":   return "creditcard.fill"
+        default:              return "creditcard.fill"
+        }
     }
 
     // MARK: - Actions

@@ -90,8 +90,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
 
             // Create default categories: (name, color, icon, isDefault)
             let defaultCategories: [(String, String, String, Bool)] = [
-                ("Alimentos",       "#FF6B6B", "cart.fill",             false),
-                ("Transporte",      "#4ECDC4", "car.fill",              false),
+                ("Alimentación",    "#FF6B6B", "cart.fill",             false),
+                ("Movilidad",       "#4ECDC4", "car.fill",              false),
                 ("Hogar",           "#45B7D1", "house.fill",            false),
                 ("Ocio",            "#96CEB4", "theatermasks.fill",     false),
                 ("Salud",           "#FFEAA7", "heart.fill",            false),

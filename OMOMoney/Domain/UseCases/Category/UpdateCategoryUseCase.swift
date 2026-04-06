@@ -13,6 +13,7 @@ protocol UpdateCategoryUseCase {
     func execute(
         categoryId: UUID,
         name: String?,
+        icon: String?,
         color: String?,
         limit: Decimal?,
         limitFrequency: String?
@@ -29,6 +30,7 @@ final class DefaultUpdateCategoryUseCase: UpdateCategoryUseCase {
     func execute(
         categoryId: UUID,
         name: String?,
+        icon: String?,
         color: String?,
         limit: Decimal?,
         limitFrequency: String?
@@ -43,6 +45,8 @@ final class DefaultUpdateCategoryUseCase: UpdateCategoryUseCase {
             id: existingCategory.id,
             name: name ?? existingCategory.name,
             color: color ?? existingCategory.color,
+            icon: icon ?? existingCategory.icon,
+            isDefault: existingCategory.isDefault,
             limit: limit ?? existingCategory.limit,
             limitFrequency: limitFrequency ?? existingCategory.limitFrequency,
             groupId: existingCategory.groupId,

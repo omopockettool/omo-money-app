@@ -66,6 +66,7 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
             paymentMethodId: paymentMethod.id,
             name: paymentMethod.name,
             type: paymentMethod.type,
+            icon: paymentMethod.icon,
             isActive: paymentMethod.isActive
         )
     }

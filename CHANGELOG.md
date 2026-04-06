@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.35.0] - 2026-04-06
+
+### Added
+- **Icon editing for categories** — icon picker now visible in edit mode (previously only on create); `UpdateCategoryUseCase`, `CategoryService`, and `DefaultCategoryRepository` updated to persist `icon` field through the full chain
+- **Icon editing for payment methods** — new icon picker grid added to `PaymentMethodFormView`; preview updates live as icon is selected
+- **`CategoryFormView.swift`** extracted from `CategoryManagementView.swift` into its own file
+- **`PaymentMethodFormView.swift`** extracted from `PaymentMethodManagementView.swift` into its own file
+
+### Changed
+- **Payment method types** aligned to actual seeded data: `["cash", "card_debit", "card_credit", "bank_transfer"]` replacing the old `["card", "cash", "transfer", "digital"]`; `typeName()`, `typeIcon()`, `typeColor()` updated with exact `switch` matching (no more `contains` checks or raw type leaking into UI)
+- **`PaymentMethodManagementView` row** now uses stored `pm.icon` with fallback to `typeIcon(pm.type)` instead of always deriving from type
+- **`AddItemListView` payment method chips** now derive color from `paymentMethodType` and icon from stored `method.icon` (with type fallback) — fixes grey cards caused by stale default color stored in CoreData from old build
+- **`PaymentMethodListViewModel.updatePaymentMethod`** refactored: takes existing `PaymentMethodDomain` directly instead of searching empty local array — fixes silent no-op when saving from the form sheet
+- **`PaymentMethodListViewModel.updatePaymentMethod`** now preserves `color`, `isDefault`, and all fields when building the updated domain model
+- **`PaymentMethodListViewModel.createPaymentMethod`** accepts `icon` parameter
+- **`UpdatePaymentMethodUseCase` / `PaymentMethodService` / `DefaultPaymentMethodRepository`** — `icon` field now flows through the full update chain to CoreData
+- **Scenes restructured** into `Views/` + `ViewModels/` subdirectories for all scenes: Category, PaymentMethod, Dashboard, ItemList, User, Group
+
+### Fixed
+- Icon never saved to CoreData on category update — `CategoryService.updateCategory` was missing `icon` parameter
+- Icon never saved to CoreData on payment method update — `PaymentMethodService.updatePaymentMethod` was missing `icon` parameter
+- `DefaultCategoryRepository` and `DefaultPaymentMethodRepository` not forwarding `icon` to their respective services
+- `PaymentMethodFormView` save silently doing nothing — ViewModel searched an empty `paymentMethods` array for the method to update
+- `typeName("card")` returning raw `"card"` string instead of `"Tarjeta"` due to fallback returning raw value when type was non-empty
+
+---
+
 ## [0.34.0] - 2026-04-05
 
 ### Added

@@ -78,7 +78,7 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
 
     /// Update a paymentMethod
     /// ✅ REFACTORED: Accepts UUID parameter
-    func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, isActive: Bool?) async throws {
+    func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, icon: String?, isActive: Bool?) async throws {
         let groupId = try await context.perform {
             let request: NSFetchRequest<PaymentMethod> = PaymentMethod.fetchRequest()
             request.predicate = NSPredicate(format: "id == %@", paymentMethodId as CVarArg)
@@ -93,6 +93,9 @@ class PaymentMethodService: CoreDataService, PaymentMethodServiceProtocol {
             }
             if let type = type {
                 paymentMethod.type = type
+            }
+            if let icon = icon {
+                paymentMethod.icon = icon
             }
             if let isActive = isActive {
                 paymentMethod.isActive = isActive

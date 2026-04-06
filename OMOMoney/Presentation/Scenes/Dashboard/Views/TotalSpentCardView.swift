@@ -19,7 +19,7 @@ struct TotalSpentCardView: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Inversión Total")
+                Text("Coste de vida mes")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
