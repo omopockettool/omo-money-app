@@ -7,6 +7,17 @@
 
 import SwiftUI
 
+enum DashboardViewMode {
+    case calendar, list
+
+    var title: String {
+        switch self {
+        case .calendar: return "Calendario"
+        case .list:     return "Lista"
+        }
+    }
+}
+
 /// Wrapper view to navigate to ItemListDetailView with proper currency
 /// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailNavigationWrapper: View {
@@ -31,8 +42,10 @@ struct DashboardView: View {
     @StateObject private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
     @State private var contentOpacity: Double = 0.0
-    @State private var hasLoadedInitialData = false  // Track if we've loaded data already
+    @State private var hasLoadedInitialData = false
     @State private var showingAddItemList = false
+    @State private var selectedCalendarDay: Date? = nil
+    @State private var viewMode: DashboardViewMode = .calendar
 
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
@@ -54,37 +67,10 @@ struct DashboardView: View {
             ZStack {
                 VStack(spacing: 0) {
                     if viewModel.isLoading {
-                        // Solo mostrar splash, sin header
                         loadingView
                     } else if let errorMessage = viewModel.errorMessage {
-                        // Header + Error view
-                        DashboardHeaderView(
-                            onSettingsTap: {
-                                viewModel.openSettings()
-                            },
-                            onDebugTap: {
-                                Task {
-                                    await logAllEntities()
-                                }
-                            }
-                        )
-                        .background(Color(.systemBackground))
-
                         errorView(errorMessage)
                     } else {
-                        // Header + Main content
-                        DashboardHeaderView(
-                            onSettingsTap: {
-                                viewModel.openSettings()
-                            },
-                            onDebugTap: {
-                                Task {
-                                    await logAllEntities()
-                                }
-                            }
-                        )
-                        .background(Color(.systemBackground))
-
                         mainContentView
                     }
                 }
@@ -110,6 +96,12 @@ struct DashboardView: View {
                 }
             }
             .background(Color(.systemBackground))
+            .onChange(of: viewModel.isChangingGroup) { _, changing in
+                if !changing {
+                    selectedCalendarDay = nil
+                    viewMode = .calendar
+                }
+            }
             .navigationDestination(for: ItemListDomain.self) { itemListDomain in
                 // ✅ Clean Architecture: Navigate with Domain model and currency
                 if let group = viewModel.currentGroup {
@@ -219,103 +211,194 @@ struct DashboardView: View {
     
     private var mainContentView: some View {
         VStack(spacing: 0) {
-            // Expense list - ONLY this component has refresh behavior
-            ExpenseListView(
-                itemLists: viewModel.currentMonthItemLists,
-                getFormattedAmount: { itemList in
-                    // ✅ Use cached total from itemListTotals dictionary
-                    if let total = viewModel.itemListTotals[itemList.id] {
-                        let code = viewModel.currentGroup?.currency ?? "EUR"
-                        let formatter = NumberFormatter()
-                        formatter.numberStyle = .currency
-                        formatter.currencyCode = code
-                        formatter.locale = Locale(identifier: "es_ES")
-                        let sym = NumberFormatter()
-                        sym.numberStyle = .currency
-                        sym.currencyCode = code
-                        sym.locale = Locale(identifier: "en_US")
-                        formatter.currencySymbol = sym.currencySymbol
-                        return formatter.string(from: NSNumber(value: total)) ?? "€0.00"
-                    } else {
-                        // This should not happen after the currentMonthCache fix
-                        print("⚠️ [UI] ItemList '\(itemList.itemListDescription)' not found in itemListTotals")
-                        return "€0.00"
-                    }
-                },
-                getFormattedUnpaidAmount: { itemList in
-                    guard let status = viewModel.itemListPaidStatus[itemList.id],
-                          status != .all,
-                          let unpaid = viewModel.itemListUnpaidTotals[itemList.id],
-                          unpaid > 0 else { return nil }
-                    let code = viewModel.currentGroup?.currency ?? "EUR"
-                    let formatter = NumberFormatter()
-                    formatter.numberStyle = .currency
-                    formatter.currencyCode = code
-                    formatter.locale = Locale(identifier: "es_ES")
-                    let sym = NumberFormatter()
-                    sym.numberStyle = .currency
-                    sym.currencyCode = code
-                    sym.locale = Locale(identifier: "en_US")
-                    formatter.currencySymbol = sym.currencySymbol
-                    return formatter.string(from: NSNumber(value: unpaid))
-                },
-                itemListCounts: viewModel.itemListCounts,
-                categories: viewModel.categories,
-                itemListPaidStatus: viewModel.itemListPaidStatus,
-                onItemTap: { itemList in
-                    navigationPath.append(itemList)
-                },
-                onTogglePaid: { itemList in
-                    viewModel.togglePaid(for: itemList)
-                },
-                onRefresh: {
-                    await viewModel.refreshData()
-                },
-                onDelete: { itemListDomain in
-                    // ✅ Clean Architecture: Use Domain method directly
-                    await viewModel.deleteItemListDomain(itemListDomain)
-                }
-            )
-            
-            // Bottom controls - NEAR UX
-            VStack(alignment: .leading, spacing: AppConstants.UserInterface.padding) {
-                // Total spent card
-                TotalSpentCardView(
-                    totalAmount: viewModel.formattedTotalSpent,
-                    onAddExpense: {
-                        showingAddItemList = true
+            // iOS 26-style view picker dropdown
+            viewPickerBar
+
+            // Content switches based on selected view mode
+            switch viewMode {
+            case .calendar:
+                CalendarGridView(
+                    currentMonthItemLists: viewModel.currentMonthItemLists,
+                    itemListTotals: viewModel.itemListTotals,
+                    currencyCode: viewModel.currentGroup?.currency ?? "EUR",
+                    selectedDay: selectedCalendarDay,
+                    onDayTap: { date in
+                        withAnimation(AnimationHelper.smoothSpring) {
+                            if let current = selectedCalendarDay,
+                               Calendar.current.isDate(current, inSameDayAs: date) {
+                                selectedCalendarDay = nil
+                            } else {
+                                selectedCalendarDay = date
+                            }
+                        }
                     }
                 )
-                
-                // Chip selector pegado a la izquierda (debajo del Total)
-                // ✅ Clean Architecture: No Core Data context needed
+
+                if let day = selectedCalendarDay {
+                    dayExpenseList(for: day)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    Spacer()
+                }
+
+            case .list:
+                ExpenseListView(
+                    itemLists: viewModel.currentMonthItemLists,
+                    getFormattedAmount: { viewModel.formattedPaid(for: $0) },
+                    getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+                    itemListCounts: viewModel.itemListCounts,
+                    categories: viewModel.categories,
+                    itemListPaidStatus: viewModel.itemListPaidStatus,
+                    onItemTap: { navigationPath.append($0) },
+                    onTogglePaid: { viewModel.togglePaid(for: $0) },
+                    onRefresh: { await viewModel.refreshData() },
+                    onDelete: { await viewModel.deleteItemListDomain($0) }
+                )
+                .transition(.opacity)
+
+            }
+
+            // Bottom controls — always visible in all modes
+            bottomControls
+        }
+        .ignoresSafeArea(.keyboard)
+        .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
+        .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
+    }
+
+    // View picker: "Calendario ⌄" dropdown on left, search icon on right
+    private var viewPickerBar: some View {
+        HStack {
+            Menu {
+                Button {
+                    withAnimation(AnimationHelper.quickEase) {
+                        viewMode = .calendar
+                        selectedCalendarDay = nil
+                    }
+                } label: {
+                    Label("Calendario", systemImage: viewMode == .calendar ? "checkmark" : "calendar")
+                }
+
+                Button {
+                    withAnimation(AnimationHelper.quickEase) {
+                        viewMode = .list
+                        selectedCalendarDay = nil
+                    }
+                } label: {
+                    Label("Lista", systemImage: viewMode == .list ? "checkmark" : "list.bullet")
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Text(viewMode.title)
+                        .font(.subheadline.weight(.semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.accentColor.opacity(0.1))
+                .clipShape(Capsule())
+            }
+
+            Spacer()
+
+            Button { viewModel.openSettings() } label: {
+                Image(systemName: "gear")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, AppConstants.UserInterface.padding)
+        .padding(.vertical, AppConstants.UserInterface.smallPadding)
+    }
+
+
+    private func dayExpenseList(for date: Date) -> some View {
+        let cal = Calendar.current
+        let filtered = viewModel.currentMonthItemLists.filter {
+            cal.isDate($0.date, inSameDayAs: date)
+        }
+        return ExpenseListView(
+            itemLists: filtered,
+            getFormattedAmount: { viewModel.formattedPaid(for: $0) },
+            getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            itemListCounts: viewModel.itemListCounts,
+            categories: viewModel.categories,
+            itemListPaidStatus: viewModel.itemListPaidStatus,
+            onItemTap: { navigationPath.append($0) },
+            onTogglePaid: { viewModel.togglePaid(for: $0) },
+            onRefresh: { await viewModel.refreshData() },
+            onDelete: { await viewModel.deleteItemListDomain($0) }
+        )
+        .frame(maxHeight: .infinity)
+    }
+
+    private var displayedTotal: String {
+        guard let day = selectedCalendarDay else { return viewModel.formattedTotalSpent }
+        return viewModel.formattedTotal(for: day)
+    }
+
+    private var bottomControls: some View {
+        VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
+            TotalSpentCardView(
+                totalAmount: displayedTotal,
+                onAddExpense: { showingAddItemList = true }
+            )
+
+            // Group chips + Filters + Search in same row
+            HStack(spacing: AppConstants.UserInterface.smallPadding) {
                 if let currentGroup = viewModel.currentGroup,
                    let userId = viewModel.currentUser?.id {
                     GroupSelectorChipView(
-                        currentGroup: currentGroup,  // ✅ GroupDomain
-                        availableGroups: viewModel.availableGroups,  // ✅ [GroupDomain]
+                        currentGroup: currentGroup,
+                        availableGroups: viewModel.availableGroups,
                         userId: userId,
-                        isChangingGroup: viewModel.isChangingGroup,  // ✅ Pasar estado de carga
-                        onGroupChange: { newGroup in  // ✅ newGroup is GroupDomain
-                            Task {
-                                await viewModel.changeGroup(to: newGroup)
-                            }
+                        isChangingGroup: viewModel.isChangingGroup,
+                        onGroupChange: { newGroup in
+                            Task { await viewModel.changeGroup(to: newGroup) }
                         },
-                        onGroupCreated: { newGroup in  // ✅ newGroup is GroupDomain
-                            // Incremental update sin query
+                        onGroupCreated: { newGroup in
                             viewModel.addGroup(newGroup)
                         },
-                        onGroupDeleted: { deletedGroup in  // ✅ deletedGroup is GroupDomain
-                            // Incremental delete
+                        onGroupDeleted: { deletedGroup in
                             viewModel.removeGroup(deletedGroup)
                         }
                     )
                 }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 0) {
+                    Button { } label: {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+                        .frame(height: 16)
+
+                    Button { } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .background(Color(.systemGray5))
+                .clipShape(Capsule())
             }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.systemBackground))
         }
-        .ignoresSafeArea(.keyboard)
+        .padding(.horizontal, AppConstants.UserInterface.padding)
+        .padding(.vertical, AppConstants.UserInterface.smallPadding)
+        .background(Color(.systemBackground))
     }
 
     // MARK: - Debug Helper

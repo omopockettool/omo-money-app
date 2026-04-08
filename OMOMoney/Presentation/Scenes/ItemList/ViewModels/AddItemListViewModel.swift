@@ -68,6 +68,13 @@ final class AddItemListViewModel: ObservableObject {
 
     // MARK: - Computed Properties
 
+    var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.locale = Locale(identifier: "es_ES")
+        return formatter.string(from: date)
+    }
+
     /// Check if the form can be saved
     var canSave: Bool {
         selectedCategory != nil &&

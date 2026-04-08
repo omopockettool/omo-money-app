@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.36.0] - 2026-04-08
+
+### Added
+- **Calendar grid view** (`CalendarGridView`) on the dashboard — full month grid collapses to the selected week row when a day is tapped; daily totals shown below each date with opacity scaled to spend intensity
+- **View mode picker** — dropdown in the top bar lets the user switch between "Calendario" and "Lista" views; resets to calendar on group change
+- **Filter icon button** in bottom bar using SF Symbol `line.3.horizontal.decrease` alongside the existing search icon
+
+### Changed
+- **`DashboardView` bottom bar** restructured: group selector chip on the left, filter + search capsule on the right
+- **`TotalSpentCardView`** total updates with a `numericText` content transition, directional flash (green/red), and scale bounce animation on change
+
+### Refactored
+- **Formatting logic moved out of Views into ViewModels** (all Views now contain only UI construction):
+  - `DashboardView`: `formattedPaid(for:)`, `formattedUnpaid(for:)`, `formattedTotal(for:)` moved to `DashboardViewModel`; duplicate `currencyString(_:)` removed (already existed as `makeCurrencyFormatter()` in ViewModel)
+  - `AddItemListView`: `formattedDate` moved to `AddItemListViewModel`
+  - `AddItemView`: `showsTotalPreview` moved to `AddItemViewModel`
+
+---
+
 ## [0.35.0] - 2026-04-06
 
 ### Added

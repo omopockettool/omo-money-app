@@ -104,13 +104,6 @@ struct AddItemListView: View {
         return formatter.currencySymbol
     }
 
-    private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: viewModel.date)
-    }
-
     private var descriptionPlaceholder: String {
         viewModel.selectedCategory?.name ?? "Descripción"
     }
@@ -526,7 +519,7 @@ struct AddItemListView: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                     Spacer()
-                    Text(formattedDate)
+                    Text(viewModel.formattedDate)
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                     Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")

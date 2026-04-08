@@ -14,6 +14,7 @@ enum ItemListPaidStatus {
     case all        // all items paid
 }
 
+
 @MainActor
 class DashboardViewModel: ObservableObject {
 
@@ -40,7 +41,7 @@ class DashboardViewModel: ObservableObject {
     @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
     @Published var showingSettings = false
-    
+
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
     private let fetchItemsUseCase: FetchItemsUseCase
@@ -567,6 +568,7 @@ class DashboardViewModel: ObservableObject {
         await calculateTotalSpent()
     }
 
+
     /// Update total spent for a specific ItemList (incremental calculation)
 
     /// Calculate total spent across all ItemLists (async, uses Domain models)
@@ -630,6 +632,27 @@ class DashboardViewModel: ObservableObject {
         sym.locale = Locale(identifier: "en_US")
         formatter.currencySymbol = sym.currencySymbol
         return formatter
+    }
+
+    func formattedPaid(for itemList: ItemListDomain) -> String {
+        guard let total = itemListTotals[itemList.id] else { return "€0.00" }
+        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
+    }
+
+    func formattedUnpaid(for itemList: ItemListDomain) -> String? {
+        guard let status = itemListPaidStatus[itemList.id],
+              status != .all,
+              let unpaid = itemListUnpaidTotals[itemList.id],
+              unpaid > 0 else { return nil }
+        return makeCurrencyFormatter().string(from: NSNumber(value: unpaid))
+    }
+
+    func formattedTotal(for date: Date) -> String {
+        let cal = Calendar.current
+        let dayTotal = currentMonthItemLists
+            .filter { cal.isDate($0.date, inSameDayAs: date) }
+            .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
     }
 
     /// Get formatted total spent string

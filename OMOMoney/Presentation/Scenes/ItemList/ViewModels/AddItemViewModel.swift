@@ -33,6 +33,13 @@ final class AddItemViewModel: ObservableObject {
         return (hasDescription || hasAmount) && !quantity.isEmpty && !isSaving
     }
 
+    var showsTotalPreview: Bool {
+        let normalized = amount.replacingOccurrences(of: ",", with: ".")
+        guard let price = Decimal(string: normalized), price > 0,
+              let qty = Int(quantity), qty > 1 else { return false }
+        return true
+    }
+
     // MARK: - Initialization
     init(
         itemListId: UUID,

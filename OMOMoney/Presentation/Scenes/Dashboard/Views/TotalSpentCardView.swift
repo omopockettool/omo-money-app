@@ -17,10 +17,10 @@ struct TotalSpentCardView: View {
     @State private var cardScale: CGFloat = 1.0
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Coste de vida mes")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundColor(.secondary)
 
                 Text(displayedAmount)
@@ -32,20 +32,20 @@ struct TotalSpentCardView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
             }
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 4)
 
             Button(action: onAddExpense) {
                 Image(systemName: "plus")
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 34, height: 34)
                     .background(Color.accentColor)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
         }
-        .padding(AppConstants.UserInterface.largePadding)
+        .padding(.horizontal, AppConstants.UserInterface.padding)
+        .padding(.vertical, 12)
         .background(Color(.systemGray5))
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
@@ -54,7 +54,7 @@ struct TotalSpentCardView: View {
         )
         .cornerRadius(AppConstants.UserInterface.cornerRadius)
         .scaleEffect(cardScale)
-        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         .onAppear {
             displayedAmount = totalAmount
         }
@@ -62,35 +62,17 @@ struct TotalSpentCardView: View {
             let oldDigits = extractDigits(from: oldValue)
             let newDigits = extractDigits(from: newValue)
             isDecreasing = newDigits < oldDigits
-
-            // Number roll
             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
                 displayedAmount = newValue
             }
-
-            // Color flash: green if up, red if down
-            let targetColor: Color = isDecreasing
-                ? .red.opacity(0.12)
-                : .green.opacity(0.12)
-
-            withAnimation(.easeIn(duration: 0.12)) {
-                flashColor = targetColor
-            }
-            withAnimation(.easeOut(duration: 0.45).delay(0.15)) {
-                flashColor = .clear
-            }
-
-            // Scale bounce
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) {
-                cardScale = 1.025
-            }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.12)) {
-                cardScale = 1.0
-            }
+            let targetColor: Color = isDecreasing ? .red.opacity(0.12) : .green.opacity(0.12)
+            withAnimation(.easeIn(duration: 0.12)) { flashColor = targetColor }
+            withAnimation(.easeOut(duration: 0.45).delay(0.15)) { flashColor = .clear }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) { cardScale = 1.025 }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.12)) { cardScale = 1.0 }
         }
     }
 
-    // Extracts only digits for direction comparison (locale-agnostic)
     private func extractDigits(from string: String) -> Int {
         Int(string.filter(\.isNumber)) ?? 0
     }
@@ -98,10 +80,10 @@ struct TotalSpentCardView: View {
     private var dynamicFontSize: CGFloat {
         let length = totalAmount.count
         switch length {
-        case 0...10:  return 34
-        case 11...15: return 28
-        case 16...20: return 24
-        default:      return 20
+        case 0...10:  return 24
+        case 11...15: return 20
+        case 16...20: return 17
+        default:      return 15
         }
     }
 }
@@ -111,8 +93,6 @@ struct TotalSpentCardView: View {
     VStack(spacing: 20) {
         TotalSpentCardView(totalAmount: "1,229.89 €", onAddExpense: {})
         TotalSpentCardView(totalAmount: "52,340.50 USD", onAddExpense: {})
-        TotalSpentCardView(totalAmount: "850,299.99 $", onAddExpense: {})
-        TotalSpentCardView(totalAmount: "1,234,567.89 USD", onAddExpense: {})
     }
     .padding()
     .background(Color.black)

@@ -378,12 +378,6 @@ struct AddItemView: View {
         Int(viewModel.quantity) ?? 1
     }
 
-    private var showsTotalPreview: Bool {
-        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return false }
-        return true
-    }
-
     private var totalPreviewText: String {
         let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
         guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return "" }
@@ -401,7 +395,7 @@ struct AddItemView: View {
                     heroAmountInput
                     descriptionCard
                     quantityStepper
-                    if showsTotalPreview { totalPreviewRow }
+                    if viewModel.showsTotalPreview { totalPreviewRow }
                 }
                 .padding(AppConstants.UserInterface.padding)
                 .padding(.bottom, 8)
@@ -513,7 +507,7 @@ struct AddItemView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
         .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(AnimationHelper.quickEase, value: showsTotalPreview)
+        .animation(AnimationHelper.quickEase, value: viewModel.showsTotalPreview)
     }
 }
 
