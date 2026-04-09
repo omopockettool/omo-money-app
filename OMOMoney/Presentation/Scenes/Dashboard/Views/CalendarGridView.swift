@@ -71,32 +71,34 @@ struct CalendarGridView: View {
             weekdayHeaders
 
             if let weekRow = selectedWeekRow {
-                // Collapsed: only the week containing the selected day
+                // Collapsed: only the week containing the selected day — natural height, no GeometryReader
                 LazyVGrid(columns: columns, spacing: 0) {
                     ForEach(weekRow.indices, id: \.self) { i in
                         if let date = weekRow[i] {
-                            dayCell(for: date)
+                            dayCell(for: date, rowHeight: 44)
                         } else {
-                            Color.clear.frame(height: 56)
+                            Color.clear.frame(height: 44)
                         }
                     }
                 }
                 .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
                 .transition(.opacity)
             } else {
-                // Full month grid
-                LazyVGrid(columns: columns, spacing: 0) {
-                    ForEach(daysInGrid.indices, id: \.self) { i in
-                        if let date = daysInGrid[i] {
-                            dayCell(for: date)
-                        } else {
-                            Color.clear.frame(height: 56)
+                // Full month grid — GeometryReader fills available height, rows distributed evenly
+                GeometryReader { geo in
+                    let rowHeight = geo.size.height / CGFloat(max(weeks.count, 1))
+                    LazyVGrid(columns: columns, spacing: 0) {
+                        ForEach(daysInGrid.indices, id: \.self) { i in
+                            if let date = daysInGrid[i] {
+                                dayCell(for: date, rowHeight: rowHeight)
+                            } else {
+                                Color.clear.frame(height: rowHeight)
+                            }
                         }
                     }
+                    .padding(.horizontal, AppConstants.UserInterface.smallPadding)
                 }
-                .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                .padding(.vertical, 4)
                 .transition(.opacity)
             }
         }
@@ -144,7 +146,7 @@ struct CalendarGridView: View {
         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
     }
 
-    private func dayCell(for date: Date) -> some View {
+    private func dayCell(for date: Date, rowHeight: CGFloat) -> some View {
         let dayTotal = dailyTotals[calendar.startOfDay(for: date)] ?? 0
         let isToday = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
@@ -183,12 +185,10 @@ struct CalendarGridView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .frame(height: rowHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // In week-strip mode all visible days are tappable; in full mode only days with spend
-        .disabled(selectedDay == nil && !hasSpend)
     }
 
     // MARK: - Helpers

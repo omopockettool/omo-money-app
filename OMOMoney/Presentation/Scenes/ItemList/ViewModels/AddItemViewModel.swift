@@ -109,7 +109,7 @@ final class AddItemViewModel: ObservableObject {
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId,
-                    isPaid: true
+                    isPaid: false
                 )
                 print("✅ AddItemViewModel: Item created successfully")
             }

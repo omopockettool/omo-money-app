@@ -45,6 +45,7 @@ struct DashboardView: View {
     @State private var hasLoadedInitialData = false
     @State private var showingAddItemList = false
     @State private var selectedCalendarDay: Date? = nil
+    @State private var listDragOffset: CGFloat = 0
     @State private var viewMode: DashboardViewMode = .calendar
 
     init() {
@@ -99,6 +100,7 @@ struct DashboardView: View {
             .onChange(of: viewModel.isChangingGroup) { _, changing in
                 if !changing {
                     selectedCalendarDay = nil
+                    listDragOffset = 0
                     viewMode = .calendar
                 }
             }
@@ -136,6 +138,7 @@ struct DashboardView: View {
                     NavigationStack {
                         AddItemListView(
                             group: group,  // ✅ Already a Domain model
+                            initialDate: selectedCalendarDay,
                             onItemListCreated: { createdItemList in
                                 print("🔄 DashboardView: onItemListCreated callback triggered")
                                 print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
@@ -229,16 +232,16 @@ struct DashboardView: View {
                                 selectedCalendarDay = nil
                             } else {
                                 selectedCalendarDay = date
+                                listDragOffset = 0
                             }
                         }
                     }
                 )
+                .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
 
-                if let day = selectedCalendarDay {
-                    dayExpenseList(for: day)
+                if selectedCalendarDay != nil {
+                    dayListPanel
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    Spacer()
                 }
 
             case .list:
@@ -315,7 +318,45 @@ struct DashboardView: View {
     }
 
 
-    private func dayExpenseList(for date: Date) -> some View {
+    private var dayListPanel: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color(.systemGray4))
+                .frame(width: 36, height: 5)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
+                .frame(maxWidth: .infinity)
+
+            if let day = selectedCalendarDay {
+                dayExpenseList(for: day)
+            }
+        }
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: -2)
+        .offset(y: listDragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    listDragOffset = max(0, value.translation.height)
+                }
+                .onEnded { value in
+                    if value.translation.height > 80 {
+                        withAnimation(AnimationHelper.smoothSpring) {
+                            selectedCalendarDay = nil
+                        }
+                        listDragOffset = 0
+                    } else {
+                        withAnimation(AnimationHelper.smoothSpring) {
+                            listDragOffset = 0
+                        }
+                    }
+                }
+        )
+        .frame(maxHeight: .infinity)
+    }
+
+    private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil) -> some View {
         let cal = Calendar.current
         let filtered = viewModel.currentMonthItemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
@@ -327,7 +368,9 @@ struct DashboardView: View {
             itemListCounts: viewModel.itemListCounts,
             categories: viewModel.categories,
             itemListPaidStatus: viewModel.itemListPaidStatus,
-            onItemTap: { navigationPath.append($0) },
+            onItemTap: { item in
+                if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }
+            },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
             onDelete: { await viewModel.deleteItemListDomain($0) }
@@ -335,14 +378,33 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
+    private func sheetTitle(for date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return "Gastos de hoy" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateFormat = "d 'de' MMMM"
+        let s = formatter.string(from: date)
+        return s.prefix(1).uppercased() + s.dropFirst()
+    }
+
     private var displayedTotal: String {
         guard let day = selectedCalendarDay else { return viewModel.formattedTotalSpent }
         return viewModel.formattedTotal(for: day)
     }
 
+    private var totalCardLabel: String {
+        guard let day = selectedCalendarDay else { return "Coste de vida este mes" }
+        if Calendar.current.isDateInToday(day) { return "Coste de vida hoy" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateFormat = "d MMM"
+        return "Coste del \(formatter.string(from: day))"
+    }
+
     private var bottomControls: some View {
         VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
             TotalSpentCardView(
+                label: totalCardLabel,
                 totalAmount: displayedTotal,
                 onAddExpense: { showingAddItemList = true }
             )

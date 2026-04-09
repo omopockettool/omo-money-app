@@ -20,6 +20,7 @@ struct AddItemListView: View {
     init(
         group: GroupDomain,
         itemListToEdit: ItemListDomain? = nil,
+        initialDate: Date? = nil,
         onItemListCreated: @escaping (ItemListDomain) -> Void,
         onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
         onCancel: @escaping () -> Void
@@ -28,7 +29,7 @@ struct AddItemListView: View {
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit))
+        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
     }
 
     // MARK: - Computed

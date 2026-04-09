@@ -46,7 +46,7 @@ struct ExpenseRowView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 if let unpaid = formattedUnpaidAmount {
-                    Text("\(unpaid) restantes")
+                    Text("\(unpaid) por pagar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

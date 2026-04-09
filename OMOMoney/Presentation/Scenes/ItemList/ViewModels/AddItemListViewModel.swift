@@ -54,7 +54,7 @@ final class AddItemListViewModel: ObservableObject {
     }
 
     /// Convenience initializer using DI Container
-    convenience init(itemListToEdit: ItemListDomain? = nil) {
+    convenience init(itemListToEdit: ItemListDomain? = nil, initialDate: Date? = nil) {
         let appContainer = AppDIContainer.shared
         self.init(
             itemListToEdit: itemListToEdit,
@@ -64,6 +64,9 @@ final class AddItemListViewModel: ObservableObject {
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
             fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase()
         )
+        if itemListToEdit == nil, let initialDate {
+            self.date = initialDate
+        }
     }
 
     // MARK: - Computed Properties

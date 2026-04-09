@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct TotalSpentCardView: View {
+    let label: String
     let totalAmount: String
     let onAddExpense: () -> Void
 
@@ -19,9 +20,10 @@ struct TotalSpentCardView: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Coste de vida mes")
+                Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .animation(.easeInOut(duration: 0.2), value: label)
 
                 Text(displayedAmount)
                     .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
@@ -91,8 +93,8 @@ struct TotalSpentCardView: View {
 // MARK: - Preview
 #Preview {
     VStack(spacing: 20) {
-        TotalSpentCardView(totalAmount: "1,229.89 €", onAddExpense: {})
-        TotalSpentCardView(totalAmount: "52,340.50 USD", onAddExpense: {})
+        TotalSpentCardView(label: "Coste de vida este mes", totalAmount: "1,229.89 €", onAddExpense: {})
+        TotalSpentCardView(label: "Coste de hoy", totalAmount: "52,340.50 USD", onAddExpense: {})
     }
     .padding()
     .background(Color.black)
