@@ -46,6 +46,7 @@ struct DashboardView: View {
     @State private var showingAddItemList = false
     @State private var selectedCalendarDay: Date? = nil
     @State private var listDragOffset: CGFloat = 0
+    @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var viewMode: DashboardViewMode = .calendar
 
     init() {
@@ -101,6 +102,7 @@ struct DashboardView: View {
                 if !changing {
                     selectedCalendarDay = nil
                     listDragOffset = 0
+                    displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
                     viewMode = .calendar
                 }
             }
@@ -221,7 +223,7 @@ struct DashboardView: View {
             switch viewMode {
             case .calendar:
                 CalendarGridView(
-                    currentMonthItemLists: viewModel.currentMonthItemLists,
+                    itemLists: viewModel.itemLists,
                     itemListTotals: viewModel.itemListTotals,
                     currencyCode: viewModel.currentGroup?.currency ?? "EUR",
                     selectedDay: selectedCalendarDay,
@@ -235,6 +237,11 @@ struct DashboardView: View {
                                 listDragOffset = 0
                             }
                         }
+                    },
+                    onMonthChange: { month in
+                        displayedCalendarMonth = month
+                        selectedCalendarDay = nil
+                        listDragOffset = 0
                     }
                 )
                 .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
@@ -246,7 +253,9 @@ struct DashboardView: View {
 
             case .list:
                 ExpenseListView(
-                    itemLists: viewModel.currentMonthItemLists,
+                    itemLists: viewModel.itemLists.filter {
+                        Calendar.current.isDate($0.date, equalTo: displayedCalendarMonth, toGranularity: .month)
+                    },
                     getFormattedAmount: { viewModel.formattedPaid(for: $0) },
                     getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
                     itemListCounts: viewModel.itemListCounts,
@@ -358,7 +367,7 @@ struct DashboardView: View {
 
     private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil) -> some View {
         let cal = Calendar.current
-        let filtered = viewModel.currentMonthItemLists.filter {
+        let filtered = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
         }
         return ExpenseListView(
@@ -388,17 +397,28 @@ struct DashboardView: View {
     }
 
     private var displayedTotal: String {
-        guard let day = selectedCalendarDay else { return viewModel.formattedTotalSpent }
+        guard let day = selectedCalendarDay else {
+            return viewModel.formattedTotal(forMonth: displayedCalendarMonth)
+        }
         return viewModel.formattedTotal(for: day)
     }
 
     private var totalCardLabel: String {
-        guard let day = selectedCalendarDay else { return "Coste de vida este mes" }
-        if Calendar.current.isDateInToday(day) { return "Coste de vida hoy" }
+        if let day = selectedCalendarDay {
+            if Calendar.current.isDateInToday(day) { return "Coste de vida hoy" }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "es_ES")
+            formatter.dateFormat = "d MMM"
+            return "Coste del \(formatter.string(from: day))"
+        }
+        if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
+            return "Coste de vida este mes"
+        }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_ES")
-        formatter.dateFormat = "d MMM"
-        return "Coste del \(formatter.string(from: day))"
+        formatter.dateFormat = "MMMM yyyy"
+        let s = formatter.string(from: displayedCalendarMonth)
+        return "Coste en \(s.prefix(1).uppercased() + s.dropFirst())"
     }
 
     private var bottomControls: some View {

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.40.0] - 2026-04-09
+
+### Fixed
+- **Calendar month navigation** — navigating to a past or future month now correctly loads its item lists and totals. Root cause was two-layer: (1) `CalendarGridView` had no upward callback for month changes, so the parent kept passing only current-month data; (2) `DashboardViewModel.calculateTotalSpent()` only iterated `currentMonthItemLists`, leaving `itemListTotals` empty for any other month. Fix: `CalendarGridView` now exposes `onMonthChange: (Date) -> Void`; `DashboardView` tracks `displayedCalendarMonth` and passes all `viewModel.itemLists` to the grid; `DashboardViewModel` iterates `itemLists` in `calculateTotalSpent`, `formattedTotal(for:)`, and the new `formattedTotal(forMonth:)` method; `TotalSpentCardView` label adapts to "Coste en Marzo 2026" for non-current months
+
+### Changed
+- **Calendar cells with zero-spend days** — days that have item lists but no items (total = €0) now display "0,00 €" in a muted secondary color instead of showing nothing, making it clear the day has records
+
+---
+
 ## [0.39.0] - 2026-04-09
 
 ### Changed

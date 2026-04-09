@@ -579,7 +579,7 @@ class DashboardViewModel: ObservableObject {
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
 
-            for itemListDomain in currentMonthItemLists {
+            for itemListDomain in itemLists {
                 group.addTask {
                     return await self.getItemListData(itemListDomain)
                 }
@@ -649,10 +649,18 @@ class DashboardViewModel: ObservableObject {
 
     func formattedTotal(for date: Date) -> String {
         let cal = Calendar.current
-        let dayTotal = currentMonthItemLists
+        let dayTotal = itemLists
             .filter { cal.isDate($0.date, inSameDayAs: date) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
         return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+    }
+
+    func formattedTotal(forMonth date: Date) -> String {
+        let cal = Calendar.current
+        let monthTotal = itemLists
+            .filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
+            .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        return makeCurrencyFormatter().string(from: NSNumber(value: monthTotal)) ?? "€0.00"
     }
 
     /// Get formatted total spent string

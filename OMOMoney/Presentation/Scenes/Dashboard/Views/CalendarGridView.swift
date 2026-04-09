@@ -6,11 +6,12 @@
 import SwiftUI
 
 struct CalendarGridView: View {
-    let currentMonthItemLists: [ItemListDomain]
+    let itemLists: [ItemListDomain]
     let itemListTotals: [UUID: Double]
     let currencyCode: String
     let selectedDay: Date?
     let onDayTap: (Date) -> Void
+    let onMonthChange: (Date) -> Void
 
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
 
@@ -21,7 +22,7 @@ struct CalendarGridView: View {
 
     private var dailyTotals: [Date: Double] {
         var result: [Date: Double] = [:]
-        for itemList in currentMonthItemLists {
+        for itemList in itemLists {
             guard calendar.isDate(itemList.date, equalTo: displayedMonth, toGranularity: .month) else { continue }
             let day = calendar.startOfDay(for: itemList.date)
             result[day, default: 0] += itemListTotals[itemList.id] ?? 0
@@ -147,9 +148,11 @@ struct CalendarGridView: View {
     }
 
     private func dayCell(for date: Date, rowHeight: CGFloat) -> some View {
-        let dayTotal = dailyTotals[calendar.startOfDay(for: date)] ?? 0
+        let dayKey = calendar.startOfDay(for: date)
+        let dayTotal = dailyTotals[dayKey] ?? 0
         let isToday = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
+        let hasItemLists = dailyTotals[dayKey] != nil
         let hasSpend = dayTotal > 0
         let pillOpacity = hasSpend ? max(0.35, dayTotal / maxDailyTotal) : 0
 
@@ -173,11 +176,11 @@ struct CalendarGridView: View {
                 }
                 .frame(width: 32, height: 32)
 
-                if hasSpend {
+                if hasItemLists {
                     Text(formattedAmount(dayTotal))
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.accentColor)
-                        .opacity(pillOpacity)
+                        .foregroundColor(hasSpend ? .accentColor : .secondary)
+                        .opacity(hasSpend ? pillOpacity : 0.4)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                 } else {
@@ -219,6 +222,7 @@ struct CalendarGridView: View {
     private func changeMonth(by value: Int) {
         guard let newMonth = calendar.date(byAdding: .month, value: value, to: displayedMonth) else { return }
         displayedMonth = calendar.startOfMonth(for: newMonth)
+        onMonthChange(displayedMonth)
     }
 
     private func formattedAmount(_ amount: Double) -> String {
@@ -236,7 +240,7 @@ struct CalendarGridView: View {
     }
 }
 
-private extension Calendar {
+extension Calendar {
     func startOfMonth(for date: Date) -> Date {
         let components = dateComponents([.year, .month], from: date)
         return self.date(from: components) ?? date
