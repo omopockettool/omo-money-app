@@ -18,10 +18,11 @@ struct TotalSpentCardView: View {
     @State private var cardScale: CGFloat = 1.0
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(label)
-                    .font(.caption)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .animation(.easeInOut(duration: 0.2), value: label)
 
@@ -34,20 +35,20 @@ struct TotalSpentCardView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 8)
 
             Button(action: onAddExpense) {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 48, height: 48)
                     .background(Color.accentColor)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, 12)
+        .padding(.vertical, 16)
         .background(Color(.systemGray5))
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
@@ -82,10 +83,10 @@ struct TotalSpentCardView: View {
     private var dynamicFontSize: CGFloat {
         let length = totalAmount.count
         switch length {
-        case 0...10:  return 24
-        case 11...15: return 20
-        case 16...20: return 17
-        default:      return 15
+        case 0...10:  return 34
+        case 11...15: return 28
+        case 16...20: return 22
+        default:      return 18
         }
     }
 }

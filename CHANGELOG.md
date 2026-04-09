@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.38.0] - 2026-04-09
+
+### Changed
+- **`TotalSpentCardView` redesigned** — label upgraded from `.caption` to `.subheadline .medium`; amount font increased from 24 pt to 34 pt (adaptive); "+" button enlarged from 34×34 to 48×48 with a 20 pt icon (meets iOS 44 pt minimum tap target)
+- **Group selector chip icon** changed from `folder.fill` to `person.3.fill` — better reflects the concept of a shared group
+- **Settings button icon** changed from `gear` to `gearshape.fill` — filled variant with more visual weight
+
+---
+
+## [0.37.0] - 2026-04-09
+
+### Added
+- **Dynamic `TotalSpentCardView` label** — shows "Coste de vida este mes" when no day is selected, "Coste de vida hoy" when today is selected, or "Coste del 6 abr" for any other date; `ItemListDetailView` shows "Coste de [nombre del registro]"
+- **Animated subtotal card in `AddItemView`** — replaces the small caption info text; appears when quantity > 1 and amount is set; shows the unit × qty formula and the total in a large bold animated number with `numericText` spring transition
+- **Pre-fill date on new item list** — tapping "+" while a calendar day is selected opens `AddItemListView` with that date pre-filled; `AddItemListViewModel` accepts `initialDate` parameter
+- **Drag-to-dismiss day expense panel** — day expense list is shown as an inline panel with a pill drag handle; dragging down > 80 pt dismisses it and expands the calendar back to full month; bottom controls (TotalSpentCard, group chip, filters) always remain visible
+
+### Changed
+- **All calendar days now tappable** in full-month mode — removed the `.disabled` check that blocked days without spending; enables future-date planning (e.g. scheduling rent payment)
+- **New items default to `isPaid: false`** — items no longer auto-marked as paid on creation; payment is an explicit user action
+- **`ExpenseRowView` unpaid label** changed from "restantes" to "por pagar"
+
+---
+
 ## [0.36.0] - 2026-04-08
 
 ### Added

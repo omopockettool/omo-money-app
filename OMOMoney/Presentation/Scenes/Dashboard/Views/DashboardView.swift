@@ -307,7 +307,7 @@ struct DashboardView: View {
             Spacer()
 
             Button { viewModel.openSettings() } label: {
-                Image(systemName: "gear")
+                Image(systemName: "gearshape.fill")
                     .font(.system(size: 20, weight: .regular))
                     .foregroundColor(.primary)
             }
