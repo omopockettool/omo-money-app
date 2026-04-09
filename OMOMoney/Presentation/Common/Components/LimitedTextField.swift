@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Campo de texto con icono, placeholder y contador de caracteres reutilizable.
+/// Campo de texto con icono, botón de limpiar y límite de caracteres reutilizable.
 /// El padre retiene el control del FocusState pasando su propio binding.
 struct LimitedTextField<F: Hashable>: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
-    var maxLength: Int = 20
+    var maxLength: Int = 30
     var focusedField: FocusState<F?>.Binding
     let fieldValue: F
 
@@ -30,12 +30,14 @@ struct LimitedTextField<F: Hashable>: View {
                 }
 
             if !text.isEmpty {
-                Text("\(text.count)/\(maxLength)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .monospacedDigit()
-                    .transition(.opacity)
-                    .animation(AnimationHelper.quickEase, value: text.isEmpty)
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color(.tertiaryLabel))
+                        .font(.system(size: 16))
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                .animation(AnimationHelper.quickEase, value: text.isEmpty)
             }
         }
         .padding(AppConstants.UserInterface.padding)

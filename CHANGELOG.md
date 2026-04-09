@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.39.0] - 2026-04-09
+
+### Changed
+- **`LimitedTextField` clear button** — replaced character counter (`5/20`) with a native `xmark.circle.fill` button; tap clears the field instantly with a fade+scale animation; consistent with iOS standard text field behavior (search bars, URL bar, etc.)
+- **`LimitedTextField` max length** raised from 20 to 30 characters; change applies to all 5 usages: item list description, item description, user profile name, category name, payment method name
+
+---
+
 ## [0.38.0] - 2026-04-09
 
 ### Changed
