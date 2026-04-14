@@ -18,26 +18,26 @@ struct TotalSpentCardView: View {
     @State private var cardScale: CGFloat = 1.0
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                    .animation(.easeInOut(duration: 0.2), value: label)
+        Button(action: onAddExpense) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                        .animation(.easeInOut(duration: 0.2), value: label)
 
-                Text(displayedAmount)
-                    .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .contentTransition(.numericText(countsDown: isDecreasing))
-                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
-            }
+                    Text(displayedAmount)
+                        .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .contentTransition(.numericText(countsDown: isDecreasing))
+                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                }
 
-            Spacer(minLength: 8)
+                Spacer(minLength: 8)
 
-            Button(action: onAddExpense) {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
@@ -45,19 +45,19 @@ struct TotalSpentCardView: View {
                     .background(Color.accentColor)
                     .clipShape(Circle())
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, 16)
+            .background(Color(.systemGray5))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                    .fill(flashColor)
+                    .allowsHitTesting(false)
+            )
+            .cornerRadius(AppConstants.UserInterface.cornerRadius)
+            .scaleEffect(cardScale)
+            .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, 16)
-        .background(Color(.systemGray5))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .fill(flashColor)
-                .allowsHitTesting(false)
-        )
-        .cornerRadius(AppConstants.UserInterface.cornerRadius)
-        .scaleEffect(cardScale)
-        .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
+        .buttonStyle(PressHapticButtonStyle())
         .onAppear {
             displayedAmount = totalAmount
         }

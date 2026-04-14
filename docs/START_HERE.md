@@ -141,6 +141,7 @@ If yes, put it in the right shared location instead of scoping it to a single fi
 | SwiftUI shared views (cards, inputs) | `Presentation/Common/Components/` |
 | Extensions (`Color`, `String`, etc.) | `Infrastructure/Extensions/` |
 | Animation constants | `Infrastructure/Helpers/AnimationHelper.swift` |
+| Haptic feedback | `Infrastructure/Helpers/PressHapticButtonStyle.swift` |
 
 **Real example** — haptic button style needed in two views:
 ```swift
@@ -152,6 +153,22 @@ struct PressHapticButtonStyle: ButtonStyle { ... }
 ```
 
 **Rule**: if you catch yourself copy-pasting a component into a second file, stop and extract it first.
+
+---
+
+## 🔔 Existing Shared Helpers (ALWAYS use before creating new ones)
+
+| Helper | File | Usage |
+|--------|------|-------|
+| `PressHapticButtonStyle` | `Infrastructure/Helpers/PressHapticButtonStyle.swift` | `.buttonStyle(PressHapticButtonStyle())` — rigid haptic on press-down, soft on release. Use on ANY tappable element that needs tactile feedback. Never call `UIImpactFeedbackGenerator` directly in a view. |
+| `AnimationHelper.smoothSpring` | `Infrastructure/Helpers/AnimationHelper.swift` | General UI transitions (calendar selection, panel appear) |
+| `AnimationHelper.quickSpring` | same | Immediate feedback (small buttons) |
+| `AnimationHelper.quickEase` | same | View mode switching |
+| `AnimationHelper.gentleEase` | same | Subtle transitions |
+| `AppConstants.UserInterface.padding` | `Infrastructure/Constants/AppConstants.swift` | 16pt — standard padding |
+| `AppConstants.UserInterface.smallPadding` | same | 8pt — compact spacing |
+| `AppConstants.UserInterface.largePadding` | same | 24pt — generous spacing |
+| `AppConstants.UserInterface.cornerRadius` | same | 16pt — universal corner radius |
 
 ---
 
