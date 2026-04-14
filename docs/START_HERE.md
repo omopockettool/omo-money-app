@@ -142,6 +142,7 @@ If yes, put it in the right shared location instead of scoping it to a single fi
 | Extensions (`Color`, `String`, etc.) | `Infrastructure/Extensions/` |
 | Animation constants | `Infrastructure/Helpers/AnimationHelper.swift` |
 | Haptic feedback | `Infrastructure/Helpers/PressHapticButtonStyle.swift` |
+| Conditional modifier `.if` | `Infrastructure/Extensions/View+ConditionalModifier.swift` |
 
 **Real example** — haptic button style needed in two views:
 ```swift

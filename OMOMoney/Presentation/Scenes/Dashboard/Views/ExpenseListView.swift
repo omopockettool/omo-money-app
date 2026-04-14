@@ -72,9 +72,7 @@ struct ExpenseListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .animation(.easeInOut(duration: 0.2), value: itemLists.count)
-        .refreshable {
-            await onRefresh()
-        }
+        .if(!isCompact) { $0.refreshable { await onRefresh() } }
     }
     
     // MARK: - Private Views
