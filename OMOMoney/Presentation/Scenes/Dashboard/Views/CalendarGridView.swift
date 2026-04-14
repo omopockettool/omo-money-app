@@ -16,7 +16,7 @@ struct CalendarGridView: View {
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
 
     private let calendar = Calendar.current
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
 
     // MARK: - Computed
 
@@ -28,10 +28,6 @@ struct CalendarGridView: View {
             result[day, default: 0] += itemListTotals[itemList.id] ?? 0
         }
         return result
-    }
-
-    private var maxDailyTotal: Double {
-        dailyTotals.values.max() ?? 1
     }
 
     private var daysInGrid: [Date?] {
@@ -72,24 +68,26 @@ struct CalendarGridView: View {
             weekdayHeaders
 
             if let weekRow = selectedWeekRow {
-                // Collapsed: only the week containing the selected day — natural height, no GeometryReader
-                LazyVGrid(columns: columns, spacing: 0) {
+                // Collapsed: only the week containing the selected day
+                LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(weekRow.indices, id: \.self) { i in
                         if let date = weekRow[i] {
-                            dayCell(for: date, rowHeight: 44)
+                            dayCell(for: date, rowHeight: 64)
                         } else {
-                            Color.clear.frame(height: 44)
+                            Color.clear.frame(height: 64)
                         }
                     }
                 }
                 .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                .padding(.vertical, 2)
+                .padding(.vertical, 4)
                 .transition(.opacity)
             } else {
-                // Full month grid — GeometryReader fills available height, rows distributed evenly
+                // Full month grid — GeometryReader fills available height, capped at 72pt per row
                 GeometryReader { geo in
-                    let rowHeight = geo.size.height / CGFloat(max(weeks.count, 1))
-                    LazyVGrid(columns: columns, spacing: 0) {
+                    let rowCount = CGFloat(max(weeks.count, 1))
+                    let totalSpacing = 4 * (rowCount - 1)
+                    let rowHeight = min((geo.size.height - totalSpacing) / rowCount, 72)
+                    LazyVGrid(columns: columns, spacing: 4) {
                         ForEach(daysInGrid.indices, id: \.self) { i in
                             if let date = daysInGrid[i] {
                                 dayCell(for: date, rowHeight: rowHeight)
@@ -113,20 +111,20 @@ struct CalendarGridView: View {
         HStack {
             Button { changeMonth(by: -1) } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
             }
             Spacer()
             Text(monthTitle)
-                .font(.headline)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
             Spacer()
             Button { changeMonth(by: 1) } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
             }
         }
         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
@@ -134,61 +132,51 @@ struct CalendarGridView: View {
     }
 
     private var weekdayHeaders: some View {
-        LazyVGrid(columns: columns, spacing: 0) {
+        LazyVGrid(columns: columns, spacing: 4) {
             ForEach(weekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
-                    .font(.caption2)
-                    .fontWeight(.medium)
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
             }
         }
         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
     }
 
     private func dayCell(for date: Date, rowHeight: CGFloat) -> some View {
-        let dayKey = calendar.startOfDay(for: date)
-        let dayTotal = dailyTotals[dayKey] ?? 0
-        let isToday = calendar.isDateInToday(date)
+        let dayKey     = calendar.startOfDay(for: date)
+        let dayTotal   = dailyTotals[dayKey] ?? 0
+        let isToday    = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
-        let hasItemLists = dailyTotals[dayKey] != nil
-        let hasSpend = dayTotal > 0
-        let pillOpacity = hasSpend ? max(0.35, dayTotal / maxDailyTotal) : 0
+        let hasSpend   = dailyTotals[dayKey] != nil && dayTotal > 0
 
-        return Button {
-            onDayTap(date)
-        } label: {
-            VStack(spacing: 2) {
-                ZStack {
-                    if isSelected {
-                        Circle()
-                            .fill(Color.accentColor)
-                            .frame(width: 30, height: 30)
-                    } else if isToday {
-                        Circle()
-                            .stroke(Color.accentColor, lineWidth: 1.5)
-                            .frame(width: 30, height: 30)
-                    }
-                    Text("\(calendar.component(.day, from: date))")
-                        .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
-                        .foregroundColor(isSelected ? .white : (isToday ? .accentColor : .primary))
-                }
-                .frame(width: 32, height: 32)
+        let cardFill: Color = isSelected ? .accentColor : .clear
+        let dateColor: Color = isSelected ? .white : (isToday ? .accentColor : .primary)
+        let amountColor: Color = isSelected ? .white.opacity(0.9) : .accentColor
 
-                if hasItemLists {
+        return Button { onDayTap(date) } label: {
+            VStack(spacing: 4) {
+                Text("\(calendar.component(.day, from: date))")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(dateColor)
+
+                if hasSpend {
                     Text(formattedAmount(dayTotal))
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(hasSpend ? .accentColor : .secondary)
-                        .opacity(hasSpend ? pillOpacity : 0.4)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(amountColor)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(0.75)
                 } else {
-                    Color.clear.frame(height: 12)
+                    Text("·")
+                        .font(.system(size: 13))
+                        .foregroundColor(.clear)
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: rowHeight)
+            .background(cardFill)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.41.0] - 2026-04-14
+
+### Changed
+- **Calendar day cells redesigned (Neubrutalism / accessibility)** — cells replaced from small circles (32×32 pt, 14 pt date, 9 pt amount) to full-width borderless cards; date number is now 20 pt bold rounded, spending amount 13 pt semibold — both readable at iOS display zoom; row height raised to 64 pt (collapsed strip) / 72 pt max (full month); month header bumped to 20 pt bold rounded, nav buttons to 44×44 pt (HIG minimum); weekday labels to 11 pt semibold
+- **Calendar cell backgrounds** — all days transparent except selected day which shows a solid accent fill; no borders on any cell
+- **Calendar spending amount color** — all days with spend always show the amount in full accent color (no opacity fade); previously low-spend days faded to near-invisible gray
+- **Calendar last-row overflow fixed** — row height calculation now subtracts inter-row spacing before dividing, preventing the last week from being clipped on zoomed displays
+
+---
+
 ## [0.40.0] - 2026-04-09
 
 ### Fixed
