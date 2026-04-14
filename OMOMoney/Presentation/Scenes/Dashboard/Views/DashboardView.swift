@@ -159,6 +159,7 @@ struct DashboardView: View {
                 }
             }
         }
+        .ignoresSafeArea(.keyboard)
         .onAppear {
             // Only load data on first appearance to avoid splash on navigation back
             guard !hasLoadedInitialData else {
@@ -225,6 +226,7 @@ struct DashboardView: View {
                 CalendarGridView(
                     itemLists: viewModel.itemLists,
                     itemListTotals: viewModel.itemListTotals,
+                    itemListPaidStatus: viewModel.itemListPaidStatus,
                     currencyCode: viewModel.currentGroup?.currency ?? "EUR",
                     selectedDay: selectedCalendarDay,
                     onDayTap: { date in
@@ -275,7 +277,6 @@ struct DashboardView: View {
             // Bottom controls — always visible in all modes
             bottomControls
         }
-        .ignoresSafeArea(.keyboard)
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
     }
@@ -339,8 +340,18 @@ struct DashboardView: View {
                 .frame(maxWidth: .infinity)
 
             if let day = selectedCalendarDay {
-                dayExpenseList(for: day, isCompact: true)
-                    .contentMargins(.top, 0, for: .scrollContent)
+                ZStack(alignment: .bottom) {
+                    dayExpenseList(for: day, isCompact: true)
+                        .contentMargins(.top, 0, for: .scrollContent)
+
+                    LinearGradient(
+                        colors: [Color(.systemGray5).opacity(0), Color(.systemGray5)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 10)
+                    .allowsHitTesting(false)
+                }
             }
         }
         .background(Color(.systemGray5))
@@ -402,6 +413,10 @@ struct DashboardView: View {
 
     private var displayedTotal: String {
         guard let day = selectedCalendarDay else {
+            // Use cached month total when showing current month, avoid inline filter
+            if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
+                return viewModel.formattedCachedMonthTotal()
+            }
             return viewModel.formattedTotal(forMonth: displayedCalendarMonth)
         }
         return viewModel.formattedTotal(for: day)

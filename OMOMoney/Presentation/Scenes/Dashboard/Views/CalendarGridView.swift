@@ -8,6 +8,7 @@ import SwiftUI
 struct CalendarGridView: View {
     let itemLists: [ItemListDomain]
     let itemListTotals: [UUID: Double]
+    let itemListPaidStatus: [UUID: ItemListPaidStatus]
     let currencyCode: String
     let selectedDay: Date?
     let onDayTap: (Date) -> Void
@@ -19,6 +20,22 @@ struct CalendarGridView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
 
     // MARK: - Computed
+
+    /// true si alguna lista del día NO está completamente pagada
+    private var dailyHasUnpaid: [Date: Bool] {
+        var result: [Date: Bool] = [:]
+        for itemList in itemLists {
+            guard calendar.isDate(itemList.date, equalTo: displayedMonth, toGranularity: .month) else { continue }
+            let day = calendar.startOfDay(for: itemList.date)
+            let status = itemListPaidStatus[itemList.id] ?? .none
+            if status != .all {
+                result[day] = true
+            } else if result[day] == nil {
+                result[day] = false
+            }
+        }
+        return result
+    }
 
     private var dailyTotals: [Date: Double] {
         var result: [Date: Double] = [:]
@@ -152,8 +169,9 @@ struct CalendarGridView: View {
         let hasItemLists = dailyTotals[dayKey] != nil
         let hasSpend     = hasItemLists && dayTotal > 0
 
+        let hasUnpaid = dailyHasUnpaid[dayKey] ?? false
         let dateColor: Color = isToday ? .accentColor : .primary
-        let amountColor: Color = hasSpend ? .accentColor : .secondary
+        let amountColor: Color = hasSpend ? (hasUnpaid ? .orange : .accentColor) : .secondary
 
         return Button { onDayTap(date) } label: {
             VStack(spacing: 4) {
@@ -213,14 +231,8 @@ struct CalendarGridView: View {
 
     private func formattedAmount(_ amount: Double) -> String {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "es_ES")
-        let sym = NumberFormatter()
-        sym.numberStyle = .currency
-        sym.currencyCode = currencyCode
-        sym.locale = Locale(identifier: "en_US")
-        formatter.currencySymbol = sym.currencySymbol
         formatter.maximumFractionDigits = 0
         return formatter.string(from: NSNumber(value: amount)) ?? "\(Int(amount))"
     }

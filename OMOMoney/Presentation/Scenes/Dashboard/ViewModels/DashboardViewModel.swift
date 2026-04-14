@@ -28,6 +28,7 @@ class DashboardViewModel: ObservableObject {
     }
     @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
+    @Published var currentMonthTotal: Double = 0.0              // Cached month total (avoids inline filter during animation)
     @Published var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
     @Published var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
     @Published var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
@@ -602,6 +603,7 @@ class DashboardViewModel: ObservableObject {
             itemListUnpaidTotals = unpaidTotals
             itemListCounts = counts
             itemListPaidStatus = paidStatuses
+            currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
         }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
@@ -653,6 +655,10 @@ class DashboardViewModel: ObservableObject {
             .filter { cal.isDate($0.date, inSameDayAs: date) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
         return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+    }
+
+    func formattedCachedMonthTotal() -> String {
+        makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
     }
 
     func formattedTotal(forMonth date: Date) -> String {

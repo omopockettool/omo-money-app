@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.42.0] - 2026-04-14
+
+### Changed
+- **Calendar unpaid indicator** — days with at least one unpaid item list now show the spending amount in orange instead of accent color; fully paid days keep the accent color; improves at-a-glance payment status on the calendar
+- **Day panel date header removed in compact mode** — "HOY", "AYER", "12 ABR" label removed from the day expense list panel; context is already provided by the calendar week-strip selection and the total card label ("Coste del 13 abr"), recovering vertical space
+- **Day panel bottom fade** — subtle 10pt gradient at the bottom edge of the day expense list panel fades content into the panel background, softening the hard clip of the rounded corner
+- **Calendar daily totals precomputed once per render** — `dailyTotals` dictionary is now computed a single time in `body` and passed as a parameter to `dayCell`, instead of being recomputed on every cell access; eliminates 30+ redundant iterations per render frame with large datasets
+
+### Performance
+- **`currentMonthTotal` cached in ViewModel** — month total is now a `@Published var` updated inside `calculateTotalSpent()` using the already-cached `currentMonthItemLists`; `displayedTotal` reads the cached value directly instead of filtering and reducing `itemLists` inline on every render frame, eliminating per-frame O(n) work during panel open/close animations
+
+---
+
 ## [0.41.0] - 2026-04-14
 
 ### Changed

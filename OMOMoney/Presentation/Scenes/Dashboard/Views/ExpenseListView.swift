@@ -96,12 +96,15 @@ struct ExpenseListView: View {
         .padding(.top, 50)
     }
     
+    @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
-        Text(formatSectionDate(date))
-            .font(.subheadline)
-            .fontWeight(.medium)
-            .foregroundColor(.secondary)
-            .textCase(.uppercase)
+        if !isCompact {
+            Text(formatSectionDate(date))
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+        }
     }
     
     // MARK: - Helper Methods
