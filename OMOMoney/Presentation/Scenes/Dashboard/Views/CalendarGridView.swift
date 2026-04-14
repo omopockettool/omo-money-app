@@ -149,10 +149,11 @@ struct CalendarGridView: View {
         let dayTotal   = dailyTotals[dayKey] ?? 0
         let isToday    = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
-        let hasSpend   = dailyTotals[dayKey] != nil && dayTotal > 0
+        let hasItemLists = dailyTotals[dayKey] != nil
+        let hasSpend     = hasItemLists && dayTotal > 0
 
         let dateColor: Color = isToday ? .accentColor : .primary
-        let amountColor: Color = .accentColor
+        let amountColor: Color = hasSpend ? .accentColor : .secondary
 
         return Button { onDayTap(date) } label: {
             VStack(spacing: 4) {
@@ -160,7 +161,7 @@ struct CalendarGridView: View {
                     .font(.system(size: 20, weight: isSelected ? .bold : .regular, design: .rounded))
                     .foregroundColor(isSelected ? .accentColor : dateColor)
 
-                if hasSpend {
+                if hasItemLists {
                     Text(formattedAmount(dayTotal))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(amountColor)
