@@ -13,64 +13,48 @@ struct ExpenseRowView: View {
     var isCompact: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
                 Image(systemName: paidStatusIcon)
-                    .font(isCompact ? .body : .title2)
+                    .font(.title2)
                     .foregroundStyle(paidStatusColor)
             }
             .buttonStyle(PressHapticButtonStyle())
 
-            if isCompact {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(itemList.itemListDescription)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-            } else {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(itemList.itemListDescription)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
 
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(categoryColor ?? Color(.systemGray3))
-                            .frame(width: 7, height: 7)
-                        Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(categoryColor ?? Color(.systemGray3))
+                        .frame(width: 7, height: 7)
+                    Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
 
             Spacer()
 
-            if isCompact {
+            VStack(alignment: .trailing, spacing: 2) {
                 Text(formattedAmount)
                     .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .fontWeight(.bold)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-            } else {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(formattedAmount)
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
+                if let unpaid = formattedUnpaidAmount {
+                    Text("\(unpaid) por pagar")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    if let unpaid = formattedUnpaidAmount {
-                        Text("\(unpaid) por pagar")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
                 }
-                .layoutPriority(1)
             }
+            .layoutPriority(1)
         }
         .padding(.horizontal, AppConstants.UserInterface.padding)
         .padding(.vertical, isCompact ? 12 : AppConstants.UserInterface.padding)
