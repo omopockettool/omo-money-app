@@ -18,6 +18,7 @@ struct ExpenseListView: View {
     let onTogglePaid: (ItemListDomain) -> Void
     let onRefresh: () async -> Void
     let onDelete: (ItemListDomain) async -> Void
+    var isCompact: Bool = false
     
     var body: some View {
         List {
@@ -40,7 +41,8 @@ struct ExpenseListView: View {
                                     categoryColor: itemList.categoryId.flatMap { categories[$0]?.color }.flatMap { Color(hex: $0) },
                                     paidStatus: itemListPaidStatus[itemList.id] ?? .none,
                                     onTap: { onItemTap(itemList) },
-                                    onTogglePaid: { onTogglePaid(itemList) }
+                                    onTogglePaid: { onTogglePaid(itemList) },
+                                    isCompact: isCompact
                                 )
                                 .listRowInsets(EdgeInsets(
                                     top: AppConstants.UserInterface.smallPadding / 2,

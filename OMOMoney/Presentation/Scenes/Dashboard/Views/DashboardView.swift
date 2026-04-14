@@ -248,6 +248,7 @@ struct DashboardView: View {
 
                 if selectedCalendarDay != nil {
                     dayListPanel
+                        .padding(.horizontal, AppConstants.UserInterface.padding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
@@ -266,6 +267,7 @@ struct DashboardView: View {
                     onRefresh: { await viewModel.refreshData() },
                     onDelete: { await viewModel.deleteItemListDomain($0) }
                 )
+                .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)
 
             }
@@ -333,16 +335,17 @@ struct DashboardView: View {
                 .fill(Color(.systemGray4))
                 .frame(width: 36, height: 5)
                 .padding(.top, 6)
-                .padding(.bottom, 4)
+                .padding(.bottom, 2)
                 .frame(maxWidth: .infinity)
 
             if let day = selectedCalendarDay {
-                dayExpenseList(for: day)
+                dayExpenseList(for: day, isCompact: true)
+                    .contentMargins(.top, 0, for: .scrollContent)
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color(.systemGray5))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: -2)
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: -4)
         .offset(y: listDragOffset)
         .gesture(
             DragGesture()
@@ -365,7 +368,7 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil) -> some View {
+    private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil, isCompact: Bool = false) -> some View {
         let cal = Calendar.current
         let filtered = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
@@ -382,7 +385,8 @@ struct DashboardView: View {
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
-            onDelete: { await viewModel.deleteItemListDomain($0) }
+            onDelete: { await viewModel.deleteItemListDomain($0) },
+            isCompact: isCompact
         )
         .frame(maxHeight: .infinity)
     }
