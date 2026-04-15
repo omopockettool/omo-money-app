@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.44.0] - 2026-04-15
+
+### Changed
+- **Portrait-only orientation** — app is now locked to portrait mode via `UIApplicationDelegate.supportedInterfaceOrientationsFor`; landscape rotation is disabled app-wide
+
+---
+
 ## [0.43.0] - 2026-04-15
 
 ### Changed
