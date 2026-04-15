@@ -14,6 +14,7 @@ enum ItemListPaidStatus {
     case all        // all items paid
 }
 
+
 @MainActor
 class DashboardViewModel: ObservableObject {
 
@@ -27,6 +28,7 @@ class DashboardViewModel: ObservableObject {
     }
     @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
     @Published var totalSpent: Double = 0.0
+    @Published var currentMonthTotal: Double = 0.0              // Cached month total (avoids inline filter during animation)
     @Published var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
     @Published var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
     @Published var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
@@ -36,11 +38,12 @@ class DashboardViewModel: ObservableObject {
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
     @Published var errorMessage: String?
+    @Published var toast: ToastMessage?
     @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
     @Published var showingSettings = false
-    
+
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
     private let fetchItemsUseCase: FetchItemsUseCase
@@ -202,7 +205,7 @@ class DashboardViewModel: ObservableObject {
             
             // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
             let sortedItemLists = fetchedItemListDomains.sorted {
-                $0.date > $1.date
+                $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
             }
 
             // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
@@ -507,7 +510,7 @@ class DashboardViewModel: ObservableObject {
 
         // Calculate insert position (sorted by date) - works with Domain models!
         let sortedItemLists = (itemLists + [itemListDomain]).sorted {
-            $0.date > $1.date
+            $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
         }
 
         print("📊 [ADD-DOMAIN] New count: \(sortedItemLists.count)")
@@ -542,6 +545,10 @@ class DashboardViewModel: ObservableObject {
     
     /// Toggle paid status for all items in an ItemList (Option A: if all paid → unpay all; else → pay all)
     func togglePaid(for itemList: ItemListDomain) {
+        guard (itemListCounts[itemList.id] ?? 0) > 0 else {
+            toast = ToastMessage("Lista vacía", type: .info)
+            return
+        }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
         // Optimistic UI update for the icon
@@ -567,6 +574,7 @@ class DashboardViewModel: ObservableObject {
         await calculateTotalSpent()
     }
 
+
     /// Update total spent for a specific ItemList (incremental calculation)
 
     /// Calculate total spent across all ItemLists (async, uses Domain models)
@@ -577,7 +585,7 @@ class DashboardViewModel: ObservableObject {
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
 
-            for itemListDomain in currentMonthItemLists {
+            for itemListDomain in itemLists {
                 group.addTask {
                     return await self.getItemListData(itemListDomain)
                 }
@@ -600,6 +608,7 @@ class DashboardViewModel: ObservableObject {
             itemListUnpaidTotals = unpaidTotals
             itemListCounts = counts
             itemListPaidStatus = paidStatuses
+            currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
         }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
@@ -630,6 +639,39 @@ class DashboardViewModel: ObservableObject {
         sym.locale = Locale(identifier: "en_US")
         formatter.currencySymbol = sym.currencySymbol
         return formatter
+    }
+
+    func formattedPaid(for itemList: ItemListDomain) -> String {
+        guard let total = itemListTotals[itemList.id] else { return "€0.00" }
+        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
+    }
+
+    func formattedUnpaid(for itemList: ItemListDomain) -> String? {
+        guard let status = itemListPaidStatus[itemList.id],
+              status != .all,
+              let unpaid = itemListUnpaidTotals[itemList.id],
+              unpaid > 0 else { return nil }
+        return makeCurrencyFormatter().string(from: NSNumber(value: unpaid))
+    }
+
+    func formattedTotal(for date: Date) -> String {
+        let cal = Calendar.current
+        let dayTotal = itemLists
+            .filter { cal.isDate($0.date, inSameDayAs: date) }
+            .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+    }
+
+    func formattedCachedMonthTotal() -> String {
+        makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
+    }
+
+    func formattedTotal(forMonth date: Date) -> String {
+        let cal = Calendar.current
+        let monthTotal = itemLists
+            .filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
+            .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        return makeCurrencyFormatter().string(from: NSNumber(value: monthTotal)) ?? "€0.00"
     }
 
     /// Get formatted total spent string

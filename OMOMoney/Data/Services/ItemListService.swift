@@ -224,7 +224,10 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         } else {
             request.predicate = NSPredicate(format: "group == %@", group)
         }
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false),
+            NSSortDescriptor(keyPath: \ItemList.createdAt, ascending: false)
+        ]
 
         let domainItemLists: [ItemListDomain] = try await context.perform {
             let results = try self.context.fetch(request)
@@ -259,7 +262,10 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
 
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "group.userGroups.user == %@", user)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false),
+            NSSortDescriptor(keyPath: \ItemList.createdAt, ascending: false)
+        ]
 
         let domainItemLists: [ItemListDomain] = try await context.perform {
             let results = try self.context.fetch(request)
@@ -280,7 +286,10 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
 
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "category == %@", category)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false),
+            NSSortDescriptor(keyPath: \ItemList.createdAt, ascending: false)
+        ]
 
         let domainItemLists: [ItemListDomain] = try await context.perform {
             let results = try self.context.fetch(request)
@@ -295,7 +304,10 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
     func getItemLists(from startDate: Date, to endDate: Date) async throws -> [ItemListDomain] {
         let request: NSFetchRequest<ItemList> = ItemList.fetchRequest()
         request.predicate = NSPredicate(format: "date >= %@ AND date <= %@", startDate as NSDate, endDate as NSDate)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ItemList.date, ascending: false)]
+        request.sortDescriptors = [
+            NSSortDescriptor(keyPath: \ItemList.date, ascending: false),
+            NSSortDescriptor(keyPath: \ItemList.createdAt, ascending: false)
+        ]
 
         return try await context.perform {
             let results = try self.context.fetch(request)
@@ -317,26 +329,4 @@ class ItemListService: CoreDataService, ItemListServiceProtocol {
         return try await count(request)
     }
 
-        /// Bulk insert multiple item lists
-    /// - Parameter itemLists: Array of ItemListDomain objects to insert
-    /// - Returns: Array of inserted ItemList objects
-    func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemList] {
-        var inserted: [ItemList] = []
-        for domain in itemLists {
-            // Best practice: Ensure required IDs are present before proceeding
-            guard let categoryId = domain.categoryId, let groupId = domain.groupId else {
-                // Optionally log or collect skipped items for reporting
-                continue
-            }
-            let itemList = try await createItemList(
-                description: domain.itemListDescription,
-                date: domain.date,
-                categoryId: categoryId,
-                groupId: groupId,
-                paymentMethodId: domain.paymentMethodId
-            )
-            inserted.append(itemList)
-        }
-        return inserted
-    }
 }

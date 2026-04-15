@@ -89,10 +89,6 @@ final class AppDIContainer {
     func makeDeleteItemListUseCase() -> DeleteItemListUseCase {
         DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
     }
-    func makeBulkInsertItemListsUseCase() -> BulkInsertItemListsUseCase {
-        DefaultBulkInsertItemListsUseCase(itemListRepository: itemListRepository)
-    }
-
     // MARK: - Item Use Cases
     func makeCreateItemUseCase() -> CreateItemUseCase {
         DefaultCreateItemUseCase(itemRepository: itemRepository)

@@ -130,7 +130,7 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
     
     /// Update an existing category
     /// ✅ REFACTORED: Accepts UUID parameter instead of Core Data entity
-    func updateCategory(categoryId: UUID, name: String? = nil, color: String? = nil, limit: Decimal? = nil, limitFrequency: String? = nil) async throws {
+    func updateCategory(categoryId: UUID, name: String? = nil, icon: String? = nil, color: String? = nil, limit: Decimal? = nil, limitFrequency: String? = nil) async throws {
         let groupId = try await context.perform {
             let categoryRequest: NSFetchRequest<Category> = Category.fetchRequest()
             categoryRequest.predicate = NSPredicate(format: "id == %@", categoryId as CVarArg)
@@ -142,6 +142,9 @@ class CategoryService: CoreDataService, CategoryServiceProtocol {
 
             if let name = name {
                 category.name = name
+            }
+            if let icon = icon {
+                category.icon = icon
             }
             if let color = color {
                 category.color = color

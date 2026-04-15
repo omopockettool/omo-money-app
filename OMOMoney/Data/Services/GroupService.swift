@@ -69,8 +69,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
             // Create default payment methods: (name, type, icon, color, isDefault)
             let defaultPaymentMethods: [(String, String, String, String, Bool)] = [
                 ("Efectivo",        "cash",          "banknote.fill",           "#4CAF50", true),
-                ("T. Débito",       "card_debit",    "creditcard.fill",         "#2196F3", false),
-                ("T. Crédito",      "card_credit",   "creditcard.fill",         "#9C27B0", false),
+                ("Débito",          "card_debit",    "creditcard.fill",         "#2196F3", false),
+                ("Crédito",         "card_credit",   "creditcard.fill",         "#9C27B0", false),
                 ("Transferencia",   "bank_transfer", "arrow.left.arrow.right",  "#FF9800", false)
             ]
 
@@ -90,8 +90,8 @@ class GroupService: CoreDataService, GroupServiceProtocol {
 
             // Create default categories: (name, color, icon, isDefault)
             let defaultCategories: [(String, String, String, Bool)] = [
-                ("Alimentos",       "#FF6B6B", "cart.fill",             false),
-                ("Transporte",      "#4ECDC4", "car.fill",              false),
+                ("Alimentación",    "#FF6B6B", "cart.fill",             false),
+                ("Movilidad",       "#4ECDC4", "car.fill",              false),
                 ("Hogar",           "#45B7D1", "house.fill",            false),
                 ("Ocio",            "#96CEB4", "theatermasks.fill",     false),
                 ("Salud",           "#FFEAA7", "heart.fill",            false),
@@ -216,85 +216,6 @@ class GroupService: CoreDataService, GroupServiceProtocol {
         await CacheManager.shared.cacheValidation(exists, for: cacheKey)
         
         return exists
-    }
-    
-    // MARK: - Batch Operations
-    
-    /// Bulk delete groups by IDs for better performance
-    func bulkDeleteGroups(groupIds: [UUID]) async throws {
-        let predicate = NSPredicate(format: "id IN %@", groupIds)
-        _ = try await batchDelete(Group.self, predicate: predicate)
-        
-        // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
-        await CacheManager.shared.clearValidationCache(for: CacheKeys.groupExists)
-    }
-    
-    /// Bulk update group currency
-    func bulkUpdateGroupCurrency(groupIds: [UUID], currency: String) async throws {
-        let predicate = NSPredicate(format: "id IN %@", groupIds)
-        let properties: [String: Any] = ["currency": currency, "lastModifiedAt": Date()]
-        
-        _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
-        
-        // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
-    }
-    
-    /// Bulk update group status (assuming groups have an isActive property)
-    func bulkUpdateGroupStatus(groupIds: [UUID], isActive: Bool) async throws {
-        let predicate = NSPredicate(format: "id IN %@", groupIds)
-        let properties: [String: Any] = ["isActive": isActive, "lastModifiedAt": Date()]
-        
-        _ = try await batchUpdate(Group.self, predicate: predicate, propertiesToUpdate: properties)
-        
-        // Clear relevant caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
-    }
-    
-    /// Create multiple groups efficiently
-    /// ✅ REFACTORED: Returns Domain models
-    func createGroups(_ groupDataList: [(name: String, currency: String)]) async throws -> [GroupDomain] {
-        // For small batches, use regular creation for better control
-        if groupDataList.count <= 10 {
-            var createdGroups: [GroupDomain] = []
-            for groupData in groupDataList {
-                let groupDomain = try await createGroup(name: groupData.name, currency: groupData.currency)
-                createdGroups.append(groupDomain)
-            }
-            return createdGroups
-        }
-
-        // For larger batches, use bulk insert
-        let groupIds = try await context.perform {
-            var groupIds: [UUID] = []
-            for groupData in groupDataList {
-                let group = Group(context: self.context)
-                let groupId = UUID()
-                group.id = groupId
-                group.name = groupData.name
-                group.currency = groupData.currency
-                group.createdAt = Date()
-                groupIds.append(groupId)
-            }
-            try self.context.save()
-            return groupIds
-        }
-
-        // Clear caches
-        await CacheManager.shared.clearDataCache(for: CacheKeys.userGroups)
-        await CacheManager.shared.clearDataCache(for: CacheKeys.currencyGroupCount)
-
-        // Fetch created groups as Domain models
-        return try await context.perform {
-            let request: NSFetchRequest<Group> = Group.fetchRequest()
-            request.predicate = NSPredicate(format: "id IN %@", groupIds)
-            request.returnsObjectsAsFaults = false
-
-            let groups = try self.context.fetch(request)
-            return groups.map { $0.toDomain() }
-        }
     }
     
     /// Get groups count for specific currency

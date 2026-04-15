@@ -18,6 +18,8 @@ struct ExpenseListView: View {
     let onTogglePaid: (ItemListDomain) -> Void
     let onRefresh: () async -> Void
     let onDelete: (ItemListDomain) async -> Void
+    var isCompact: Bool = false
+    var getDayTotal: ((Date) -> String)? = nil
     
     var body: some View {
         List {
@@ -40,7 +42,8 @@ struct ExpenseListView: View {
                                     categoryColor: itemList.categoryId.flatMap { categories[$0]?.color }.flatMap { Color(hex: $0) },
                                     paidStatus: itemListPaidStatus[itemList.id] ?? .none,
                                     onTap: { onItemTap(itemList) },
-                                    onTogglePaid: { onTogglePaid(itemList) }
+                                    onTogglePaid: { onTogglePaid(itemList) },
+                                    isCompact: isCompact
                                 )
                                 .listRowInsets(EdgeInsets(
                                     top: AppConstants.UserInterface.smallPadding / 2,
@@ -70,24 +73,22 @@ struct ExpenseListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .animation(.easeInOut(duration: 0.2), value: itemLists.count)
-        .refreshable {
-            await onRefresh()
-        }
+        .if(!isCompact) { $0.refreshable { await onRefresh() } }
     }
     
     // MARK: - Private Views
     
     private var emptyStateView: some View {
         VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "tray")
+            Image(systemName: "sparkles.2")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
 
-            Text("No hay gastos")
+            Text("Nada por aquí...")
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            Text("Pulsa el botón + para agregar tu primer gasto")
+            Text("Pulsa el + para agregar una lista")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -96,12 +97,25 @@ struct ExpenseListView: View {
         .padding(.top, 50)
     }
     
+    @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
-        Text(formatSectionDate(date))
-            .font(.subheadline)
-            .fontWeight(.medium)
-            .foregroundColor(.secondary)
-            .textCase(.uppercase)
+        if !isCompact {
+            HStack {
+                Text(formatSectionDate(date))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                if let total = getDayTotal?(date) {
+                    Spacer()
+                    Text(total)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .textCase(.none)
+                }
+            }
+        }
     }
     
     // MARK: - Helper Methods

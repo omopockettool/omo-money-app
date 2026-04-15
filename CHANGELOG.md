@@ -7,6 +7,198 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.47.1] - 2026-04-15
+
+### Changed
+- **Empty state copy and icon in ExpenseListView** — icon changed from `tray` to `sparkles.2`; title updated to "Nada por aquí..."; subtitle shortened to "Pulsa el + para agregar una lista"
+
+---
+
+## [0.47.0] - 2026-04-15
+
+### Changed
+- **New items and item lists appear at the top** — items inside a list now sort by `createdAt` descending; item lists within the same day also sort by `createdAt` descending so the latest addition always appears first; affects `ItemService`, `ItemListService` (all four fetch queries), and the three in-memory sorts in `DashboardViewModel`
+
+---
+
+## [0.46.2] - 2026-04-15
+
+### Fixed
+- **Toast rapid-tap instability** — tapping repeatedly caused shorter display times and erratic behaviour; `onDisappear` was calling `onDismiss()` which wiped the incoming toast when SwiftUI replaced the old view via `.id()`; removed `onDismiss()` from `onDisappear` to keep each tap independent
+- **Toast haptics replay on navigation return** — navigating into an item list detail and back replayed the 3-tap haptic; `DashboardView` now clears `toast` as soon as `navigationPath` becomes non-empty, so no toast state survives the push
+
+---
+
+## [0.46.1] - 2026-04-15
+
+### Fixed
+- **Payment method type buttons misaligned** — "Transferencia" label was wrapping to two lines, making its cell taller than the others in the grid; added `lineLimit(1)` + `minimumScaleFactor(0.8)` so all four buttons share a consistent height
+
+---
+
+## [0.46.0] - 2026-04-15
+
+### Added
+- **In-app toast notifications** — new reusable `ToastView` component (`Presentation/Common/Components/Toast/`) with warning, error, and info types; appears from the top with a spring animation, auto-dismisses after 2.5 s, and triggers 3 quick haptic taps on appearance
+- **Form validation feedback** — tapping "Guardar" in AddItemListView while fields are missing now shows a contextual toast ("Selecciona una categoría", "Selecciona un método de pago", or both) instead of silently doing nothing; the Save button is always tappable
+- **Empty list paid-toggle feedback** — tapping the paid toggle on an item list with no items now shows a "Lista vacía" toast and skips the optimistic UI update, eliminating the previous flicker-and-revert behaviour
+
+---
+
+## [0.45.2] - 2026-04-15
+
+### Removed
+- **Unused batch/bulk operation dead code** — removed `batchDelete`, `batchUpdate`, `bulkInsert` from `CoreDataService`; all bulk methods from `GroupService`, `UserService`, `ItemListService` and their protocols; `BulkInsertItemListsUseCase`; `makeBulkInsertItemListsUseCase` from `AppDIContainer`; `CoreDataError` enum — none of these were reachable from any UI or UseCase and `batchDelete` specifically bypassed CoreData cascade rules, posing a data-loss risk if ever wired up
+
+---
+
+## [0.45.1] - 2026-04-15
+
+### Fixed
+- **CoreData cascade delete wipe** — `Category.group` and `PaymentMethod.group` relationships had `deletionRule="Cascade"` instead of `Nullify`; deleting a single category or payment method was silently cascade-deleting the entire Group and all its ItemLists, Items, and Categories; corrected both to `Nullify` so only the category/payment method itself is removed
+
+---
+
+## [0.45.0] - 2026-04-15
+
+### Changed
+- **List view day totals** — section headers in list mode now show the total spending for that day right-aligned alongside the date label; reuses the existing `formattedTotal(for:)` ViewModel method; calendar and compact panel headers are unaffected
+
+---
+
+## [0.44.0] - 2026-04-15
+
+### Changed
+- **Portrait-only orientation** — app is now locked to portrait mode via `UIApplicationDelegate.supportedInterfaceOrientationsFor`; landscape rotation is disabled app-wide
+
+---
+
+## [0.43.0] - 2026-04-15
+
+### Changed
+- **Pending row style in expense list** — when all items in an item list are unpaid (`paidStatus == .none`), the description, amount, and category dot are rendered in secondary/muted colors; paid and partial rows keep full-contrast primary style, making payment status immediately scannable
+- **Pending item style in item detail** — individual items with `isPaid = false` now render their description and amount in secondary color; paid items stay primary; the check toggle remains full opacity in both states
+
+---
+
+## [0.42.1] - 2026-04-15
+
+### Fixed
+- **Bottom controls background bleed** — `TotalSpentCardView` + group chips background now extends into the bottom safe area via `ignoresSafeArea(edges: .bottom)`; previously the day panel closing animation revealed a transparent gap at the screen bottom edge behind the controls
+
+---
+
+## [0.42.0] - 2026-04-14
+
+### Changed
+- **Calendar unpaid indicator** — days with at least one unpaid item list now show the spending amount in orange instead of accent color; fully paid days keep the accent color; improves at-a-glance payment status on the calendar
+- **Day panel date header removed in compact mode** — "HOY", "AYER", "12 ABR" label removed from the day expense list panel; context is already provided by the calendar week-strip selection and the total card label ("Coste del 13 abr"), recovering vertical space
+- **Day panel bottom fade** — subtle 10pt gradient at the bottom edge of the day expense list panel fades content into the panel background, softening the hard clip of the rounded corner
+- **Calendar daily totals precomputed once per render** — `dailyTotals` dictionary is now computed a single time in `body` and passed as a parameter to `dayCell`, instead of being recomputed on every cell access; eliminates 30+ redundant iterations per render frame with large datasets
+
+### Performance
+- **`currentMonthTotal` cached in ViewModel** — month total is now a `@Published var` updated inside `calculateTotalSpent()` using the already-cached `currentMonthItemLists`; `displayedTotal` reads the cached value directly instead of filtering and reducing `itemLists` inline on every render frame, eliminating per-frame O(n) work during panel open/close animations
+
+---
+
+## [0.41.0] - 2026-04-14
+
+### Changed
+- **Calendar day cells redesigned (Neubrutalism / accessibility)** — cells replaced from small circles (32×32 pt, 14 pt date, 9 pt amount) to full-width borderless cards; date number is now 20 pt bold rounded, spending amount 13 pt semibold — both readable at iOS display zoom; row height raised to 64 pt (collapsed strip) / 72 pt max (full month); month header bumped to 20 pt bold rounded, nav buttons to 44×44 pt (HIG minimum); weekday labels to 11 pt semibold
+- **Calendar cell backgrounds** — all days transparent except selected day which shows a solid accent fill; no borders on any cell
+- **Calendar spending amount color** — all days with spend always show the amount in full accent color (no opacity fade); previously low-spend days faded to near-invisible gray
+- **Calendar last-row overflow fixed** — row height calculation now subtracts inter-row spacing before dividing, preventing the last week from being clipped on zoomed displays
+
+---
+
+## [0.40.0] - 2026-04-09
+
+### Fixed
+- **Calendar month navigation** — navigating to a past or future month now correctly loads its item lists and totals. Root cause was two-layer: (1) `CalendarGridView` had no upward callback for month changes, so the parent kept passing only current-month data; (2) `DashboardViewModel.calculateTotalSpent()` only iterated `currentMonthItemLists`, leaving `itemListTotals` empty for any other month. Fix: `CalendarGridView` now exposes `onMonthChange: (Date) -> Void`; `DashboardView` tracks `displayedCalendarMonth` and passes all `viewModel.itemLists` to the grid; `DashboardViewModel` iterates `itemLists` in `calculateTotalSpent`, `formattedTotal(for:)`, and the new `formattedTotal(forMonth:)` method; `TotalSpentCardView` label adapts to "Coste en Marzo 2026" for non-current months
+
+### Changed
+- **Calendar cells with zero-spend days** — days that have item lists but no items (total = €0) now display "0,00 €" in a muted secondary color instead of showing nothing, making it clear the day has records
+
+---
+
+## [0.39.0] - 2026-04-09
+
+### Changed
+- **`LimitedTextField` clear button** — replaced character counter (`5/20`) with a native `xmark.circle.fill` button; tap clears the field instantly with a fade+scale animation; consistent with iOS standard text field behavior (search bars, URL bar, etc.)
+- **`LimitedTextField` max length** raised from 20 to 30 characters; change applies to all 5 usages: item list description, item description, user profile name, category name, payment method name
+
+---
+
+## [0.38.0] - 2026-04-09
+
+### Changed
+- **`TotalSpentCardView` redesigned** — label upgraded from `.caption` to `.subheadline .medium`; amount font increased from 24 pt to 34 pt (adaptive); "+" button enlarged from 34×34 to 48×48 with a 20 pt icon (meets iOS 44 pt minimum tap target)
+- **Group selector chip icon** changed from `folder.fill` to `person.3.fill` — better reflects the concept of a shared group
+- **Settings button icon** changed from `gear` to `gearshape.fill` — filled variant with more visual weight
+
+---
+
+## [0.37.0] - 2026-04-09
+
+### Added
+- **Dynamic `TotalSpentCardView` label** — shows "Coste de vida este mes" when no day is selected, "Coste de vida hoy" when today is selected, or "Coste del 6 abr" for any other date; `ItemListDetailView` shows "Coste de [nombre del registro]"
+- **Animated subtotal card in `AddItemView`** — replaces the small caption info text; appears when quantity > 1 and amount is set; shows the unit × qty formula and the total in a large bold animated number with `numericText` spring transition
+- **Pre-fill date on new item list** — tapping "+" while a calendar day is selected opens `AddItemListView` with that date pre-filled; `AddItemListViewModel` accepts `initialDate` parameter
+- **Drag-to-dismiss day expense panel** — day expense list is shown as an inline panel with a pill drag handle; dragging down > 80 pt dismisses it and expands the calendar back to full month; bottom controls (TotalSpentCard, group chip, filters) always remain visible
+
+### Changed
+- **All calendar days now tappable** in full-month mode — removed the `.disabled` check that blocked days without spending; enables future-date planning (e.g. scheduling rent payment)
+- **New items default to `isPaid: false`** — items no longer auto-marked as paid on creation; payment is an explicit user action
+- **`ExpenseRowView` unpaid label** changed from "restantes" to "por pagar"
+
+---
+
+## [0.36.0] - 2026-04-08
+
+### Added
+- **Calendar grid view** (`CalendarGridView`) on the dashboard — full month grid collapses to the selected week row when a day is tapped; daily totals shown below each date with opacity scaled to spend intensity
+- **View mode picker** — dropdown in the top bar lets the user switch between "Calendario" and "Lista" views; resets to calendar on group change
+- **Filter icon button** in bottom bar using SF Symbol `line.3.horizontal.decrease` alongside the existing search icon
+
+### Changed
+- **`DashboardView` bottom bar** restructured: group selector chip on the left, filter + search capsule on the right
+- **`TotalSpentCardView`** total updates with a `numericText` content transition, directional flash (green/red), and scale bounce animation on change
+
+### Refactored
+- **Formatting logic moved out of Views into ViewModels** (all Views now contain only UI construction):
+  - `DashboardView`: `formattedPaid(for:)`, `formattedUnpaid(for:)`, `formattedTotal(for:)` moved to `DashboardViewModel`; duplicate `currencyString(_:)` removed (already existed as `makeCurrencyFormatter()` in ViewModel)
+  - `AddItemListView`: `formattedDate` moved to `AddItemListViewModel`
+  - `AddItemView`: `showsTotalPreview` moved to `AddItemViewModel`
+
+---
+
+## [0.35.0] - 2026-04-06
+
+### Added
+- **Icon editing for categories** — icon picker now visible in edit mode (previously only on create); `UpdateCategoryUseCase`, `CategoryService`, and `DefaultCategoryRepository` updated to persist `icon` field through the full chain
+- **Icon editing for payment methods** — new icon picker grid added to `PaymentMethodFormView`; preview updates live as icon is selected
+- **`CategoryFormView.swift`** extracted from `CategoryManagementView.swift` into its own file
+- **`PaymentMethodFormView.swift`** extracted from `PaymentMethodManagementView.swift` into its own file
+
+### Changed
+- **Payment method types** aligned to actual seeded data: `["cash", "card_debit", "card_credit", "bank_transfer"]` replacing the old `["card", "cash", "transfer", "digital"]`; `typeName()`, `typeIcon()`, `typeColor()` updated with exact `switch` matching (no more `contains` checks or raw type leaking into UI)
+- **`PaymentMethodManagementView` row** now uses stored `pm.icon` with fallback to `typeIcon(pm.type)` instead of always deriving from type
+- **`AddItemListView` payment method chips** now derive color from `paymentMethodType` and icon from stored `method.icon` (with type fallback) — fixes grey cards caused by stale default color stored in CoreData from old build
+- **`PaymentMethodListViewModel.updatePaymentMethod`** refactored: takes existing `PaymentMethodDomain` directly instead of searching empty local array — fixes silent no-op when saving from the form sheet
+- **`PaymentMethodListViewModel.updatePaymentMethod`** now preserves `color`, `isDefault`, and all fields when building the updated domain model
+- **`PaymentMethodListViewModel.createPaymentMethod`** accepts `icon` parameter
+- **`UpdatePaymentMethodUseCase` / `PaymentMethodService` / `DefaultPaymentMethodRepository`** — `icon` field now flows through the full update chain to CoreData
+- **Scenes restructured** into `Views/` + `ViewModels/` subdirectories for all scenes: Category, PaymentMethod, Dashboard, ItemList, User, Group
+
+### Fixed
+- Icon never saved to CoreData on category update — `CategoryService.updateCategory` was missing `icon` parameter
+- Icon never saved to CoreData on payment method update — `PaymentMethodService.updatePaymentMethod` was missing `icon` parameter
+- `DefaultCategoryRepository` and `DefaultPaymentMethodRepository` not forwarding `icon` to their respective services
+- `PaymentMethodFormView` save silently doing nothing — ViewModel searched an empty `paymentMethods` array for the method to update
+- `typeName("card")` returning raw `"card"` string instead of `"Tarjeta"` due to fallback returning raw value when type was non-empty
+
+---
+
 ## [0.34.0] - 2026-04-05
 
 ### Added

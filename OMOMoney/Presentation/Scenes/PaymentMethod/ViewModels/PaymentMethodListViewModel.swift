@@ -91,7 +91,7 @@ class PaymentMethodListViewModel: ObservableObject {
 
     /// Create a new payment method
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func createPaymentMethod(name: String, type: String, isActive: Bool = true, groupId: UUID) async -> Bool {
+    func createPaymentMethod(name: String, type: String, icon: String = "creditcard.fill", isActive: Bool = true, groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -99,7 +99,7 @@ class PaymentMethodListViewModel: ObservableObject {
             let newPaymentMethod = try await createPaymentMethodUseCase.execute(
                 name: name,
                 type: type,
-                icon: "creditcard.fill",
+                icon: icon,
                 color: "#6C63FF",
                 isActive: isActive,
                 isDefault: false,
@@ -116,35 +116,30 @@ class PaymentMethodListViewModel: ObservableObject {
         }
     }
 
-    /// Update an existing payment method
+    /// Update an existing payment method (used from form — takes existing domain as base)
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func updatePaymentMethod(paymentMethodId: UUID, name: String? = nil, type: String? = nil, isActive: Bool? = nil) async -> Bool {
+    func updatePaymentMethod(_ existing: PaymentMethodDomain, name: String, type: String, icon: String) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            // Find the current payment method to update
-            guard let currentMethod = paymentMethods.first(where: { $0.id == paymentMethodId }) else {
-                errorMessage = "Payment method not found"
-                isLoading = false
-                return false
-            }
-
-            // Create updated domain model
             let updatedMethod = PaymentMethodDomain(
-                id: currentMethod.id,
-                name: name ?? currentMethod.name,
-                type: type ?? currentMethod.type,
-                isActive: isActive ?? currentMethod.isActive,
-                groupId: currentMethod.groupId,
-                createdAt: currentMethod.createdAt,
+                id: existing.id,
+                name: name,
+                type: type,
+                icon: icon,
+                color: existing.color,
+                isActive: existing.isActive,
+                isDefault: existing.isDefault,
+                groupId: existing.groupId,
+                createdAt: existing.createdAt,
                 lastModifiedAt: Date()
             )
 
             try await updatePaymentMethodUseCase.execute(updatedMethod)
 
-            // Update local array
-            if let index = paymentMethods.firstIndex(where: { $0.id == paymentMethodId }) {
+            // Update local array if present
+            if let index = paymentMethods.firstIndex(where: { $0.id == existing.id }) {
                 paymentMethods[index] = updatedMethod
             }
 

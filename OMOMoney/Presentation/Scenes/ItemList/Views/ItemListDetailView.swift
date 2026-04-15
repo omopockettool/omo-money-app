@@ -171,6 +171,7 @@ struct ItemListDetailView: View {
             // Total card at bottom
             VStack(spacing: AppConstants.UserInterface.padding) {
                 TotalSpentCardView(
+                    label: "Coste de \(currentItemList.itemListDescription)",
                     totalAmount: viewModel.getFormattedTotal(),
                     onAddExpense: {
                         sheetMode = .create
@@ -281,6 +282,7 @@ struct ItemRowView: View {
     let onTogglePaid: () -> Void
 
     private var showsBreakdown: Bool { item.quantity > 1 }
+    private var isPending: Bool { !item.isPaid }
 
     private var formattedUnitPrice: String {
         let formatter = NumberFormatter()
@@ -304,7 +306,7 @@ struct ItemRowView: View {
                     Text(item.itemDescription)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isPending ? .secondary : .primary)
                         .lineLimit(1)
 
                     if showsBreakdown {
@@ -319,7 +321,7 @@ struct ItemRowView: View {
                 Text(formattedAmount)
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isPending ? .secondary : .primary)
                     .lineLimit(1)
                     .layoutPriority(1)
             }
@@ -341,6 +343,8 @@ struct AddItemView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddItemViewModel
     @FocusState private var focusedField: Field?
+    @State private var displayedSubtotal: String = ""
+    @State private var subtotalIsDecreasing: Bool = false
     private enum Field { case description, amount, quantity }
 
     init(
@@ -378,18 +382,16 @@ struct AddItemView: View {
         Int(viewModel.quantity) ?? 1
     }
 
-    private var showsTotalPreview: Bool {
-        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return false }
-        return true
-    }
-
-    private var totalPreviewText: String {
+    private var subtotalAmount: String {
         let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
         guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return "" }
         let total = price * Decimal(quantityValue)
-        let formatted = NSDecimalNumber(decimal: total).doubleValue
-        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds. = \(String(format: "%.2f", formatted)) \(currencySymbol)"
+        return String(format: "%.2f", NSDecimalNumber(decimal: total).doubleValue) + " " + currencySymbol
+    }
+
+    private var subtotalFormula: String {
+        guard quantityValue > 1 else { return "" }
+        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds."
     }
 
     // MARK: - Body
@@ -401,7 +403,7 @@ struct AddItemView: View {
                     heroAmountInput
                     descriptionCard
                     quantityStepper
-                    if showsTotalPreview { totalPreviewRow }
+                    if viewModel.showsTotalPreview { subtotalCard }
                 }
                 .padding(AppConstants.UserInterface.padding)
                 .padding(.bottom, 8)
@@ -501,19 +503,45 @@ struct AddItemView: View {
         }
     }
 
-    // MARK: - Total Preview
+    // MARK: - Subtotal Card
 
-    private var totalPreviewRow: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "info.circle")
-            Text(totalPreviewText)
+    private var subtotalCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Subtotal")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(subtotalFormula)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Text(displayedSubtotal.isEmpty ? subtotalAmount : displayedSubtotal)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+                .contentTransition(.numericText(countsDown: subtotalIsDecreasing))
+                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedSubtotal)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
-        .font(.caption)
-        .foregroundStyle(.tertiary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 4)
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(AnimationHelper.quickEase, value: showsTotalPreview)
+        .padding(AppConstants.UserInterface.padding)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+        .onAppear {
+            displayedSubtotal = subtotalAmount
+        }
+        .onChange(of: subtotalAmount) { _, newValue in
+            let oldDigits = Int(displayedSubtotal.filter(\.isNumber)) ?? 0
+            let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
+            subtotalIsDecreasing = newDigits < oldDigits
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                displayedSubtotal = newValue
+            }
+        }
     }
 }
 

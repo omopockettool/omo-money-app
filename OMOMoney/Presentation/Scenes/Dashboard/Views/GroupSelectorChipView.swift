@@ -26,7 +26,7 @@ struct GroupSelectorChipView: View {
             showingPicker = true
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "folder.fill")
+                Image(systemName: "person.3.fill")
                     .font(.caption2)
 
                 Text(currentGroup.name)  // ✅ Domain model: non-optional name
