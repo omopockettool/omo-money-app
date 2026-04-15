@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.45.1] - 2026-04-15
+
+### Fixed
+- **CoreData cascade delete wipe** — `Category.group` and `PaymentMethod.group` relationships had `deletionRule="Cascade"` instead of `Nullify`; deleting a single category or payment method was silently cascade-deleting the entire Group and all its ItemLists, Items, and Categories; corrected both to `Nullify` so only the category/payment method itself is removed
+
+---
+
 ## [0.45.0] - 2026-04-15
 
 ### Changed

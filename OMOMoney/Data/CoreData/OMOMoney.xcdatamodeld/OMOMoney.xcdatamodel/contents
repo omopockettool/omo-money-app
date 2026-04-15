@@ -11,7 +11,7 @@
         <attribute name="limitFrequency" optional="YES" attributeType="String" defaultValueString="monthly"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="itemLists" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemList" inverseName="category" inverseEntity="ItemList"/>
-        <relationship name="group" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Group" inverseName="categories" inverseEntity="Group"/>
+        <relationship name="group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Group" inverseName="categories" inverseEntity="Group"/>
     </entity>
     <entity name="ItemList" representedClassName="ItemList" syncable="YES" codeGenerationType="class">
         <attribute name="categoryId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
@@ -58,7 +58,7 @@
         <attribute name="lastModifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="type" optional="YES" attributeType="String" defaultValueString="card"/>
-        <relationship name="group" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Group" inverseName="paymentMethods" inverseEntity="Group"/>
+        <relationship name="group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Group" inverseName="paymentMethods" inverseEntity="Group"/>
         <relationship name="itemLists" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemList" inverseName="paymentMethod" inverseEntity="ItemList"/>
     </entity>
     <entity name="User" representedClassName="User" syncable="YES" codeGenerationType="class">
