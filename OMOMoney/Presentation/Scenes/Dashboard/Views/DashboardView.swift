@@ -98,6 +98,9 @@ struct DashboardView: View {
                 }
             }
             .background(Color(.systemBackground))
+            .onChange(of: navigationPath) { _, path in
+                if !path.isEmpty { viewModel.toast = nil }
+            }
             .onChange(of: viewModel.isChangingGroup) { _, changing in
                 if !changing {
                     selectedCalendarDay = nil

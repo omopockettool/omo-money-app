@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.46.2] - 2026-04-15
+
+### Fixed
+- **Toast rapid-tap instability** — tapping repeatedly caused shorter display times and erratic behaviour; `onDisappear` was calling `onDismiss()` which wiped the incoming toast when SwiftUI replaced the old view via `.id()`; removed `onDismiss()` from `onDisappear` to keep each tap independent
+- **Toast haptics replay on navigation return** — navigating into an item list detail and back replayed the 3-tap haptic; `DashboardView` now clears `toast` as soon as `navigationPath` becomes non-empty, so no toast state survives the push
+
+---
+
 ## [0.46.1] - 2026-04-15
 
 ### Fixed
