@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-04-15
+
+### Changed
+- **Project structure reorganized for SwiftData migration** — `SD*.swift` models, `OMOMoneySchema.swift`, and `ModelContainer+Shared.swift` moved from project root into `OMOMoney/Data/SwiftData/` following the existing `Data/CoreData/` convention; all migration `.md` docs moved from project root into `docs/`; stale manual Xcode project entries removed (files now auto-discovered via `PBXFileSystemSynchronizedRootGroup`)
+
+---
+
+## [1.0.1] - 2026-04-15
+
+### Added
+- **SwiftData injected into app entry point** — `ModelContainer.shared` initialized in `OMOMoneyApp`; `.modelContainer()` modifier applied to `ContentView`; Core Data stack kept in parallel until Phase 3
+
+### Fixed
+- **`ModelsSwiftData*.swift` duplicates removed** — 8 conflicting files (`class ItemList`, `class Group`, etc.) deleted from project; `SD*` files are the canonical SwiftData models
+- **`where Self: NSManagedObject` removed from all 7 `*+Mapping.swift` extensions** — invalid constraint on concrete `NSManagedObject` subclass extensions
+
+---
+
+## [1.0.0] - 2026-04-15
+
+### Added
+- **SwiftData models** — `SDUser`, `SDGroup`, `SDUserGroup`, `SDCategory`, `SDPaymentMethod`, `SDItemList`, `SDItem` with relationships, validations, computed properties, and debug mock helpers
+- **`OMOMoneySchema.swift`** — versioned `SchemaV1` registering all 7 models
+- **`ModelContainer+Shared.swift`** — shared production container, in-memory preview and test containers, `safeSave`/`safeRollback` helpers
+
+---
+
 ## [0.47.1] - 2026-04-15
 
 ### Changed

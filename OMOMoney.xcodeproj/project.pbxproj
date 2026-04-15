@@ -7,29 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		95AEA6702F8FC28C005460B7 /* MIGRATION_PLAN_SWIFTDATA.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA66F2F8FC28C005460B7 /* MIGRATION_PLAN_SWIFTDATA.md */; };
-		95AEA6722F8FC2EC005460B7 /* MIGRATION_PLAN_SWIFT_TESTING.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6712F8FC2EC005460B7 /* MIGRATION_PLAN_SWIFT_TESTING.md */; };
-		95AEA6742F8FC341005460B7 /* MODERNIZATION_PLAN_SWIFTUI.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6732F8FC341005460B7 /* MODERNIZATION_PLAN_SWIFTUI.md */; };
-		95AEA6762F8FC39A005460B7 /* ARCHITECTURE_IMPROVEMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6752F8FC39A005460B7 /* ARCHITECTURE_IMPROVEMENTS.md */; };
-		95AEA6782F8FC40C005460B7 /* ADDITIONAL_ENHANCEMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6772F8FC40C005460B7 /* ADDITIONAL_ENHANCEMENTS.md */; };
-		95AEA67A2F8FC45C005460B7 /* MODERNIZATION_MASTER_PLAN.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6792F8FC45C005460B7 /* MODERNIZATION_MASTER_PLAN.md */; };
-		95AEA67C2F8FC492005460B7 /* MODERNIZATION_README.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA67B2F8FC492005460B7 /* MODERNIZATION_README.md */; };
-		95AEA68E2F8FC67E005460B7 /* SWIFTDATA_MIGRATION_CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA68D2F8FC67E005460B7 /* SWIFTDATA_MIGRATION_CHANGELOG.md */; };
-		95AEA6902F8FC6A8005460B7 /* PHASE1_STEP1_COMPLETE.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA68F2F8FC6A8005460B7 /* PHASE1_STEP1_COMPLETE.md */; };
-		95AEA6922F8FC6C7005460B7 /* COMMIT_PHASE1_STEP1.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6912F8FC6C7005460B7 /* COMMIT_PHASE1_STEP1.md */; };
-		95AEA6942F8FC6EB005460B7 /* MIGRATION_PROGRESS.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6932F8FC6EB005460B7 /* MIGRATION_PROGRESS.md */; };
-		95AEA6982F8FC764005460B7 /* PHASE1_PROGRESS_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6972F8FC764005460B7 /* PHASE1_PROGRESS_SUMMARY.md */; };
-		95AEA69A2F8FC79F005460B7 /* SESSION_SUMMARY_PHASE1.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA6992F8FC79F005460B7 /* SESSION_SUMMARY_PHASE1.md */; };
-		95AEA69C2F8FC7DA005460B7 /* SWIFTDATA_QUICK_REFERENCE.md in Resources */ = {isa = PBXBuildFile; fileRef = 95AEA69B2F8FC7DA005460B7 /* SWIFTDATA_QUICK_REFERENCE.md */; };
-		95AEA69E2F8FCD2C005460B7 /* SDUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA69D2F8FCD2C005460B7 /* SDUser.swift */; };
-		95AEA6A02F8FCD39005460B7 /* SDGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA69F2F8FCD39005460B7 /* SDGroup.swift */; };
-		95AEA6A22F8FCD43005460B7 /* SDUserGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6A12F8FCD43005460B7 /* SDUserGroup.swift */; };
-		95AEA6A42F8FCD50005460B7 /* SDCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6A32F8FCD50005460B7 /* SDCategory.swift */; };
-		95AEA6A62F8FCD5D005460B7 /* SDPaymentMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6A52F8FCD5D005460B7 /* SDPaymentMethod.swift */; };
-		95AEA6A82F8FCD6D005460B7 /* SDItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6A72F8FCD6D005460B7 /* SDItemList.swift */; };
-		95AEA6AA2F8FCD7B005460B7 /* SDItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6A92F8FCD7B005460B7 /* SDItem.swift */; };
-		95AEA6AC2F8FCD81005460B7 /* OMOMoneySchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6AB2F8FCD81005460B7 /* OMOMoneySchema.swift */; };
-		95AEA6AE2F8FCD98005460B7 /* ModelContainer+Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AEA6AD2F8FCD98005460B7 /* ModelContainer+Shared.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,29 +30,6 @@
 		951719832E4A4E6A00430632 /* OMOMoney.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OMOMoney.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		951719962E4A4E6D00430632 /* OMOMoneyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OMOMoneyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		951719A02E4A4E6D00430632 /* OMOMoneyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OMOMoneyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		95AEA66F2F8FC28C005460B7 /* MIGRATION_PLAN_SWIFTDATA.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MIGRATION_PLAN_SWIFTDATA.md; sourceTree = "<group>"; };
-		95AEA6712F8FC2EC005460B7 /* MIGRATION_PLAN_SWIFT_TESTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MIGRATION_PLAN_SWIFT_TESTING.md; sourceTree = "<group>"; };
-		95AEA6732F8FC341005460B7 /* MODERNIZATION_PLAN_SWIFTUI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MODERNIZATION_PLAN_SWIFTUI.md; sourceTree = "<group>"; };
-		95AEA6752F8FC39A005460B7 /* ARCHITECTURE_IMPROVEMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ARCHITECTURE_IMPROVEMENTS.md; sourceTree = "<group>"; };
-		95AEA6772F8FC40C005460B7 /* ADDITIONAL_ENHANCEMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ADDITIONAL_ENHANCEMENTS.md; sourceTree = "<group>"; };
-		95AEA6792F8FC45C005460B7 /* MODERNIZATION_MASTER_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MODERNIZATION_MASTER_PLAN.md; sourceTree = "<group>"; };
-		95AEA67B2F8FC492005460B7 /* MODERNIZATION_README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MODERNIZATION_README.md; sourceTree = "<group>"; };
-		95AEA68D2F8FC67E005460B7 /* SWIFTDATA_MIGRATION_CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SWIFTDATA_MIGRATION_CHANGELOG.md; sourceTree = "<group>"; };
-		95AEA68F2F8FC6A8005460B7 /* PHASE1_STEP1_COMPLETE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PHASE1_STEP1_COMPLETE.md; sourceTree = "<group>"; };
-		95AEA6912F8FC6C7005460B7 /* COMMIT_PHASE1_STEP1.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMMIT_PHASE1_STEP1.md; sourceTree = "<group>"; };
-		95AEA6932F8FC6EB005460B7 /* MIGRATION_PROGRESS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MIGRATION_PROGRESS.md; sourceTree = "<group>"; };
-		95AEA6972F8FC764005460B7 /* PHASE1_PROGRESS_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PHASE1_PROGRESS_SUMMARY.md; sourceTree = "<group>"; };
-		95AEA6992F8FC79F005460B7 /* SESSION_SUMMARY_PHASE1.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SESSION_SUMMARY_PHASE1.md; sourceTree = "<group>"; };
-		95AEA69B2F8FC7DA005460B7 /* SWIFTDATA_QUICK_REFERENCE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SWIFTDATA_QUICK_REFERENCE.md; sourceTree = "<group>"; };
-		95AEA69D2F8FCD2C005460B7 /* SDUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDUser.swift; sourceTree = "<group>"; };
-		95AEA69F2F8FCD39005460B7 /* SDGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDGroup.swift; sourceTree = "<group>"; };
-		95AEA6A12F8FCD43005460B7 /* SDUserGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDUserGroup.swift; sourceTree = "<group>"; };
-		95AEA6A32F8FCD50005460B7 /* SDCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDCategory.swift; sourceTree = "<group>"; };
-		95AEA6A52F8FCD5D005460B7 /* SDPaymentMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDPaymentMethod.swift; sourceTree = "<group>"; };
-		95AEA6A72F8FCD6D005460B7 /* SDItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDItemList.swift; sourceTree = "<group>"; };
-		95AEA6A92F8FCD7B005460B7 /* SDItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDItem.swift; sourceTree = "<group>"; };
-		95AEA6AB2F8FCD81005460B7 /* OMOMoneySchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OMOMoneySchema.swift; sourceTree = "<group>"; };
-		95AEA6AD2F8FCD98005460B7 /* ModelContainer+Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ModelContainer+Shared.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -128,29 +82,6 @@
 				951719992E4A4E6D00430632 /* OMOMoneyTests */,
 				951719A32E4A4E6D00430632 /* OMOMoneyUITests */,
 				951719842E4A4E6A00430632 /* Products */,
-				95AEA66F2F8FC28C005460B7 /* MIGRATION_PLAN_SWIFTDATA.md */,
-				95AEA6712F8FC2EC005460B7 /* MIGRATION_PLAN_SWIFT_TESTING.md */,
-				95AEA6732F8FC341005460B7 /* MODERNIZATION_PLAN_SWIFTUI.md */,
-				95AEA6752F8FC39A005460B7 /* ARCHITECTURE_IMPROVEMENTS.md */,
-				95AEA6772F8FC40C005460B7 /* ADDITIONAL_ENHANCEMENTS.md */,
-				95AEA6792F8FC45C005460B7 /* MODERNIZATION_MASTER_PLAN.md */,
-				95AEA67B2F8FC492005460B7 /* MODERNIZATION_README.md */,
-				95AEA68D2F8FC67E005460B7 /* SWIFTDATA_MIGRATION_CHANGELOG.md */,
-				95AEA68F2F8FC6A8005460B7 /* PHASE1_STEP1_COMPLETE.md */,
-				95AEA6912F8FC6C7005460B7 /* COMMIT_PHASE1_STEP1.md */,
-				95AEA6932F8FC6EB005460B7 /* MIGRATION_PROGRESS.md */,
-				95AEA6972F8FC764005460B7 /* PHASE1_PROGRESS_SUMMARY.md */,
-				95AEA6992F8FC79F005460B7 /* SESSION_SUMMARY_PHASE1.md */,
-				95AEA69B2F8FC7DA005460B7 /* SWIFTDATA_QUICK_REFERENCE.md */,
-				95AEA69D2F8FCD2C005460B7 /* SDUser.swift */,
-				95AEA69F2F8FCD39005460B7 /* SDGroup.swift */,
-				95AEA6A12F8FCD43005460B7 /* SDUserGroup.swift */,
-				95AEA6A32F8FCD50005460B7 /* SDCategory.swift */,
-				95AEA6A52F8FCD5D005460B7 /* SDPaymentMethod.swift */,
-				95AEA6A72F8FCD6D005460B7 /* SDItemList.swift */,
-				95AEA6A92F8FCD7B005460B7 /* SDItem.swift */,
-				95AEA6AB2F8FCD81005460B7 /* OMOMoneySchema.swift */,
-				95AEA6AD2F8FCD98005460B7 /* ModelContainer+Shared.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -285,20 +216,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95AEA6722F8FC2EC005460B7 /* MIGRATION_PLAN_SWIFT_TESTING.md in Resources */,
-				95AEA6742F8FC341005460B7 /* MODERNIZATION_PLAN_SWIFTUI.md in Resources */,
-				95AEA68E2F8FC67E005460B7 /* SWIFTDATA_MIGRATION_CHANGELOG.md in Resources */,
-				95AEA6782F8FC40C005460B7 /* ADDITIONAL_ENHANCEMENTS.md in Resources */,
-				95AEA69C2F8FC7DA005460B7 /* SWIFTDATA_QUICK_REFERENCE.md in Resources */,
-				95AEA67C2F8FC492005460B7 /* MODERNIZATION_README.md in Resources */,
-				95AEA6702F8FC28C005460B7 /* MIGRATION_PLAN_SWIFTDATA.md in Resources */,
-				95AEA67A2F8FC45C005460B7 /* MODERNIZATION_MASTER_PLAN.md in Resources */,
-				95AEA6942F8FC6EB005460B7 /* MIGRATION_PROGRESS.md in Resources */,
-				95AEA6762F8FC39A005460B7 /* ARCHITECTURE_IMPROVEMENTS.md in Resources */,
-				95AEA6982F8FC764005460B7 /* PHASE1_PROGRESS_SUMMARY.md in Resources */,
-				95AEA6922F8FC6C7005460B7 /* COMMIT_PHASE1_STEP1.md in Resources */,
-				95AEA69A2F8FC79F005460B7 /* SESSION_SUMMARY_PHASE1.md in Resources */,
-				95AEA6902F8FC6A8005460B7 /* PHASE1_STEP1_COMPLETE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -323,15 +240,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95AEA6AA2F8FCD7B005460B7 /* SDItem.swift in Sources */,
-				95AEA6A62F8FCD5D005460B7 /* SDPaymentMethod.swift in Sources */,
-				95AEA6A82F8FCD6D005460B7 /* SDItemList.swift in Sources */,
-				95AEA6A22F8FCD43005460B7 /* SDUserGroup.swift in Sources */,
-				95AEA6AE2F8FCD98005460B7 /* ModelContainer+Shared.swift in Sources */,
-				95AEA6AC2F8FCD81005460B7 /* OMOMoneySchema.swift in Sources */,
-				95AEA6A42F8FCD50005460B7 /* SDCategory.swift in Sources */,
-				95AEA69E2F8FCD2C005460B7 /* SDUser.swift in Sources */,
-				95AEA6A02F8FCD39005460B7 /* SDGroup.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
