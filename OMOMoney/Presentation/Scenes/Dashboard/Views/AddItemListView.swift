@@ -151,9 +151,12 @@ struct AddItemListView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Guardar") {
-                    Task { await saveItemList() }
+                    if viewModel.canSave {
+                        Task { await saveItemList() }
+                    } else {
+                        viewModel.showValidationToast()
+                    }
                 }
-                .disabled(!viewModel.canSave)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -184,6 +187,7 @@ struct AddItemListView: View {
                 showDetails = true
             }
         }
+        .toast($viewModel.toast)
     }
 
     // MARK: - Hero Amount Input

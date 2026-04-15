@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.46.0] - 2026-04-15
+
+### Added
+- **In-app toast notifications** — new reusable `ToastView` component (`Presentation/Common/Components/Toast/`) with warning, error, and info types; appears from the top with a spring animation, auto-dismisses after 2.5 s, and triggers 3 quick haptic taps on appearance
+- **Form validation feedback** — tapping "Guardar" in AddItemListView while fields are missing now shows a contextual toast ("Selecciona una categoría", "Selecciona un método de pago", or both) instead of silently doing nothing; the Save button is always tappable
+- **Empty list paid-toggle feedback** — tapping the paid toggle on an item list with no items now shows a "Lista vacía" toast and skips the optimistic UI update, eliminating the previous flicker-and-revert behaviour
+
+---
+
 ## [0.45.2] - 2026-04-15
 
 ### Removed

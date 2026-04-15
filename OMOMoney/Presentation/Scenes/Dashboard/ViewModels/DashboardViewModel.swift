@@ -38,6 +38,7 @@ class DashboardViewModel: ObservableObject {
     @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
     @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
     @Published var errorMessage: String?
+    @Published var toast: ToastMessage?
     @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
     @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
@@ -544,6 +545,10 @@ class DashboardViewModel: ObservableObject {
     
     /// Toggle paid status for all items in an ItemList (Option A: if all paid → unpay all; else → pay all)
     func togglePaid(for itemList: ItemListDomain) {
+        guard (itemListCounts[itemList.id] ?? 0) > 0 else {
+            toast = ToastMessage("Lista vacía", type: .info)
+            return
+        }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
         // Optimistic UI update for the icon

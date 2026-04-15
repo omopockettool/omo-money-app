@@ -163,8 +163,8 @@ struct PaymentMethodFormView: View {
     private func typeName(_ type: String) -> String {
         switch type {
         case "cash":          return "Efectivo"
-        case "card_debit":    return "T. Débito"
-        case "card_credit":   return "T. Crédito"
+        case "card_debit":    return "Débito"
+        case "card_credit":   return "Crédito"
         case "bank_transfer": return "Transferencia"
         default:              return type
         }

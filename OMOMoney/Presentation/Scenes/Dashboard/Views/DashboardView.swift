@@ -160,6 +160,7 @@ struct DashboardView: View {
             }
         }
         .ignoresSafeArea(.keyboard)
+        .toast($viewModel.toast)
         .onAppear {
             // Only load data on first appearance to avoid splash on navigation back
             guard !hasLoadedInitialData else {

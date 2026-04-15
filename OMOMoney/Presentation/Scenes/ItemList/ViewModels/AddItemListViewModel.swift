@@ -11,6 +11,7 @@ final class AddItemListViewModel: ObservableObject {
     @Published var paymentMethods: [PaymentMethodDomain] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var toast: ToastMessage?
     @Published var description = ""
     @Published var price = ""  // Optional price field - empty means no automatic item
     @Published var date = Date()
@@ -103,6 +104,17 @@ final class AddItemListViewModel: ObservableObject {
 
         guard let decimal = Decimal(string: normalizedPrice) else { return nil }
         return decimal
+    }
+
+    func showValidationToast() {
+        let missingCat = selectedCategory == nil
+        let missingPM  = selectedPaymentMethod == nil
+        switch (missingCat, missingPM) {
+        case (true, true):  toast = ToastMessage("Selecciona categoría y método de pago", type: .warning)
+        case (true, false): toast = ToastMessage("Selecciona una categoría", type: .warning)
+        case (false, true): toast = ToastMessage("Selecciona un método de pago", type: .warning)
+        default: return
+        }
     }
 
     // MARK: - Public Methods
