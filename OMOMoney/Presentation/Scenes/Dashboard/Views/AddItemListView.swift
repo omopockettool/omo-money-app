@@ -20,6 +20,7 @@ struct AddItemListView: View {
     init(
         group: GroupDomain,
         itemListToEdit: ItemListDomain? = nil,
+        initialDate: Date? = nil,
         onItemListCreated: @escaping (ItemListDomain) -> Void,
         onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
         onCancel: @escaping () -> Void
@@ -28,7 +29,7 @@ struct AddItemListView: View {
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit))
+        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
     }
 
     // MARK: - Computed
@@ -104,13 +105,6 @@ struct AddItemListView: View {
         return formatter.currencySymbol
     }
 
-    private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: viewModel.date)
-    }
-
     private var descriptionPlaceholder: String {
         viewModel.selectedCategory?.name ?? "Descripción"
     }
@@ -157,9 +151,12 @@ struct AddItemListView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Guardar") {
-                    Task { await saveItemList() }
+                    if viewModel.canSave {
+                        Task { await saveItemList() }
+                    } else {
+                        viewModel.showValidationToast()
+                    }
                 }
-                .disabled(!viewModel.canSave)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -190,6 +187,7 @@ struct AddItemListView: View {
                 showDetails = true
             }
         }
+        .toast($viewModel.toast)
     }
 
     // MARK: - Hero Amount Input
@@ -470,7 +468,7 @@ struct AddItemListView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(orderedPaymentMethods) { method in
                     let isSelected = viewModel.selectedPaymentMethod?.id == method.id
-                    let chipColor = Color(hex: method.color) ?? Color.accentColor
+                    let chipColor = paymentMethodColor(method.type)
                     Button {
                         withAnimation(AnimationHelper.quickSpring) {
                             viewModel.selectedPaymentMethod = method
@@ -480,7 +478,7 @@ struct AddItemListView: View {
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: method.icon)
+                            Image(systemName: paymentMethodIcon(method))
                                 .font(.subheadline)
                                 .foregroundStyle(isSelected ? .white : chipColor)
                             Text(method.name)
@@ -526,7 +524,7 @@ struct AddItemListView: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                     Spacer()
-                    Text(formattedDate)
+                    Text(viewModel.formattedDate)
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                     Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
@@ -569,6 +567,30 @@ struct AddItemListView: View {
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    }
+
+    // MARK: - Payment Method Helpers
+
+    private func paymentMethodColor(_ type: String) -> Color {
+        switch type {
+        case "cash":          return .green
+        case "bank_transfer": return .orange
+        case "card_credit":   return .purple
+        default:              return .blue
+        }
+    }
+
+    private func paymentMethodIcon(_ method: PaymentMethodDomain) -> String {
+        method.icon.isEmpty ? defaultIcon(for: method.type) : method.icon
+    }
+
+    private func defaultIcon(for type: String) -> String {
+        switch type {
+        case "cash":          return "banknote.fill"
+        case "bank_transfer": return "arrow.left.arrow.right"
+        case "card_credit":   return "creditcard.fill"
+        default:              return "creditcard.fill"
+        }
     }
 
     // MARK: - Actions

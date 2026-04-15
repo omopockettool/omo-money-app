@@ -61,6 +61,7 @@ final class DefaultCategoryRepository: CategoryRepository {
         try await categoryService.updateCategory(
             categoryId: categoryDomain.id,
             name: categoryDomain.name,
+            icon: categoryDomain.icon,
             color: categoryDomain.color,
             limit: categoryDomain.limit,
             limitFrequency: categoryDomain.limitFrequency

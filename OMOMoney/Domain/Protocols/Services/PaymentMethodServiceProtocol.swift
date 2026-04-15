@@ -14,7 +14,7 @@ protocol PaymentMethodServiceProtocol {
     func createPaymentMethod(name: String, type: String, icon: String, color: String, isActive: Bool, isDefault: Bool, groupId: UUID) async throws -> PaymentMethodDomain
 
     /// Update an existing paymentMethod
-    func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, isActive: Bool?) async throws
+    func updatePaymentMethod(paymentMethodId: UUID, name: String?, type: String?, icon: String?, isActive: Bool?) async throws
 
     /// Delete a paymentMethod
     func deletePaymentMethod(paymentMethodId: UUID) async throws

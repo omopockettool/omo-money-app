@@ -143,7 +143,4 @@ final class DefaultItemListRepository: ItemListRepository {
         try await itemListService.deleteItemList(itemList)
     }
     
-    func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemListDomain] {
-        fatalError("bulkInsertItemLists(_:) not implemented. Add to ItemListServiceProtocol and implementation.")
-    }
 }

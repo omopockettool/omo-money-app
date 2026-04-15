@@ -17,7 +17,7 @@ protocol CategoryServiceProtocol {
     func createCategory(name: String, color: String?, icon: String, isDefault: Bool, groupId: UUID, limit: Decimal?, limitFrequency: String?) async throws -> CategoryDomain
 
     /// Update an existing category
-    func updateCategory(categoryId: UUID, name: String?, color: String?, limit: Decimal?, limitFrequency: String?) async throws
+    func updateCategory(categoryId: UUID, name: String?, icon: String?, color: String?, limit: Decimal?, limitFrequency: String?) async throws
 
     /// Delete a category
     func deleteCategory(categoryId: UUID) async throws

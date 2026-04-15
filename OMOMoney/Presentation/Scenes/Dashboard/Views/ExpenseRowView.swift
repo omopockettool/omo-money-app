@@ -10,6 +10,9 @@ struct ExpenseRowView: View {
     let paidStatus: ItemListPaidStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
+    var isCompact: Bool = false
+
+    private var isPending: Bool { paidStatus == .none }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -24,16 +27,18 @@ struct ExpenseRowView: View {
                 Text(itemList.itemListDescription)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isPending ? .secondary : .primary)
                     .lineLimit(1)
 
                 HStack(spacing: 5) {
                     Circle()
                         .fill(categoryColor ?? Color(.systemGray3))
                         .frame(width: 7, height: 7)
-                    Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
+                        .opacity(isPending ? 0.5 : 1)
+                    Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
 
@@ -43,10 +48,10 @@ struct ExpenseRowView: View {
                 Text(formattedAmount)
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isPending ? .secondary : .primary)
                     .lineLimit(1)
                 if let unpaid = formattedUnpaidAmount {
-                    Text("\(unpaid) restantes")
+                    Text("\(unpaid) por pagar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -54,7 +59,8 @@ struct ExpenseRowView: View {
             }
             .layoutPriority(1)
         }
-        .padding(AppConstants.UserInterface.padding)
+        .padding(.horizontal, AppConstants.UserInterface.padding)
+        .padding(.vertical, isCompact ? 12 : AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         .contentShape(Rectangle())

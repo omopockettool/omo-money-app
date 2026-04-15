@@ -87,7 +87,7 @@ class CategoryListViewModel: ObservableObject {
 
     /// Update an existing category
     /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func updateCategory(_ category: CategoryDomain, name: String? = nil, color: String? = nil) async -> Bool {
+    func updateCategory(_ category: CategoryDomain, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -95,6 +95,7 @@ class CategoryListViewModel: ObservableObject {
             try await updateCategoryUseCase.execute(
                 categoryId: category.id,
                 name: name,
+                icon: icon,
                 color: color,
                 limit: nil,
                 limitFrequency: nil
