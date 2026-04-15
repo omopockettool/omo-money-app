@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.47.0] - 2026-04-15
+
+### Changed
+- **New items and item lists appear at the top** — items inside a list now sort by `createdAt` descending; item lists within the same day also sort by `createdAt` descending so the latest addition always appears first; affects `ItemService`, `ItemListService` (all four fetch queries), and the three in-memory sorts in `DashboardViewModel`
+
+---
+
 ## [0.46.2] - 2026-04-15
 
 ### Fixed

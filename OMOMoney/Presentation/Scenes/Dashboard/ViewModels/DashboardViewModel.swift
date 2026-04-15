@@ -205,7 +205,7 @@ class DashboardViewModel: ObservableObject {
             
             // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
             let sortedItemLists = fetchedItemListDomains.sorted {
-                $0.date > $1.date
+                $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
             }
 
             // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
@@ -510,7 +510,7 @@ class DashboardViewModel: ObservableObject {
 
         // Calculate insert position (sorted by date) - works with Domain models!
         let sortedItemLists = (itemLists + [itemListDomain]).sorted {
-            $0.date > $1.date
+            $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
         }
 
         print("📊 [ADD-DOMAIN] New count: \(sortedItemLists.count)")

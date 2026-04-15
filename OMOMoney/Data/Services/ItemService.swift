@@ -255,7 +255,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         let domainItems: [ItemDomain] = try await context.perform {
             let request: NSFetchRequest<Item> = Item.fetchRequest()
             request.predicate = NSPredicate(format: "itemList == %@", itemList)
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
             request.returnsObjectsAsFaults = false
             let items = try self.context.fetch(request)
             return items.map { $0.toDomain() }
@@ -276,7 +276,7 @@ class ItemService: CoreDataService, ItemServiceProtocol {
         let domainItems: [ItemDomain] = try await context.perform {
             let request: NSFetchRequest<Item> = Item.fetchRequest()
             request.predicate = NSPredicate(format: "itemList.group == %@", group)
-            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: true)]
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \Item.createdAt, ascending: false)]
             request.returnsObjectsAsFaults = false
             let items = try self.context.fetch(request)
             return items.map { $0.toDomain() }
