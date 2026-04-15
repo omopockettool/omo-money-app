@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import UIKit
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
@@ -21,6 +22,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 struct OMOMoneyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let persistenceController = PersistenceController.shared
+    let modelContainer = ModelContainer.shared
     
     // MARK: - Data Preloader
     @StateObject private var dataPreloader = {
@@ -43,6 +45,7 @@ struct OMOMoneyApp: App {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(dataPreloader)
+                .modelContainer(modelContainer)
                 .task {
                     // Preload critical data on app launch for better performance
                     await dataPreloader.preloadCriticalData()
