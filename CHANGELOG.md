@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.45.0] - 2026-04-15
+
+### Changed
+- **List view day totals** — section headers in list mode now show the total spending for that day right-aligned alongside the date label; reuses the existing `formattedTotal(for:)` ViewModel method; calendar and compact panel headers are unaffected
+
+---
+
 ## [0.44.0] - 2026-04-15
 
 ### Changed

@@ -267,7 +267,8 @@ struct DashboardView: View {
                     onItemTap: { navigationPath.append($0) },
                     onTogglePaid: { viewModel.togglePaid(for: $0) },
                     onRefresh: { await viewModel.refreshData() },
-                    onDelete: { await viewModel.deleteItemListDomain($0) }
+                    onDelete: { await viewModel.deleteItemListDomain($0) },
+                    getDayTotal: { viewModel.formattedTotal(for: $0) }
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)

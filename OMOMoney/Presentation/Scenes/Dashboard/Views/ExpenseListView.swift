@@ -19,6 +19,7 @@ struct ExpenseListView: View {
     let onRefresh: () async -> Void
     let onDelete: (ItemListDomain) async -> Void
     var isCompact: Bool = false
+    var getDayTotal: ((Date) -> String)? = nil
     
     var body: some View {
         List {
@@ -99,11 +100,21 @@ struct ExpenseListView: View {
     @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
         if !isCompact {
-            Text(formatSectionDate(date))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
+            HStack {
+                Text(formatSectionDate(date))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                if let total = getDayTotal?(date) {
+                    Spacer()
+                    Text(total)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .textCase(.none)
+                }
+            }
         }
     }
     
