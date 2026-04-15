@@ -58,12 +58,6 @@ protocol ItemListRepository {
         groupId: UUID?
     ) async throws -> ItemListDomain
     
-    /// Bulk insert multiple item lists
-    /// - Parameter itemLists: Array of ItemListDomain objects to insert
-    /// - Returns: Array of inserted ItemListDomain objects
-    /// - Throws: Repository errors
-    func bulkInsertItemLists(_ itemLists: [ItemListDomain]) async throws -> [ItemListDomain]
-
     /// Update an existing item list
     /// - Parameter itemList: ItemListDomain object with updated values
     /// - Throws: Repository errors

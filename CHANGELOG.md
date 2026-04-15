@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.45.2] - 2026-04-15
+
+### Removed
+- **Unused batch/bulk operation dead code** — removed `batchDelete`, `batchUpdate`, `bulkInsert` from `CoreDataService`; all bulk methods from `GroupService`, `UserService`, `ItemListService` and their protocols; `BulkInsertItemListsUseCase`; `makeBulkInsertItemListsUseCase` from `AppDIContainer`; `CoreDataError` enum — none of these were reachable from any UI or UseCase and `batchDelete` specifically bypassed CoreData cascade rules, posing a data-loss risk if ever wired up
+
+---
+
 ## [0.45.1] - 2026-04-15
 
 ### Fixed
