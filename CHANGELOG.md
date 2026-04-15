@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.47.1] - 2026-04-15
+
+### Changed
+- **Empty state copy and icon in ExpenseListView** — icon changed from `tray` to `sparkles.2`; title updated to "Nada por aquí..."; subtitle shortened to "Pulsa el + para agregar una lista"
+
+---
+
 ## [0.47.0] - 2026-04-15
 
 ### Changed

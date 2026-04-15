@@ -80,15 +80,15 @@ struct ExpenseListView: View {
     
     private var emptyStateView: some View {
         VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "tray")
+            Image(systemName: "sparkles.2")
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
 
-            Text("No hay gastos")
+            Text("Nada por aquí...")
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            Text("Pulsa el botón + para agregar tu primer gasto")
+            Text("Pulsa el + para agregar una lista")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
