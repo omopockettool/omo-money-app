@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.43.0] - 2026-04-15
+
+### Changed
+- **Pending row style in expense list** — when all items in an item list are unpaid (`paidStatus == .none`), the description, amount, and category dot are rendered in secondary/muted colors; paid and partial rows keep full-contrast primary style, making payment status immediately scannable
+- **Pending item style in item detail** — individual items with `isPaid = false` now render their description and amount in secondary color; paid items stay primary; the check toggle remains full opacity in both states
+
+---
+
 ## [0.42.1] - 2026-04-15
 
 ### Fixed

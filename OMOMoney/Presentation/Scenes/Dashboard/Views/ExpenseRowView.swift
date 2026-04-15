@@ -12,6 +12,8 @@ struct ExpenseRowView: View {
     let onTogglePaid: () -> Void
     var isCompact: Bool = false
 
+    private var isPending: Bool { paidStatus == .none }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
@@ -25,13 +27,14 @@ struct ExpenseRowView: View {
                 Text(itemList.itemListDescription)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isPending ? .secondary : .primary)
                     .lineLimit(1)
 
                 HStack(spacing: 5) {
                     Circle()
                         .fill(categoryColor ?? Color(.systemGray3))
                         .frame(width: 7, height: 7)
+                        .opacity(isPending ? 0.5 : 1)
                     Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -45,7 +48,7 @@ struct ExpenseRowView: View {
                 Text(formattedAmount)
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isPending ? .secondary : .primary)
                     .lineLimit(1)
                 if let unpaid = formattedUnpaidAmount {
                     Text("\(unpaid) por pagar")
