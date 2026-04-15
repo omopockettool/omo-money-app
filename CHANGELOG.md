@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.3] - 2026-04-15
+
+### Changed
+- **`AppDIContainer` migrated to SwiftData** — replaced `NSManagedObjectContext` / `PersistenceController` with `ModelContext` from `ModelContainer.shared`; all 7 repositories now receive `ModelContext` directly; service layer fully removed
+- **All repositories rewritten for SwiftData** — `DefaultUserRepository`, `DefaultGroupRepository`, `DefaultCategoryRepository`, `DefaultPaymentMethodRepository`, `DefaultItemListRepository`, `DefaultItemRepository`, `DefaultUserGroupRepository` now use `ModelContext` + `FetchDescriptor` / `#Predicate` instead of `NSFetchRequest`; `.toDomain()` mappings kept as private extensions
+- **Service layer deleted** — `CategoryService`, `CoreDataService`, `GroupService`, `ItemListService`, `ItemService`, `PaymentMethodService`, `UserGroupService`, `UserService` and matching `*ServiceProtocol` files removed; repositories talk to `ModelContext` directly
+- **`DataPreloader` removed** — no longer needed; SwiftData container seeds preview data via `ModelContainer.preview`
+- **`TestDataGenerator` rewritten for SwiftData** — replaced `NSManagedObjectContext` + Core Data entities with `ModelContext` + `SDItemList`/`SDItem`; marked `@MainActor`
+
+### Fixed
+- **Default categories and payment methods not created on group creation** — seeding logic lost when `GroupService` was deleted is restored in `DefaultGroupRepository.createGroup`; each new group now atomically inserts 4 payment methods (Efectivo, Débito, Crédito, Transferencia) and 6 categories (Alimentación, Movilidad, Hogar, Ocio, Salud, Otros) in the same `context.save()` transaction
+- **Presentation layer — all Core Data references removed** — `import CoreData`, `@Environment(\.managedObjectContext)`, `NSManagedObjectContext` params, and `PersistenceController` preview references eliminated from all 9 affected view files:
+  - `CreateGroupView`, `AddUserView`, `CreateFirstUserView` — unused `import CoreData` removed
+  - `EditUserView`, `CategoryPickerView` — unused `context: NSManagedObjectContext` params dropped from inits; previews updated to `ModelContainer.preview`
+  - `UserListView` — `init(context:)` simplified to `init()`; `EditUserView` call updated
+  - `PaymentMethodPickerView` — `group: Group` (NSManagedObject) parameter replaced with `groupId: UUID`
+  - `TestDataView` — `@Environment(\.managedObjectContext)` → `@Environment(\.modelContext)`; preview updated
+
+---
+
 ## [1.0.2] - 2026-04-15
 
 ### Changed

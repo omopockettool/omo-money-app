@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
-import CoreData
+import SwiftData
 
 struct TestDataView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.modelContext) private var modelContext
     @State private var isGenerating = false
     @State private var isCleaning = false
     @State private var statusMessage = ""
@@ -89,7 +89,7 @@ struct TestDataView: View {
         
         Task {
             do {
-                let generator = TestDataGenerator(context: viewContext)
+                let generator = TestDataGenerator(context: modelContext)
                 try await generator.generateMassiveTestData(
                     itemListCount: itemListCount,
                     itemsPerList: itemsPerList
@@ -114,7 +114,7 @@ struct TestDataView: View {
         
         Task {
             do {
-                let generator = TestDataGenerator(context: viewContext)
+                let generator = TestDataGenerator(context: modelContext)
                 try await generator.cleanAllTestData()
                 
                 await MainActor.run {
@@ -133,5 +133,5 @@ struct TestDataView: View {
 
 #Preview {
     TestDataView()
-        .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+        .modelContainer(ModelContainer.preview)
 }

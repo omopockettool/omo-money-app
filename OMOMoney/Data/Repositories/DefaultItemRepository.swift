@@ -1,47 +1,37 @@
-//
-//  DefaultItemRepository.swift
-//  OMOMoney
-//
-//  Created on 11/29/25.
-//
-
 import Foundation
-import CoreData
+import SwiftData
 
 final class DefaultItemRepository: ItemRepository {
-    private let itemService: ItemServiceProtocol
-    private let context: NSManagedObjectContext
+    private let context: ModelContext
 
-    init(itemService: ItemServiceProtocol, context: NSManagedObjectContext) {
-        self.itemService = itemService
+    init(context: ModelContext) {
         self.context = context
     }
 
     func fetchItems() async throws -> [ItemDomain] {
-        // Fetch all items from the service
-        // Since there's no service method for this, we'll throw for now
-        fatalError("fetchItems() not implemented - use fetchItems(forItemListId:) instead")
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDItem>()
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func fetchItem(id: UUID) async throws -> ItemDomain? {
-        guard let item = try await itemService.fetchItem(by: id) else {
-            return nil
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.id == targetId })
+            return try context.fetch(descriptor).first?.toDomain()
         }
-        return item.toDomain()
     }
 
     func fetchItems(forItemListId itemListId: UUID) async throws -> [ItemDomain] {
-        let itemList = try await context.perform {
-            let fetchRequest: NSFetchRequest<ItemList> = ItemList.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", itemListId as CVarArg)
-            fetchRequest.fetchLimit = 1
-            guard let itemList = try self.context.fetch(fetchRequest).first else {
-                throw RepositoryError.notFound
-            }
-            return itemList
+        try await MainActor.run {
+            let targetId = itemListId
+            let descriptor = FetchDescriptor<SDItem>(
+                predicate: #Predicate { $0.itemList?.id == targetId },
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
         }
-        // Service handles caching and domain conversion
-        return try await itemService.getItems(for: itemList)
     }
 
     func createItem(
@@ -49,49 +39,88 @@ final class DefaultItemRepository: ItemRepository {
         amount: Decimal,
         quantity: Int32,
         itemListId: UUID?,
-        isPaid: Bool = false
+        isPaid: Bool
     ) async throws -> ItemDomain {
-        guard let itemListId = itemListId else {
-            throw ValidationError.invalidItemList
+        try await MainActor.run {
+            guard let itemListId else { throw ValidationError.invalidItemList }
+
+            let item = SDItem(
+                itemDescription: description,
+                amount: Double(truncating: amount as NSDecimalNumber),
+                quantity: Int(quantity),
+                isPaid: isPaid
+            )
+            let targetId = itemListId
+            let descriptor = FetchDescriptor<SDItemList>(predicate: #Predicate { $0.id == targetId })
+            item.itemList = try context.fetch(descriptor).first
+            context.insert(item)
+            try context.save()
+            return item.toDomain()
         }
-
-        let item = try await itemService.createItem(
-            description: description,
-            amount: NSDecimalNumber(decimal: amount),
-            quantity: quantity,
-            itemListId: itemListId,
-            isPaid: isPaid
-        )
-
-        return item.toDomain()
     }
 
     func updateItem(_ item: ItemDomain) async throws {
-        // ✅ CRITICAL FIX: Pass UUID instead of Core Data object to avoid thread boundary issues
-        // The service will fetch the item inside its own context.perform block
-        try await itemService.updateItem(
-            itemId: item.id,
-            description: item.itemDescription,
-            amount: NSDecimalNumber(decimal: item.amount),
-            quantity: item.quantity
-        )
+        try await MainActor.run {
+            let targetId = item.id
+            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.id == targetId })
+            guard let existing = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            existing.itemDescription = item.itemDescription
+            existing.amount = Double(truncating: item.amount as NSDecimalNumber)
+            existing.quantity = Int(item.quantity)
+            existing.lastModifiedAt = Date()
+            try context.save()
+        }
     }
 
     func deleteItem(id: UUID) async throws {
-        // Fetch the Core Data item
-        guard let item = try await itemService.fetchItem(by: id) else {
-            throw RepositoryError.notFound
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.id == targetId })
+            guard let item = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(item)
+            try context.save()
         }
-
-        // Delete using service
-        try await itemService.deleteItem(item)
     }
 
     func setAllItemsPaid(forItemListId itemListId: UUID, isPaid: Bool) async throws {
-        try await itemService.setAllItemsPaid(forItemListId: itemListId, isPaid: isPaid)
+        try await MainActor.run {
+            let targetId = itemListId
+            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.itemList?.id == targetId })
+            let items = try context.fetch(descriptor)
+            items.forEach { $0.isPaid = isPaid }
+            try context.save()
+        }
     }
 
     func toggleItemPaid(id: UUID, isPaid: Bool) async throws {
-        try await itemService.toggleItemPaid(itemId: id, isPaid: isPaid)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.id == targetId })
+            guard let item = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            item.isPaid = isPaid
+            try context.save()
+        }
+    }
+}
+
+// MARK: - Domain mapping
+private extension SDItem {
+    func toDomain() -> ItemDomain {
+        ItemDomain(
+            id: id,
+            itemDescription: itemDescription,
+            amount: Decimal(amount),
+            quantity: Int32(quantity),
+            itemListId: itemList?.id,
+            createdAt: createdAt,
+            lastModifiedAt: lastModifiedAt,
+            isPaid: isPaid
+        )
     }
 }

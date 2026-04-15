@@ -1,5 +1,5 @@
 import SwiftUI
-import CoreData
+import SwiftData
 
 struct CategoryPickerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -9,12 +9,9 @@ struct CategoryPickerView: View {
 
     @StateObject private var viewModel: CategoryPickerViewModel
 
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(selectedCategoryId: Binding<UUID?>, groupId: UUID, context: NSManagedObjectContext) {
+    init(selectedCategoryId: Binding<UUID?>, groupId: UUID) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
-
-        // Use convenience initializer that gets Use Cases from DI Container
         self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel())
     }
 
@@ -84,12 +81,9 @@ struct CategoryPickerView: View {
 }
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let groupId = UUID()
-
     CategoryPickerView(
         selectedCategoryId: .constant(nil),
-        groupId: groupId,
-        context: context
+        groupId: UUID()
     )
+    .modelContainer(ModelContainer.preview)
 }

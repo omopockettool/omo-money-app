@@ -1,91 +1,96 @@
-//
-//  DefaultUserRepository.swift
-//  OMOMoney
-//
-//  Created on 11/18/25.
-//  ✅ REFACTORED: Thin wrapper - Service returns Domain models directly
-//
-
 import Foundation
+import SwiftData
 
-/// Default implementation of UserRepository
-/// ✅ REFACTORED: Thin wrapper - Service returns Domain models directly
 final class DefaultUserRepository: UserRepository {
+    private let context: ModelContext
 
-    // MARK: - Properties
-
-    private let userService: UserServiceProtocol
-
-    // MARK: - Initialization
-
-    init(userService: UserServiceProtocol) {
-        self.userService = userService
+    init(context: ModelContext) {
+        self.context = context
     }
 
-    // MARK: - UserRepository Implementation
-
     func fetchUsers() async throws -> [UserDomain] {
-        // Note: UserService doesn't have fetchAll, we'll need to get current user
-        // For now, return array with current user if exists
-        if let user = try await userService.getCurrentUser() {
-            return [user]
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDUser>()
+            return try context.fetch(descriptor).map { $0.toDomain() }
         }
-        return []
     }
 
     func fetchUser(id: UUID) async throws -> UserDomain? {
-        // Simple passthrough - Service returns Domain model directly
-        return try await userService.fetchUser(by: id)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
+            return try context.fetch(descriptor).first?.toDomain()
+        }
     }
 
     func createUser(name: String, email: String) async throws -> UserDomain {
-        // Simple passthrough - Service returns Domain model directly
-        return try await userService.createUser(name: name, email: email)
+        try await MainActor.run {
+            let user = SDUser(name: name, email: email)
+            context.insert(user)
+            try context.save()
+            return user.toDomain()
+        }
     }
 
     func updateUser(_ user: UserDomain) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await userService.updateUser(
-            userId: user.id,
-            name: user.name,
-            email: user.email
-        )
+        try await MainActor.run {
+            let targetId = user.id
+            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
+            guard let existing = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            existing.name = user.name
+            existing.email = user.email
+            existing.lastModifiedAt = Date()
+            try context.save()
+        }
     }
 
     func deleteUser(id: UUID) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await userService.deleteUser(userId: id)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
+            guard let user = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(user)
+            try context.save()
+        }
     }
 
     func searchUsers(query: String) async throws -> [UserDomain] {
-        // Get current user and filter by query
-        if let user = try await userService.getCurrentUser() {
-            if user.name.localizedCaseInsensitiveContains(query) ||
-               user.email.localizedCaseInsensitiveContains(query) {
-                return [user]
-            }
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDUser>()
+            return try context.fetch(descriptor)
+                .filter {
+                    $0.name.localizedCaseInsensitiveContains(query) ||
+                    $0.email.localizedCaseInsensitiveContains(query)
+                }
+                .map { $0.toDomain() }
         }
-        return []
     }
 }
 
-// MARK: - Repository Errors
+// MARK: - RepositoryError
 enum RepositoryError: LocalizedError {
     case notFound
     case invalidData
     case saveFailed
     case deleteFailed
-    
+
     var errorDescription: String? {
         switch self {
-        case .notFound:
-            return "The requested item was not found"
-        case .invalidData:
-            return "The provided data is invalid"
-        case .saveFailed:
-            return "Failed to save the item"
-        case .deleteFailed:
-            return "Failed to delete the item"
+        case .notFound:     return "The requested item was not found"
+        case .invalidData:  return "The provided data is invalid"
+        case .saveFailed:   return "Failed to save the item"
+        case .deleteFailed: return "Failed to delete the item"
         }
+    }
+}
+
+// MARK: - Domain mapping
+private extension SDUser {
+    func toDomain() -> UserDomain {
+        UserDomain(id: id, name: name, email: email, createdAt: createdAt, lastModifiedAt: lastModifiedAt)
     }
 }

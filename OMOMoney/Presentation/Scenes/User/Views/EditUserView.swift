@@ -5,22 +5,20 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import CoreData
 import SwiftUI
+import SwiftData
 
 struct EditUserView: View {
     @StateObject private var viewModel: EditUserViewModel
     @Binding var navigationPath: NavigationPath
 
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(user: UserDomain, context: NSManagedObjectContext, navigationPath: Binding<NavigationPath>) {
+    init(user: UserDomain, navigationPath: Binding<NavigationPath>) {
         self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = navigationPath
     }
 
     /// For use in sheets where navigation is not needed
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(user: UserDomain, context: NSManagedObjectContext) {
+    init(user: UserDomain) {
         self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = .constant(NavigationPath())
     }
@@ -94,7 +92,6 @@ struct EditUserView: View {
 }
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
     let user = UserDomain(
         id: UUID(),
         name: "John Doe",
@@ -102,12 +99,8 @@ struct EditUserView: View {
         createdAt: Date(),
         lastModifiedAt: Date()
     )
-
     NavigationStack {
-        EditUserView(
-            user: user,
-            context: context,
-            navigationPath: .constant(NavigationPath())
-        )
+        EditUserView(user: user, navigationPath: .constant(NavigationPath()))
     }
+    .modelContainer(ModelContainer.preview)
 }

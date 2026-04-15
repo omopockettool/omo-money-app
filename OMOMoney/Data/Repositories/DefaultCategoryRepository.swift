@@ -1,34 +1,37 @@
-//
-//  DefaultCategoryRepository.swift
-//  OMOMoney
-//
-//  Created on 12/18/25.
-//  ✅ REFACTORED: Thin wrapper - Service returns Domain models directly
-//
-
 import Foundation
+import SwiftData
 
 final class DefaultCategoryRepository: CategoryRepository {
-    private let categoryService: CategoryServiceProtocol
+    private let context: ModelContext
 
-    init(categoryService: CategoryServiceProtocol) {
-        self.categoryService = categoryService
+    init(context: ModelContext) {
+        self.context = context
     }
 
     func fetchCategories() async throws -> [CategoryDomain] {
-        // TODO: Need a CategoryService method to fetch all categories
-        // For now, this will need to be updated when we add that method
-        throw RepositoryError.notFound
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDCategory>()
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func fetchCategory(id: UUID) async throws -> CategoryDomain? {
-        // Simple passthrough - Service returns Domain model directly
-        return try await categoryService.fetchCategory(by: id)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == targetId })
+            return try context.fetch(descriptor).first?.toDomain()
+        }
     }
 
     func fetchCategories(forGroupId groupId: UUID) async throws -> [CategoryDomain] {
-        // Simple passthrough - Service returns Domain models directly
-        return try await categoryService.getCategories(forGroupId: groupId)
+        try await MainActor.run {
+            let targetGroupId = groupId
+            let descriptor = FetchDescriptor<SDCategory>(
+                predicate: #Predicate { $0.group?.id == targetGroupId },
+                sortBy: [SortDescriptor(\.name)]
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func createCategory(
@@ -40,36 +43,70 @@ final class DefaultCategoryRepository: CategoryRepository {
         limitFrequency: String,
         groupId: UUID?
     ) async throws -> CategoryDomain {
-        guard let groupId = groupId else {
-            throw NSError(domain: "DefaultCategoryRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "groupId is required"])
+        try await MainActor.run {
+            let category = SDCategory(
+                name: name,
+                color: color,
+                icon: icon,
+                isDefault: isDefault,
+                limit: limit.map { Double(truncating: $0 as NSDecimalNumber) },
+                limitFrequency: limitFrequency
+            )
+            if let groupId {
+                let targetId = groupId
+                let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
+                category.group = try context.fetch(descriptor).first
+            }
+            context.insert(category)
+            try context.save()
+            return category.toDomain()
         }
+    }
 
-        // Simple passthrough - Service returns Domain model directly
-        return try await categoryService.createCategory(
+    func updateCategory(_ category: CategoryDomain) async throws {
+        try await MainActor.run {
+            let targetId = category.id
+            let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == targetId })
+            guard let existing = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            existing.name = category.name
+            existing.color = category.color
+            existing.icon = category.icon
+            existing.limit = category.limit.map { Double(truncating: $0 as NSDecimalNumber) }
+            existing.limitFrequency = category.limitFrequency
+            existing.lastModifiedAt = Date()
+            try context.save()
+        }
+    }
+
+    func deleteCategory(id: UUID) async throws {
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == targetId })
+            guard let category = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(category)
+            try context.save()
+        }
+    }
+}
+
+// MARK: - Domain mapping
+private extension SDCategory {
+    func toDomain() -> CategoryDomain {
+        CategoryDomain(
+            id: id,
             name: name,
             color: color,
             icon: icon,
             isDefault: isDefault,
-            groupId: groupId,
-            limit: limit,
-            limitFrequency: limitFrequency
+            limit: limit.map { Decimal($0) },
+            limitFrequency: limitFrequency,
+            groupId: group?.id,
+            createdAt: createdAt,
+            lastModifiedAt: lastModifiedAt
         )
-    }
-
-    func updateCategory(_ categoryDomain: CategoryDomain) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await categoryService.updateCategory(
-            categoryId: categoryDomain.id,
-            name: categoryDomain.name,
-            icon: categoryDomain.icon,
-            color: categoryDomain.color,
-            limit: categoryDomain.limit,
-            limitFrequency: categoryDomain.limitFrequency
-        )
-    }
-
-    func deleteCategory(id: UUID) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await categoryService.deleteCategory(categoryId: id)
     }
 }

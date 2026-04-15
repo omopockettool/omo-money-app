@@ -1,75 +1,73 @@
 import Foundation
 
-/// ViewModel for User detail functionality
-/// Handles user detail display and group management
-/// ✅ REFACTORED: Works with Domain models
-/// ⚠️ TODO: Refactor to use Use Cases instead of Services directly
 @MainActor
 class UserDetailViewModel: ObservableObject {
 
     // MARK: - Published Properties
+
     @Published var user: UserDomain?
     @Published var userGroups: [UserGroupDomain] = []
     @Published var groups: [GroupDomain] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    // MARK: - Services
-    // ⚠️ TODO: Replace with Use Cases following Clean Architecture
-    private let userService: any UserServiceProtocol
-    private let userGroupService: any UserGroupServiceProtocol
-    private let groupService: any GroupServiceProtocol
+    // MARK: - Repositories
+
+    private let userRepository: UserRepository
+    private let userGroupRepository: UserGroupRepository
+    private let groupRepository: GroupRepository
 
     // MARK: - Initialization
-    init(userService: any UserServiceProtocol, userGroupService: any UserGroupServiceProtocol, groupService: any GroupServiceProtocol) {
-        self.userService = userService
-        self.userGroupService = userGroupService
-        self.groupService = groupService
+
+    init(
+        userRepository: UserRepository,
+        userGroupRepository: UserGroupRepository,
+        groupRepository: GroupRepository
+    ) {
+        self.userRepository = userRepository
+        self.userGroupRepository = userGroupRepository
+        self.groupRepository = groupRepository
     }
 
     // MARK: - Public Methods
 
-    /// Load user details
-    /// ✅ REFACTORED: Uses UserDomain
     func loadUser(by id: UUID) async {
         isLoading = true
         errorMessage = nil
-
         do {
-            user = try await userService.fetchUser(by: id)
+            user = try await userRepository.fetchUser(id: id)
             if let currentUser = user {
                 await loadUserGroups(forUserId: currentUser.id)
             }
         } catch {
             errorMessage = "Error loading user: \(error.localizedDescription)"
         }
-
         isLoading = false
     }
 
-    /// Load user groups for a specific user
-    /// ✅ REFACTORED: Uses Domain models
     func loadUserGroups(forUserId userId: UUID) async {
         do {
-            userGroups = try await userGroupService.getUserGroups(forUserId: userId)
-
-            // Load groups using userGroupService
-            groups = try await userGroupService.getGroups(forUserId: userId)
+            userGroups = try await userGroupRepository.fetchUserGroups(forUserId: userId)
+            groups = try await groupRepository.fetchGroups(forUserId: userId)
         } catch {
             errorMessage = "Error loading user groups: \(error.localizedDescription)"
         }
     }
 
-    /// Update user information
-    /// ✅ REFACTORED: Uses UUID parameter
     func updateUser(name: String? = nil, email: String? = nil) async -> Bool {
         guard let currentUser = user else { return false }
-
         isLoading = true
         errorMessage = nil
-
         do {
-            try await userService.updateUser(userId: currentUser.id, name: name, email: email)
+            let updated = UserDomain(
+                id: currentUser.id,
+                name: name ?? currentUser.name,
+                email: email ?? currentUser.email,
+                createdAt: currentUser.createdAt,
+                lastModifiedAt: Date()
+            )
+            try await userRepository.updateUser(updated)
+            user = updated
             isLoading = false
             return true
         } catch {
@@ -79,29 +77,19 @@ class UserDetailViewModel: ObservableObject {
         }
     }
 
-    /// Create a new group for the user
-    /// ✅ REFACTORED: Uses Domain models
     func createGroup(name: String, currency: String) async -> Bool {
         guard let currentUser = user else { return false }
-
         isLoading = true
         errorMessage = nil
-
         do {
-            // Create the group (returns GroupDomain)
-            let newGroup = try await groupService.createGroup(name: name, currency: currency)
-
-            // Create the user-group relationship using UUIDs
-            let userGroup = try await userGroupService.createUserGroup(
+            let newGroup = try await groupRepository.createGroup(name: name, currency: currency)
+            let userGroup = try await userGroupRepository.createUserGroup(
                 userId: currentUser.id,
                 groupId: newGroup.id,
                 role: "owner"
             )
-
-            // Update local state
             userGroups.append(userGroup)
             groups.append(newGroup)
-
             isLoading = false
             return true
         } catch {
@@ -111,31 +99,25 @@ class UserDetailViewModel: ObservableObject {
         }
     }
 
-    /// Check if group name exists
     func groupExists(withName name: String) async -> Bool {
+        guard let currentUser = user else { return false }
         do {
-            return try await groupService.groupExists(withName: name, excluding: nil)
+            let existing = try await groupRepository.fetchGroups(forUserId: currentUser.id)
+            return existing.contains { $0.name.lowercased() == name.lowercased() }
         } catch {
-            errorMessage = "Error checking group name: \(error.localizedDescription)"
             return false
         }
     }
 
-    /// Get groups count for the user
-    /// ✅ REFACTORED: Uses Domain models
     func getGroupsCount() async -> Int {
-        guard let user = user else { return 0 }
-
+        guard let user else { return 0 }
         do {
-            let userGroups = try await userGroupService.getUserGroups(forUserId: user.id)
-            return userGroups.count
+            return try await userGroupRepository.fetchUserGroups(forUserId: user.id).count
         } catch {
-            errorMessage = "Error getting groups count: \(error.localizedDescription)"
             return 0
         }
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }

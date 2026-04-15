@@ -5,7 +5,6 @@
 //  Created by Dennis Chicaiza A on 11/8/25.
 //
 
-import CoreData
 import SwiftUI
 
 struct AddUserView: View {

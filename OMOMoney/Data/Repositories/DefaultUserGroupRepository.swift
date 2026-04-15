@@ -1,96 +1,115 @@
-//
-//  DefaultUserGroupRepository.swift
-//  OMOMoney
-//
-//  Created on 11/18/25.
-//  ⚠️ TEMPORARY: UserGroupService still uses Core Data entities
-//
-
-import CoreData
 import Foundation
+import SwiftData
 
-/// Default implementation of UserGroupRepository
-/// Wraps UserGroupService and converts between Core Data and Domain models
-/// ⚠️ TEMPORARY: Needs context until UserGroupService is refactored
 final class DefaultUserGroupRepository: UserGroupRepository {
+    private let context: ModelContext
 
-    // MARK: - Properties
-
-    private let userGroupService: UserGroupServiceProtocol
-    private let userService: UserServiceProtocol
-    private let groupService: GroupServiceProtocol
-    private let context: NSManagedObjectContext
-
-    // MARK: - Initialization
-
-    init(
-        userGroupService: UserGroupServiceProtocol,
-        userService: UserServiceProtocol,
-        groupService: GroupServiceProtocol,
-        context: NSManagedObjectContext
-    ) {
-        self.userGroupService = userGroupService
-        self.userService = userService
-        self.groupService = groupService
+    init(context: ModelContext) {
         self.context = context
     }
-    
-    // MARK: - UserGroupRepository Implementation
-    
+
     func fetchUserGroups() async throws -> [UserGroupDomain] {
-    // Note: In a real app, you might want to fetch all UserGroup entities
-    // For now, this is not commonly used as we usually fetch by user or group
-    fatalError("Not implemented")
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDUserGroup>()
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
-    
+
     func fetchUserGroup(id: UUID) async throws -> UserGroupDomain? {
-        // ✅ Service already returns UserGroupDomain
-        return try await userGroupService.fetchUserGroup(by: id)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDUserGroup>(predicate: #Predicate { $0.id == targetId })
+            return try context.fetch(descriptor).first?.toDomain()
+        }
     }
-    
+
     func fetchUserGroups(forUserId userId: UUID) async throws -> [UserGroupDomain] {
-        // ✅ Service already accepts UUID and returns Domain models
-        return try await userGroupService.getUserGroups(forUserId: userId)
+        try await MainActor.run {
+            let targetUserId = userId
+            let descriptor = FetchDescriptor<SDUserGroup>(
+                predicate: #Predicate { $0.user?.id == targetUserId }
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
-    
+
     func fetchUserGroups(forGroupId groupId: UUID) async throws -> [UserGroupDomain] {
-        // ✅ Service already accepts UUID and returns Domain models
-        return try await userGroupService.getUserGroups(forGroupId: groupId)
+        try await MainActor.run {
+            let targetGroupId = groupId
+            let descriptor = FetchDescriptor<SDUserGroup>(
+                predicate: #Predicate { $0.group?.id == targetGroupId }
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
-    
-    func createUserGroup(
-        userId: UUID,
-        groupId: UUID,
-        role: String
-    ) async throws -> UserGroupDomain {
-        // ✅ Service already accepts UUIDs and returns Domain model
-        return try await userGroupService.createUserGroup(
-            userId: userId,
-            groupId: groupId,
-            role: role
-        )
+
+    func createUserGroup(userId: UUID, groupId: UUID, role: String) async throws -> UserGroupDomain {
+        try await MainActor.run {
+            let userGroup = SDUserGroup(role: role)
+
+            let targetUserId = userId
+            let userDescriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetUserId })
+            userGroup.user = try context.fetch(userDescriptor).first
+
+            let targetGroupId = groupId
+            let groupDescriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetGroupId })
+            userGroup.group = try context.fetch(groupDescriptor).first
+
+            context.insert(userGroup)
+            try context.save()
+            return userGroup.toDomain()
+        }
     }
-    
+
     func updateUserGroup(_ userGroup: UserGroupDomain) async throws {
-        // ✅ Service accepts UUID parameter
-        try await userGroupService.updateUserGroup(
-            userGroupId: userGroup.id,
-            role: userGroup.role
-        )
+        try await MainActor.run {
+            let targetId = userGroup.id
+            let descriptor = FetchDescriptor<SDUserGroup>(predicate: #Predicate { $0.id == targetId })
+            guard let existing = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            existing.role = userGroup.role
+            try context.save()
+        }
     }
 
     func deleteUserGroup(id: UUID) async throws {
-        // ✅ Service accepts UUID parameter
-        try await userGroupService.deleteUserGroup(userGroupId: id)
-    }
-    
-    func removeUser(_ userId: UUID, fromGroup groupId: UUID) async throws {
-        // ✅ Service accepts UUIDs and returns Domain models
-        let userGroups = try await userGroupService.getUserGroups(forUserId: userId)
-        guard let userGroupToRemove = userGroups.first(where: { $0.groupId == groupId }) else {
-            throw RepositoryError.notFound
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDUserGroup>(predicate: #Predicate { $0.id == targetId })
+            guard let userGroup = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(userGroup)
+            try context.save()
         }
+    }
 
-        try await userGroupService.deleteUserGroup(userGroupId: userGroupToRemove.id)
+    func removeUser(_ userId: UUID, fromGroup groupId: UUID) async throws {
+        try await MainActor.run {
+            let targetUserId = userId
+            let targetGroupId = groupId
+            let descriptor = FetchDescriptor<SDUserGroup>(
+                predicate: #Predicate { $0.user?.id == targetUserId && $0.group?.id == targetGroupId }
+            )
+            guard let userGroup = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(userGroup)
+            try context.save()
+        }
+    }
+}
+
+// MARK: - Domain mapping
+private extension SDUserGroup {
+    func toDomain() -> UserGroupDomain {
+        UserGroupDomain(
+            id: id,
+            userId: user?.id ?? UUID(),
+            groupId: group?.id ?? UUID(),
+            role: role,
+            joinedAt: joinedAt
+        )
     }
 }

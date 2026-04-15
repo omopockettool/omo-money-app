@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreData
 
 struct CreateFirstUserView: View {
     @Binding var isPresented: Bool

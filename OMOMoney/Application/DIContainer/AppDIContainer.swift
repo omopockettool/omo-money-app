@@ -1,82 +1,44 @@
-//
-//  AppDIContainer.swift
-//  OMOMoney
-//
-//  Created on 11/18/25.
-//
-
 import Foundation
-import CoreData
+import SwiftData
 
 /// Main Dependency Injection Container for the application
-/// Centralizes the creation and management of dependencies
+/// Phase 3: Services replaced — repositories use ModelContext directly
+@MainActor
 final class AppDIContainer {
-    
+
     // MARK: - Singleton
-    
+
     static let shared = AppDIContainer()
-    
-    private init() {}
-    
-    // MARK: - Core Data Stack
-    
-    lazy var persistenceController: PersistenceController = {
-        return PersistenceController.shared
-    }()
-    
-    private var viewContext: NSManagedObjectContext {
-        persistenceController.container.viewContext
-    }
-    
-    // MARK: - Services
-    
-    lazy var userService: UserServiceProtocol = {
-        return UserService(context: viewContext)
-    }()
-    
-    lazy var groupService: GroupServiceProtocol = {
-        return GroupService(context: viewContext)
-    }()
-    
-    lazy var categoryService: CategoryServiceProtocol = {
-        return CategoryService(context: viewContext)
-    }()
-    
-    lazy var paymentMethodService: PaymentMethodServiceProtocol = {
-        return PaymentMethodService(context: viewContext)
-    }()
-    
-    lazy var itemListService: ItemListServiceProtocol = {
-        return ItemListService(context: viewContext)
-    }()
-    
-    lazy var itemService: ItemServiceProtocol = {
-        return ItemService(context: viewContext)
-    }()
-    
-    lazy var userGroupService: UserGroupServiceProtocol = {
-        return UserGroupService(context: viewContext)
-    }()
-    
+
+    // MARK: - SwiftData Context
+
+    private let context: ModelContext
+
     // MARK: - Repositories
 
-    lazy var itemListRepository: ItemListRepository = {
-        return DefaultItemListRepository(itemListService: itemListService, context: viewContext)
-    }()
+    let userRepository: UserRepository
+    let groupRepository: GroupRepository
+    let categoryRepository: CategoryRepository
+    let paymentMethodRepository: PaymentMethodRepository
+    let itemListRepository: ItemListRepository
+    let itemRepository: ItemRepository
+    let userGroupRepository: UserGroupRepository
 
-    lazy var itemRepository: ItemRepository = {
-        return DefaultItemRepository(itemService: itemService, context: viewContext)
-    }()
+    // MARK: - Init
 
-    lazy var categoryRepository: CategoryRepository = {
-        return DefaultCategoryRepository(categoryService: categoryService)
-    }()
-
-    lazy var paymentMethodRepository: PaymentMethodRepository = {
-        return DefaultPaymentMethodRepository(paymentMethodService: paymentMethodService)
-    }()
+    private init() {
+        context = ModelContainer.shared.mainContext
+        userRepository = DefaultUserRepository(context: context)
+        groupRepository = DefaultGroupRepository(context: context)
+        categoryRepository = DefaultCategoryRepository(context: context)
+        paymentMethodRepository = DefaultPaymentMethodRepository(context: context)
+        itemListRepository = DefaultItemListRepository(context: context)
+        itemRepository = DefaultItemRepository(context: context)
+        userGroupRepository = DefaultUserGroupRepository(context: context)
+    }
 
     // MARK: - ItemList Use Cases
+
     func makeCreateItemListUseCase() -> CreateItemListUseCase {
         DefaultCreateItemListUseCase(itemListRepository: itemListRepository)
     }
@@ -89,7 +51,9 @@ final class AppDIContainer {
     func makeDeleteItemListUseCase() -> DeleteItemListUseCase {
         DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
     }
+
     // MARK: - Item Use Cases
+
     func makeCreateItemUseCase() -> CreateItemUseCase {
         DefaultCreateItemUseCase(itemRepository: itemRepository)
     }
@@ -110,6 +74,7 @@ final class AppDIContainer {
     }
 
     // MARK: - Category Use Cases
+
     func makeFetchCategoriesUseCase() -> FetchCategoriesUseCase {
         DefaultFetchCategoriesUseCase(categoryRepository: categoryRepository)
     }
@@ -124,6 +89,7 @@ final class AppDIContainer {
     }
 
     // MARK: - PaymentMethod Use Cases
+
     func makeFetchPaymentMethodsUseCase() -> FetchPaymentMethodsUseCase {
         DefaultFetchPaymentMethodsUseCase(paymentMethodRepository: paymentMethodRepository)
     }
@@ -138,6 +104,7 @@ final class AppDIContainer {
     }
 
     // MARK: - User Use Cases
+
     func makeGetCurrentUserUseCase() -> GetCurrentUserUseCase {
         DefaultGetCurrentUserUseCase(userRepository: userRepository)
     }
@@ -152,6 +119,7 @@ final class AppDIContainer {
     }
 
     // MARK: - Group Use Cases
+
     func makeCreateGroupUseCase() -> CreateGroupUseCase {
         DefaultCreateGroupUseCase(groupRepository: groupRepository)
     }
@@ -160,47 +128,25 @@ final class AppDIContainer {
     }
 
     // MARK: - UserGroup Use Cases
+
     func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
         DefaultCreateUserGroupUseCase(userGroupRepository: userGroupRepository)
     }
 
-    lazy var userRepository: UserRepository = {
-        return DefaultUserRepository(userService: userService)
-    }()
-    
-    lazy var groupRepository: GroupRepository = {
-        return DefaultGroupRepository(
-            groupService: groupService,
-            userGroupService: userGroupService,
-            context: viewContext
-        )
-    }()
-    
-    lazy var userGroupRepository: UserGroupRepository = {
-        return DefaultUserGroupRepository(
-            userGroupService: userGroupService,
-            userService: userService,
-            groupService: groupService,
-            context: viewContext
-        )
-    }()
-    
-    // MARK: - Scene DIContainers
-    
+    // MARK: - Scene DI Containers
+
     func makeUserSceneDIContainer() -> UserSceneDIContainer {
-        let dependencies = UserSceneDIContainer.Dependencies(
+        UserSceneDIContainer(dependencies: .init(
             userRepository: userRepository,
             groupRepository: groupRepository,
             userGroupRepository: userGroupRepository
-        )
-        return UserSceneDIContainer(dependencies: dependencies)
+        ))
     }
-    
+
     func makeGroupSceneDIContainer() -> GroupSceneDIContainer {
-        let dependencies = GroupSceneDIContainer.Dependencies(
+        GroupSceneDIContainer(dependencies: .init(
             groupRepository: groupRepository,
             userRepository: userRepository
-        )
-        return GroupSceneDIContainer(dependencies: dependencies)
+        ))
     }
 }

@@ -1,38 +1,46 @@
-//
-//  DefaultPaymentMethodRepository.swift
-//  OMOMoney
-//
-//  Created on 12/23/25.
-//  ✅ Clean Architecture: Thin wrapper - Service returns Domain models directly
-//
-
 import Foundation
+import SwiftData
 
 final class DefaultPaymentMethodRepository: PaymentMethodRepository {
-    private let paymentMethodService: PaymentMethodServiceProtocol
+    private let context: ModelContext
 
-    init(paymentMethodService: PaymentMethodServiceProtocol) {
-        self.paymentMethodService = paymentMethodService
+    init(context: ModelContext) {
+        self.context = context
     }
 
     func fetchPaymentMethods() async throws -> [PaymentMethodDomain] {
-        // TODO: Need PaymentMethodService method to fetch all payment methods
-        throw RepositoryError.notFound
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDPaymentMethod>()
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func fetchPaymentMethod(id: UUID) async throws -> PaymentMethodDomain? {
-        // Simple passthrough - Service returns Domain model directly
-        return try await paymentMethodService.fetchPaymentMethod(by: id)
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
+            return try context.fetch(descriptor).first?.toDomain()
+        }
     }
 
     func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [PaymentMethodDomain] {
-        // Simple passthrough - Service returns Domain models directly
-        return try await paymentMethodService.getPaymentMethods(forGroupId: groupId)
+        try await MainActor.run {
+            let targetGroupId = groupId
+            let descriptor = FetchDescriptor<SDPaymentMethod>(
+                predicate: #Predicate { $0.group?.id == targetGroupId },
+                sortBy: [SortDescriptor(\.name)]
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func fetchActivePaymentMethods() async throws -> [PaymentMethodDomain] {
-        // TODO: Need to fetch active payment methods for all groups
-        throw RepositoryError.notFound
+        try await MainActor.run {
+            let descriptor = FetchDescriptor<SDPaymentMethod>(
+                predicate: #Predicate { $0.isActive }
+            )
+            return try context.fetch(descriptor).map { $0.toDomain() }
+        }
     }
 
     func createPaymentMethod(
@@ -44,35 +52,70 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         isDefault: Bool,
         groupId: UUID?
     ) async throws -> PaymentMethodDomain {
-        guard let groupId = groupId else {
-            throw NSError(domain: "DefaultPaymentMethodRepository", code: 1, userInfo: [NSLocalizedDescriptionKey: "groupId is required"])
+        try await MainActor.run {
+            let pm = SDPaymentMethod(
+                name: name,
+                type: type,
+                icon: icon,
+                color: color,
+                isActive: isActive,
+                isDefault: isDefault
+            )
+            if let groupId {
+                let targetId = groupId
+                let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
+                pm.group = try context.fetch(descriptor).first
+            }
+            context.insert(pm)
+            try context.save()
+            return pm.toDomain()
         }
+    }
 
-        // Simple passthrough - Service returns Domain model directly
-        return try await paymentMethodService.createPaymentMethod(
+    func updatePaymentMethod(_ paymentMethod: PaymentMethodDomain) async throws {
+        try await MainActor.run {
+            let targetId = paymentMethod.id
+            let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
+            guard let existing = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            existing.name = paymentMethod.name
+            existing.type = paymentMethod.type
+            existing.icon = paymentMethod.icon
+            existing.color = paymentMethod.color
+            existing.isActive = paymentMethod.isActive
+            existing.lastModifiedAt = Date()
+            try context.save()
+        }
+    }
+
+    func deletePaymentMethod(id: UUID) async throws {
+        try await MainActor.run {
+            let targetId = id
+            let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
+            guard let pm = try context.fetch(descriptor).first else {
+                throw RepositoryError.notFound
+            }
+            context.delete(pm)
+            try context.save()
+        }
+    }
+}
+
+// MARK: - Domain mapping
+private extension SDPaymentMethod {
+    func toDomain() -> PaymentMethodDomain {
+        PaymentMethodDomain(
+            id: id,
             name: name,
             type: type,
             icon: icon,
             color: color,
             isActive: isActive,
             isDefault: isDefault,
-            groupId: groupId
+            groupId: group?.id,
+            createdAt: createdAt,
+            lastModifiedAt: lastModifiedAt
         )
-    }
-
-    func updatePaymentMethod(_ paymentMethod: PaymentMethodDomain) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await paymentMethodService.updatePaymentMethod(
-            paymentMethodId: paymentMethod.id,
-            name: paymentMethod.name,
-            type: paymentMethod.type,
-            icon: paymentMethod.icon,
-            isActive: paymentMethod.isActive
-        )
-    }
-
-    func deletePaymentMethod(id: UUID) async throws {
-        // Simple passthrough - Service accepts UUID parameter
-        try await paymentMethodService.deletePaymentMethod(paymentMethodId: id)
     }
 }

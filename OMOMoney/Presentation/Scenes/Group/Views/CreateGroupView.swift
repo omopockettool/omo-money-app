@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CoreData
 
 /// Vista para crear un nuevo grupo
 /// ✅ Clean Architecture: Uses Use Cases, no direct Core Data access

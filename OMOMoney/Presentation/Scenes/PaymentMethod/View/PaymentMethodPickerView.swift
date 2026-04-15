@@ -1,22 +1,17 @@
 import SwiftUI
-import CoreData
+import SwiftData
 
-/// ✅ REFACTORED: Uses PaymentMethodDomain
 struct PaymentMethodPickerView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var viewContext
 
     @Binding var selectedPaymentMethod: PaymentMethodDomain?
-    let group: Group
+    let groupId: UUID
 
     @StateObject private var viewModel: PaymentMethodPickerViewModel
 
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, group: Group, context: NSManagedObjectContext) {
+    init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
-        self.group = group
-
-        // Use convenience initializer that gets Use Cases from DI Container
+        self.groupId = groupId
         self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel())
     }
 
@@ -94,7 +89,6 @@ struct PaymentMethodPickerView: View {
             }
         }
         .task {
-            guard let groupId = group.id else { return }
             await viewModel.loadAvailablePaymentMethods(forGroupId: groupId)
         }
     }
@@ -214,30 +208,9 @@ struct PaymentMethodRow: View {
 // MARK: - Preview
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    
-    let group = Group(context: context)
-    group.id = UUID()
-    group.name = "Test Group"
-    group.currency = "USD"
-    
-    let paymentMethod1 = PaymentMethod(context: context)
-    paymentMethod1.id = UUID()
-    paymentMethod1.name = "Tarjeta Visa"
-    paymentMethod1.type = "card"
-    paymentMethod1.isActive = true
-    paymentMethod1.group = group
-    
-    let paymentMethod2 = PaymentMethod(context: context)
-    paymentMethod2.id = UUID()
-    paymentMethod2.name = "Efectivo"
-    paymentMethod2.type = "cash"
-    paymentMethod2.isActive = true
-    paymentMethod2.group = group
-    
-    return PaymentMethodPickerView(
+    PaymentMethodPickerView(
         selectedPaymentMethod: .constant(nil),
-        group: group,
-        context: context
+        groupId: UUID()
     )
+    .modelContainer(ModelContainer.preview)
 }

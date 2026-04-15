@@ -1,14 +1,12 @@
-import CoreData
 import SwiftUI
+import SwiftData
 
 struct UserListView: View {
-    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: UserListViewModel
     @State private var showingAddUser = false
     @State private var navigationPath = NavigationPath()
-    
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(context: NSManagedObjectContext) {
+
+    init() {
         self._viewModel = StateObject(wrappedValue: UserListViewModel())
     }
     
@@ -38,7 +36,7 @@ struct UserListView: View {
                     .animation(AnimationHelper.slide, value: showingAddUser)
             }
             .navigationDestination(for: UserDomain.self) { user in
-                EditUserView(user: user, context: viewContext)
+                EditUserView(user: user)
                     .transition(.asymmetric(
                         insertion: .move(edge: .trailing),
                         removal: .move(edge: .leading)
@@ -154,5 +152,6 @@ struct UserListView: View {
 }
 
 #Preview {
-    UserListView(context: PersistenceController.preview.container.viewContext)
+    UserListView()
+        .modelContainer(ModelContainer.preview)
 }
