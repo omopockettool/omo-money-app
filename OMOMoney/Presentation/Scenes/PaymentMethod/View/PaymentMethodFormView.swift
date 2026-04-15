@@ -65,6 +65,8 @@ struct PaymentMethodFormView: View {
                                     Text(typeName(type))
                                         .font(.subheadline.weight(.medium))
                                         .foregroundStyle(selectedType == type ? .white : .primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                     Spacer()
                                 }
                                 .padding(AppConstants.UserInterface.padding)
