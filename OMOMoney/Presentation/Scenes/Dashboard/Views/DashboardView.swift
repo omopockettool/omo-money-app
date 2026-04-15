@@ -498,8 +498,9 @@ struct DashboardView: View {
             }
         }
         .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, AppConstants.UserInterface.smallPadding)
-        .background(Color(.systemBackground))
+        .padding(.top, AppConstants.UserInterface.smallPadding)
+        .padding(.bottom, AppConstants.UserInterface.smallPadding)
+        .background(Color(.systemBackground).ignoresSafeArea(edges: .bottom))
     }
 
     // MARK: - Debug Helper

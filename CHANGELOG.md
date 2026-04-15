@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.42.1] - 2026-04-15
+
+### Fixed
+- **Bottom controls background bleed** — `TotalSpentCardView` + group chips background now extends into the bottom safe area via `ignoresSafeArea(edges: .bottom)`; previously the day panel closing animation revealed a transparent gap at the screen bottom edge behind the controls
+
+---
+
 ## [0.42.0] - 2026-04-14
 
 ### Changed
