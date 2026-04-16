@@ -7,35 +7,34 @@ struct PaymentMethodPickerView: View {
     @Binding var selectedPaymentMethod: SDPaymentMethod?
     let groupId: UUID
 
-    @State private var viewModel: PaymentMethodPickerViewModel
+    @Query(sort: \SDPaymentMethod.name) private var allPaymentMethods: [SDPaymentMethod]
+
+    private var availablePaymentMethods: [SDPaymentMethod] {
+        allPaymentMethods.filter { $0.group?.id == groupId && $0.isActive }
+    }
+
+    private var groupedPaymentMethods: [String: [SDPaymentMethod]] {
+        Dictionary(grouping: availablePaymentMethods) { $0.type }
+    }
 
     init(selectedPaymentMethod: Binding<SDPaymentMethod?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.groupId = groupId
-        self._viewModel = State(wrappedValue: PaymentMethodPickerViewModel())
     }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                if viewModel.isLoading {
-                    VStack {
-                        ProgressView()
-                        Text("Cargando métodos de pago...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.availablePaymentMethods.isEmpty {
+                if availablePaymentMethods.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "creditcard.slash")
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
-                        
+
                         Text("No hay métodos de pago")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         Text("Crea un método de pago en la configuración del grupo")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -43,7 +42,6 @@ struct PaymentMethodPickerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Payment Methods List
                     List {
                         ForEach(groupedPaymentMethods.keys.sorted(), id: \.self) { type in
                             Section(header: Text(paymentMethodTypeDisplayName(type))) {
@@ -70,7 +68,7 @@ struct PaymentMethodPickerView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Ninguno") {
                         selectedPaymentMethod = nil
@@ -79,30 +77,8 @@ struct PaymentMethodPickerView: View {
                 }
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.clearError()
-            }
-        } message: {
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-            }
-        }
-        .task {
-            await viewModel.loadAvailablePaymentMethods(forGroupId: groupId)
-        }
     }
 
-    // MARK: - Computed Properties
-
-    private var groupedPaymentMethods: [String: [SDPaymentMethod]] {
-        Dictionary(grouping: viewModel.availablePaymentMethods) { paymentMethod in
-            paymentMethod.type
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
         case "card":
@@ -121,7 +97,6 @@ struct PaymentMethodPickerView: View {
 
 // MARK: - PaymentMethodRow
 
-/// ✅ REFACTORED: Uses SDPaymentMethod
 struct PaymentMethodRow: View {
     let paymentMethod: SDPaymentMethod
     let isSelected: Bool
@@ -129,7 +104,6 @@ struct PaymentMethodRow: View {
 
     var body: some View {
         HStack {
-            // Payment Method Icon
             Image(systemName: paymentMethodIcon(for: paymentMethod.type))
                 .font(.title2)
                 .foregroundColor(paymentMethodColor(for: paymentMethod.type))
@@ -144,9 +118,9 @@ struct PaymentMethodRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.blue)
@@ -158,7 +132,7 @@ struct PaymentMethodRow: View {
             onTap()
         }
     }
-    
+
     private func paymentMethodIcon(for type: String) -> String {
         switch type.lowercased() {
         case "card":
@@ -173,7 +147,7 @@ struct PaymentMethodRow: View {
             return "questionmark.circle.fill"
         }
     }
-    
+
     private func paymentMethodColor(for type: String) -> Color {
         switch type.lowercased() {
         case "card":
@@ -188,7 +162,7 @@ struct PaymentMethodRow: View {
             return .gray
         }
     }
-    
+
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
         case "card":

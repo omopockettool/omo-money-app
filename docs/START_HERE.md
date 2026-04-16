@@ -104,10 +104,10 @@ Infrastructure/
 - ✅ All Domain entity files deleted — 0 *Domain types in codebase (Phase 4 Step 4.2)
 - ✅ All 7 CoreData mapping files deleted (Phase 4 Step 4.2)
 - ✅ All use cases, repositories, ViewModels, and Views use SD* types directly
-- ⏳ @Query adoption in simple views (Phase 4 Step 4.3)
+- ✅ @Query adoption in picker views (Phase 4 Step 4.3) — CategoryPickerView + PaymentMethodPickerView now use @Query directly; 2 ViewModels deleted
 - ⏳ Liquid Glass UI (Phase 4 Step 4.4)
 
-**Active Phase:** Phase 4 — @Observable + Liquid Glass (Steps 4.3–4.4 remaining)
+**Active Phase:** Phase 4 — Step 4.4 (Liquid Glass UI) remaining
 
 ---
 
@@ -168,7 +168,7 @@ Fix at the lowest layer that makes sense. Don't cascade a change through all lay
 
 ---
 
-**Last Updated:** April 16, 2026
+**Last Updated:** April 16, 2026 (Step 4.3 complete)
 **Framework:** SwiftUI + SwiftData
 **iOS Version:** 26.1
 **Architecture:** Clean Architecture — SwiftData persistence, @Observable ViewModels (in progress)

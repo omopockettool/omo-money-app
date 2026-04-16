@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] - 2026-04-16
+
+### Changed
+- **`CategoryPickerView` migrated to `@Query`** — `CategoryPickerViewModel` deleted; view now uses `@Query(sort: \SDCategory.name)` with in-memory filter by `groupId`; `.task` fetch, `isLoading` spinner, and error state removed
+- **`PaymentMethodPickerView` migrated to `@Query`** — `PaymentMethodPickerViewModel` deleted; view now uses `@Query(sort: \SDPaymentMethod.name)` with in-memory filter by `groupId && isActive`; `.task` fetch, loading/error state removed
+- **`START_HERE.md` updated** — Phase 4 Step 4.3 marked complete
+
+### Removed
+- `Presentation/Scenes/Category/ViewModels/CategoryPickerViewModel.swift`
+- `Presentation/Scenes/PaymentMethod/ViewModels/PaymentMethodPickerViewModel.swift`
+
+---
+
 ## [1.0.5] - 2026-04-16
 
 ### Changed

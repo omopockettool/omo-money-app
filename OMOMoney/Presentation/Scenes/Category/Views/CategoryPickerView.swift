@@ -7,21 +7,21 @@ struct CategoryPickerView: View {
     @Binding var selectedCategoryId: UUID?
     let groupId: UUID
 
-    @State private var viewModel: CategoryPickerViewModel
+    @Query(sort: \SDCategory.name) private var allCategories: [SDCategory]
+
+    private var categories: [SDCategory] {
+        allCategories.filter { $0.group?.id == groupId }
+    }
 
     init(selectedCategoryId: Binding<UUID?>, groupId: UUID) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
-        self._viewModel = State(wrappedValue: CategoryPickerViewModel())
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if viewModel.isLoading {
-                    LoadingView(message: "Cargando categorías...")
-                        .padding()
-                } else if viewModel.categories.isEmpty {
+                if categories.isEmpty {
                     VStack(spacing: 16) {
                         Text("No hay categorías disponibles")
                             .font(.headline)
@@ -35,24 +35,21 @@ struct CategoryPickerView: View {
                     .padding()
                 } else {
                     List {
-                        ForEach(viewModel.categories, id: \.id) { category in
+                        ForEach(categories, id: \.id) { category in
                             Button(action: {
                                 selectedCategoryId = category.id
                                 dismiss()
                             }) {
                                 HStack {
-                                    // Category color indicator
                                     Circle()
                                         .fill(Color(hex: category.color) ?? Color.gray)
                                         .frame(width: 20, height: 20)
 
-                                    // Category name
                                     Text(category.name)
                                         .foregroundColor(.primary)
 
                                     Spacer()
 
-                                    // Selection indicator
                                     if selectedCategoryId == category.id {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
@@ -73,9 +70,6 @@ struct CategoryPickerView: View {
                     }
                 }
             }
-        }
-        .task {
-            await viewModel.loadCategories(forGroupId: groupId)
         }
     }
 }
