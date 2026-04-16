@@ -47,7 +47,7 @@ struct TotalSpentCardView: View {
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.vertical, 16)
-            .background(Color(.systemGray5))
+            .background(.regularMaterial)
             .overlay(
                 RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
                     .fill(flashColor)
@@ -55,7 +55,6 @@ struct TotalSpentCardView: View {
             )
             .cornerRadius(AppConstants.UserInterface.cornerRadius)
             .scaleEffect(cardScale)
-            .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PressHapticButtonStyle())
         .onAppear {

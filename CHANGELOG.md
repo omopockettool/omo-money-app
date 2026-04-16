@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] - 2026-04-16
+
+### Removed
+- **`Data/CoreData/` directory deleted** — `Persistence.swift`, `OMOMoney.xcdatamodeld`, and empty `Entities/` folder removed; none were referenced in `project.pbxproj` or called from any Swift file
+- **`SettingsView.swift` deleted** — legacy view using old `User` domain type; never referenced outside its own file; app uses `SettingsSheetView` exclusively
+- **`GroupSelectorView.swift` deleted** — legacy view using old `Group` domain type; never referenced outside its own file
+
+### Fixed
+- **`PerformanceMonitor.swift`** — removed stale `import CoreData`; the import was unused (no CoreData types referenced in the file)
+
+---
+
+## [1.0.7] - 2026-04-16
+
+### Changed
+- **Liquid Glass UI — Phase 4 Step 4.4** — Replaced flat/opaque backgrounds with SwiftUI materials across Dashboard; materials automatically render as Liquid Glass on iOS 26:
+  - `TotalSpentCardView`: `Color(.systemGray5)` → `.regularMaterial`, shadow removed
+  - `bottomControls` bar: `Color(.systemBackground)` → `.regularMaterial` (extends into safe area)
+  - `viewPickerBar` dropdown pill: `Color.accentColor.opacity(0.1)` → `.thinMaterial`
+  - Filter/search capsule: `Color(.systemGray5)` → `.thinMaterial`
+  - `dayListPanel` slide-up panel: `Color(.systemGray5)` → `.regularMaterial`, shadow softened (`opacity 0.15→0.08`, `radius 12→8`)
+- **`START_HERE.md` updated** — Phase 4 marked complete; all steps 4.1–4.4 checked off
+
+---
+
 ## [1.0.6] - 2026-04-16
 
 ### Changed

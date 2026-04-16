@@ -1,5 +1,4 @@
 import Foundation
-import CoreData
 
 /// Performance monitoring utility for OMOMoney app
 /// Tracks app performance metrics and provides insights

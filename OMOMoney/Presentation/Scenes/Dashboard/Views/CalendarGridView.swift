@@ -5,6 +5,7 @@
 
 import SwiftUI
 
+@available(iOS 26.0, *)
 struct CalendarGridView: View {
     let itemLists: [SDItemList]
     let itemListTotals: [UUID: Double]
@@ -132,17 +133,25 @@ struct CalendarGridView: View {
                     .foregroundColor(.primary)
                     .frame(width: 44, height: 44)
             }
+            .glassEffect(.regular.interactive(), in: .circle)
+            .buttonStyle(.plain)
+            
             Spacer()
+            
             Text(monthTitle)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
+            
             Spacer()
+            
             Button { changeMonth(by: 1) } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.primary)
                     .frame(width: 44, height: 44)
             }
+            .glassEffect(.regular.interactive(), in: .circle)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
         .padding(.vertical, AppConstants.UserInterface.smallPadding)
