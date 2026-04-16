@@ -2,12 +2,12 @@ import SwiftUI
 import SwiftData
 
 struct UserListView: View {
-    @StateObject private var viewModel: UserListViewModel
+    @State private var viewModel: UserListViewModel
     @State private var showingAddUser = false
     @State private var navigationPath = NavigationPath()
 
     init() {
-        self._viewModel = StateObject(wrappedValue: UserListViewModel())
+        self._viewModel = State(wrappedValue: UserListViewModel())
     }
     
     var body: some View {

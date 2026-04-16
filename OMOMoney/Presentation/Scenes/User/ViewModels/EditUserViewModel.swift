@@ -4,14 +4,16 @@ import Foundation
 /// Handles user editing form and validation
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class EditUserViewModel: ObservableObject {
+
+@Observable
+class EditUserViewModel {
 
     // MARK: - Published Properties
-    @Published var name = ""
-    @Published var email = ""
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var shouldNavigateBack = false
+    var name = ""
+    var email = ""
+    var isLoading = false
+    var errorMessage: String?
+    var shouldNavigateBack = false
 
     // MARK: - Computed Properties
     var userCreatedAt: Date? {

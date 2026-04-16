@@ -8,20 +8,20 @@
 import SwiftUI
 
 struct AddUserView: View {
-    @StateObject private var viewModel: CreateUserViewModel
+    @State private var viewModel: CreateUserViewModel
     @Binding var navigationPath: NavigationPath
     
     @State private var name = ""
     @State private var email = ""
     
     init(navigationPath: Binding<NavigationPath>) {
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel())
+        self._viewModel = State(wrappedValue: CreateUserViewModel())
         self._navigationPath = navigationPath
     }
     
     // For use in sheets where navigation is not needed
     init() {
-        self._viewModel = StateObject(wrappedValue: CreateUserViewModel())
+        self._viewModel = State(wrappedValue: CreateUserViewModel())
         self._navigationPath = .constant(NavigationPath())
     }
     

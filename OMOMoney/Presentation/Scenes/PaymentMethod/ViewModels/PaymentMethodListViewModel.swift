@@ -4,12 +4,14 @@ import Foundation
 /// Handles payment method list display and management
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class PaymentMethodListViewModel: ObservableObject {
+
+@Observable
+class PaymentMethodListViewModel {
 
     // MARK: - Published Properties
-    @Published var paymentMethods: [PaymentMethodDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var paymentMethods: [PaymentMethodDomain] = []
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Use Cases
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase

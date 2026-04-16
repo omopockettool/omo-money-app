@@ -10,13 +10,15 @@ import SwiftUI
 
 /// ✅ Clean Architecture: Works with Domain models only
 @MainActor
-class ItemListDetailViewModel: ObservableObject {
+
+@Observable
+class ItemListDetailViewModel {
 
     // MARK: - Published Properties
     // ✅ Clean Architecture: Store Domain models, not Core Data entities
-    @Published var items: [ItemDomain] = []
-    @Published var isLoading = true
-    @Published var errorMessage: String?
+    var items: [ItemDomain] = []
+    var isLoading = true
+    var errorMessage: String?
 
     // MARK: - Use Cases
     private let fetchItemsUseCase: FetchItemsUseCase
@@ -99,7 +101,7 @@ class ItemListDetailViewModel: ObservableObject {
 
             // ✅ Use Domain models directly, no Core Data conversion needed
             items = itemDomains.sorted { $0.createdAt > $1.createdAt }
-            print("✅ [LOAD-ITEMS] Items sorted and assigned to @Published property")
+            print("✅ [LOAD-ITEMS] Items sorted and assigned to    property")
             print("🟡 [LOAD-ITEMS] Final items count: \(items.count)")
             isLoading = false
             print("🟡 [LOAD-ITEMS] ========================================")

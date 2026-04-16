@@ -7,12 +7,12 @@ struct CategoryPickerView: View {
     @Binding var selectedCategoryId: UUID?
     let groupId: UUID
 
-    @StateObject private var viewModel: CategoryPickerViewModel
+    @State private var viewModel: CategoryPickerViewModel
 
     init(selectedCategoryId: Binding<UUID?>, groupId: UUID) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
-        self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel())
+        self._viewModel = State(wrappedValue: CategoryPickerViewModel())
     }
 
     var body: some View {

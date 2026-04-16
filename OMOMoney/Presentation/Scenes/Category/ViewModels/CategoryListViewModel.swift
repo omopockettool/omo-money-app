@@ -4,12 +4,14 @@ import Foundation
 /// Handles category list display and management
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class CategoryListViewModel: ObservableObject {
+
+@Observable
+class CategoryListViewModel {
 
     // MARK: - Published Properties
-    @Published var categories: [CategoryDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var categories: [CategoryDomain] = []
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Use Cases
     private let fetchCategoriesUseCase: FetchCategoriesUseCase

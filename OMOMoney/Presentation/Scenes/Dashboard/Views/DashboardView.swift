@@ -39,7 +39,7 @@ struct ItemListDetailNavigationWrapper: View {
 }
 
 struct DashboardView: View {
-    @StateObject private var viewModel: DashboardViewModel
+    @State private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
     @State private var contentOpacity: Double = 0.0
     @State private var hasLoadedInitialData = false
@@ -53,7 +53,7 @@ struct DashboardView: View {
         // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
 
-        self._viewModel = StateObject(wrappedValue: DashboardViewModel(
+        self._viewModel = State(wrappedValue: DashboardViewModel(
             fetchItemListsUseCase: container.makeFetchItemListsUseCase(),
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             deleteItemListUseCase: container.makeDeleteItemListUseCase(),

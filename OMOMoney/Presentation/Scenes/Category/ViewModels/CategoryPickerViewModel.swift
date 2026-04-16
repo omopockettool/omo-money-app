@@ -3,12 +3,14 @@ import Foundation
 /// ViewModel for Category picker functionality
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-final class CategoryPickerViewModel: ObservableObject {
+
+@Observable
+final class CategoryPickerViewModel {
 
     // MARK: - Published Properties
-    @Published var categories: [CategoryDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var categories: [CategoryDomain] = []
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Dependencies
     private let fetchCategoriesUseCase: FetchCategoriesUseCase

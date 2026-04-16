@@ -2,12 +2,12 @@ import SwiftUI
 
 struct CreateFirstUserView: View {
     @Binding var isPresented: Bool
-    @StateObject private var viewModel: CreateFirstUserViewModel
+    @State private var viewModel: CreateFirstUserViewModel
     var onUserCreated: (() async -> Void)?
     
     init(isPresented: Binding<Bool>, onUserCreated: (() async -> Void)? = nil) {
         self._isPresented = isPresented
-        self._viewModel = StateObject(wrappedValue: CreateFirstUserViewModel())
+        self._viewModel = State(wrappedValue: CreateFirstUserViewModel())
         self.onUserCreated = onUserCreated
     }
     

@@ -3,15 +3,17 @@ import Foundation
 /// ViewModel for creating new users
 /// Uses Clean Architecture with Use Cases instead of direct Service calls
 @MainActor
-class CreateUserViewModel: ObservableObject {
+
+@Observable
+class CreateUserViewModel {
     
     // MARK: - Published Properties
     
-    @Published var name = ""
-    @Published var email = ""
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var shouldNavigateBack = false
+    var name = ""
+    var email = ""
+    var isLoading = false
+    var errorMessage: String?
+    var shouldNavigateBack = false
     
     // MARK: - Use Cases
     

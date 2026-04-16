@@ -7,12 +7,12 @@ struct PaymentMethodPickerView: View {
     @Binding var selectedPaymentMethod: PaymentMethodDomain?
     let groupId: UUID
 
-    @StateObject private var viewModel: PaymentMethodPickerViewModel
+    @State private var viewModel: PaymentMethodPickerViewModel
 
     init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.groupId = groupId
-        self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel())
+        self._viewModel = State(wrappedValue: PaymentMethodPickerViewModel())
     }
 
     var body: some View {

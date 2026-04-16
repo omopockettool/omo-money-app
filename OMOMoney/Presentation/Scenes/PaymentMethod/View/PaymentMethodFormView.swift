@@ -6,7 +6,7 @@ struct PaymentMethodFormView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = PaymentMethodListViewModel()
+    @State private var viewModel = PaymentMethodListViewModel()
 
     @State private var name = ""
     @State private var selectedType = "card_debit"

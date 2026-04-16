@@ -6,6 +6,22 @@
 
 ## ⚡ Critical Rules (NEVER VIOLATE)
 
+### 0. Build & Test Before EVERY Commit (NON-NEGOTIABLE)
+**NEVER stage or commit code without:**
+1. App builds successfully (Cmd+B, zero errors)
+2. App runs on device or simulator without crashes
+3. The changed feature has been manually tested
+
+```
+❌ "Looks good, let me commit" → WRONG
+✅ Build → Run → Test → THEN commit
+```
+
+> This rule exists because silent regressions hide in "obviously correct" refactors.
+> If you can't build/run right now, don't commit — stage the work and wait.
+
+---
+
 ### 1. Architecture Layers (Post-SwiftData)
 ```
 View → ViewModel → UseCase → Repository → ModelContext (SwiftData)
@@ -82,10 +98,13 @@ Infrastructure/
 - ✅ Service layer fully deleted (~2,700 lines removed)
 - ✅ All 7 repositories use ModelContext directly
 - ✅ 0 CoreData imports in Presentation layer
-- ⏳ Domain model files still exist (Phase 4 will delete them)
-- ⏳ ViewModels still use ObservableObject (Phase 4 → @Observable)
+- ✅ 14 ViewModels migrated to @Observable (Phase 4 Step 4.1)
+- ✅ 13 Views migrated to @State (Phase 4 Step 4.1)
+- ⏳ Domain model files still exist (Phase 4 Step 4.2)
+- ⏳ @Query adoption in simple views (Phase 4 Step 4.3)
+- ⏳ Liquid Glass UI (Phase 4 Step 4.4)
 
-**Active Phase:** Phase 4 — @Observable + Liquid Glass
+**Active Phase:** Phase 4 — @Observable + Liquid Glass (Step 4.2 next)
 
 ---
 
@@ -97,7 +116,7 @@ import CoreData                              // ❌ FORBIDDEN in Presentation
 let service = UserService(...)               // ❌ Services are DELETED
 NSFetchRequest<User>(...)                    // ❌ Use UseCases
 context.perform { }                          // ❌ No context in Presentation
-class VM: ObservableObject { @Published var } // ⚠️ Phase 4 target → @Observable
+class VM: ObservableObject { @Published var } // ❌ FORBIDDEN — use @Observable
 ```
 
 ---
@@ -108,7 +127,7 @@ class VM: ObservableObject { @Published var } // ⚠️ Phase 4 target → @Obse
 |---------|----------|
 | Persistence | SwiftData `ModelContext` via `ModelContainer.shared` |
 | DI | `AppDIContainer` (singleton, `@MainActor`) |
-| ViewModels | `ObservableObject` → migrating to `@Observable` (Phase 4) |
+| ViewModels | `@Observable` + `@MainActor` ✅ |
 | Data fetch | Repositories → UseCases → ViewModels / `@Query` in Views |
 | UI | SwiftUI, Liquid Glass materials (iOS 26) |
 | Testing device | Dennis's iPhone (iOS 26.1) `00008120-000A190218614032` |

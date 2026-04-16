@@ -4,14 +4,16 @@ import Foundation
 /// Handles user list display and management
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class UserListViewModel: ObservableObject {
+
+@Observable
+class UserListViewModel {
 
     // MARK: - Published Properties
-    @Published var users: [UserDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var hasMoreUsers = false
-    @Published var currentPage = 0
+    var users: [UserDomain] = []
+    var isLoading = false
+    var errorMessage: String?
+    var hasMoreUsers = false
+    var currentPage = 0
 
     // MARK: - Private Properties
     private let pageSize = 20

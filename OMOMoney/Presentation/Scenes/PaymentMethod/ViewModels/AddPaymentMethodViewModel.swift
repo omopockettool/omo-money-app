@@ -4,15 +4,17 @@ import Foundation
 /// Handles payment method creation and modification forms
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class AddPaymentMethodViewModel: ObservableObject {
+
+@Observable
+class AddPaymentMethodViewModel {
 
     // MARK: - Published Properties
-    @Published var name = ""
-    @Published var type = ""
-    @Published var isActive = true
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var validationErrors: [String: String] = [:]
+    var name = ""
+    var type = ""
+    var isActive = true
+    var isLoading = false
+    var errorMessage: String?
+    var validationErrors: [String: String] = [:]
 
     // MARK: - Private Properties
     private let createPaymentMethodUseCase: CreatePaymentMethodUseCase

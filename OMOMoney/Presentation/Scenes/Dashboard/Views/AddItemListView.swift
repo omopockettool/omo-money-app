@@ -7,7 +7,7 @@ struct AddItemListView: View {
     let onItemListUpdated: ((ItemListDomain) -> Void)?
     let onCancel: () -> Void
 
-    @StateObject private var viewModel: AddItemListViewModel
+    @State private var viewModel: AddItemListViewModel
     @FocusState private var focusedField: Field?
     @State private var showDatePicker = false
     @State private var showDetails = false
@@ -29,7 +29,7 @@ struct AddItemListView: View {
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
+        self._viewModel = State(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
     }
 
     // MARK: - Computed

@@ -6,7 +6,7 @@ struct CategoryFormView: View {
     let onSaved: (CategoryDomain) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = CategoryListViewModel()
+    @State private var viewModel = CategoryListViewModel()
 
     @State private var name = ""
     @State private var selectedColor = "#0A84FF"

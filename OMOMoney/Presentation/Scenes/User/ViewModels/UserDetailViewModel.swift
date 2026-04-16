@@ -1,15 +1,17 @@
 import Foundation
 
 @MainActor
-class UserDetailViewModel: ObservableObject {
+
+@Observable
+class UserDetailViewModel {
 
     // MARK: - Published Properties
 
-    @Published var user: UserDomain?
-    @Published var userGroups: [UserGroupDomain] = []
-    @Published var groups: [GroupDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var user: UserDomain?
+    var userGroups: [UserGroupDomain] = []
+    var groups: [GroupDomain] = []
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Repositories
 

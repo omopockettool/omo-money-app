@@ -4,13 +4,15 @@ import Foundation
 /// Handles payment method selection in forms and pickers
 /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class PaymentMethodPickerViewModel: ObservableObject {
+
+@Observable
+class PaymentMethodPickerViewModel {
 
     // MARK: - Published Properties
-    @Published var availablePaymentMethods: [PaymentMethodDomain] = []
-    @Published var selectedPaymentMethod: PaymentMethodDomain?
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var availablePaymentMethods: [PaymentMethodDomain] = []
+    var selectedPaymentMethod: PaymentMethodDomain?
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Private Properties
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase

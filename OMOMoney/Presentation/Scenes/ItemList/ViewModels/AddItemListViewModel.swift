@@ -3,20 +3,22 @@ import Foundation
 
 /// ✅ Clean Architecture: ViewModel works with Domain models only
 @MainActor
-final class AddItemListViewModel: ObservableObject {
+
+@Observable
+final class AddItemListViewModel {
 
     // MARK: - Published Properties
     // ✅ Clean Architecture: Use Domain models, not Core Data entities
-    @Published var categories: [CategoryDomain] = []
-    @Published var paymentMethods: [PaymentMethodDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var toast: ToastMessage?
-    @Published var description = ""
-    @Published var price = ""  // Optional price field - empty means no automatic item
-    @Published var date = Date()
-    @Published var selectedCategory: CategoryDomain?
-    @Published var selectedPaymentMethod: PaymentMethodDomain?
+    var categories: [CategoryDomain] = []
+    var paymentMethods: [PaymentMethodDomain] = []
+    var isLoading = false
+    var errorMessage: String?
+    var toast: ToastMessage?
+    var description = ""
+    var price = ""  // Optional price field - empty means no automatic item
+    var date = Date()
+    var selectedCategory: CategoryDomain?
+    var selectedPaymentMethod: PaymentMethodDomain?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase

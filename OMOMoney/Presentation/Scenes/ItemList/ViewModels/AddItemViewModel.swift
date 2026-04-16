@@ -8,14 +8,16 @@
 import Foundation
 
 @MainActor
-final class AddItemViewModel: ObservableObject {
+
+@Observable
+final class AddItemViewModel {
 
     // MARK: - Published Properties
-    @Published var description = ""
-    @Published var amount = ""
-    @Published var quantity = "1"
-    @Published var isSaving = false
-    @Published var errorMessage: String?
+    var description = ""
+    var amount = ""
+    var quantity = "1"
+    var isSaving = false
+    var errorMessage: String?
 
     // MARK: - Dependencies
     private let itemListId: UUID

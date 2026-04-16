@@ -3,7 +3,7 @@ import SwiftUI
 struct PaymentMethodManagementView: View {
     let group: GroupDomain
 
-    @StateObject private var viewModel = PaymentMethodListViewModel()
+    @State private var viewModel = PaymentMethodListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {

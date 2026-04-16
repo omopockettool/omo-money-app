@@ -4,16 +4,18 @@ import SwiftUI
 /// ViewModel for creating the first user when app is newly installed
 /// Uses Clean Architecture with Use Cases instead of direct Service calls
 @MainActor
-class CreateFirstUserViewModel: ObservableObject {
+
+@Observable
+class CreateFirstUserViewModel {
     
     // MARK: - Published Properties
     
-    @Published var name = ""
-    @Published var email = ""
-    @Published var isLoading = false
-    @Published var showError = false
-    @Published var errorMessage: String?
-    @Published var isSuccess = false
+    var name = ""
+    var email = ""
+    var isLoading = false
+    var showError = false
+    var errorMessage: String?
+    var isSuccess = false
     
     // MARK: - Use Cases
     

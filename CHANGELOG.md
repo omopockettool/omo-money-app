@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.4] - 2026-04-16
+
+### Changed
+- **14 ViewModels migrated to `@Observable`** — `ObservableObject` conformance and all `@Published` property wrappers removed; `@Observable` macro applied; affected ViewModels: `DashboardViewModel`, `AddItemListViewModel`, `ItemListDetailViewModel`, `AddItemViewModel`, `UserListViewModel`, `EditUserViewModel`, `CreateUserViewModel`, `CreateFirstUserViewModel`, `UserDetailViewModel`, `CategoryPickerViewModel`, `CategoryListViewModel`, `PaymentMethodPickerViewModel`, `PaymentMethodListViewModel`, `AddPaymentMethodViewModel`
+- **13 Views updated for `@Observable` ViewModels** — `@StateObject` → `@State`, `StateObject(wrappedValue:)` → `State(wrappedValue:)` in all `init` methods; affected Views: `DashboardView`, `AddItemListView`, `ItemListDetailView`, `UserListView`, `EditUserView`, `AddUserView`, `CreateFirstUserView`, `CategoryPickerView`, `CategoryManagementView`, `CategoryFormView`, `PaymentMethodPickerView`, `PaymentMethodManagementView`, `PaymentMethodFormView`
+- **`START_HERE.md` updated** — Added Rule 0: build and test before every commit; updated Phase 4 progress (Step 4.1 complete); `@Observable` marked as complete in stack table; `ObservableObject` moved to ❌ FORBIDDEN red flags
+
+---
+
 ## [1.0.3] - 2026-04-15
 
 ### Changed

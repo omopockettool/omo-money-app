@@ -14,7 +14,7 @@ struct ItemListDetailView: View {
     let group: GroupDomain
     let onItemListUpdated: ((ItemListDomain) -> Void)?
 
-    @StateObject private var viewModel: ItemListDetailViewModel
+    @State private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?
     @State private var hasLoadedInitialData = false
     @State private var currentItemList: ItemListDomain  // reactive source of truth for title/metadata
@@ -56,7 +56,7 @@ struct ItemListDetailView: View {
         // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
 
-        self._viewModel = StateObject(wrappedValue: ItemListDetailViewModel(
+        self._viewModel = State(wrappedValue: ItemListDetailViewModel(
             itemListDomain: itemListDomain,
             currencyCode: currencyCode,
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
@@ -341,7 +341,7 @@ struct AddItemView: View {
     let itemListDescription: String
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel: AddItemViewModel
+    @State private var viewModel: AddItemViewModel
     @FocusState private var focusedField: Field?
     @State private var displayedSubtotal: String = ""
     @State private var subtotalIsDecreasing: Bool = false
@@ -359,7 +359,7 @@ struct AddItemView: View {
         self.onItemSaved = onItemSaved
         self.currencyCode = currencyCode
         self.itemListDescription = itemListDescription
-        self._viewModel = StateObject(wrappedValue: AddItemViewModel(
+        self._viewModel = State(wrappedValue: AddItemViewModel(
             itemListId: itemListId,
             itemToEdit: itemToEdit,
             itemListDescription: itemListDescription,

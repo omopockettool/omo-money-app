@@ -16,33 +16,35 @@ enum ItemListPaidStatus {
 
 
 @MainActor
-class DashboardViewModel: ObservableObject {
+
+@Observable
+class DashboardViewModel {
 
     // MARK: - Published Properties
     // ✅ Clean Architecture: Store Domain models, not Core Data entities
-    @Published var itemLists: [ItemListDomain] = [] {
+    var itemLists: [ItemListDomain] = [] {
         didSet {
             // Update cached current month items whenever itemLists changes
             updateCurrentMonthCache()
         }
     }
-    @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
-    @Published var totalSpent: Double = 0.0
-    @Published var currentMonthTotal: Double = 0.0              // Cached month total (avoids inline filter during animation)
-    @Published var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
-    @Published var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
-    @Published var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
-    @Published var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]  // Derived paid state per ItemList
-    @Published var categories: [UUID: (name: String, color: String)] = [:]  // Category lookup for display
-    @Published var isLoading = false
-    @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
-    @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
-    @Published var errorMessage: String?
-    @Published var toast: ToastMessage?
-    @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
-    @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
-    @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
-    @Published var showingSettings = false
+    var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
+    var totalSpent: Double = 0.0
+    var currentMonthTotal: Double = 0.0              // Cached month total (avoids inline filter during animation)
+    var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
+    var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
+    var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
+    var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]  // Derived paid state per ItemList
+    var categories: [UUID: (name: String, color: String)] = [:]  // Category lookup for display
+    var isLoading = false
+    var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
+    var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
+    var errorMessage: String?
+    var toast: ToastMessage?
+    var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
+    var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
+    var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
+    var showingSettings = false
 
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase

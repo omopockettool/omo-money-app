@@ -9,17 +9,17 @@ import SwiftUI
 import SwiftData
 
 struct EditUserView: View {
-    @StateObject private var viewModel: EditUserViewModel
+    @State private var viewModel: EditUserViewModel
     @Binding var navigationPath: NavigationPath
 
     init(user: UserDomain, navigationPath: Binding<NavigationPath>) {
-        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
+        self._viewModel = State(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = navigationPath
     }
 
     /// For use in sheets where navigation is not needed
     init(user: UserDomain) {
-        self._viewModel = StateObject(wrappedValue: EditUserViewModel(user: user))
+        self._viewModel = State(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = .constant(NavigationPath())
     }
     

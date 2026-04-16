@@ -3,7 +3,7 @@ import SwiftUI
 struct CategoryManagementView: View {
     let group: GroupDomain
 
-    @StateObject private var viewModel = CategoryListViewModel()
+    @State private var viewModel = CategoryListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {
