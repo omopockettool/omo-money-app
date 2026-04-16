@@ -1,15 +1,12 @@
 import Foundation
 
-/// ViewModel for PaymentMethod list functionality
-/// Handles payment method list display and management
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
 class PaymentMethodListViewModel {
 
     // MARK: - Published Properties
-    var paymentMethods: [PaymentMethodDomain] = []
+    var paymentMethods: [SDPaymentMethod] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -32,7 +29,6 @@ class PaymentMethodListViewModel {
         self.deletePaymentMethodUseCase = deletePaymentMethodUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(
@@ -45,8 +41,6 @@ class PaymentMethodListViewModel {
 
     // MARK: - Public Methods
 
-    /// Load payment methods for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadPaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
@@ -60,8 +54,6 @@ class PaymentMethodListViewModel {
         isLoading = false
     }
 
-    /// Load only active payment methods for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadActivePaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
@@ -75,8 +67,6 @@ class PaymentMethodListViewModel {
         isLoading = false
     }
 
-    /// Load payment methods by type for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case with client-side filtering
     func loadPaymentMethods(forGroupId groupId: UUID, type: String) async {
         isLoading = true
         errorMessage = nil
@@ -91,8 +81,6 @@ class PaymentMethodListViewModel {
         isLoading = false
     }
 
-    /// Create a new payment method
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func createPaymentMethod(name: String, type: String, icon: String = "creditcard.fill", isActive: Bool = true, groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -118,33 +106,15 @@ class PaymentMethodListViewModel {
         }
     }
 
-    /// Update an existing payment method (used from form — takes existing domain as base)
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func updatePaymentMethod(_ existing: PaymentMethodDomain, name: String, type: String, icon: String) async -> Bool {
+    func updatePaymentMethod(_ existing: SDPaymentMethod, name: String, type: String, icon: String) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            let updatedMethod = PaymentMethodDomain(
-                id: existing.id,
-                name: name,
-                type: type,
-                icon: icon,
-                color: existing.color,
-                isActive: existing.isActive,
-                isDefault: existing.isDefault,
-                groupId: existing.groupId,
-                createdAt: existing.createdAt,
-                lastModifiedAt: Date()
-            )
-
-            try await updatePaymentMethodUseCase.execute(updatedMethod)
-
-            // Update local array if present
-            if let index = paymentMethods.firstIndex(where: { $0.id == existing.id }) {
-                paymentMethods[index] = updatedMethod
-            }
-
+            existing.name = name
+            existing.type = type
+            existing.icon = icon
+            try await updatePaymentMethodUseCase.execute(existing)
             isLoading = false
             return true
         } catch {
@@ -154,8 +124,6 @@ class PaymentMethodListViewModel {
         }
     }
 
-    /// Delete a payment method
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func deletePaymentMethod(paymentMethodId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -172,37 +140,19 @@ class PaymentMethodListViewModel {
         }
     }
 
-    /// Toggle active status of a payment method
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func toggleActiveStatus(paymentMethodId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
 
         do {
-            // Find current payment method
             guard let currentMethod = paymentMethods.first(where: { $0.id == paymentMethodId }) else {
                 errorMessage = "Payment method not found"
                 isLoading = false
                 return false
             }
 
-            // Create updated domain model with toggled status
-            let updatedMethod = PaymentMethodDomain(
-                id: currentMethod.id,
-                name: currentMethod.name,
-                type: currentMethod.type,
-                isActive: !currentMethod.isActive,
-                groupId: currentMethod.groupId,
-                createdAt: currentMethod.createdAt,
-                lastModifiedAt: Date()
-            )
-
-            try await updatePaymentMethodUseCase.execute(updatedMethod)
-
-            // Update local array
-            if let index = paymentMethods.firstIndex(where: { $0.id == paymentMethodId }) {
-                paymentMethods[index] = updatedMethod
-            }
+            currentMethod.isActive.toggle()
+            try await updatePaymentMethodUseCase.execute(currentMethod)
 
             isLoading = false
             return true
@@ -213,31 +163,25 @@ class PaymentMethodListViewModel {
         }
     }
 
-    /// Get payment methods count for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses loaded payment methods array
     func getPaymentMethodsCount(forGroupId groupId: UUID) async -> Int {
         return paymentMethods.count
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }
 
     // MARK: - Computed Properties
 
-    /// Get active payment methods only
-    var activePaymentMethods: [PaymentMethodDomain] {
+    var activePaymentMethods: [SDPaymentMethod] {
         return paymentMethods.filter { $0.isActive }
     }
 
-    /// Get inactive payment methods only
-    var inactivePaymentMethods: [PaymentMethodDomain] {
+    var inactivePaymentMethods: [SDPaymentMethod] {
         return paymentMethods.filter { !$0.isActive }
     }
 
-    /// Get payment methods grouped by type
-    var paymentMethodsByType: [String: [PaymentMethodDomain]] {
+    var paymentMethodsByType: [String: [SDPaymentMethod]] {
         return Dictionary(grouping: paymentMethods) { $0.type }
     }
 }

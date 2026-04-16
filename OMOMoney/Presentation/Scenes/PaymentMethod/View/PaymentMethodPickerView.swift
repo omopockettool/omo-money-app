@@ -4,12 +4,12 @@ import SwiftData
 struct PaymentMethodPickerView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @Binding var selectedPaymentMethod: PaymentMethodDomain?
+    @Binding var selectedPaymentMethod: SDPaymentMethod?
     let groupId: UUID
 
     @State private var viewModel: PaymentMethodPickerViewModel
 
-    init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, groupId: UUID) {
+    init(selectedPaymentMethod: Binding<SDPaymentMethod?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.groupId = groupId
         self._viewModel = State(wrappedValue: PaymentMethodPickerViewModel())
@@ -95,7 +95,7 @@ struct PaymentMethodPickerView: View {
 
     // MARK: - Computed Properties
 
-    private var groupedPaymentMethods: [String: [PaymentMethodDomain]] {
+    private var groupedPaymentMethods: [String: [SDPaymentMethod]] {
         Dictionary(grouping: viewModel.availablePaymentMethods) { paymentMethod in
             paymentMethod.type
         }
@@ -121,9 +121,9 @@ struct PaymentMethodPickerView: View {
 
 // MARK: - PaymentMethodRow
 
-/// ✅ REFACTORED: Uses PaymentMethodDomain
+/// ✅ REFACTORED: Uses SDPaymentMethod
 struct PaymentMethodRow: View {
-    let paymentMethod: PaymentMethodDomain
+    let paymentMethod: SDPaymentMethod
     let isSelected: Bool
     let onTap: () -> Void
 

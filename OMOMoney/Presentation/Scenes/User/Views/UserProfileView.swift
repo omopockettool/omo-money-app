@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct UserProfileView: View {
-    let user: UserDomain
-    let onUserUpdated: (UserDomain) -> Void
+    let user: SDUser
+    let onUserUpdated: (SDUser) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
@@ -78,10 +78,11 @@ struct UserProfileView: View {
         isLoading = true
         errorMessage = nil
 
-        let updated = UserDomain(id: user.id, name: trimmed, email: user.email, createdAt: user.createdAt, lastModifiedAt: Date())
+        user.name = trimmed
+        user.lastModifiedAt = Date()
         do {
-            try await updateUserUseCase.execute(user: updated)
-            onUserUpdated(updated)
+            try await updateUserUseCase.execute(user: user)
+            onUserUpdated(user)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

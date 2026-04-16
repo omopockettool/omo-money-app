@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// ✅ Clean Architecture: Works with Domain models only, no Core Data dependencies
 struct AddItemListView: View {
-    let group: GroupDomain
-    let onItemListCreated: (ItemListDomain) -> Void
-    let onItemListUpdated: ((ItemListDomain) -> Void)?
+    let group: SDGroup
+    let onItemListCreated: (SDItemList) -> Void
+    let onItemListUpdated: ((SDItemList) -> Void)?
     let onCancel: () -> Void
 
     @State private var viewModel: AddItemListViewModel
@@ -12,17 +11,17 @@ struct AddItemListView: View {
     @State private var showDatePicker = false
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
-    @State private var orderedCategories: [CategoryDomain] = []
-    @State private var orderedPaymentMethods: [PaymentMethodDomain] = []
+    @State private var orderedCategories: [SDCategory] = []
+    @State private var orderedPaymentMethods: [SDPaymentMethod] = []
 
     private enum Field { case description, price }
 
     init(
-        group: GroupDomain,
-        itemListToEdit: ItemListDomain? = nil,
+        group: SDGroup,
+        itemListToEdit: SDItemList? = nil,
         initialDate: Date? = nil,
-        onItemListCreated: @escaping (ItemListDomain) -> Void,
-        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        onItemListCreated: @escaping (SDItemList) -> Void,
+        onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onCancel: @escaping () -> Void
     ) {
         self.group = group
@@ -47,14 +46,14 @@ struct AddItemListView: View {
             .flatMap { UUID(uuidString: $0) }
     }
 
-    private func sortedCategories() -> [CategoryDomain] {
+    private func sortedCategories() -> [SDCategory] {
         viewModel.categories.sorted {
             chipRank($0.id, lastUsed: lastUsedCategoryIds) <
             chipRank($1.id, lastUsed: lastUsedCategoryIds)
         }
     }
 
-    private func sortedPaymentMethods() -> [PaymentMethodDomain] {
+    private func sortedPaymentMethods() -> [SDPaymentMethod] {
         viewModel.paymentMethods.sorted {
             chipRank($0.id, lastUsed: lastUsedNonDefaultPaymentMethodId) <
             chipRank($1.id, lastUsed: lastUsedNonDefaultPaymentMethodId)
@@ -71,17 +70,17 @@ struct AddItemListView: View {
 
     private static let gridCategoryLimit = 5
 
-    private var gridCategories: [CategoryDomain] {
+    private var gridCategories: [SDCategory] {
         orderedCategories.filter { !$0.isDefault }.prefix(Self.gridCategoryLimit).map { $0 }
     }
 
-    private var overflowCategories: [CategoryDomain] {
+    private var overflowCategories: [SDCategory] {
         let extra = orderedCategories.filter { !$0.isDefault }.dropFirst(Self.gridCategoryLimit)
         let defaults = orderedCategories.filter { $0.isDefault }
         return Array(extra) + defaults
     }
 
-    private func recordCategoryUsage(_ category: CategoryDomain) {
+    private func recordCategoryUsage(_ category: SDCategory) {
         var ids = lastUsedCategoryIds
         ids.removeAll { $0 == category.id }
         ids.insert(category.id, at: 0)
@@ -226,7 +225,7 @@ struct AddItemListView: View {
     }
 
     @ViewBuilder
-    private func categoryChip(_ category: CategoryDomain) -> some View {
+    private func categoryChip(_ category: SDCategory) -> some View {
         let isSelected = viewModel.selectedCategory?.id == category.id
         let chipColor = Color(hex: category.color) ?? Color.accentColor
         Button {
@@ -341,7 +340,6 @@ struct AddItemListView: View {
             }
         } label: {
             ZStack {
-                // Compacto
                 HStack(spacing: 8) {
                     Image(systemName: icon)
                         .font(.subheadline)
@@ -360,7 +358,6 @@ struct AddItemListView: View {
                 .opacity(showDetails ? 1 : 0)
                 .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
 
-                // Grande
                 VStack(spacing: 6) {
                     Image(systemName: icon)
                         .font(.title2)
@@ -508,7 +505,6 @@ struct AddItemListView: View {
 
     private var dateGroupCard: some View {
         VStack(spacing: 0) {
-            // Date row
             Button {
                 focusedField = nil
                 withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) {
@@ -549,7 +545,6 @@ struct AddItemListView: View {
             Divider()
                 .padding(.horizontal, AppConstants.UserInterface.padding)
 
-            // Group row
             HStack(spacing: 12) {
                 Image(systemName: "person.2.fill")
                     .foregroundStyle(Color.accentColor)
@@ -580,7 +575,7 @@ struct AddItemListView: View {
         }
     }
 
-    private func paymentMethodIcon(_ method: PaymentMethodDomain) -> String {
+    private func paymentMethodIcon(_ method: SDPaymentMethod) -> String {
         method.icon.isEmpty ? defaultIcon(for: method.type) : method.icon
     }
 
@@ -624,7 +619,7 @@ struct AddItemListView: View {
 
 
 #Preview {
-    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
+    let group = SDGroup.mock(name: "Casa", currency: "EUR")
     NavigationStack {
         AddItemListView(
             group: group,

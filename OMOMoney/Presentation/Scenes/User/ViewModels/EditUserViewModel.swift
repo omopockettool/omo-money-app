@@ -1,8 +1,5 @@
 import Foundation
 
-/// ViewModel for editing existing users
-/// Handles user editing form and validation
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
@@ -25,21 +22,19 @@ class EditUserViewModel {
     }
 
     // MARK: - Private Properties
-    private let user: UserDomain
+    private let user: SDUser
     private let updateUserUseCase: UpdateUserUseCase
 
     // MARK: - Initialization
-    init(user: UserDomain, updateUserUseCase: UpdateUserUseCase) {
+    init(user: SDUser, updateUserUseCase: UpdateUserUseCase) {
         self.user = user
         self.updateUserUseCase = updateUserUseCase
 
-        // Initialize form with current values
         self.name = user.name
         self.email = user.email
     }
 
-    /// Convenience initializer using DI Container
-    convenience init(user: UserDomain) {
+    convenience init(user: SDUser) {
         let appContainer = AppDIContainer.shared
         self.init(
             user: user,
@@ -49,31 +44,17 @@ class EditUserViewModel {
 
     // MARK: - Public Methods
 
-    /// Update the user
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func updateUser() async {
         guard validateInput() else { return }
-
-        // Additional async validation for name duplicates
         guard await validateNameAsync() else { return }
 
         isLoading = true
         errorMessage = nil
 
         do {
-            let nameToUse = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            let emailToUse = email.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Create updated UserDomain with all fields
-            let updatedUser = UserDomain(
-                id: user.id,
-                name: nameToUse,
-                email: emailToUse,
-                createdAt: user.createdAt,
-                lastModifiedAt: Date()
-            )
-
-            try await updateUserUseCase.execute(user: updatedUser)
+            user.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            user.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await updateUserUseCase.execute(user: user)
 
             isLoading = false
             shouldNavigateBack = true
@@ -83,7 +64,6 @@ class EditUserViewModel {
         }
     }
 
-    /// Validate user input (synchronous validation only)
     func validateInput() -> Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -102,7 +82,6 @@ class EditUserViewModel {
             return false
         }
 
-        // Validate email if provided
         if !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
             let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
@@ -116,28 +95,14 @@ class EditUserViewModel {
         return true
     }
 
-    /// Validate user name asynchronously (check for duplicates)
-    /// ⚠️ TODO: Create UserExistsUseCase to avoid needing validation logic here
     func validateNameAsync() async -> Bool {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let originalName = user.name
-
-        // Only check if name actually changed
-        if trimmedName != originalName {
-            // This would need a UserExistsUseCase
-            // For now, we'll skip the duplicate check to maintain clean architecture
-            // The Service layer will catch it if there's a duplicate
-        }
-
         return true
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }
 
-    /// Reset form to original values
     func resetForm() {
         name = user.name
         email = user.email

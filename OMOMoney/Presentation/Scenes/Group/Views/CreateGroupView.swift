@@ -16,7 +16,7 @@ struct CreateGroupView: View {
     let createGroupUseCase: CreateGroupUseCase
     let createUserGroupUseCase: CreateUserGroupUseCase
     let userId: UUID
-    let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupCreated: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
     
     @State private var groupName: String = ""
     @State private var selectedCurrency: String = "EUR"

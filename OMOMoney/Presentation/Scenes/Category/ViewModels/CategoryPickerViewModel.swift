@@ -1,14 +1,12 @@
 import Foundation
 
-/// ViewModel for Category picker functionality
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
 final class CategoryPickerViewModel {
 
     // MARK: - Published Properties
-    var categories: [CategoryDomain] = []
+    var categories: [SDCategory] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -21,7 +19,6 @@ final class CategoryPickerViewModel {
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase())
@@ -29,8 +26,6 @@ final class CategoryPickerViewModel {
 
     // MARK: - Public Methods
 
-    /// Load categories for the specified group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
@@ -44,7 +39,6 @@ final class CategoryPickerViewModel {
         isLoading = false
     }
 
-    /// Clear any error messages
     func clearError() {
         errorMessage = nil
     }

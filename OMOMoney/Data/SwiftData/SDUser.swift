@@ -55,7 +55,7 @@ extension SDUser {
     }
     
     var isOwnerOfAnyGroup: Bool {
-        userGroups.contains { $0.role == UserGroupDomain.Role.owner.rawValue }
+        userGroups.contains { $0.role == SDUserGroup.Role.owner.rawValue }
     }
 }
 

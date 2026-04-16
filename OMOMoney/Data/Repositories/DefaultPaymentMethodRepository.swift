@@ -8,38 +8,38 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         self.context = context
     }
 
-    func fetchPaymentMethods() async throws -> [PaymentMethodDomain] {
+    func fetchPaymentMethods() async throws -> [SDPaymentMethod] {
         try await MainActor.run {
             let descriptor = FetchDescriptor<SDPaymentMethod>()
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
-    func fetchPaymentMethod(id: UUID) async throws -> PaymentMethodDomain? {
+    func fetchPaymentMethod(id: UUID) async throws -> SDPaymentMethod? {
         try await MainActor.run {
             let targetId = id
             let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first?.toDomain()
+            return try context.fetch(descriptor).first
         }
     }
 
-    func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [PaymentMethodDomain] {
+    func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [SDPaymentMethod] {
         try await MainActor.run {
             let targetGroupId = groupId
             let descriptor = FetchDescriptor<SDPaymentMethod>(
                 predicate: #Predicate { $0.group?.id == targetGroupId },
                 sortBy: [SortDescriptor(\.name)]
             )
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
-    func fetchActivePaymentMethods() async throws -> [PaymentMethodDomain] {
+    func fetchActivePaymentMethods() async throws -> [SDPaymentMethod] {
         try await MainActor.run {
             let descriptor = FetchDescriptor<SDPaymentMethod>(
                 predicate: #Predicate { $0.isActive }
             )
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
@@ -51,16 +51,9 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         isActive: Bool,
         isDefault: Bool,
         groupId: UUID?
-    ) async throws -> PaymentMethodDomain {
+    ) async throws -> SDPaymentMethod {
         try await MainActor.run {
-            let pm = SDPaymentMethod(
-                name: name,
-                type: type,
-                icon: icon,
-                color: color,
-                isActive: isActive,
-                isDefault: isDefault
-            )
+            let pm = SDPaymentMethod(name: name, type: type, icon: icon, color: color, isActive: isActive, isDefault: isDefault)
             if let groupId {
                 let targetId = groupId
                 let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
@@ -68,23 +61,13 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
             }
             context.insert(pm)
             try context.save()
-            return pm.toDomain()
+            return pm
         }
     }
 
-    func updatePaymentMethod(_ paymentMethod: PaymentMethodDomain) async throws {
+    func updatePaymentMethod(_ paymentMethod: SDPaymentMethod) async throws {
         try await MainActor.run {
-            let targetId = paymentMethod.id
-            let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
-            guard let existing = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            existing.name = paymentMethod.name
-            existing.type = paymentMethod.type
-            existing.icon = paymentMethod.icon
-            existing.color = paymentMethod.color
-            existing.isActive = paymentMethod.isActive
-            existing.lastModifiedAt = Date()
+            paymentMethod.lastModifiedAt = Date()
             try context.save()
         }
     }
@@ -99,23 +82,5 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
             context.delete(pm)
             try context.save()
         }
-    }
-}
-
-// MARK: - Domain mapping
-private extension SDPaymentMethod {
-    func toDomain() -> PaymentMethodDomain {
-        PaymentMethodDomain(
-            id: id,
-            name: name,
-            type: type,
-            icon: icon,
-            color: color,
-            isActive: isActive,
-            isDefault: isDefault,
-            groupId: group?.id,
-            createdAt: createdAt,
-            lastModifiedAt: lastModifiedAt
-        )
     }
 }

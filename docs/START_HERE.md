@@ -26,15 +26,17 @@
 ```
 View → ViewModel → UseCase → Repository → ModelContext (SwiftData)
   ↓        ↓          ↓           ↓              ↓
-Domain  Domain    Domain      Domain       SD* Models
+SD*     SD*        SD*         SD*          SD* Models
 Models  Models    Models      Models       (single source of truth)
 ```
+
+> **Domain entity files deleted.** All layers use SD* types directly (SDUser, SDGroup, SDItemList, etc.)
 
 ### 2. Layer Boundaries (STRICT)
 | Layer | ✅ Can Use | ❌ FORBIDDEN |
 |-------|-----------|--------------|
-| **Presentation** (Views/ViewModels) | Domain models, UseCases, AppDIContainer, @Query | CoreData, NSManagedObjectContext, ModelContext directly, Repositories |
-| **Domain** (UseCases, Protocols, Entities) | Pure Swift, Foundation only | SwiftData, SwiftUI, Data layer |
+| **Presentation** (Views/ViewModels) | SD* models, UseCases, AppDIContainer, @Query | CoreData, NSManagedObjectContext, ModelContext directly, Repositories, *Domain structs |
+| **Domain** (UseCases, Protocols) | Pure Swift, Foundation, SD* types | SwiftData @Model directly, SwiftUI, Data layer |
 | **Data** (Repositories) | ModelContext, SD* models, Domain protocols | Presentation layer |
 
 ### 3. Dependency Injection (MANDATORY)
@@ -70,14 +72,14 @@ Application/
     └── AppDIContainer.swift ← ALL dependencies created here (uses ModelContext)
 
 Domain/
-├── Entities/   ← *Domain.swift models (UserDomain, GroupDomain, etc.)
+├── Entities/   ← EMPTY — Domain struct files deleted in Phase 4 Step 4.2
 ├── Protocols/  ← Repository contracts only (Services layer DELETED)
-└── UseCases/   ← Business logic (one operation per UseCase)
+└── UseCases/   ← Business logic (one operation per UseCase, returns SD* types)
 
 Data/
 ├── CoreData/   ← Legacy .xcdatamodeld + Persistence.swift (NOT USED by app)
-├── SwiftData/  ← SD*.swift @Model classes — THE persistence layer
-└── Repositories/ ← ModelContext + FetchDescriptor, return *Domain models
+├── SwiftData/  ← SD*.swift @Model classes — THE persistence layer + source of truth
+└── Repositories/ ← ModelContext + FetchDescriptor, return SD* models directly
 
 Presentation/
 └── Scenes/
@@ -92,19 +94,20 @@ Infrastructure/
 
 ## 🎯 Current Architecture Status
 
-**SwiftData Migration: Phases 1–3 Complete** (as of April 2026)
+**SwiftData Migration: Phases 1–3 + 4.1–4.2 Complete** (as of April 2026)
 - ✅ SD* SwiftData models replace Core Data entities
 - ✅ ModelContainer replaces PersistenceController
 - ✅ Service layer fully deleted (~2,700 lines removed)
 - ✅ All 7 repositories use ModelContext directly
 - ✅ 0 CoreData imports in Presentation layer
 - ✅ 14 ViewModels migrated to @Observable (Phase 4 Step 4.1)
-- ✅ 13 Views migrated to @State (Phase 4 Step 4.1)
-- ⏳ Domain model files still exist (Phase 4 Step 4.2)
+- ✅ All Domain entity files deleted — 0 *Domain types in codebase (Phase 4 Step 4.2)
+- ✅ All 7 CoreData mapping files deleted (Phase 4 Step 4.2)
+- ✅ All use cases, repositories, ViewModels, and Views use SD* types directly
 - ⏳ @Query adoption in simple views (Phase 4 Step 4.3)
 - ⏳ Liquid Glass UI (Phase 4 Step 4.4)
 
-**Active Phase:** Phase 4 — @Observable + Liquid Glass (Step 4.2 next)
+**Active Phase:** Phase 4 — @Observable + Liquid Glass (Steps 4.3–4.4 remaining)
 
 ---
 
@@ -130,7 +133,7 @@ class VM: ObservableObject { @Published var } // ❌ FORBIDDEN — use @Observab
 | ViewModels | `@Observable` + `@MainActor` ✅ |
 | Data fetch | Repositories → UseCases → ViewModels / `@Query` in Views |
 | UI | SwiftUI, Liquid Glass materials (iOS 26) |
-| Testing device | Dennis's iPhone (iOS 26.1) `00008120-000A190218614032` |
+| Testing device | Dennis's iPhone (iOS 26.4) `00008120-000A190218614032` |
 
 ---
 

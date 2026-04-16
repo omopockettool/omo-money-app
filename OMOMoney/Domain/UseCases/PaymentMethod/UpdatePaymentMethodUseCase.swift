@@ -1,16 +1,7 @@
-//
-//  UpdatePaymentMethodUseCase.swift
-//  OMOMoney
-//
-//  Created on 12/23/25.
-//
-
 import Foundation
 
-/// Use case protocol for updating a payment method
 protocol UpdatePaymentMethodUseCase {
-    /// Update an existing payment method with the specified details
-    func execute(_ paymentMethod: PaymentMethodDomain) async throws
+    func execute(_ paymentMethod: SDPaymentMethod) async throws
 }
 
 final class DefaultUpdatePaymentMethodUseCase: UpdatePaymentMethodUseCase {
@@ -20,7 +11,7 @@ final class DefaultUpdatePaymentMethodUseCase: UpdatePaymentMethodUseCase {
         self.paymentMethodRepository = paymentMethodRepository
     }
 
-    func execute(_ paymentMethod: PaymentMethodDomain) async throws {
+    func execute(_ paymentMethod: SDPaymentMethod) async throws {
         try await paymentMethodRepository.updatePaymentMethod(paymentMethod)
     }
 }

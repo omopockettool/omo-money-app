@@ -7,9 +7,9 @@ class UserDetailViewModel {
 
     // MARK: - Published Properties
 
-    var user: UserDomain?
-    var userGroups: [UserGroupDomain] = []
-    var groups: [GroupDomain] = []
+    var user: SDUser?
+    var userGroups: [SDUserGroup] = []
+    var groups: [SDGroup] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -61,15 +61,9 @@ class UserDetailViewModel {
         isLoading = true
         errorMessage = nil
         do {
-            let updated = UserDomain(
-                id: currentUser.id,
-                name: name ?? currentUser.name,
-                email: email ?? currentUser.email,
-                createdAt: currentUser.createdAt,
-                lastModifiedAt: Date()
-            )
-            try await userRepository.updateUser(updated)
-            user = updated
+            if let name { currentUser.name = name }
+            if let email { currentUser.email = email }
+            try await userRepository.updateUser(currentUser)
             isLoading = false
             return true
         } catch {

@@ -1,30 +1,13 @@
-//
-//  CreateItemUseCase.swift
-//  OMOMoney
-//
-//  Created on 11/29/25.
-//
-
 import Foundation
 
-/// Use case protocol for creating items
 protocol CreateItemUseCase {
-    /// Execute the use case to create a new item
-    /// - Parameters:
-    ///   - description: Item description
-    ///   - amount: Item amount
-    ///   - quantity: Item quantity
-    ///   - itemListId: Associated item list ID
-    ///   - isPaid: Whether the item is already paid
-    /// - Returns: Created ItemDomain object
-    /// - Throws: Repository or validation errors
     func execute(
         description: String,
         amount: Decimal,
         quantity: Int32,
         itemListId: UUID?,
         isPaid: Bool
-    ) async throws -> ItemDomain
+    ) async throws -> SDItem
 }
 
 final class DefaultCreateItemUseCase: CreateItemUseCase {
@@ -40,21 +23,11 @@ final class DefaultCreateItemUseCase: CreateItemUseCase {
         quantity: Int32,
         itemListId: UUID?,
         isPaid: Bool = false
-    ) async throws -> ItemDomain {
+    ) async throws -> SDItem {
         let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmedDescription.isEmpty else {
-            throw ValidationError.invalidDescription
-        }
-
-        guard amount >= 0 else {
-            throw ValidationError.invalidAmount
-        }
-
-        guard quantity > 0 else {
-            throw ValidationError.invalidQuantity
-        }
-
+        guard !trimmedDescription.isEmpty else { throw ValidationError.invalidDescription }
+        guard amount >= 0 else { throw ValidationError.invalidAmount }
+        guard quantity > 0 else { throw ValidationError.invalidQuantity }
         return try await itemRepository.createItem(
             description: trimmedDescription,
             amount: amount,

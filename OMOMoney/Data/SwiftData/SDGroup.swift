@@ -60,7 +60,7 @@ extension SDGroup {
     }
     
     var owner: SDUser? {
-        userGroups.first { $0.role == UserGroupDomain.Role.owner.rawValue }?.user
+        userGroups.first { $0.role == SDUserGroup.Role.owner.rawValue }?.user
     }
     
     var activePaymentMethods: [SDPaymentMethod] {

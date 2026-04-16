@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PaymentMethodFormView: View {
-    let group: GroupDomain
-    let methodToEdit: PaymentMethodDomain?
+    let group: SDGroup
+    let methodToEdit: SDPaymentMethod?
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss

@@ -2,8 +2,6 @@
 //  EditUserView.swift
 //  OMOMoney
 //
-//  Created by Dennis Chicaiza A on 11/8/25.
-//
 
 import SwiftUI
 import SwiftData
@@ -12,24 +10,24 @@ struct EditUserView: View {
     @State private var viewModel: EditUserViewModel
     @Binding var navigationPath: NavigationPath
 
-    init(user: UserDomain, navigationPath: Binding<NavigationPath>) {
+    init(user: SDUser, navigationPath: Binding<NavigationPath>) {
         self._viewModel = State(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = navigationPath
     }
 
     /// For use in sheets where navigation is not needed
-    init(user: UserDomain) {
+    init(user: SDUser) {
         self._viewModel = State(wrappedValue: EditUserViewModel(user: user))
         self._navigationPath = .constant(NavigationPath())
     }
-    
+
     var body: some View {
         Form {
             Section(header: Text("User Information")) {
                 TextField("Name (Optional)", text: $viewModel.name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .formFocusAnimation()
-                
+
                 TextField("Email", text: $viewModel.email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.emailAddress)
@@ -37,7 +35,7 @@ struct EditUserView: View {
                     .autocorrectionDisabled()
                     .formFocusAnimation()
             }
-            
+
             Section(header: Text("User Details")) {
                 HStack {
                     Text("Created")
@@ -45,7 +43,7 @@ struct EditUserView: View {
                     Text(DateFormatterHelper.formatDate(viewModel.userCreatedAt))
                         .foregroundColor(.secondary)
                 }
-                
+
                 HStack {
                     Text("Last Modified")
                     Spacer()
@@ -53,7 +51,7 @@ struct EditUserView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Section {
                 Button("Update User") {
                     Task {
@@ -92,13 +90,7 @@ struct EditUserView: View {
 }
 
 #Preview {
-    let user = UserDomain(
-        id: UUID(),
-        name: "John Doe",
-        email: "john@example.com",
-        createdAt: Date(),
-        lastModifiedAt: Date()
-    )
+    let user = SDUser.mock(name: "John Doe", email: "john@example.com")
     NavigationStack {
         EditUserView(user: user, navigationPath: .constant(NavigationPath()))
     }

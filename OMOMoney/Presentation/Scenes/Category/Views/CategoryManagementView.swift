@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct CategoryManagementView: View {
-    let group: GroupDomain
+    let group: SDGroup
 
     @State private var viewModel = CategoryListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {
         case add
-        case edit(CategoryDomain)
+        case edit(SDCategory)
         var id: String {
             switch self { case .add: return "add"; case .edit(let c): return c.id.uuidString }
         }
@@ -61,7 +61,7 @@ struct CategoryManagementView: View {
         .task { await viewModel.loadCategories(forGroupId: group.id) }
     }
 
-    private func categoryRow(_ category: CategoryDomain) -> some View {
+    private func categoryRow(_ category: SDCategory) -> some View {
         Button { if !category.isDefault { sheetMode = .edit(category) } } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -93,4 +93,3 @@ struct CategoryManagementView: View {
         .buttonStyle(.plain)
     }
 }
-

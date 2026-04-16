@@ -8,20 +8,19 @@ final class DefaultGroupRepository: GroupRepository {
         self.context = context
     }
 
-    func fetchGroup(id: UUID) async throws -> GroupDomain? {
+    func fetchGroup(id: UUID) async throws -> SDGroup? {
         try await MainActor.run {
             let targetId = id
             let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first?.toDomain()
+            return try context.fetch(descriptor).first
         }
     }
 
-    func createGroup(name: String, currency: String) async throws -> GroupDomain {
+    func createGroup(name: String, currency: String) async throws -> SDGroup {
         try await MainActor.run {
             let group = SDGroup(name: name, currency: currency)
             context.insert(group)
 
-            // Seed default payment methods
             let defaultPaymentMethods: [(String, String, String, String, Bool)] = [
                 ("Efectivo",      "cash",          "banknote.fill",          "#4CAF50", true),
                 ("Débito",        "card_debit",    "creditcard.fill",        "#2196F3", false),
@@ -34,7 +33,6 @@ final class DefaultGroupRepository: GroupRepository {
                 context.insert(pm)
             }
 
-            // Seed default categories
             let defaultCategories: [(String, String, String, Bool)] = [
                 ("Alimentación", "#FF6B6B", "cart.fill",            false),
                 ("Movilidad",    "#4ECDC4", "car.fill",             false),
@@ -50,20 +48,13 @@ final class DefaultGroupRepository: GroupRepository {
             }
 
             try context.save()
-            return group.toDomain()
+            return group
         }
     }
 
-    func updateGroup(_ group: GroupDomain) async throws {
+    func updateGroup(_ group: SDGroup) async throws {
         try await MainActor.run {
-            let targetId = group.id
-            let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
-            guard let existing = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            existing.name = group.name
-            existing.currency = group.currency
-            existing.lastModifiedAt = Date()
+            group.lastModifiedAt = Date()
             try context.save()
         }
     }
@@ -80,20 +71,13 @@ final class DefaultGroupRepository: GroupRepository {
         }
     }
 
-    func fetchGroups(forUserId userId: UUID) async throws -> [GroupDomain] {
+    func fetchGroups(forUserId userId: UUID) async throws -> [SDGroup] {
         try await MainActor.run {
             let targetUserId = userId
             let descriptor = FetchDescriptor<SDUserGroup>(
                 predicate: #Predicate { $0.user?.id == targetUserId }
             )
-            return try context.fetch(descriptor).compactMap { $0.group?.toDomain() }
+            return try context.fetch(descriptor).compactMap { $0.group }
         }
-    }
-}
-
-// MARK: - Domain mapping
-private extension SDGroup {
-    func toDomain() -> GroupDomain {
-        GroupDomain(id: id, name: name, currency: currency, createdAt: createdAt, lastModifiedAt: lastModifiedAt)
     }
 }

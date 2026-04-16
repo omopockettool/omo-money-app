@@ -1,15 +1,6 @@
-//
-//  CreateCategoryUseCase.swift
-//  OMOMoney
-//
-//  Created on 12/23/25.
-//
-
 import Foundation
 
-/// Use case protocol for creating a category
 protocol CreateCategoryUseCase {
-    /// Create a new category with the specified details
     func execute(
         name: String,
         color: String?,
@@ -18,7 +9,7 @@ protocol CreateCategoryUseCase {
         groupId: UUID,
         limit: Decimal?,
         limitFrequency: String?
-    ) async throws -> CategoryDomain
+    ) async throws -> SDCategory
 }
 
 final class DefaultCreateCategoryUseCase: CreateCategoryUseCase {
@@ -36,7 +27,7 @@ final class DefaultCreateCategoryUseCase: CreateCategoryUseCase {
         groupId: UUID,
         limit: Decimal?,
         limitFrequency: String?
-    ) async throws -> CategoryDomain {
+    ) async throws -> SDCategory {
         return try await categoryRepository.createCategory(
             name: name,
             color: color ?? "#CCCCCC",

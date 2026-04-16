@@ -19,17 +19,16 @@ enum DashboardViewMode {
 }
 
 /// Wrapper view to navigate to ItemListDetailView with proper currency
-/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailNavigationWrapper: View {
-    let itemListDomain: ItemListDomain
+    let itemList: SDItemList
     let currencyCode: String
-    let group: GroupDomain
-    let onItemListUpdated: (ItemListDomain) -> Void
+    let group: SDGroup
+    let onItemListUpdated: (SDItemList) -> Void
     let onPaidStatusChanged: (() -> Void)?
 
     var body: some View {
         ItemListDetailView(
-            itemListDomain: itemListDomain,
+            itemList: itemList,
             currencyCode: currencyCode,
             group: group,
             onItemListUpdated: onItemListUpdated,
@@ -109,15 +108,14 @@ struct DashboardView: View {
                     viewMode = .calendar
                 }
             }
-            .navigationDestination(for: ItemListDomain.self) { itemListDomain in
-                // ✅ Clean Architecture: Navigate with Domain model and currency
+            .navigationDestination(for: SDItemList.self) { itemList in
                 if let group = viewModel.currentGroup {
                     ItemListDetailNavigationWrapper(
-                        itemListDomain: itemListDomain,
+                        itemList: itemList,
                         currencyCode: group.currency,
                         group: group,
                         onItemListUpdated: { updated in
-                            Task { await viewModel.updateItemListDomain(updated) }
+                            Task { await viewModel.updateItemList(updated) }
                         },
                         onPaidStatusChanged: {
                             Task { await viewModel.refreshTotals() }
@@ -145,12 +143,8 @@ struct DashboardView: View {
                             group: group,  // ✅ Already a Domain model
                             initialDate: selectedCalendarDay,
                             onItemListCreated: { createdItemList in
-                                print("🔄 DashboardView: onItemListCreated callback triggered")
-                                print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
                                 Task {
-                                    print("⚡️ DashboardView: Using INCREMENTAL cache update")
-                                    await viewModel.addItemListFromDomain(createdItemList)
-                                    print("✅ DashboardView: Incremental update completed - UI updated instantly!")
+                                    await viewModel.addItemList(createdItemList)
                                 }
                                 showingAddItemList = false
                             },
@@ -271,7 +265,7 @@ struct DashboardView: View {
                     onItemTap: { navigationPath.append($0) },
                     onTogglePaid: { viewModel.togglePaid(for: $0) },
                     onRefresh: { await viewModel.refreshData() },
-                    onDelete: { await viewModel.deleteItemListDomain($0) },
+                    onDelete: { await viewModel.deleteItemList($0) },
                     getDayTotal: { viewModel.formattedTotal(for: $0) }
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
@@ -384,7 +378,7 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil, isCompact: Bool = false) -> some View {
+    private func dayExpenseList(for date: Date, onItemTap: ((SDItemList) -> Void)? = nil, isCompact: Bool = false) -> some View {
         let cal = Calendar.current
         let filtered = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
@@ -401,7 +395,7 @@ struct DashboardView: View {
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
-            onDelete: { await viewModel.deleteItemListDomain($0) },
+            onDelete: { await viewModel.deleteItemList($0) },
             isCompact: isCompact
         )
         .frame(maxHeight: .infinity)

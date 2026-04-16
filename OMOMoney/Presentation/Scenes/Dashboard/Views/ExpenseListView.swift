@@ -2,22 +2,20 @@
 //  ExpenseListView.swift
 //  OMOMoney
 //
-//  Created by System on 3/11/25.
-//
 
 import SwiftUI
 
 struct ExpenseListView: View {
-    let itemLists: [ItemListDomain]
-    let getFormattedAmount: (ItemListDomain) -> String
-    let getFormattedUnpaidAmount: (ItemListDomain) -> String?
+    let itemLists: [SDItemList]
+    let getFormattedAmount: (SDItemList) -> String
+    let getFormattedUnpaidAmount: (SDItemList) -> String?
     let itemListCounts: [UUID: Int]
     let categories: [UUID: (name: String, color: String)]
     let itemListPaidStatus: [UUID: ItemListPaidStatus]
-    let onItemTap: (ItemListDomain) -> Void
-    let onTogglePaid: (ItemListDomain) -> Void
+    let onItemTap: (SDItemList) -> Void
+    let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
-    let onDelete: (ItemListDomain) async -> Void
+    let onDelete: (SDItemList) async -> Void
     var isCompact: Bool = false
     var getDayTotal: ((Date) -> String)? = nil
     
@@ -28,40 +26,11 @@ struct ExpenseListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
-                // Lista normal - lo más reciente arriba
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
                         Section {
                             ForEach(itemListsForDate, id: \.id) { itemList in
-                                ExpenseRowView(
-                                    itemList: itemList,
-                                    formattedAmount: getFormattedAmount(itemList),
-                                    formattedUnpaidAmount: getFormattedUnpaidAmount(itemList),
-                                    itemCount: itemListCounts[itemList.id] ?? 0,
-                                    categoryName: itemList.categoryId.flatMap { categories[$0]?.name },
-                                    categoryColor: itemList.categoryId.flatMap { categories[$0]?.color }.flatMap { Color(hex: $0) },
-                                    paidStatus: itemListPaidStatus[itemList.id] ?? .none,
-                                    onTap: { onItemTap(itemList) },
-                                    onTogglePaid: { onTogglePaid(itemList) },
-                                    isCompact: isCompact
-                                )
-                                .listRowInsets(EdgeInsets(
-                                    top: AppConstants.UserInterface.smallPadding / 2,
-                                    leading: AppConstants.UserInterface.padding,
-                                    bottom: AppConstants.UserInterface.smallPadding / 2,
-                                    trailing: AppConstants.UserInterface.padding
-                                ))
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        Task {
-                                            await onDelete(itemList)
-                                        }
-                                    } label: {
-                                        Label("Eliminar", systemImage: "trash")
-                                    }
-                                }
+                                itemListRow(itemList)
                             }
                         } header: {
                             sectionHeader(for: date)
@@ -74,6 +43,39 @@ struct ExpenseListView: View {
         .scrollContentBackground(.hidden)
         .animation(.easeInOut(duration: 0.2), value: itemLists.count)
         .if(!isCompact) { $0.refreshable { await onRefresh() } }
+    }
+
+    @ViewBuilder
+    private func itemListRow(_ itemList: SDItemList) -> some View {
+        let categoryName = itemList.category.flatMap { categories[$0.id]?.name }
+        let categoryColor = itemList.category.flatMap { categories[$0.id]?.color }.flatMap { Color(hex: $0) }
+        ExpenseRowView(
+            itemList: itemList,
+            formattedAmount: getFormattedAmount(itemList),
+            formattedUnpaidAmount: getFormattedUnpaidAmount(itemList),
+            itemCount: itemListCounts[itemList.id] ?? 0,
+            categoryName: categoryName,
+            categoryColor: categoryColor,
+            paidStatus: itemListPaidStatus[itemList.id] ?? .none,
+            onTap: { onItemTap(itemList) },
+            onTogglePaid: { onTogglePaid(itemList) },
+            isCompact: isCompact
+        )
+        .listRowInsets(EdgeInsets(
+            top: AppConstants.UserInterface.smallPadding / 2,
+            leading: AppConstants.UserInterface.padding,
+            bottom: AppConstants.UserInterface.smallPadding / 2,
+            trailing: AppConstants.UserInterface.padding
+        ))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                Task { await onDelete(itemList) }
+            } label: {
+                Label("Eliminar", systemImage: "trash")
+            }
+        }
     }
     
     // MARK: - Private Views
@@ -120,8 +122,7 @@ struct ExpenseListView: View {
     
     // MARK: - Helper Methods
 
-    /// Group ItemLists by date for sectioned display
-    private var groupedItemLists: [Date: [ItemListDomain]] {
+    private var groupedItemLists: [Date: [SDItemList]] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: itemLists) { itemList in
             calendar.startOfDay(for: itemList.date)
@@ -129,7 +130,6 @@ struct ExpenseListView: View {
         return grouped
     }
     
-    /// Format date for section headers
     private func formatSectionDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_ES")

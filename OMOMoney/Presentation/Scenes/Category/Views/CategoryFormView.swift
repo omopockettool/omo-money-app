@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct CategoryFormView: View {
-    let group: GroupDomain
-    let categoryToEdit: CategoryDomain?
-    let onSaved: (CategoryDomain) -> Void
+    let group: SDGroup
+    let categoryToEdit: SDCategory?
+    let onSaved: (SDCategory) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = CategoryListViewModel()
@@ -146,8 +146,8 @@ struct CategoryFormView: View {
             }
         } else {
             let success = await viewModel.createCategory(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id)
-            if success {
-                onSaved(viewModel.categories.last ?? CategoryDomain(id: UUID(), name: trimmed, color: selectedColor, icon: selectedIcon, isDefault: false, limit: nil, limitFrequency: "", groupId: group.id, createdAt: Date(), lastModifiedAt: nil))
+            if success, let created = viewModel.categories.last {
+                onSaved(created)
                 dismiss()
             }
         }

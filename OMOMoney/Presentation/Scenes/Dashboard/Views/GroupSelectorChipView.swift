@@ -10,13 +10,13 @@ import SwiftUI
 /// ✅ Clean Architecture: Chip selector de grupo - no Core Data dependencies
 /// No mueve el layout, se sobrepone como CategoryPickerView/PaymentMethodPickerView
 struct GroupSelectorChipView: View {
-    let currentGroup: GroupDomain  // ✅ Clean Architecture: Domain model
-    let availableGroups: [GroupDomain]  // ✅ Clean Architecture: Domain models
+    let currentGroup: SDGroup  // ✅ Clean Architecture: Domain model
+    let availableGroups: [SDGroup]  // ✅ Clean Architecture: Domain models
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga del cambio de grupo
-    let onGroupChange: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupDeleted: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupChange: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupCreated: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupDeleted: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
     
     @State private var showingPicker = false
     
@@ -69,14 +69,14 @@ struct GroupSelectorChipView: View {
 // MARK: - Group Picker Sheet
 /// ✅ Clean Architecture: Works with Domain models only
 struct GroupPickerSheet: View {
-    let currentGroup: GroupDomain  // ✅ Clean Architecture: Domain model
-    @State private var availableGroups: [GroupDomain]  // ✅ Clean Architecture: Domain models
+    let currentGroup: SDGroup  // ✅ Clean Architecture: Domain model
+    @State private var availableGroups: [SDGroup]  // ✅ Clean Architecture: Domain models
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga
     @Binding var showingPicker: Bool  // ✅ Para cerrar el sheet
-    let onGroupChange: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupDeleted: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupChange: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupCreated: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
+    let onGroupDeleted: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
 
     // ✅ Clean Architecture: Use Cases instead of direct service access
     let deleteGroupUseCase: DeleteGroupUseCase
@@ -84,18 +84,18 @@ struct GroupPickerSheet: View {
     @State private var showingCreateGroup = false
     @State private var selectedGroupID: UUID?  // ✅ Track del grupo siendo cargado (Domain UUID)
     @State private var showingDeleteAlert = false
-    @State private var groupToDelete: GroupDomain?  // ✅ Clean Architecture: Domain model
+    @State private var groupToDelete: SDGroup?  // ✅ Clean Architecture: Domain model
     @State private var isDeletingGroup = false  // ✅ Track eliminación en progreso
 
-    init(currentGroup: GroupDomain,
-         availableGroups: [GroupDomain],
+    init(currentGroup: SDGroup,
+         availableGroups: [SDGroup],
          userId: UUID,
          isChangingGroup: Bool,
          showingPicker: Binding<Bool>,
          deleteGroupUseCase: DeleteGroupUseCase,
-         onGroupChange: @escaping (GroupDomain) -> Void,
-         onGroupCreated: @escaping (GroupDomain) -> Void,
-         onGroupDeleted: @escaping (GroupDomain) -> Void) {
+         onGroupChange: @escaping (SDGroup) -> Void,
+         onGroupCreated: @escaping (SDGroup) -> Void,
+         onGroupDeleted: @escaping (SDGroup) -> Void) {
         self.currentGroup = currentGroup
         self._availableGroups = State(initialValue: availableGroups)
         self.userId = userId
@@ -243,7 +243,7 @@ struct GroupPickerSheet: View {
     }
     
     // MARK: - Delete Group
-    private func deleteGroup(_ groupToDelete: GroupDomain) {  // ✅ Clean Architecture: Domain parameter
+    private func deleteGroup(_ groupToDelete: SDGroup) {  // ✅ Clean Architecture: Domain parameter
         print("🗑️ [GroupPicker] deleteGroup() iniciado")
         print("🗑️ [GroupPicker] availableGroups.count ANTES: \(availableGroups.count)")
         print("🗑️ [GroupPicker] availableGroups ANTES: \(availableGroups.map { ($0.name, $0.id) })")  // ✅ Domain: .id UUID
@@ -261,7 +261,7 @@ struct GroupPickerSheet: View {
 
         // Determinar si necesitamos cambiar de grupo después de eliminar
         let isDeletingCurrentGroup = groupToDelete.id == currentGroup.id  // ✅ Domain: UUID comparison
-        var newGroupToSelect: GroupDomain?  // ✅ Clean Architecture: Domain model
+        var newGroupToSelect: SDGroup?  // ✅ Clean Architecture: Domain model
 
         if isDeletingCurrentGroup {
             // Buscar el primer grupo que no sea el que vamos a eliminar
@@ -327,10 +327,10 @@ struct GroupPickerSheet: View {
 
         HStack {
             GroupSelectorChipView(
-                currentGroup: GroupDomain.mock(name: "Personal", currency: "EUR"),  // ✅ Domain mock
+                currentGroup: SDGroup.mock(name: "Personal", currency: "EUR"),  // ✅ Domain mock
                 availableGroups: [  // ✅ Domain mocks
-                    GroupDomain.mock(name: "Personal", currency: "EUR"),
-                    GroupDomain.mock(name: "Work", currency: "USD")
+                    SDGroup.mock(name: "Personal", currency: "EUR"),
+                    SDGroup.mock(name: "Work", currency: "USD")
                 ],
                 userId: UUID(),
                 isChangingGroup: false,

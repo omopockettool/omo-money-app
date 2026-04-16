@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct CalendarGridView: View {
-    let itemLists: [ItemListDomain]
+    let itemLists: [SDItemList]
     let itemListTotals: [UUID: Double]
     let itemListPaidStatus: [UUID: ItemListPaidStatus]
     let currencyCode: String

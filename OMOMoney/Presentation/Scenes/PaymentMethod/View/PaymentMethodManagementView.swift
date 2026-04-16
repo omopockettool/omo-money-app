@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct PaymentMethodManagementView: View {
-    let group: GroupDomain
+    let group: SDGroup
 
     @State private var viewModel = PaymentMethodListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {
         case add
-        case edit(PaymentMethodDomain)
+        case edit(SDPaymentMethod)
         var id: String {
             switch self { case .add: return "add"; case .edit(let pm): return pm.id.uuidString }
         }
@@ -61,7 +61,7 @@ struct PaymentMethodManagementView: View {
         .task { await viewModel.loadPaymentMethods(forGroupId: group.id) }
     }
 
-    private func paymentMethodRow(_ pm: PaymentMethodDomain) -> some View {
+    private func paymentMethodRow(_ pm: SDPaymentMethod) -> some View {
         Button { if !pm.isDefault { sheetMode = .edit(pm) } } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -100,29 +100,29 @@ struct PaymentMethodManagementView: View {
 
     private func typeIcon(_ type: String) -> String {
         switch type {
-        case "cash":         return "banknote.fill"
+        case "cash":          return "banknote.fill"
         case "bank_transfer": return "arrow.left.arrow.right"
-        case "card_credit":  return "creditcard.fill"
-        default:             return "creditcard.fill"  // card_debit
+        case "card_credit":   return "creditcard.fill"
+        default:              return "creditcard.fill"
         }
     }
 
     private func typeColor(_ type: String) -> Color {
         switch type {
-        case "cash":         return .green
+        case "cash":          return .green
         case "bank_transfer": return .orange
-        case "card_credit":  return .purple
-        default:             return .blue  // card_debit
+        case "card_credit":   return .purple
+        default:              return .blue
         }
     }
 
     private func typeName(_ type: String) -> String {
         switch type {
-        case "cash":         return "Efectivo"
-        case "card_debit":   return "Débito"
-        case "card_credit":  return "Crédito"
+        case "cash":          return "Efectivo"
+        case "card_debit":    return "Débito"
+        case "card_credit":   return "Crédito"
         case "bank_transfer": return "Transfer..."
-        default:             return type
+        default:              return type
         }
     }
 }

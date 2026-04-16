@@ -2,27 +2,23 @@
 //  ItemListDetailView.swift
 //  OMOMoney
 //
-//  Created by System on 29/11/25.
-//
 
 import SwiftUI
 
-/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailView: View {
-    let itemListDomain: ItemListDomain
+    let itemList: SDItemList
     let currencyCode: String
-    let group: GroupDomain
-    let onItemListUpdated: ((ItemListDomain) -> Void)?
+    let group: SDGroup
+    let onItemListUpdated: ((SDItemList) -> Void)?
 
     @State private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?
     @State private var hasLoadedInitialData = false
-    @State private var currentItemList: ItemListDomain  // reactive source of truth for title/metadata
 
     // MARK: - Sheet Mode (UI State)
     enum ItemSheetMode: Identifiable {
         case create
-        case edit(ItemDomain)
+        case edit(SDItem)
         case editRegistry
 
         var id: String {
@@ -40,24 +36,22 @@ struct ItemListDetailView: View {
     let onPaidStatusChanged: (() -> Void)?
 
     init(
-        itemListDomain: ItemListDomain,
+        itemList: SDItemList,
         currencyCode: String = "EUR",
-        group: GroupDomain,
-        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        group: SDGroup,
+        onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onPaidStatusChanged: (() -> Void)? = nil
     ) {
-        self.itemListDomain = itemListDomain
+        self.itemList = itemList
         self.currencyCode = currencyCode
         self.group = group
         self.onItemListUpdated = onItemListUpdated
         self.onPaidStatusChanged = onPaidStatusChanged
-        self._currentItemList = State(initialValue: itemListDomain)
 
-        // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
 
         self._viewModel = State(wrappedValue: ItemListDetailViewModel(
-            itemListDomain: itemListDomain,
+            itemList: itemList,
             currencyCode: currencyCode,
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             createItemUseCase: container.makeCreateItemUseCase(),
@@ -78,7 +72,7 @@ struct ItemListDetailView: View {
                 mainContentView
             }
         }
-        .navigationTitle(currentItemList.itemListDescription)
+        .navigationTitle(itemList.itemListDescription)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -92,50 +86,38 @@ struct ItemListDetailView: View {
             }
         }
         .onAppear {
-            // Only load data on first appearance to avoid DB query on sheet dismiss
             guard !hasLoadedInitialData else {
                 print("📍 ItemListDetailView: Sheet dismissed, reloading items...")
-                // ✅ Reload items to get updated values
-                Task {
-                    await viewModel.loadItems()
-                }
+                Task { await viewModel.loadItems() }
                 return
             }
-
             hasLoadedInitialData = true
-            Task {
-                await viewModel.loadItems()
-            }
+            Task { await viewModel.loadItems() }
         }
         .sheet(item: $sheetMode) { mode in
-            // ✅ Clean Architecture: Use DI Container for Use Cases
             let container = AppDIContainer.shared
 
             switch mode {
             case .create:
                 AddItemView(
-                    itemListId: currentItemList.id,
+                    itemListId: itemList.id,
                     itemToEdit: nil,
-                    itemListDescription: currentItemList.itemListDescription,
+                    itemListDescription: itemList.itemListDescription,
                     currencyCode: currencyCode,
-                    onItemSaved: { itemDomain in
-                        Task {
-                            await viewModel.addItemFromDomain(itemDomain)
-                        }
+                    onItemSaved: { item in
+                        Task { await viewModel.addItem(item) }
                     },
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
                 )
             case .edit(let item):
                 AddItemView(
-                    itemListId: currentItemList.id,
+                    itemListId: itemList.id,
                     itemToEdit: item,
-                    itemListDescription: currentItemList.itemListDescription,
+                    itemListDescription: itemList.itemListDescription,
                     currencyCode: currencyCode,
-                    onItemSaved: { itemDomain in
-                        Task {
-                            await viewModel.updateItemFromDomain(itemDomain)
-                        }
+                    onItemSaved: { item in
+                        Task { await viewModel.updateItem(item) }
                     },
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
@@ -144,10 +126,9 @@ struct ItemListDetailView: View {
                 NavigationStack {
                     AddItemListView(
                         group: group,
-                        itemListToEdit: currentItemList,
+                        itemListToEdit: itemList,
                         onItemListCreated: { _ in },
                         onItemListUpdated: { updated in
-                            currentItemList = updated
                             onItemListUpdated?(updated)
                             sheetMode = nil
                         },
@@ -168,10 +149,9 @@ struct ItemListDetailView: View {
                 itemsListView
             }
 
-            // Total card at bottom
             VStack(spacing: AppConstants.UserInterface.padding) {
                 TotalSpentCardView(
-                    label: "Coste de \(currentItemList.itemListDescription)",
+                    label: "Coste de \(itemList.itemListDescription)",
                     totalAmount: viewModel.getFormattedTotal(),
                     onAddExpense: {
                         sheetMode = .create
@@ -209,9 +189,7 @@ struct ItemListDetailView: View {
                 .listRowBackground(Color.clear)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        Task {
-                            await viewModel.deleteItem(item, at: index)
-                        }
+                        Task { await viewModel.deleteItem(item, at: index) }
                     } label: {
                         Label("Eliminar", systemImage: "trash")
                     }
@@ -261,9 +239,7 @@ struct ItemListDetailView: View {
                 .multilineTextAlignment(.center)
 
             Button("Reintentar") {
-                Task {
-                    await viewModel.loadItems()
-                }
+                Task { await viewModel.loadItems() }
             }
             .buttonStyle(.borderedProminent)
         }
@@ -275,8 +251,8 @@ struct ItemListDetailView: View {
 // MARK: - Item Row View Component
 
 struct ItemRowView: View {
-    let item: ItemDomain
-    let formattedAmount: String  // total = unit × qty
+    let item: SDItem
+    let formattedAmount: String
     let currencyCode: String
     let onTap: () -> Void
     let onTogglePaid: () -> Void
@@ -289,7 +265,7 @@ struct ItemRowView: View {
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: item.amount as NSDecimalNumber) ?? "\(item.amount)"
+        return formatter.string(from: NSNumber(value: item.amount)) ?? "\(item.amount)"
     }
 
     var body: some View {
@@ -336,7 +312,7 @@ struct ItemRowView: View {
 // MARK: - Add/Edit Item View
 
 struct AddItemView: View {
-    let onItemSaved: (ItemDomain) -> Void
+    let onItemSaved: (SDItem) -> Void
     let currencyCode: String
     let itemListDescription: String
 
@@ -349,10 +325,10 @@ struct AddItemView: View {
 
     init(
         itemListId: UUID,
-        itemToEdit: ItemDomain? = nil,
+        itemToEdit: SDItem? = nil,
         itemListDescription: String,
         currencyCode: String = "EUR",
-        onItemSaved: @escaping (ItemDomain) -> Void,
+        onItemSaved: @escaping (SDItem) -> Void,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
@@ -418,8 +394,8 @@ struct AddItemView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") {
                         Task {
-                            if let itemDomain = await viewModel.saveItem() {
-                                onItemSaved(itemDomain)
+                            if let item = await viewModel.saveItem() {
+                                onItemSaved(item)
                                 dismiss()
                             }
                         }
@@ -545,24 +521,14 @@ struct AddItemView: View {
     }
 }
 
-
 // MARK: - Preview
 #Preview {
-    let itemListDomain = ItemListDomain(
-        id: UUID(),
-        itemListDescription: "Compras del supermercado",
-        date: Date(),
-        categoryId: nil,
-        paymentMethodId: nil,
-        groupId: UUID(),
-        createdAt: Date(),
-        lastModifiedAt: nil
-    )
-    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
+    let itemList = SDItemList.mock(itemListDescription: "Compras del supermercado")
+    let group = SDGroup.mock(name: "Casa", currency: "EUR")
 
     return NavigationStack {
         ItemListDetailView(
-            itemListDomain: itemListDomain,
+            itemList: itemList,
             currencyCode: "EUR",
             group: group
         )

@@ -8,29 +8,29 @@ final class DefaultCategoryRepository: CategoryRepository {
         self.context = context
     }
 
-    func fetchCategories() async throws -> [CategoryDomain] {
+    func fetchCategories() async throws -> [SDCategory] {
         try await MainActor.run {
             let descriptor = FetchDescriptor<SDCategory>()
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
-    func fetchCategory(id: UUID) async throws -> CategoryDomain? {
+    func fetchCategory(id: UUID) async throws -> SDCategory? {
         try await MainActor.run {
             let targetId = id
             let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first?.toDomain()
+            return try context.fetch(descriptor).first
         }
     }
 
-    func fetchCategories(forGroupId groupId: UUID) async throws -> [CategoryDomain] {
+    func fetchCategories(forGroupId groupId: UUID) async throws -> [SDCategory] {
         try await MainActor.run {
             let targetGroupId = groupId
             let descriptor = FetchDescriptor<SDCategory>(
                 predicate: #Predicate { $0.group?.id == targetGroupId },
                 sortBy: [SortDescriptor(\.name)]
             )
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
@@ -42,7 +42,7 @@ final class DefaultCategoryRepository: CategoryRepository {
         limit: Decimal?,
         limitFrequency: String,
         groupId: UUID?
-    ) async throws -> CategoryDomain {
+    ) async throws -> SDCategory {
         try await MainActor.run {
             let category = SDCategory(
                 name: name,
@@ -59,23 +59,13 @@ final class DefaultCategoryRepository: CategoryRepository {
             }
             context.insert(category)
             try context.save()
-            return category.toDomain()
+            return category
         }
     }
 
-    func updateCategory(_ category: CategoryDomain) async throws {
+    func updateCategory(_ category: SDCategory) async throws {
         try await MainActor.run {
-            let targetId = category.id
-            let descriptor = FetchDescriptor<SDCategory>(predicate: #Predicate { $0.id == targetId })
-            guard let existing = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            existing.name = category.name
-            existing.color = category.color
-            existing.icon = category.icon
-            existing.limit = category.limit.map { Double(truncating: $0 as NSDecimalNumber) }
-            existing.limitFrequency = category.limitFrequency
-            existing.lastModifiedAt = Date()
+            category.lastModifiedAt = Date()
             try context.save()
         }
     }
@@ -90,23 +80,5 @@ final class DefaultCategoryRepository: CategoryRepository {
             context.delete(category)
             try context.save()
         }
-    }
-}
-
-// MARK: - Domain mapping
-private extension SDCategory {
-    func toDomain() -> CategoryDomain {
-        CategoryDomain(
-            id: id,
-            name: name,
-            color: color,
-            icon: icon,
-            isDefault: isDefault,
-            limit: limit.map { Decimal($0) },
-            limitFrequency: limitFrequency,
-            groupId: group?.id,
-            createdAt: createdAt,
-            lastModifiedAt: lastModifiedAt
-        )
     }
 }

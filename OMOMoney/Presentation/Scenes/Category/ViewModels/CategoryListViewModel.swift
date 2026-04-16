@@ -1,15 +1,12 @@
 import Foundation
 
-/// ViewModel for Category list functionality
-/// Handles category list display and management
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
 class CategoryListViewModel {
 
     // MARK: - Published Properties
-    var categories: [CategoryDomain] = []
+    var categories: [SDCategory] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -32,7 +29,6 @@ class CategoryListViewModel {
         self.deleteCategoryUseCase = deleteCategoryUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(
@@ -45,8 +41,6 @@ class CategoryListViewModel {
 
     // MARK: - Public Methods
 
-    /// Load categories for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
@@ -60,8 +54,6 @@ class CategoryListViewModel {
         isLoading = false
     }
 
-    /// Create a new category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func createCategory(name: String, color: String? = nil, icon: String = "tag.fill", groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -87,9 +79,7 @@ class CategoryListViewModel {
         }
     }
 
-    /// Update an existing category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func updateCategory(_ category: CategoryDomain, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
+    func updateCategory(_ category: SDCategory, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -111,9 +101,7 @@ class CategoryListViewModel {
         }
     }
 
-    /// Delete a category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func deleteCategory(_ category: CategoryDomain) async -> Bool {
+    func deleteCategory(_ category: SDCategory) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -129,22 +117,14 @@ class CategoryListViewModel {
         }
     }
 
-    /// Check if category name exists
-    /// ⚠️ TODO: Create CategoryExistsUseCase to avoid direct Service access
     func categoryExists(withName name: String, inGroupId groupId: UUID? = nil, excluding categoryId: UUID? = nil) async -> Bool {
-        // NOTE: This method still needs a Use Case implementation
-        // For now, returning false to avoid breaking existing code
         return false
     }
 
-    /// Get categories count for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses loaded categories array
     func getCategoriesCount(forGroupId groupId: UUID) async -> Int {
-        // Simple count from current categories array
         return categories.count
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }

@@ -9,8 +9,8 @@ import SwiftUI
 
 struct AppContentView: View {
     @State private var navigationPath = NavigationPath()
-    @State private var selectedUser: UserDomain?
-    @State private var selectedGroup: GroupDomain?
+    @State private var selectedUser: SDUser?
+    @State private var selectedGroup: SDGroup?
     @State private var isLoading = true
 
     // ✅ Clean Architecture: Use DI Container for dependencies

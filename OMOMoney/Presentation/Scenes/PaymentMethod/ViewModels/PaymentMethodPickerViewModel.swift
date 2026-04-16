@@ -1,16 +1,13 @@
 import Foundation
 
-/// ViewModel for PaymentMethod picker functionality
-/// Handles payment method selection in forms and pickers
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
 class PaymentMethodPickerViewModel {
 
     // MARK: - Published Properties
-    var availablePaymentMethods: [PaymentMethodDomain] = []
-    var selectedPaymentMethod: PaymentMethodDomain?
+    var availablePaymentMethods: [SDPaymentMethod] = []
+    var selectedPaymentMethod: SDPaymentMethod?
     var isLoading = false
     var errorMessage: String?
 
@@ -23,7 +20,6 @@ class PaymentMethodPickerViewModel {
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase())
@@ -31,8 +27,6 @@ class PaymentMethodPickerViewModel {
 
     // MARK: - Public Methods
 
-    /// Load available payment methods for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadAvailablePaymentMethods(forGroupId groupId: UUID) async {
         self.currentGroupId = groupId
         isLoading = true
@@ -47,8 +41,6 @@ class PaymentMethodPickerViewModel {
         isLoading = false
     }
 
-    /// Load available payment methods by type for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case with client-side filtering
     func loadAvailablePaymentMethods(forGroupId groupId: UUID, type: String) async {
         self.currentGroupId = groupId
         isLoading = true
@@ -64,22 +56,18 @@ class PaymentMethodPickerViewModel {
         isLoading = false
     }
 
-    /// Select a payment method
-    func selectPaymentMethod(_ paymentMethod: PaymentMethodDomain) {
+    func selectPaymentMethod(_ paymentMethod: SDPaymentMethod) {
         selectedPaymentMethod = paymentMethod
     }
 
-    /// Clear the selected payment method
     func clearSelection() {
         selectedPaymentMethod = nil
     }
 
-    /// Get payment method by ID
-    func getPaymentMethod(by id: UUID) -> PaymentMethodDomain? {
+    func getPaymentMethod(by id: UUID) -> SDPaymentMethod? {
         return availablePaymentMethods.first { $0.id == id }
     }
 
-    /// Set selected payment method by ID
     func setSelectedPaymentMethod(by id: UUID?) {
         if let id = id {
             selectedPaymentMethod = getPaymentMethod(by: id)
@@ -88,50 +76,39 @@ class PaymentMethodPickerViewModel {
         }
     }
 
-    /// Check if a payment method is selected
-    func isPaymentMethodSelected(_ paymentMethod: PaymentMethodDomain) -> Bool {
+    func isPaymentMethodSelected(_ paymentMethod: SDPaymentMethod) -> Bool {
         return selectedPaymentMethod?.id == paymentMethod.id
     }
 
-    /// Get the display name for selected payment method
     var selectedPaymentMethodDisplayName: String {
         return selectedPaymentMethod?.name ?? "No payment method selected"
     }
 
-    /// Check if there are available payment methods
     var hasAvailablePaymentMethods: Bool {
         return !availablePaymentMethods.isEmpty
     }
 
-    /// Get payment methods grouped by type
-    var paymentMethodsByType: [String: [PaymentMethodDomain]] {
+    var paymentMethodsByType: [String: [SDPaymentMethod]] {
         return Dictionary(grouping: availablePaymentMethods) { $0.type }
     }
 
-    /// Get unique types available
     var availableTypes: [String] {
         return Array(Set(availablePaymentMethods.map { $0.type })).sorted()
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }
 
-    /// Refresh payment methods for current group
     func refreshPaymentMethods() async {
         guard let currentGroupId = currentGroupId else { return }
         await loadAvailablePaymentMethods(forGroupId: currentGroupId)
     }
 
-    // MARK: - Validation
-
-    /// Validate that a payment method is selected
     var isValidSelection: Bool {
         return selectedPaymentMethod != nil
     }
 
-    /// Get validation error message
     var validationErrorMessage: String? {
         if !isValidSelection {
             return "Please select a payment method"

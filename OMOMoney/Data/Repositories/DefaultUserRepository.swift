@@ -8,40 +8,33 @@ final class DefaultUserRepository: UserRepository {
         self.context = context
     }
 
-    func fetchUsers() async throws -> [UserDomain] {
+    func fetchUsers() async throws -> [SDUser] {
         try await MainActor.run {
             let descriptor = FetchDescriptor<SDUser>()
-            return try context.fetch(descriptor).map { $0.toDomain() }
+            return try context.fetch(descriptor)
         }
     }
 
-    func fetchUser(id: UUID) async throws -> UserDomain? {
+    func fetchUser(id: UUID) async throws -> SDUser? {
         try await MainActor.run {
             let targetId = id
             let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first?.toDomain()
+            return try context.fetch(descriptor).first
         }
     }
 
-    func createUser(name: String, email: String) async throws -> UserDomain {
+    func createUser(name: String, email: String) async throws -> SDUser {
         try await MainActor.run {
             let user = SDUser(name: name, email: email)
             context.insert(user)
             try context.save()
-            return user.toDomain()
+            return user
         }
     }
 
-    func updateUser(_ user: UserDomain) async throws {
+    func updateUser(_ user: SDUser) async throws {
         try await MainActor.run {
-            let targetId = user.id
-            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
-            guard let existing = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            existing.name = user.name
-            existing.email = user.email
-            existing.lastModifiedAt = Date()
+            user.lastModifiedAt = Date()
             try context.save()
         }
     }
@@ -58,15 +51,13 @@ final class DefaultUserRepository: UserRepository {
         }
     }
 
-    func searchUsers(query: String) async throws -> [UserDomain] {
+    func searchUsers(query: String) async throws -> [SDUser] {
         try await MainActor.run {
             let descriptor = FetchDescriptor<SDUser>()
-            return try context.fetch(descriptor)
-                .filter {
-                    $0.name.localizedCaseInsensitiveContains(query) ||
-                    $0.email.localizedCaseInsensitiveContains(query)
-                }
-                .map { $0.toDomain() }
+            return try context.fetch(descriptor).filter {
+                $0.name.localizedCaseInsensitiveContains(query) ||
+                $0.email.localizedCaseInsensitiveContains(query)
+            }
         }
     }
 }
@@ -85,12 +76,5 @@ enum RepositoryError: LocalizedError {
         case .saveFailed:   return "Failed to save the item"
         case .deleteFailed: return "Failed to delete the item"
         }
-    }
-}
-
-// MARK: - Domain mapping
-private extension SDUser {
-    func toDomain() -> UserDomain {
-        UserDomain(id: id, name: name, email: email, createdAt: createdAt, lastModifiedAt: lastModifiedAt)
     }
 }

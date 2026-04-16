@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.5] - 2026-04-16
+
+### Changed
+- **Domain entity layer deleted** — `UserDomain`, `GroupDomain`, `ItemListDomain`, `ItemDomain`, `CategoryDomain`, `PaymentMethodDomain`, `UserGroupDomain` structs removed; all layers now use SwiftData `SD*` types directly as the single source of truth
+- **CoreData mapping files deleted** — all 7 `*+Mapping.swift` files (`Category+Mapping`, `Group+Mapping`, `Item+Mapping`, `ItemList+Mapping`, `PaymentMethod+Mapping`, `User+Mapping`, `UserGroup+Mapping`) removed; `.toDomain()` conversion no longer exists anywhere in the codebase
+- **All 22 use cases updated** — return and accept `SD*` types (`SDUser`, `SDGroup`, `SDItemList`, `SDItem`, `SDCategory`, `SDPaymentMethod`, `SDUserGroup`) in every protocol and implementation
+- **All 14 ViewModels updated** — `DashboardViewModel`, `AddItemListViewModel`, `ItemListDetailViewModel`, `AddItemViewModel`, `EditUserViewModel`, `UserDetailViewModel`, `UserListViewModel`, `CategoryListViewModel`, `CategoryPickerViewModel`, `PaymentMethodListViewModel`, `AddPaymentMethodViewModel`, `PaymentMethodPickerViewModel` rewritten to use SD* types; `updateItem`/`updateCategory`/`updatePaymentMethod` now mutate reference-type properties directly instead of creating new structs
+- **All Views updated** — `ItemListDetailView`, `AddItemView`, `ItemRowView`, `CategoryFormView`, `CategoryManagementView`, `PaymentMethodFormView`, `PaymentMethodManagementView`, `PaymentMethodPickerView`, `UserProfileView`, `EditUserView`, `UserListView`, `GroupSelectorChipView`, `CreateGroupView`, `ExpenseListView`, `ExpenseRowView`, `CalendarGridView`, `AddItemListView`, `DashboardView`, `SettingsSheetView`, `AppContentView` updated to `SD*` types throughout
+- **`ExpenseListView` row extraction** — `itemListRow(_:)` `@ViewBuilder` method extracted from `body` to resolve Swift type-checker timeout; category lookups split into named `let` bindings
+
+### Removed
+- 7 `Domain/Entities/*Domain.swift` files (~500 lines)
+- 7 `Data/CoreData/Entities/*+Mapping.swift` files (~300 lines)
+
+---
+
 ## [1.0.4] - 2026-04-16
 
 ### Changed

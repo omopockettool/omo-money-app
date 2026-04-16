@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ExpenseRowView: View {
-    let itemList: ItemListDomain
+    let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
     let itemCount: Int
@@ -88,16 +88,7 @@ struct ExpenseRowView: View {
 #Preview {
     VStack(spacing: 10) {
         ExpenseRowView(
-            itemList: ItemListDomain(
-                id: UUID(),
-                itemListDescription: "Compras del supermercado",
-                date: Date(),
-                categoryId: UUID(),
-                paymentMethodId: UUID(),
-                groupId: UUID(),
-                createdAt: Date(),
-                lastModifiedAt: nil
-            ),
+            itemList: SDItemList.mock(itemListDescription: "Compras del supermercado"),
             formattedAmount: "12,89 €",
             formattedUnpaidAmount: nil,
             itemCount: 3,
@@ -108,16 +99,7 @@ struct ExpenseRowView: View {
             onTogglePaid: {}
         )
         ExpenseRowView(
-            itemList: ItemListDomain(
-                id: UUID(),
-                itemListDescription: "Cena en restaurante",
-                date: Date(),
-                categoryId: UUID(),
-                paymentMethodId: UUID(),
-                groupId: UUID(),
-                createdAt: Date(),
-                lastModifiedAt: nil
-            ),
+            itemList: SDItemList.mock(itemListDescription: "Cena en restaurante"),
             formattedAmount: "8,00 €",
             formattedUnpaidAmount: "37,60 €",
             itemCount: 1,

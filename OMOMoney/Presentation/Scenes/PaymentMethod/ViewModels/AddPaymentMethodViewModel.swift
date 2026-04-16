@@ -1,8 +1,5 @@
 import Foundation
 
-/// ViewModel for adding and editing PaymentMethod
-/// Handles payment method creation and modification forms
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
@@ -19,12 +16,12 @@ class AddPaymentMethodViewModel {
     // MARK: - Private Properties
     private let createPaymentMethodUseCase: CreatePaymentMethodUseCase
     private let updatePaymentMethodUseCase: UpdatePaymentMethodUseCase
-    private var editingPaymentMethodId: UUID?
+    private var editingPaymentMethod: SDPaymentMethod?
     private var targetGroupId: UUID?
 
     // MARK: - Computed Properties
     var isEditing: Bool {
-        return editingPaymentMethodId != nil
+        return editingPaymentMethod != nil
     }
 
     var title: String {
@@ -44,7 +41,6 @@ class AddPaymentMethodViewModel {
         self.updatePaymentMethodUseCase = updatePaymentMethodUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(
@@ -55,24 +51,18 @@ class AddPaymentMethodViewModel {
 
     // MARK: - Public Methods
 
-    /// Configure for creating a new payment method
-    /// ✅ REFACTORED: Accepts UUID parameter
     func configureForCreation(groupId: UUID) {
         self.targetGroupId = groupId
-        self.editingPaymentMethodId = nil
+        self.editingPaymentMethod = nil
         resetForm()
     }
 
-    /// Configure for editing an existing payment method
-    /// ✅ REFACTORED: Accepts Domain model
-    func configureForEditing(_ paymentMethod: PaymentMethodDomain) {
-        self.editingPaymentMethodId = paymentMethod.id
-        self.targetGroupId = paymentMethod.groupId
+    func configureForEditing(_ paymentMethod: SDPaymentMethod) {
+        self.editingPaymentMethod = paymentMethod
+        self.targetGroupId = paymentMethod.group?.id
         populateForm(with: paymentMethod)
     }
 
-    /// Submit the form (create or update)
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Cases
     func submit() async -> Bool {
         clearValidationErrors()
 
@@ -94,7 +84,6 @@ class AddPaymentMethodViewModel {
         return success
     }
 
-    /// Reset the form to initial state
     func resetForm() {
         name = ""
         type = ""
@@ -103,28 +92,22 @@ class AddPaymentMethodViewModel {
         clearError()
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }
 
-    /// Clear validation errors
     func clearValidationErrors() {
         validationErrors.removeAll()
     }
 
     // MARK: - Private Methods
 
-    /// Populate form with existing payment method data
-    /// ✅ REFACTORED: Accepts Domain model
-    private func populateForm(with paymentMethod: PaymentMethodDomain) {
+    private func populateForm(with paymentMethod: SDPaymentMethod) {
         name = paymentMethod.name
         type = paymentMethod.type
         isActive = paymentMethod.isActive
     }
 
-    /// Create a new payment method
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     private func createPaymentMethod() async -> Bool {
         guard let groupId = targetGroupId else {
             errorMessage = "Invalid group"
@@ -148,28 +131,17 @@ class AddPaymentMethodViewModel {
         }
     }
 
-    /// Update existing payment method
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     private func updatePaymentMethod() async -> Bool {
-        guard let paymentMethodId = editingPaymentMethodId,
-              let groupId = targetGroupId else {
+        guard let pm = editingPaymentMethod else {
             errorMessage = "No payment method to update"
             return false
         }
 
         do {
-            // Create updated domain model
-            let updatedMethod = PaymentMethodDomain(
-                id: paymentMethodId,
-                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                type: type.trimmingCharacters(in: .whitespacesAndNewlines),
-                isActive: isActive,
-                groupId: groupId,
-                createdAt: Date(), // Note: This should ideally preserve original createdAt
-                lastModifiedAt: Date()
-            )
-
-            try await updatePaymentMethodUseCase.execute(updatedMethod)
+            pm.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            pm.type = type.trimmingCharacters(in: .whitespacesAndNewlines)
+            pm.isActive = isActive
+            try await updatePaymentMethodUseCase.execute(pm)
             return true
         } catch {
             errorMessage = "Error updating payment method: \(error.localizedDescription)"
@@ -177,11 +149,9 @@ class AddPaymentMethodViewModel {
         }
     }
 
-    /// Validate the form
     private func validateForm() -> Bool {
         var isValid = true
 
-        // Validate name
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedName.isEmpty {
             validationErrors["name"] = "Name is required"
@@ -194,7 +164,6 @@ class AddPaymentMethodViewModel {
             isValid = false
         }
 
-        // Validate type
         let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedType.isEmpty {
             validationErrors["type"] = "Type is required"
@@ -212,27 +181,22 @@ class AddPaymentMethodViewModel {
 
     // MARK: - Validation Helpers
 
-    /// Check if name field has validation error
     func hasNameError() -> Bool {
         return validationErrors["name"] != nil
     }
 
-    /// Get name validation error message
     func getNameError() -> String? {
         return validationErrors["name"]
     }
 
-    /// Check if type field has validation error
     func hasTypeError() -> Bool {
         return validationErrors["type"] != nil
     }
 
-    /// Get type validation error message
     func getTypeError() -> String? {
         return validationErrors["type"]
     }
 
-    /// Check if form is valid for submission
     var canSubmit: Bool {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -242,9 +206,6 @@ class AddPaymentMethodViewModel {
                !isLoading
     }
 
-    // MARK: - Common Payment Method Types
-
-    /// Get common payment method types for quick selection
     var commonTypes: [String] {
         return [
             "Credit Card",
@@ -258,7 +219,6 @@ class AddPaymentMethodViewModel {
         ]
     }
 
-    /// Set type from common types
     func setType(_ selectedType: String) {
         type = selectedType
     }

@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SettingsSheetView: View {
-    let group: GroupDomain
-    let user: UserDomain
-    let onUserUpdated: (UserDomain) -> Void
+    let group: SDGroup
+    let user: SDUser
+    let onUserUpdated: (SDUser) -> Void
 
     @Environment(\.dismiss) private var dismiss
 

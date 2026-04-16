@@ -1,24 +1,22 @@
 
 import Foundation
 
-/// ✅ Clean Architecture: ViewModel works with Domain models only
 @MainActor
 
 @Observable
 final class AddItemListViewModel {
 
     // MARK: - Published Properties
-    // ✅ Clean Architecture: Use Domain models, not Core Data entities
-    var categories: [CategoryDomain] = []
-    var paymentMethods: [PaymentMethodDomain] = []
+    var categories: [SDCategory] = []
+    var paymentMethods: [SDPaymentMethod] = []
     var isLoading = false
     var errorMessage: String?
     var toast: ToastMessage?
     var description = ""
-    var price = ""  // Optional price field - empty means no automatic item
+    var price = ""
     var date = Date()
-    var selectedCategory: CategoryDomain?
-    var selectedPaymentMethod: PaymentMethodDomain?
+    var selectedCategory: SDCategory?
+    var selectedPaymentMethod: SDPaymentMethod?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
@@ -26,7 +24,7 @@ final class AddItemListViewModel {
     private let updateItemListUseCase: UpdateItemListUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
-    private let itemListToEdit: ItemListDomain?
+    private let itemListToEdit: SDItemList?
 
     // MARK: - Computed
 
@@ -35,7 +33,7 @@ final class AddItemListViewModel {
     // MARK: - Initialization
 
     init(
-        itemListToEdit: ItemListDomain? = nil,
+        itemListToEdit: SDItemList? = nil,
         createItemListUseCase: CreateItemListUseCase,
         createItemUseCase: CreateItemUseCase,
         updateItemListUseCase: UpdateItemListUseCase,
@@ -49,15 +47,13 @@ final class AddItemListViewModel {
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
 
-        // Pre-populate fields when editing
         if let toEdit = itemListToEdit {
             self.description = toEdit.itemListDescription
             self.date = toEdit.date
         }
     }
 
-    /// Convenience initializer using DI Container
-    convenience init(itemListToEdit: ItemListDomain? = nil, initialDate: Date? = nil) {
+    convenience init(itemListToEdit: SDItemList? = nil, initialDate: Date? = nil) {
         let appContainer = AppDIContainer.shared
         self.init(
             itemListToEdit: itemListToEdit,
@@ -81,29 +77,22 @@ final class AddItemListViewModel {
         return formatter.string(from: date)
     }
 
-    /// Check if the form can be saved
     var canSave: Bool {
         selectedCategory != nil &&
         selectedPaymentMethod != nil &&
         isPriceValid
     }
 
-    /// Check if price is valid (empty or valid decimal)
     var isPriceValid: Bool {
         if price.isEmpty { return true }
         let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
-        // Allow trailing decimal separator — user is still typing (e.g. "123.")
         if normalizedPrice.hasSuffix(".") { return true }
         return NSDecimalNumber(string: normalizedPrice) != NSDecimalNumber.notANumber
     }
 
-    /// Get price as Decimal, returns nil if empty or invalid
     var priceAsDecimal: Decimal? {
         guard !price.isEmpty else { return nil }
-
-        // ✅ FIX: Normalize comma to period for European decimal format (3,58 → 3.58)
         let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
-
         guard let decimal = Decimal(string: normalizedPrice) else { return nil }
         return decimal
     }
@@ -121,8 +110,6 @@ final class AddItemListViewModel {
 
     // MARK: - Public Methods
 
-    /// Load categories for the specified group
-    /// ✅ Clean Architecture: Accept UUID, use Use Case to fetch Domain models
     func loadCategories(forGroupId groupId: UUID, lastUsedCategoryId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
@@ -130,10 +117,8 @@ final class AddItemListViewModel {
         do {
             categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
             if isEditMode {
-                // Pre-select the existing category when editing
-                selectedCategory = categories.first { $0.id == itemListToEdit?.categoryId }
+                selectedCategory = categories.first { $0.id == itemListToEdit?.category?.id }
             } else {
-                // Pre-select last used only — nil if first time (forces conscious choice)
                 selectedCategory = lastUsedCategoryId.flatMap { id in
                     categories.first { $0.id == id }
                 }
@@ -145,8 +130,6 @@ final class AddItemListViewModel {
         isLoading = false
     }
 
-    /// Load active payment methods for the specified group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case instead of Service
     func loadPaymentMethods(forGroupId groupId: UUID, lastUsedPaymentMethodId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
@@ -154,10 +137,8 @@ final class AddItemListViewModel {
         do {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
             if isEditMode {
-                // Pre-select the existing payment method when editing
-                selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethodId }
+                selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
             } else {
-                // Pre-select last used only — nil if first time (forces conscious choice)
                 selectedPaymentMethod = lastUsedPaymentMethodId.flatMap { id in
                     paymentMethods.first { $0.id == id }
                 }
@@ -169,24 +150,19 @@ final class AddItemListViewModel {
         isLoading = false
     }
 
-    /// Create a new itemList with the specified details
-    /// If price is provided, also creates an automatic Item
-    /// Returns the created ItemListDomain if successful, nil otherwise
-    /// ✅ Clean Architecture: Accept UUIDs, work with Domain models
     func createItemList(
         description: String,
         date: Date,
         categoryId: UUID,
         groupId: UUID,
         paymentMethodId: UUID?
-    ) async -> ItemListDomain? {
+    ) async -> SDItemList? {
         isLoading = true
         errorMessage = nil
 
         do {
             let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Step 1: Create ItemList
             let itemList = try await createItemListUseCase.execute(
                 description: trimmedDescription,
                 date: date,
@@ -195,7 +171,6 @@ final class AddItemListViewModel {
                 groupId: groupId
             )
 
-            // Step 2: If price provided, create automatic Item (marked paid if amount > 0)
             if let priceDecimal = priceAsDecimal {
                 let _ = try await createItemUseCase.execute(
                     description: trimmedDescription,
@@ -216,29 +191,21 @@ final class AddItemListViewModel {
         }
     }
 
-    /// Update the existing itemList with current form values
-    /// Returns the updated ItemListDomain if successful, nil otherwise
-    func updateItemList(groupId: UUID) async -> ItemListDomain? {
+    func updateItemList(groupId: UUID) async -> SDItemList? {
         guard let toEdit = itemListToEdit,
               let category = selectedCategory else { return nil }
         isLoading = true
         errorMessage = nil
 
-        let updated = ItemListDomain(
-            id: toEdit.id,
-            itemListDescription: description.trimmingCharacters(in: .whitespacesAndNewlines),
-            date: date,
-            categoryId: category.id,
-            paymentMethodId: selectedPaymentMethod?.id,
-            groupId: toEdit.groupId,
-            createdAt: toEdit.createdAt,
-            lastModifiedAt: Date()
-        )
+        toEdit.itemListDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        toEdit.date = date
+        toEdit.category = category
+        toEdit.paymentMethod = selectedPaymentMethod
 
         do {
-            try await updateItemListUseCase.execute(updated)
+            try await updateItemListUseCase.execute(toEdit)
             isLoading = false
-            return updated
+            return toEdit
         } catch {
             errorMessage = "Error al actualizar: \(error.localizedDescription)"
             isLoading = false
@@ -246,57 +213,39 @@ final class AddItemListViewModel {
         }
     }
 
-    /// Validate and correct price input
-    /// - Maximum 7 digits before decimal (9 total including 2 decimals)
-    /// - Maximum 2 decimal places
-    /// - Allows both comma and period as decimal separator
     func validateAndCorrectPrice() {
         price = correctPriceInput(price)
     }
 
     // MARK: - Private Methods
 
-    /// Correct price input to meet constraints
-    /// - Maximum 7 digits before decimal (9 total including 2 decimals, e.g. 1234567.89)
-    /// - Maximum 2 decimal places
-    /// - Allows both comma and period as decimal separator
     private func correctPriceInput(_ input: String) -> String {
-        // Allow empty string
-        if input.isEmpty {
-            return input
-        }
+        if input.isEmpty { return input }
 
-        // Filter: only allow digits, comma, and period
         let allowedCharacters = CharacterSet(charactersIn: "0123456789.,")
         var filtered = input.filter { char in
             return char.unicodeScalars.allSatisfy { allowedCharacters.contains($0) }
         }
 
-        // Normalize: replace comma with period for consistent handling
         filtered = filtered.replacingOccurrences(of: ",", with: ".")
 
-        // Handle multiple decimal separators - keep only the first one
         let components = filtered.components(separatedBy: ".")
         if components.count > 2 {
             filtered = components[0] + "." + components[1...].joined()
         }
 
-        // Split into integer and decimal parts
         let parts = filtered.components(separatedBy: ".")
         var integerPart = parts[0]
         var decimalPart = parts.count > 1 ? parts[1] : ""
 
-        // Limit integer part to 7 digits (9 total including 2 decimals)
         if integerPart.count > 7 {
             integerPart = String(integerPart.prefix(7))
         }
 
-        // Limit decimal part to 2 digits
         if decimalPart.count > 2 {
             decimalPart = String(decimalPart.prefix(2))
         }
 
-        // Reconstruct the string
         if parts.count > 1 {
             return integerPart + "." + decimalPart
         } else {
@@ -304,7 +253,6 @@ final class AddItemListViewModel {
         }
     }
 
-    /// Clear any error messages
     func clearError() {
         errorMessage = nil
     }

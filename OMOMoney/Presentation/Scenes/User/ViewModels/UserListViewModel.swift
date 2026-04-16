@@ -1,15 +1,12 @@
 import Foundation
 
-/// ViewModel for User list functionality
-/// Handles user list display and management
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
 
 @Observable
 class UserListViewModel {
 
     // MARK: - Published Properties
-    var users: [UserDomain] = []
+    var users: [SDUser] = []
     var isLoading = false
     var errorMessage: String?
     var hasMoreUsers = false
@@ -17,7 +14,7 @@ class UserListViewModel {
 
     // MARK: - Private Properties
     private let pageSize = 20
-    private var allUsers: [UserDomain] = []
+    private var allUsers: [SDUser] = []
 
     // MARK: - Use Cases
     private let createUserUseCase: CreateUserUseCase
@@ -32,7 +29,6 @@ class UserListViewModel {
         self.deleteUserUseCase = deleteUserUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(
@@ -43,13 +39,10 @@ class UserListViewModel {
 
     // MARK: - Public Methods
 
-    /// Load users for specific groups (users should be loaded through UserGroupService)
     func loadUsers() async {
         isLoading = true
         errorMessage = nil
 
-        // Note: In a multi-user app, users should be loaded through UserGroupService
-        // based on the current user's groups. This global fetch should be removed.
         allUsers = []
         users = []
         hasMoreUsers = false
@@ -58,7 +51,6 @@ class UserListViewModel {
         isLoading = false
     }
 
-    /// Load more users for pagination
     func loadMoreUsers() async {
         guard hasMoreUsers && !isLoading else { return }
 
@@ -78,15 +70,12 @@ class UserListViewModel {
         isLoading = false
     }
 
-    /// Reset pagination and reload from beginning
     func resetPagination() async {
         currentPage = 0
         users = Array(allUsers.prefix(pageSize))
         hasMoreUsers = allUsers.count > pageSize
     }
 
-    /// Create a new user
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func createUser(name: String, email: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -97,7 +86,6 @@ class UserListViewModel {
             allUsers.append(newUser)
             allUsers.sort { $0.name < $1.name }
 
-            // Reset pagination to show the new user
             await resetPagination()
 
             isLoading = false
@@ -109,9 +97,7 @@ class UserListViewModel {
         }
     }
 
-    /// Delete a user
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func deleteUser(_ user: UserDomain) async -> Bool {
+    func deleteUser(_ user: SDUser) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -120,7 +106,6 @@ class UserListViewModel {
             allUsers.removeAll { $0.id == user.id }
             users.removeAll { $0.id == user.id }
 
-            // Adjust pagination if needed
             if users.isEmpty && hasMoreUsers {
                 await loadMoreUsers()
             }
@@ -134,18 +119,10 @@ class UserListViewModel {
         }
     }
 
-    /// Check if user name exists
-    /// ⚠️ TODO: Create UserExistsUseCase to avoid needing direct Service access
     func userExists(withName name: String, excluding userId: UUID? = nil) async -> Bool {
-        // This would need a dedicated Use Case or could be a computed property
-        // For now, returning false to avoid breaking code
         return false
     }
 
-    // Note: For users count, use UserGroupService.getUsers(in: group) and then .count
-    // to ensure proper filtering by group context
-
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }
