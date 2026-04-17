@@ -5,7 +5,6 @@ protocol CreateCategoryUseCase {
         name: String,
         color: String?,
         icon: String,
-        isDefault: Bool,
         groupId: UUID,
         limit: Decimal?,
         limitFrequency: String?
@@ -23,7 +22,6 @@ final class DefaultCreateCategoryUseCase: CreateCategoryUseCase {
         name: String,
         color: String?,
         icon: String = "tag.fill",
-        isDefault: Bool = false,
         groupId: UUID,
         limit: Decimal?,
         limitFrequency: String?
@@ -32,7 +30,6 @@ final class DefaultCreateCategoryUseCase: CreateCategoryUseCase {
             name: name,
             color: color ?? "#CCCCCC",
             icon: icon,
-            isDefault: isDefault,
             limit: limit,
             limitFrequency: limitFrequency ?? "monthly",
             groupId: groupId

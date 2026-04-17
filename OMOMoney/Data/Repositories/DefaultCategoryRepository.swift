@@ -28,7 +28,7 @@ final class DefaultCategoryRepository: CategoryRepository {
             let targetGroupId = groupId
             let descriptor = FetchDescriptor<SDCategory>(
                 predicate: #Predicate { $0.group?.id == targetGroupId },
-                sortBy: [SortDescriptor(\.name)]
+                sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.name)]
             )
             return try context.fetch(descriptor)
         }
@@ -38,7 +38,6 @@ final class DefaultCategoryRepository: CategoryRepository {
         name: String,
         color: String,
         icon: String,
-        isDefault: Bool,
         limit: Decimal?,
         limitFrequency: String,
         groupId: UUID?
@@ -48,7 +47,6 @@ final class DefaultCategoryRepository: CategoryRepository {
                 name: name,
                 color: color,
                 icon: icon,
-                isDefault: isDefault,
                 limit: limit.map { Double(truncating: $0 as NSDecimalNumber) },
                 limitFrequency: limitFrequency
             )

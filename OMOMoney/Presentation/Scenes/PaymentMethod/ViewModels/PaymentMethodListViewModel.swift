@@ -92,7 +92,6 @@ class PaymentMethodListViewModel {
                 icon: icon,
                 color: "#6C63FF",
                 isActive: isActive,
-                isDefault: false,
                 groupId: groupId
             )
             paymentMethods.append(newPaymentMethod)

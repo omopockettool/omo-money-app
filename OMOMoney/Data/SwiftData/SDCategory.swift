@@ -7,7 +7,7 @@ final class SDCategory {
     var name: String
     var color: String
     var icon: String
-    var isDefault: Bool
+    var sortOrder: Int
     var limit: Double?
     var limitFrequency: String
     var createdAt: Date
@@ -23,7 +23,7 @@ final class SDCategory {
         name: String,
         color: String = "#8E8E93",
         icon: String = "tag.fill",
-        isDefault: Bool = false,
+        sortOrder: Int = 0,
         limit: Double? = nil,
         limitFrequency: String = "monthly",
         createdAt: Date = Date(),
@@ -33,7 +33,7 @@ final class SDCategory {
         self.name = name
         self.color = color
         self.icon = icon
-        self.isDefault = isDefault
+        self.sortOrder = sortOrder
         self.limit = limit
         self.limitFrequency = limitFrequency
         self.createdAt = createdAt
@@ -107,7 +107,6 @@ extension SDCategory {
         name: String = "Groceries",
         color: String = "#FF6B6B",
         icon: String = "cart.fill",
-        isDefault: Bool = false,
         limit: Double? = 500.0,
         limitFrequency: String = "monthly",
         createdAt: Date = Date(),
@@ -118,7 +117,6 @@ extension SDCategory {
             name: name,
             color: color,
             icon: icon,
-            isDefault: isDefault,
             limit: limit,
             limitFrequency: limitFrequency,
             createdAt: createdAt,

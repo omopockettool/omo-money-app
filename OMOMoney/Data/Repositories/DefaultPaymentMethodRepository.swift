@@ -49,11 +49,10 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         icon: String,
         color: String,
         isActive: Bool,
-        isDefault: Bool,
         groupId: UUID?
     ) async throws -> SDPaymentMethod {
         try await MainActor.run {
-            let pm = SDPaymentMethod(name: name, type: type, icon: icon, color: color, isActive: isActive, isDefault: isDefault)
+            let pm = SDPaymentMethod(name: name, type: type, icon: icon, color: color, isActive: isActive)
             if let groupId {
                 let targetId = groupId
                 let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })

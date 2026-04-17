@@ -63,7 +63,6 @@ class CategoryListViewModel {
                 name: name,
                 color: color,
                 icon: icon,
-                isDefault: false,
                 groupId: groupId,
                 limit: nil,
                 limitFrequency: nil

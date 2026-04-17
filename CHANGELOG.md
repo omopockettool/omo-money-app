@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.9] - 2026-04-17
+
+### Removed
+- **`isDefault: Bool` removed from `SDCategory`** — property, init param, and mock param deleted
+- **`isDefault: Bool` removed from `SDPaymentMethod`** — property, init param, and mock param deleted
+- **`SDGroup.defaultCategory` and `SDGroup.defaultPaymentMethod`** computed properties deleted
+- **`isDefault` removed from all downstream layers** — `CategoryRepository`, `PaymentMethodRepository`, `CreateCategoryUseCase`, `CreatePaymentMethodUseCase`, `DefaultCategoryRepository`, `DefaultPaymentMethodRepository`, `DefaultGroupRepository`, `CategoryListViewModel`, `AddPaymentMethodViewModel`, `PaymentMethodListViewModel`
+- **`isDefault` UI guards removed** — `CategoryManagementView` and `PaymentMethodManagementView` no longer block editing/deleting rows based on `isDefault`; all rows are now fully editable and deletable
+
+### Added
+- **`sortOrder: Int` added to `SDCategory`** (default `0`) — controls display order independent of name
+- **"Otros" seeded with `sortOrder: 999`** in `DefaultGroupRepository` so it always renders last regardless of alphabetical sorting
+
+### Changed
+- **`DefaultCategoryRepository.fetchCategories(forGroupId:)`** — sort changed from `[name]` to `[sortOrder, name]`
+- **`AddItemListView` grid/overflow category split** — removed `isDefault`-based partitioning; grid shows first 5 categories, overflow shows the rest
+- **`AddItemListView` payment method UserDefaults key** renamed from `lastUsedNonDefaultPaymentMethodId_*` to `lastUsedPaymentMethodId_*`
+
+---
+
 ## [1.0.8] - 2026-04-16
 
 ### Removed

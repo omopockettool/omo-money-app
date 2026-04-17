@@ -9,7 +9,6 @@ final class SDPaymentMethod {
     var icon: String
     var color: String
     var isActive: Bool
-    var isDefault: Bool
     var createdAt: Date
     var lastModifiedAt: Date?
     
@@ -25,7 +24,6 @@ final class SDPaymentMethod {
         icon: String = "creditcard.fill",
         color: String = "#8E8E93",
         isActive: Bool = true,
-        isDefault: Bool = false,
         createdAt: Date = Date(),
         lastModifiedAt: Date? = nil
     ) {
@@ -35,7 +33,6 @@ final class SDPaymentMethod {
         self.icon = icon
         self.color = color
         self.isActive = isActive
-        self.isDefault = isDefault
         self.createdAt = createdAt
         self.lastModifiedAt = lastModifiedAt
     }
@@ -127,7 +124,6 @@ extension SDPaymentMethod {
         icon: String = "creditcard.fill",
         color: String = "#2196F3",
         isActive: Bool = true,
-        isDefault: Bool = false,
         createdAt: Date = Date(),
         lastModifiedAt: Date? = nil
     ) -> SDPaymentMethod {
@@ -138,7 +134,6 @@ extension SDPaymentMethod {
             icon: icon,
             color: color,
             isActive: isActive,
-            isDefault: isDefault,
             createdAt: createdAt,
             lastModifiedAt: lastModifiedAt
         )

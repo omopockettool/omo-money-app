@@ -7,7 +7,6 @@ protocol CreatePaymentMethodUseCase {
         icon: String,
         color: String,
         isActive: Bool,
-        isDefault: Bool,
         groupId: UUID
     ) async throws -> SDPaymentMethod
 }
@@ -25,7 +24,6 @@ final class DefaultCreatePaymentMethodUseCase: CreatePaymentMethodUseCase {
         icon: String = "creditcard.fill",
         color: String = "#8E8E93",
         isActive: Bool,
-        isDefault: Bool = false,
         groupId: UUID
     ) async throws -> SDPaymentMethod {
         return try await paymentMethodRepository.createPaymentMethod(
@@ -34,7 +32,6 @@ final class DefaultCreatePaymentMethodUseCase: CreatePaymentMethodUseCase {
             icon: icon,
             color: color,
             isActive: isActive,
-            isDefault: isDefault,
             groupId: groupId
         )
     }

@@ -11,7 +11,6 @@ protocol PaymentMethodRepository {
         icon: String,
         color: String,
         isActive: Bool,
-        isDefault: Bool,
         groupId: UUID?
     ) async throws -> SDPaymentMethod
     func updatePaymentMethod(_ paymentMethod: SDPaymentMethod) async throws

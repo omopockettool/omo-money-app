@@ -40,9 +40,9 @@ struct AddItemListView: View {
             ?? []
     }
 
-    private var lastUsedNonDefaultPaymentMethodId: UUID? {
+    private var lastUsedPaymentMethodId: UUID? {
         UserDefaults.standard
-            .string(forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
+            .string(forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
             .flatMap { UUID(uuidString: $0) }
     }
 
@@ -55,8 +55,8 @@ struct AddItemListView: View {
 
     private func sortedPaymentMethods() -> [SDPaymentMethod] {
         viewModel.paymentMethods.sorted {
-            chipRank($0.id, lastUsed: lastUsedNonDefaultPaymentMethodId) <
-            chipRank($1.id, lastUsed: lastUsedNonDefaultPaymentMethodId)
+            chipRank($0.id, lastUsed: lastUsedPaymentMethodId) <
+            chipRank($1.id, lastUsed: lastUsedPaymentMethodId)
         }
     }
 
@@ -71,13 +71,11 @@ struct AddItemListView: View {
     private static let gridCategoryLimit = 5
 
     private var gridCategories: [SDCategory] {
-        orderedCategories.filter { !$0.isDefault }.prefix(Self.gridCategoryLimit).map { $0 }
+        orderedCategories.prefix(Self.gridCategoryLimit).map { $0 }
     }
 
     private var overflowCategories: [SDCategory] {
-        let extra = orderedCategories.filter { !$0.isDefault }.dropFirst(Self.gridCategoryLimit)
-        let defaults = orderedCategories.filter { $0.isDefault }
-        return Array(extra) + defaults
+        Array(orderedCategories.dropFirst(Self.gridCategoryLimit))
     }
 
     private func recordCategoryUsage(_ category: SDCategory) {
@@ -178,7 +176,7 @@ struct AddItemListView: View {
         }
         .task {
             async let categories: () = viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedNonDefaultPaymentMethodId)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedPaymentMethodId)
             _ = await (categories, paymentMethods)
             orderedCategories = sortedCategories()
             orderedPaymentMethods = sortedPaymentMethods()
@@ -469,9 +467,7 @@ struct AddItemListView: View {
                     Button {
                         withAnimation(AnimationHelper.quickSpring) {
                             viewModel.selectedPaymentMethod = method
-                            if !method.isDefault {
-                                UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
-                            }
+                            UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
                         }
                     } label: {
                         HStack(spacing: 8) {

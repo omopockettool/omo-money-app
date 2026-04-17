@@ -22,12 +22,10 @@ struct PaymentMethodManagementView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !pm.isDefault {
-                            Button(role: .destructive) {
-                                Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
-                            } label: {
-                                Label("Eliminar", systemImage: "trash")
-                            }
+                        Button(role: .destructive) {
+                            Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
+                        } label: {
+                            Label("Eliminar", systemImage: "trash")
                         }
                     }
             }
@@ -62,7 +60,7 @@ struct PaymentMethodManagementView: View {
     }
 
     private func paymentMethodRow(_ pm: SDPaymentMethod) -> some View {
-        Button { if !pm.isDefault { sheetMode = .edit(pm) } } label: {
+        Button { sheetMode = .edit(pm) } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -81,15 +79,9 @@ struct PaymentMethodManagementView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if pm.isDefault {
-                    Text("Predeterminado")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.secondarySystemGroupedBackground))

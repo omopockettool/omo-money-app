@@ -8,7 +8,6 @@ protocol CategoryRepository {
         name: String,
         color: String,
         icon: String,
-        isDefault: Bool,
         limit: Decimal?,
         limitFrequency: String,
         groupId: UUID?

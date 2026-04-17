@@ -22,12 +22,10 @@ struct CategoryManagementView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !category.isDefault {
-                            Button(role: .destructive) {
-                                Task { await viewModel.deleteCategory(category) }
-                            } label: {
-                                Label("Eliminar", systemImage: "trash")
-                            }
+                        Button(role: .destructive) {
+                            Task { await viewModel.deleteCategory(category) }
+                        } label: {
+                            Label("Eliminar", systemImage: "trash")
                         }
                     }
             }
@@ -62,7 +60,7 @@ struct CategoryManagementView: View {
     }
 
     private func categoryRow(_ category: SDCategory) -> some View {
-        Button { if !category.isDefault { sheetMode = .edit(category) } } label: {
+        Button { sheetMode = .edit(category) } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -76,15 +74,9 @@ struct CategoryManagementView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                 Spacer()
-                if category.isDefault {
-                    Text("Predeterminada")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.secondarySystemGroupedBackground))

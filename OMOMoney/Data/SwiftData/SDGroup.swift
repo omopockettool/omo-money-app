@@ -67,13 +67,6 @@ extension SDGroup {
         paymentMethods.filter { $0.isActive }
     }
     
-    var defaultCategory: SDCategory? {
-        categories.first { $0.isDefault }
-    }
-    
-    var defaultPaymentMethod: SDPaymentMethod? {
-        paymentMethods.first { $0.isDefault }
-    }
 }
 
 #if DEBUG
