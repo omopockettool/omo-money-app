@@ -154,15 +154,19 @@ struct AddItemListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") { onCancel() }
+                Button { onCancel() } label: {
+                    Image(systemName: "xmark")
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button {
                     if viewModel.canSave {
                         Task { await saveItemList() }
                     } else {
                         viewModel.showValidationToast()
                     }
+                } label: {
+                    Image(systemName: "checkmark")
                 }
             }
             ToolbarItemGroup(placement: .keyboard) {

@@ -62,17 +62,16 @@ struct CreateGroupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") {
-                        dismiss()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
                     }
                     .disabled(isCreating)
                 }
-                
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Crear") {
-                        Task {
-                            await createGroup()
-                        }
+                    Button {
+                        Task { await createGroup() }
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                     .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isCreating)
                 }

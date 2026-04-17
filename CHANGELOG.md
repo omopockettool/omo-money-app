@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.14] - 2026-04-17
+
+### Changed
+- **Toolbar buttons use icons instead of labels** — `CategoryFormView`, `CreateGroupView` now use `xmark` (cancel) and `checkmark` (confirm) SF Symbols instead of text labels, matching the standard adopted across the app
+- **Group picker add button enlarged** — `plus.circle.fill` in `GroupPickerSheet` toolbar uses `.font(.title2)` and `.buttonStyle(.plain)` to remove the Liquid Glass container and render as a bare icon
+- **Auto-switch to newly created group** — after creating a group via `CreateGroupView`, the app now automatically selects it as the active group instead of staying on the previous one
+- **Delete group overlay now appears immediately** — `isDeletingGroup = true` is set in the alert confirmation action before `deleteGroup()` runs, eliminating the frame where the list was briefly visible between alert dismissal and overlay appearance
+
+---
+
 ## [1.0.13] - 2026-04-17
 
 ### Fixed

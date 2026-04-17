@@ -112,11 +112,15 @@ struct PaymentMethodFormView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") { dismiss() }
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button {
                     Task { await save() }
+                } label: {
+                    Image(systemName: "checkmark")
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }

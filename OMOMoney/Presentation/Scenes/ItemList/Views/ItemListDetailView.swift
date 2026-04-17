@@ -389,16 +389,20 @@ struct AddItemView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") {
+                    Button {
                         Task {
                             if let item = await viewModel.saveItem() {
                                 onItemSaved(item)
                                 dismiss()
                             }
                         }
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                     .disabled(!viewModel.canSave)
                 }

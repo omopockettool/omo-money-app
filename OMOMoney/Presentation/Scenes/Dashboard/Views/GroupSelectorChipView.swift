@@ -189,6 +189,7 @@ struct GroupPickerSheet: View {
                         title: "¿Desea eliminar \(group.name)?",  // ✅ Domain: non-optional name
                         message: "Se eliminarán todos los datos asociados a este grupo.",
                         primaryButton: AlertButton(title: "Eliminar", style: .destructive) {
+                            isDeletingGroup = true
                             deleteGroup(group)
                             groupToDelete = nil
                         },
@@ -207,9 +208,11 @@ struct GroupPickerSheet: View {
                         showingCreateGroup = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
+                            .font(.title2)
                             .foregroundColor(isChangingGroup || isDeletingGroup ? .gray : .accentColor)
                     }
-                    .disabled(isChangingGroup || isDeletingGroup)  // ✅ Deshabilitar durante cambio o eliminación
+                    .buttonStyle(.plain)
+                    .disabled(isChangingGroup || isDeletingGroup)
                 }
             }
             .sheet(isPresented: $showingCreateGroup) {
@@ -220,10 +223,9 @@ struct GroupPickerSheet: View {
                     createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase(),
                     userId: userId,
                     onGroupCreated: { newGroup in
-                        // Actualizar lista local incrementalmente
                         availableGroups.append(newGroup)
-                        // Notificar al ViewModel
                         onGroupCreated(newGroup)
+                        onGroupChange(newGroup)
                     }
                 )
                 .presentationDetents([.medium, .large])
