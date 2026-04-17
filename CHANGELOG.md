@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.13] - 2026-04-17
+
+### Fixed
+- **Item lists in calendar day sheet now always sort newest-first** — sort comparator in `DashboardViewModel` now normalizes `date` to `startOfDay` before comparing, then falls back to `createdAt DESC` as tiebreaker. Previously, items created from the calendar sheet (stored with `date = midnight`) sorted below items created from the main dashboard (stored with `date = current time`) even when created more recently. Affects `refreshData()`, `addItemList()`, and `updateItemList()`.
+
+---
+
 ## [1.0.12] - 2026-04-17
 
 ### Changed

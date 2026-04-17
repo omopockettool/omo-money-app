@@ -159,8 +159,11 @@ class DashboardViewModel {
             
             print("🔍 DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemLists.count)")
             
+            let cal = Calendar.current
             let sortedItemLists = fetchedItemLists.sorted {
-                $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
+                let d0 = cal.startOfDay(for: $0.date)
+                let d1 = cal.startOfDay(for: $1.date)
+                return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
             }
 
             await MainActor.run {
@@ -412,8 +415,11 @@ class DashboardViewModel {
             return
         }
 
+        let cal = Calendar.current
         let sortedItemLists = (itemLists + [itemList]).sorted {
-            $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
+            let d0 = cal.startOfDay(for: $0.date)
+            let d1 = cal.startOfDay(for: $1.date)
+            return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
         }
 
         itemListTotals[itemList.id] = 0.0
@@ -689,8 +695,13 @@ class DashboardViewModel {
         print("✏️ DashboardViewModel: Updating ItemList in UI cache")
 
         // Re-sort since date may have changed (SD* reference type, object is already mutated)
+        let cal = Calendar.current
         await MainActor.run {
-            itemLists = itemLists.sorted { $0.date > $1.date }
+            itemLists = itemLists.sorted {
+                let d0 = cal.startOfDay(for: $0.date)
+                let d1 = cal.startOfDay(for: $1.date)
+                return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
+            }
         }
 
         await calculateTotalSpent()
