@@ -79,7 +79,6 @@ final class AddItemListViewModel {
 
     var canSave: Bool {
         selectedCategory != nil &&
-        selectedPaymentMethod != nil &&
         isPriceValid
     }
 
@@ -98,14 +97,8 @@ final class AddItemListViewModel {
     }
 
     func showValidationToast() {
-        let missingCat = selectedCategory == nil
-        let missingPM  = selectedPaymentMethod == nil
-        switch (missingCat, missingPM) {
-        case (true, true):  toast = ToastMessage("Selecciona categoría y método de pago", type: .warning)
-        case (true, false): toast = ToastMessage("Selecciona una categoría", type: .warning)
-        case (false, true): toast = ToastMessage("Selecciona un método de pago", type: .warning)
-        default: return
-        }
+        guard selectedCategory == nil else { return }
+        toast = ToastMessage("Selecciona una categoría", type: .warning)
     }
 
     // MARK: - Public Methods

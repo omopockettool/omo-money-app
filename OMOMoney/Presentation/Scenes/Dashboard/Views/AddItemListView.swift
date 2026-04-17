@@ -466,8 +466,12 @@ struct AddItemListView: View {
                     let chipColor = paymentMethodColor(method.type)
                     Button {
                         withAnimation(AnimationHelper.quickSpring) {
-                            viewModel.selectedPaymentMethod = method
-                            UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
+                            if viewModel.selectedPaymentMethod?.id == method.id {
+                                viewModel.selectedPaymentMethod = nil
+                            } else {
+                                viewModel.selectedPaymentMethod = method
+                                UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {

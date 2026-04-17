@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.11] - 2026-04-17
+
+### Changed
+- **Payment method now optional in `AddItemList`** — removed `selectedPaymentMethod != nil` from `canSave` and simplified `showValidationToast()` to only warn about missing category; user can save and assign payment method later
+- **Tapping a selected payment method deselects it** — toggled in `AddItemListView`; UserDefaults last-used key is only written on selection, not deselection
+
+---
+
 ## [1.0.10] - 2026-04-17
 
 ### Changed
