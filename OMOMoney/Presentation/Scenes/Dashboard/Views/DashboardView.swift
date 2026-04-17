@@ -434,7 +434,8 @@ struct DashboardView: View {
         }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_ES")
-        formatter.dateFormat = "MMMM yyyy"
+        let sameYear = Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .year)
+        formatter.dateFormat = sameYear ? "MMMM" : "MMMM yyyy"
         let s = formatter.string(from: displayedCalendarMonth)
         return "Coste en \(s.prefix(1).uppercased() + s.dropFirst())"
     }
