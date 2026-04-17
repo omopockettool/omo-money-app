@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.15] - 2026-04-17
+
+### Fixed
+- **Amount field shows correct decimals when editing** — `String(item.amount)` on a `Double` produced floating-point noise (e.g. `0.9800000000001`); replaced with `String(format: "%.2f", ...)` + trailing-zero stripping so `0.98` stays `0.98`, `1.50` → `1.5`, `1.00` → `1`
+
+### Changed
+- **Group picker selected checkmark enlarged** — `checkmark.circle.fill` now uses `.font(.title2)` for better visual weight
+
+---
+
 ## [1.0.14] - 2026-04-17
 
 ### Changed

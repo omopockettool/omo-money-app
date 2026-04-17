@@ -138,6 +138,7 @@ struct GroupPickerSheet: View {
                                 // Mostrar checkmark si es el grupo actual Y NO está cargando
                                 else if group.id == currentGroup.id {  // ✅ Domain: UUID
                                     Image(systemName: "checkmark.circle.fill")
+                                        .font(.title2)
                                         .foregroundColor(.accentColor)
                                 }
                             }

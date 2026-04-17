@@ -56,7 +56,7 @@ final class AddItemViewModel {
 
         if let item = itemToEdit {
             self.description = item.itemDescription
-            self.amount = item.amount == 0 ? "" : String(item.amount)
+            self.amount = item.amount == 0 ? "" : String(format: "%.2f", item.amount).replacingOccurrences(of: "\\.?0+$", with: "", options: .regularExpression)
             self.quantity = String(item.quantity)
         }
     }
