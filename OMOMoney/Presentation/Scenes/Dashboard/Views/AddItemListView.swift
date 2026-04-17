@@ -11,6 +11,7 @@ struct AddItemListView: View {
     @State private var showDatePicker = false
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
+    @State private var showPaymentMethodOverflow = false
     @State private var orderedCategories: [SDCategory] = []
     @State private var orderedPaymentMethods: [SDPaymentMethod] = []
 
@@ -68,7 +69,8 @@ struct AddItemListView: View {
         id == lastUsed ? 0 : 1
     }
 
-    private static let gridCategoryLimit = 5
+    private static let gridCategoryLimit = 3
+    private static let gridPaymentMethodLimit = 3
 
     private var gridCategories: [SDCategory] {
         orderedCategories.prefix(Self.gridCategoryLimit).map { $0 }
@@ -76,6 +78,14 @@ struct AddItemListView: View {
 
     private var overflowCategories: [SDCategory] {
         Array(orderedCategories.dropFirst(Self.gridCategoryLimit))
+    }
+
+    private var gridPaymentMethods: [SDPaymentMethod] {
+        orderedPaymentMethods.prefix(Self.gridPaymentMethodLimit).map { $0 }
+    }
+
+    private var overflowPaymentMethods: [SDPaymentMethod] {
+        Array(orderedPaymentMethods.dropFirst(Self.gridPaymentMethodLimit))
     }
 
     private func recordCategoryUsage(_ category: SDCategory) {
@@ -163,6 +173,13 @@ struct AddItemListView: View {
         .sheet(isPresented: $showCategoryOverflow) {
             categoryOverflowSheet
                 .presentationDetents([.height(CGFloat(ceil(Double(overflowCategories.count) / 2)) * 56 + 80)])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
+                .presentationBackgroundInteraction(.enabled(upThrough: .large))
+        }
+        .sheet(isPresented: $showPaymentMethodOverflow) {
+            paymentMethodOverflowSheet
+                .presentationDetents([.height(CGFloat(ceil(Double(overflowPaymentMethods.count) / 2)) * 56 + 80)])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(24)
                 .presentationBackgroundInteraction(.enabled(upThrough: .large))
@@ -461,7 +478,104 @@ struct AddItemListView: View {
                 .padding(.horizontal, 4)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(orderedPaymentMethods) { method in
+                ForEach(gridPaymentMethods) { method in
+                    paymentMethodChip(method)
+                }
+                if !overflowPaymentMethods.isEmpty {
+                    paymentMethodOverflowChip
+                }
+            }
+        }
+    }
+
+    private func paymentMethodChip(_ method: SDPaymentMethod) -> some View {
+        let isSelected = viewModel.selectedPaymentMethod?.id == method.id
+        let chipColor = paymentMethodColor(method.type)
+        return Button {
+            withAnimation(AnimationHelper.quickSpring) {
+                if viewModel.selectedPaymentMethod?.id == method.id {
+                    viewModel.selectedPaymentMethod = nil
+                } else {
+                    viewModel.selectedPaymentMethod = method
+                    UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: paymentMethodIcon(method))
+                    .font(.subheadline)
+                    .foregroundStyle(isSelected ? .white : chipColor)
+                Text(method.name)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? .white : .primary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var paymentMethodOverflowChip: some View {
+        let overflowSelected = overflowPaymentMethods.first { $0.id == viewModel.selectedPaymentMethod?.id }
+        let chipColor = overflowSelected.map { paymentMethodColor($0.type) } ?? Color(.systemGray3)
+        let icon = overflowSelected.map { paymentMethodIcon($0) } ?? "ellipsis.circle.fill"
+        let label = overflowSelected?.name ?? "Más"
+        let isActive = overflowSelected != nil
+
+        return Button {
+            withAnimation(AnimationHelper.quickSpring) {
+                showPaymentMethodOverflow.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .foregroundStyle(isActive ? .white : chipColor)
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(isActive ? .semibold : .regular)
+                    .foregroundStyle(isActive ? .white : .primary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isActive ? .white.opacity(0.8) : Color(.tertiaryLabel))
+                    .rotationEffect(.degrees(showPaymentMethodOverflow ? 180 : 0))
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(isActive ? chipColor : Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(chipColor.opacity(isActive ? 0 : 0.3), lineWidth: 1)
+            )
+            .animation(AnimationHelper.quickSpring, value: showPaymentMethodOverflow)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var paymentMethodOverflowSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Más métodos de pago")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(overflowPaymentMethods) { method in
                     let isSelected = viewModel.selectedPaymentMethod?.id == method.id
                     let chipColor = paymentMethodColor(method.type)
                     Button {
@@ -472,6 +586,7 @@ struct AddItemListView: View {
                                 viewModel.selectedPaymentMethod = method
                                 UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
                             }
+                            showPaymentMethodOverflow = false
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -499,6 +614,8 @@ struct AddItemListView: View {
                 }
             }
         }
+        .padding(AppConstants.UserInterface.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Date + Group Card

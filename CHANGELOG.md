@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.12] - 2026-04-17
+
+### Changed
+- **Category grid capped at 3 + "Más"** — `gridCategoryLimit` reduced from 5 to 3; always a 2×2 grid of 4 elements
+- **Payment method grid capped at 3 + "Más"** — same pattern applied to payment methods: first 3 shown inline, overflow opens a bottom sheet
+- **Payment method overflow chip** — mirrors category overflow chip behaviour: shows selected overflow item's name/icon when active, chevron rotates on open; tap-to-deselect works inside the sheet too
+- **Payment method overflow sheet** — `presentationDetents` height computed dynamically from overflow count, same style as category sheet
+
+---
+
 ## [1.0.11] - 2026-04-17
 
 ### Changed
