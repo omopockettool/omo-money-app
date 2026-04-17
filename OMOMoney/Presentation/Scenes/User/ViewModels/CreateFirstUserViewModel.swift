@@ -13,6 +13,7 @@ class CreateFirstUserViewModel {
     var name = ""
     var email = ""
     var isLoading = false
+    var loadingMessage = ""
     var showError = false
     var errorMessage: String?
     var isSuccess = false
@@ -65,36 +66,30 @@ class CreateFirstUserViewModel {
         guard isFormValid else { return }
         
         isLoading = true
+        loadingMessage = "Creando usuario..."
         errorMessage = nil
         showError = false
-        
+
         do {
-            // Use Case 1: Create User (includes validation)
             let userDomain = try await createUserUseCase.execute(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-            
-            print("✅ User created: \(userDomain.name)")
-            
-            // Use Case 2: Create Personal Group
+
+            loadingMessage = "Creando grupo personal..."
             let groupDomain = try await createGroupUseCase.execute(
                 name: "Personal",
                 currency: "USD"
             )
-            
-            print("✅ Personal group created: \(groupDomain.name)")
-            
-            // Use Case 3: Create UserGroup relationship
+
+            loadingMessage = "Configurando categorías..."
             _ = try await createUserGroupUseCase.execute(
                 userId: userDomain.id,
                 groupId: groupDomain.id,
                 role: "owner"
             )
-            
-            print("✅ UserGroup relationship created: User '\(userDomain.name)' is owner of group '\(groupDomain.name)'")
-            
-            print("✅ First user setup completed successfully")
+
+            loadingMessage = "¡Listo!"
             isSuccess = true
             
         } catch let error as ValidationError {

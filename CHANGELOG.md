@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.10] - 2026-04-17
+
+### Changed
+- **`CreateFirstUserView` redesigned** — full onboarding screen rewrite:
+  - Gradient icon header with `.pulse` symbol effect
+  - Custom input fields with icon, focus ring stroke, and `contentTransition` on icon color change
+  - Submit label `.next` / `.done` for keyboard tab navigation between fields
+  - Button uses gradient background + shadow when form is valid, `PressHapticButtonStyle`, bounces icon on validation state change
+  - Plain `VStack` layout (no `ScrollView`) — SwiftUI keyboard avoidance pushes content up natively
+  - Form content fades out (`opacity 0`) while loading overlay is active
+  - Dark mode preview added
+- **`CreateFirstUserView` no longer a sheet** — shown inline as full-screen content in `MainView` when no user exists; eliminates the broken state where dismissing the sheet left users stranded
+- **`MainView` simplified** — removed `showingCreateFirstUser` binding and sheet; `CreateFirstUserView` rendered directly in the `else` branch
+- **`CreateFirstUserViewModel`** — added `loadingMessage: String` property; updated `createUser()` to emit step-by-step messages ("Creando usuario…", "Creando grupo personal…", "Configurando categorías…", "¡Listo!")
+
+---
+
 ## [1.0.9] - 2026-04-17
 
 ### Removed
