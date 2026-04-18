@@ -9,6 +9,7 @@ struct AddItemListView: View {
     @State private var viewModel: AddItemListViewModel
     @FocusState private var focusedField: Field?
     @State private var showDatePicker = false
+    @State private var calendarExpanded = false
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
     @State private var showPaymentMethodOverflow = false
@@ -112,9 +113,7 @@ struct AddItemListView: View {
         return formatter.currencySymbol
     }
 
-    private var descriptionPlaceholder: String {
-        viewModel.selectedCategory?.name ?? "Descripción"
-    }
+    private var descriptionPlaceholder: String { viewModel.selectedCategory?.name ?? "Concepto" }
 
     // MARK: - Body
 
@@ -122,9 +121,7 @@ struct AddItemListView: View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 20) {
-                if !viewModel.isEditMode {
-                    heroAmountInput
-                }
+                topCard
                 if !orderedCategories.isEmpty {
                     categoryGridSection
                 }
@@ -208,16 +205,43 @@ struct AddItemListView: View {
         .toast($viewModel.toast)
     }
 
-    // MARK: - Hero Amount Input
+    // MARK: - Top Card (Concept + Amount)
 
-    private var heroAmountInput: some View {
-        HeroAmountInputView(
-            text: $viewModel.price,
-            currencySymbol: currencySymbol,
-            onValidate: viewModel.validateAndCorrectPrice,
-            focusedField: $focusedField,
-            fieldValue: .price
-        )
+    private var topCard: some View {
+        VStack(spacing: 0) {
+            HeroAmountInputView(
+                text: $viewModel.price,
+                currencySymbol: currencySymbol,
+                onValidate: viewModel.validateAndCorrectPrice,
+                focusedField: $focusedField,
+                fieldValue: .price,
+                embedded: true
+            )
+
+            Divider()
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+
+            HStack(spacing: 10) {
+                TextField(descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .focused($focusedField, equals: .description)
+
+                if !viewModel.description.isEmpty {
+                    Button { viewModel.description = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color(.tertiaryLabel))
+                            .font(.system(size: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    .animation(AnimationHelper.quickEase, value: viewModel.description.isEmpty)
+                }
+            }
+            .padding(AppConstants.UserInterface.padding)
+        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
     }
 
     // MARK: - Category Grid
@@ -239,7 +263,6 @@ struct AddItemListView: View {
                     overflowChip
                 }
             }
-
         }
     }
 
@@ -441,13 +464,13 @@ struct AddItemListView: View {
 
             if viewModel.isEditMode || showDetails {
                 VStack(spacing: 16) {
-                    descriptionCard
+                    dateCard
+
+                    groupCard
 
                     if !orderedPaymentMethods.isEmpty {
                         paymentMethodGridSection
                     }
-
-                    dateGroupCard
 
                     Color.clear
                         .frame(height: 1)
@@ -622,37 +645,57 @@ struct AddItemListView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Date + Group Card
+    // MARK: - Date Card
 
-    private var dateGroupCard: some View {
+    private var dateCard: some View {
         VStack(spacing: 0) {
-            Button {
-                focusedField = nil
-                withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) {
-                    showDatePicker.toggle()
+            HStack(spacing: 12) {
+                Button {
+                    guard showDatePicker else { return }
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        calendarExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "calendar")
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Fecha")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Text(showDatePicker ? viewModel.formattedDate : "Hoy")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if showDatePicker {
+                            Image(systemName: calendarExpanded ? "chevron.up" : "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 20)
-                    Text("Fecha")
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                    Spacer()
-                    Text(viewModel.formattedDate)
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                    Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(AppConstants.UserInterface.padding)
-            }
-            .buttonStyle(.plain)
+                .buttonStyle(.plain)
 
-            if showDatePicker {
+                Toggle("", isOn: $showDatePicker)
+                    .labelsHidden()
+                    .onChange(of: showDatePicker) { _, on in
+                        focusedField = nil
+                        if on {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                                calendarExpanded = true
+                            }
+                        } else {
+                            viewModel.date = Date()
+                            calendarExpanded = false
+                        }
+                    }
+            }
+            .padding(AppConstants.UserInterface.padding)
+
+            if showDatePicker && calendarExpanded {
                 Divider()
                     .padding(.horizontal, AppConstants.UserInterface.padding)
                 DatePicker("", selection: $viewModel.date, displayedComponents: .date)
@@ -662,25 +705,29 @@ struct AddItemListView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .id("datePickerAnchor")
             }
-
-            Divider()
-                .padding(.horizontal, AppConstants.UserInterface.padding)
-
-            HStack(spacing: 12) {
-                Image(systemName: "person.2.fill")
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 20)
-                Text("Grupo")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(group.name)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .padding(AppConstants.UserInterface.padding)
         }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: calendarExpanded)
+    }
+
+    // MARK: - Group Card
+
+    private var groupCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.2.fill")
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 20)
+            Text("Grupo")
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            Spacer()
+            Text(group.name)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(AppConstants.UserInterface.padding)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
     }
@@ -712,9 +759,8 @@ struct AddItemListView: View {
     // MARK: - Actions
 
     private func saveItemList() async {
-        guard let category = viewModel.selectedCategory else { return }
         let finalDescription = viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? category.name
+            ? (viewModel.selectedCategory?.name ?? "Concepto")
             : viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if viewModel.isEditMode {
@@ -728,7 +774,7 @@ struct AddItemListView: View {
             if let created = await viewModel.createItemList(
                 description: finalDescription,
                 date: viewModel.date,
-                categoryId: category.id,
+                categoryId: viewModel.selectedCategory?.id ?? UUID(),
                 groupId: group.id,
                 paymentMethodId: viewModel.selectedPaymentMethod?.id
             ) {

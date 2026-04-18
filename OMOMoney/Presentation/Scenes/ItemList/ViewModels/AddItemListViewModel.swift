@@ -78,7 +78,6 @@ final class AddItemListViewModel {
     }
 
     var canSave: Bool {
-        selectedCategory != nil &&
         isPriceValid
     }
 
@@ -97,8 +96,9 @@ final class AddItemListViewModel {
     }
 
     func showValidationToast() {
-        guard selectedCategory == nil else { return }
-        toast = ToastMessage("Selecciona una categoría", type: .warning)
+        if !isPriceValid {
+            toast = ToastMessage("Precio no válido", type: .warning)
+        }
     }
 
     // MARK: - Public Methods
@@ -185,14 +185,13 @@ final class AddItemListViewModel {
     }
 
     func updateItemList(groupId: UUID) async -> SDItemList? {
-        guard let toEdit = itemListToEdit,
-              let category = selectedCategory else { return nil }
+        guard let toEdit = itemListToEdit else { return nil }
         isLoading = true
         errorMessage = nil
 
         toEdit.itemListDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
         toEdit.date = date
-        toEdit.category = category
+        if let category = selectedCategory { toEdit.category = category }
         toEdit.paymentMethod = selectedPaymentMethod
 
         do {

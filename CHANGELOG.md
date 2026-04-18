@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.16] - 2026-04-18
+
+### Changed
+- **`AddItemListView` redesigned — money-first UX** — top card now leads with the full-size hero amount input (big centered number) and "Concepto" as a secondary field below it, matching the app's expense-first purpose; previously description was the dominant field
+- **Description placeholder adapts to selected category** — when a category is selected its name is used as placeholder (e.g. "Alimentos"); falls back to "Concepto" when no category is chosen
+- **Clear button on description field** — `xmark.circle.fill` appears inline when the field has text, matching the style used across the app
+- **Date card reworked** — toggle row now splits into a tappable label area (collapses/expands the graphical picker with a chevron) and the toggle switch (enables/disables custom date); calendar auto-expands on toggle-on, date resets to today on toggle-off
+- **"Más detalles" section reordered** — Date → Group → Payment method (was: Payment method → Date → Group)
+- **Category required removed from `canSave`** — form can now be saved with just a valid price, supporting pure list creation (e.g. grocery list without an amount)
+
+---
+
 ## [1.0.15] - 2026-04-17
 
 ### Fixed
