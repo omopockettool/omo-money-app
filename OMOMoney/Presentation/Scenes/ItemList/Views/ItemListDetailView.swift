@@ -376,6 +376,7 @@ struct AddItemView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    heroAmountInput
                     descriptionCard
                     quantityStepper
                     if viewModel.showsTotalPreview { subtotalCard }

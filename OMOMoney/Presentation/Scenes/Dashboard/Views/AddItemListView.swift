@@ -113,7 +113,12 @@ struct AddItemListView: View {
         return formatter.currencySymbol
     }
 
-    private var descriptionPlaceholder: String { viewModel.selectedCategory?.name ?? "Concepto" }
+    private var descriptionPlaceholder: String {
+        if let category = viewModel.selectedCategory {
+            return "Concepto (ej. \(category.name))"
+        }
+        return "Concepto"
+    }
 
     // MARK: - Body
 
@@ -221,11 +226,18 @@ struct AddItemListView: View {
                     onPaste: viewModel.pastePrice
                 )
 
-                Divider()
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(height: 1.5)
                     .padding(.horizontal, AppConstants.UserInterface.padding)
             }
 
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "character.cursor.ibeam")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .padding(.top, viewModel.isEditMode ? 2 : 1)
+
                 TextField(descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
                     .font(viewModel.isEditMode ? .body : .subheadline)
                     .foregroundStyle(viewModel.isEditMode ? .primary : .secondary)

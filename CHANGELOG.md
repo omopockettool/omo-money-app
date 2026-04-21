@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.20] - 2026-04-22
+
+### Added
+- **3D press effect on add button** (`TotalSpentCardView`) — classic raised-button look using a dark base circle offset `y: 4`; on press the top face drops down to meet it with a spring animation, simulating a physical button being pushed into the surface
+
+### Changed
+- **Settings close button** (`SettingsSheetView`) — replaced `"Cerrar"` text with an `xmark` icon, consistent with all other sheets
+- **Description field icon** (`AddItemListView`) — `character.cursor.ibeam` icon added to the left of the description `TextField` as a subtle visual hint
+- **Description placeholder with category context** (`AddItemListView`) — no category: `"Concepto"`; category selected: `"Concepto sugerido (Alimentación)"` — updates reactively on category switch
+- **Thicker divider between hero input and description** (`AddItemListView`) — replaced `Divider()` with a 1.5pt `Rectangle` using `Color(.separator)` for better visual separation
+- **Hero input container resize smoothed** (`HeroAmountInputView`) — added `.animation(.spring(...), value: fontSize)` so the card height transitions smoothly as font size changes while typing
+
+### Fixed
+- **`heroAmountInput` restored in `AddItemView`** (`ItemListDetailView`) — was accidentally removed in a prior session; amount field is back in the individual item editor
+
+---
+
 ## [1.0.19] - 2026-04-22
 
 ### Changed

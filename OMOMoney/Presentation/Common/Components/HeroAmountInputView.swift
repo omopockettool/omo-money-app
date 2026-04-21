@@ -48,6 +48,7 @@ struct HeroAmountInputView<F: Hashable>: View {
                     .onChange(of: text) { _, _ in onValidate() }
             )
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: fontSize)
         .animation(.easeInOut(duration: 0.2), value: text.isEmpty)
         .frame(maxWidth: .infinity)
         .padding(.vertical, embedded ? 12 : 18)

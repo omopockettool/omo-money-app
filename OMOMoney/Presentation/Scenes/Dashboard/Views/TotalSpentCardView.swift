@@ -16,6 +16,7 @@ struct TotalSpentCardView: View {
     @State private var isDecreasing: Bool = false
     @State private var flashColor: Color = .clear
     @State private var cardScale: CGFloat = 1.0
+    @State private var isAddPressed = false
 
     var body: some View {
         Button(action: onAddExpense) {
@@ -38,12 +39,26 @@ struct TotalSpentCardView: View {
 
                 Spacer(minLength: 8)
 
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 48, height: 48)
-                    .background(Color.accentColor)
-                    .clipShape(Circle())
+                ZStack {
+                    // Base layer — the "depth" of the button
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.45))
+                        .frame(width: 48, height: 48)
+                        .offset(y: 4)
+
+                    // Top face — moves down to meet base on press
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 48, height: 48)
+                        .overlay {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .offset(y: isAddPressed ? 4 : 0)
+                }
+                .frame(width: 48, height: 52)
+                .animation(.spring(response: 0.18, dampingFraction: 0.6), value: isAddPressed)
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.vertical, 16)
@@ -57,6 +72,11 @@ struct TotalSpentCardView: View {
             .scaleEffect(cardScale)
         }
         .buttonStyle(PressHapticButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isAddPressed = true }
+                .onEnded   { _ in isAddPressed = false }
+        )
         .onAppear {
             displayedAmount = totalAmount
         }
