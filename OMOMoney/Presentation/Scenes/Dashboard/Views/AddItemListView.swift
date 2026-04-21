@@ -147,7 +147,7 @@ struct AddItemListView: View {
         } // ScrollViewReader
         .scrollDisabled(!showDetails && !viewModel.isEditMode)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
+        .navigationTitle(viewModel.isEditMode ? "Editar" : "Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -209,23 +209,26 @@ struct AddItemListView: View {
 
     private var topCard: some View {
         VStack(spacing: 0) {
-            HeroAmountInputView(
-                text: $viewModel.price,
-                currencySymbol: currencySymbol,
-                onValidate: viewModel.validateAndCorrectPrice,
-                focusedField: $focusedField,
-                fieldValue: .price,
-                embedded: true,
-                onPaste: viewModel.pastePrice
-            )
+            // Hero amount input is a dashboard quick-add shortcut only — hidden in edit mode
+            if !viewModel.isEditMode {
+                HeroAmountInputView(
+                    text: $viewModel.price,
+                    currencySymbol: currencySymbol,
+                    onValidate: viewModel.validateAndCorrectPrice,
+                    focusedField: $focusedField,
+                    fieldValue: .price,
+                    embedded: true,
+                    onPaste: viewModel.pastePrice
+                )
 
-            Divider()
-                .padding(.horizontal, AppConstants.UserInterface.padding)
+                Divider()
+                    .padding(.horizontal, AppConstants.UserInterface.padding)
+            }
 
             HStack(spacing: 10) {
                 TextField(descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(viewModel.isEditMode ? .body : .subheadline)
+                    .foregroundStyle(viewModel.isEditMode ? .primary : .secondary)
                     .focused($focusedField, equals: .description)
 
                 if !viewModel.description.isEmpty {
@@ -239,7 +242,7 @@ struct AddItemListView: View {
                     .animation(AnimationHelper.quickEase, value: viewModel.description.isEmpty)
                 }
             }
-            .padding(AppConstants.UserInterface.padding)
+            .padding(viewModel.isEditMode ? AppConstants.UserInterface.largePadding : AppConstants.UserInterface.padding)
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))

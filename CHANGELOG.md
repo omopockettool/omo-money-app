@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.19] - 2026-04-22
+
+### Changed
+- **Hero amount input hidden in edit mode** — `HeroAmountInputView` is a dashboard quick-add shortcut (create an item list + set a price in one shot); it no longer appears when editing an existing registry since money is an item-level property, not an item list property
+- **Description field promoted in edit mode** — when hero input is hidden, the description `TextField` uses `.body` font, `.primary` color, and larger padding to fill the card as the primary field
+- **Edit sheet title fixed** — `AddItemListView` navigation title changed from `"Editar Registro"` to `"Editar"` to avoid duplication with the `"Editar Registro"` action button in `ItemListDetailView`'s three-dots menu
+
+---
+
 ## [1.0.18] - 2026-04-21
 
 ### Added

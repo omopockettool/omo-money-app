@@ -142,6 +142,16 @@ class VM: ObservableObject { @Published var } // ❌ FORBIDDEN — use @Observab
 
 ---
 
+## 🧠 UX Intent — Key Behaviours (READ BEFORE TOUCHING THESE VIEWS)
+
+| View | Behaviour | Why |
+|------|-----------|-----|
+| `AddItemListView` — create mode | Shows `HeroAmountInputView` (big money input) + description field below it | Dashboard quick-add: user sets a price AND a concept in one shot |
+| `AddItemListView` — edit mode | **Hides** `HeroAmountInputView`; description field becomes larger (`.body` font, extra padding) | Money is an **item-level** property. The item list itself has no "price" — the hero input is a create-only shortcut, not a real field |
+| `ItemListDetailView` | Never shows `HeroAmountInputView` | Same reason — money lives on items, not on the list |
+
+---
+
 ## 🔔 Shared Helpers (ALWAYS use before creating new ones)
 
 | Helper | File | Usage |
