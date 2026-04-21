@@ -46,7 +46,7 @@ struct DashboardView: View {
     @State private var selectedCalendarDay: Date? = nil
     @State private var listDragOffset: CGFloat = 0
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
-    @State private var viewMode: DashboardViewMode = .calendar
+    @State private var viewMode: DashboardViewMode = .list
 
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
@@ -105,7 +105,7 @@ struct DashboardView: View {
                     selectedCalendarDay = nil
                     listDragOffset = 0
                     displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
-                    viewMode = .calendar
+                    viewMode = .list
                 }
             }
             .navigationDestination(for: SDItemList.self) { itemList in
@@ -220,39 +220,39 @@ struct DashboardView: View {
 
             // Content switches based on selected view mode
             switch viewMode {
-            case .calendar:
-                CalendarGridView(
-                    itemLists: viewModel.itemLists,
-                    itemListTotals: viewModel.itemListTotals,
-                    itemListPaidStatus: viewModel.itemListPaidStatus,
-                    currencyCode: viewModel.currentGroup?.currency ?? "EUR",
-                    selectedDay: selectedCalendarDay,
-                    onDayTap: { date in
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            if let current = selectedCalendarDay,
-                               Calendar.current.isDate(current, inSameDayAs: date) {
-                                selectedCalendarDay = nil
-                            } else {
-                                selectedCalendarDay = date
-                                listDragOffset = 0
-                            }
-                        }
-                    },
-                    onMonthChange: { month in
-                        displayedCalendarMonth = month
-                        selectedCalendarDay = nil
-                        listDragOffset = 0
-                    }
-                )
-                .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
+//            case .calendar:
+//                CalendarGridView(
+//                    itemLists: viewModel.itemLists,
+//                    itemListTotals: viewModel.itemListTotals,
+//                    itemListPaidStatus: viewModel.itemListPaidStatus,
+//                    currencyCode: viewModel.currentGroup?.currency ?? "EUR",
+//                    selectedDay: selectedCalendarDay,
+//                    onDayTap: { date in
+//                        withAnimation(AnimationHelper.smoothSpring) {
+//                            if let current = selectedCalendarDay,
+//                               Calendar.current.isDate(current, inSameDayAs: date) {
+//                                selectedCalendarDay = nil
+//                            } else {
+//                                selectedCalendarDay = date
+//                                listDragOffset = 0
+//                            }
+//                        }
+//                    },
+//                    onMonthChange: { month in
+//                        displayedCalendarMonth = month
+//                        selectedCalendarDay = nil
+//                        listDragOffset = 0
+//                    }
+//                )
+//                .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
+//
+//                if selectedCalendarDay != nil {
+//                    dayListPanel
+//                        .padding(.horizontal, AppConstants.UserInterface.padding)
+//                        .transition(.move(edge: .bottom).combined(with: .opacity))
+//                }
 
-                if selectedCalendarDay != nil {
-                    dayListPanel
-                        .padding(.horizontal, AppConstants.UserInterface.padding)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
-            case .list:
+            case .calendar, .list:
                 ExpenseListView(
                     itemLists: viewModel.itemLists.filter {
                         Calendar.current.isDate($0.date, equalTo: displayedCalendarMonth, toGranularity: .month)
@@ -280,40 +280,40 @@ struct DashboardView: View {
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
     }
 
-    // View picker: "Calendario ⌄" dropdown on left, search icon on right
+    // View picker: settings icon on right (dropdown hidden for v1)
     private var viewPickerBar: some View {
         HStack {
-            Menu {
-                Button {
-                    withAnimation(AnimationHelper.quickEase) {
-                        viewMode = .calendar
-                        selectedCalendarDay = nil
-                    }
-                } label: {
-                    Label("Calendario", systemImage: viewMode == .calendar ? "checkmark" : "calendar")
-                }
-
-                Button {
-                    withAnimation(AnimationHelper.quickEase) {
-                        viewMode = .list
-                        selectedCalendarDay = nil
-                    }
-                } label: {
-                    Label("Lista", systemImage: viewMode == .list ? "checkmark" : "list.bullet")
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(viewMode.title)
-                        .font(.subheadline.weight(.semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundColor(.accentColor)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.accentColor.opacity(0.1))
-                .clipShape(Capsule())
-            }
+//            Menu {
+//                Button {
+//                    withAnimation(AnimationHelper.quickEase) {
+//                        viewMode = .calendar
+//                        selectedCalendarDay = nil
+//                    }
+//                } label: {
+//                    Label("Calendario", systemImage: viewMode == .calendar ? "checkmark" : "calendar")
+//                }
+//
+//                Button {
+//                    withAnimation(AnimationHelper.quickEase) {
+//                        viewMode = .list
+//                        selectedCalendarDay = nil
+//                    }
+//                } label: {
+//                    Label("Lista", systemImage: viewMode == .list ? "checkmark" : "list.bullet")
+//                }
+//            } label: {
+//                HStack(spacing: 5) {
+//                    Text(viewMode.title)
+//                        .font(.subheadline.weight(.semibold))
+//                    Image(systemName: "chevron.down")
+//                        .font(.system(size: 10, weight: .bold))
+//                }
+//                .foregroundColor(.accentColor)
+//                .padding(.horizontal, 14)
+//                .padding(.vertical, 8)
+//                .background(Color.accentColor.opacity(0.1))
+//                .clipShape(Capsule())
+//            }
 
             Spacer()
 

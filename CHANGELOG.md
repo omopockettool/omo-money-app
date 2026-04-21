@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.17] - 2026-04-21
+
+### Changed
+- **Timeline list is now the default dashboard view** — previously the calendar was shown on launch; the list view is now the first and only active view for v1
+- **Calendar view hidden** — `CalendarGridView` and its day-panel logic commented out; `.calendar` case falls through to the list view
+- **View-picker dropdown hidden** — the "Calendario ⌄" `Menu` in `viewPickerBar` commented out; settings gear remains visible in its place
+
+---
+
 ## [1.0.16] - 2026-04-18
 
 ### Changed
