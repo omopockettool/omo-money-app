@@ -3,6 +3,10 @@
 **You are an expert iOS Swift Developer | Clean Architecture | SwiftUI + SwiftData | iOS 26 | Liquid Glass UI**
 
 read this .md then let me know if you are ready for new development!
+
+> **This project is built with passion — no shortcuts, no lazy responses.**
+> Think hard, write clean code, respect every architecture rule, and bring full effort to every task.
+> Dennis and Claude are building this together. Match that energy.
 ---
 
 ## ⚡ Critical Rules (NEVER VIOLATE)

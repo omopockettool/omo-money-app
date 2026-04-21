@@ -215,7 +215,8 @@ struct AddItemListView: View {
                 onValidate: viewModel.validateAndCorrectPrice,
                 focusedField: $focusedField,
                 fieldValue: .price,
-                embedded: true
+                embedded: true,
+                onPaste: viewModel.pastePrice
             )
 
             Divider()

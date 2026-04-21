@@ -1,5 +1,6 @@
 
 import Foundation
+import UIKit
 
 @MainActor
 
@@ -207,6 +208,11 @@ final class AddItemListViewModel {
 
     func validateAndCorrectPrice() {
         price = correctPriceInput(price)
+    }
+
+    func pastePrice() {
+        guard let raw = UIPasteboard.general.string else { return }
+        price = correctPriceInput(raw)
     }
 
     // MARK: - Private Methods

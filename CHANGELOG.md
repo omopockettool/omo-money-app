@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.18] - 2026-04-21
+
+### Added
+- **Paste support on hero amount input** — long-press on the amount field shows a "Pegar" context menu; pastes clipboard content (e.g. from iPhone Calculator) directly into the price field; clipboard parsing and sanitization handled in `AddItemListViewModel.pastePrice()` following Clean Architecture — view only fires the callback
+
+---
+
 ## [1.0.17] - 2026-04-21
 
 ### Changed

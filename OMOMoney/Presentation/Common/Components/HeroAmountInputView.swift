@@ -9,6 +9,7 @@ struct HeroAmountInputView<F: Hashable>: View {
     var focusedField: FocusState<F?>.Binding
     let fieldValue: F
     var embedded: Bool = false
+    var onPaste: (() -> Void)? = nil
 
     private var isFocused: Bool { focusedField.wrappedValue == fieldValue }
 
@@ -62,5 +63,15 @@ struct HeroAmountInputView<F: Hashable>: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { focusedField.wrappedValue = fieldValue }
+        .contextMenu {
+            if let onPaste {
+                Button {
+                    focusedField.wrappedValue = fieldValue
+                    onPaste()
+                } label: {
+                    Label("Pegar", systemImage: "doc.on.clipboard")
+                }
+            }
+        }
     }
 }
