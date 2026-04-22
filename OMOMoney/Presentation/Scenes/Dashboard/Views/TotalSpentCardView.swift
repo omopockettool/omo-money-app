@@ -10,9 +10,12 @@ import SwiftUI
 struct TotalSpentCardView: View {
     let label: String
     let totalAmount: String
-    var secondaryAmount: String? = nil
-    var secondaryLabel: String? = nil
+    let currentRawAmount: Double
+    var comparisonAmount: Double? = nil
+    var comparisonLabel: String = "ayer"
     let onAddExpense: () -> Void
+    var isSuccess: Bool = false
+    var successLabel: String = ""
 
     @State private var displayedAmount: String = ""
     @State private var isDecreasing: Bool = false
@@ -21,61 +24,79 @@ struct TotalSpentCardView: View {
     @State private var isAddPressed = false
 
     var body: some View {
-        Button(action: onAddExpense) {
+        Button(action: isSuccess ? {} : onAddExpense) {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(label)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .animation(.easeInOut(duration: 0.2), value: label)
+                    if isSuccess {
+                        Text(successLabel)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .transition(.push(from: .top).combined(with: .opacity))
 
-                    Text(displayedAmount)
-                        .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                        .contentTransition(.numericText(countsDown: isDecreasing))
-                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                        Text("¡Listo!")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .transition(.push(from: .top).combined(with: .opacity))
 
-                    if let secondary = secondaryAmount {
-                        HStack(spacing: 4) {
-                            Text(secondary)
-                            if let secLabel = secondaryLabel {
-                                Text("· \(secLabel)")
-                            }
+                        Label("añadida a tu lista", systemImage: "arrow.down")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                            .transition(.opacity)
+                    } else {
+                        Text(label)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .animation(.easeInOut(duration: 0.2), value: label)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+
+                        Text(displayedAmount)
+                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(countsDown: isDecreasing))
+                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+
+                        if comparisonAmount != nil {
+                            Label(trendText, systemImage: trendIcon)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(trendColor)
+                                .transition(.opacity)
                         }
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
-                        .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(AnimationHelper.smoothSpring, value: isSuccess)
 
                 Spacer(minLength: 8)
 
                 ZStack {
-                    // Base layer — the "depth" of the button
                     Circle()
-                        .fill(Color.accentColor.opacity(0.45))
+                        .fill(isSuccess ? Color.green.opacity(0.45) : Color.accentColor.opacity(0.45))
                         .frame(width: 48, height: 48)
                         .offset(y: 4)
 
-                    // Top face — moves down to meet base on press
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(isSuccess ? Color.green : Color.accentColor)
                         .frame(width: 48, height: 48)
                         .overlay {
-                            Image(systemName: "plus")
+                            Image(systemName: isSuccess ? "checkmark" : "plus")
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.white)
+                                .contentTransition(.symbolEffect(.replace.downUp))
                         }
                         .offset(y: isAddPressed ? 4 : 0)
                 }
                 .frame(width: 48, height: 52)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isSuccess)
                 .animation(.spring(response: 0.18, dampingFraction: 0.6), value: isAddPressed)
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
@@ -92,7 +113,7 @@ struct TotalSpentCardView: View {
         .buttonStyle(PressHapticButtonStyle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
-                .onChanged { _ in isAddPressed = true }
+                .onChanged { _ in if !isSuccess { isAddPressed = true } }
                 .onEnded   { _ in isAddPressed = false }
         )
         .onAppear {
@@ -105,12 +126,39 @@ struct TotalSpentCardView: View {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
                 displayedAmount = newValue
             }
+            guard !isSuccess else { return }
             let targetColor: Color = isDecreasing ? .red.opacity(0.12) : .green.opacity(0.12)
             withAnimation(.easeIn(duration: 0.12)) { flashColor = targetColor }
             withAnimation(.easeOut(duration: 0.45).delay(0.15)) { flashColor = .clear }
             withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) { cardScale = 1.025 }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.12)) { cardScale = 1.0 }
         }
+    }
+
+    // MARK: - Trend logic
+
+    private var percentChange: Double? {
+        guard let comparison = comparisonAmount, comparison > 0 else { return nil }
+        return ((currentRawAmount - comparison) / comparison) * 100
+    }
+
+    private var trendText: String {
+        guard let pct = percentChange else { return "Sin datos de \(comparisonLabel)" }
+        if pct == 0 { return "Igual que \(comparisonLabel)" }
+        let rounded = String(format: "%.0f", abs(pct))
+        return pct > 0 ? "\(rounded)% más que \(comparisonLabel)" : "\(rounded)% menos que \(comparisonLabel)"
+    }
+
+    private var trendIcon: String {
+        guard let pct = percentChange else { return "minus.circle" }
+        if pct == 0 { return "equal.circle" }
+        return pct > 0 ? "arrow.up" : "arrow.down"
+    }
+
+    private var trendColor: Color {
+        guard let pct = percentChange else { return .secondary }
+        if pct == 0 { return .secondary }
+        return pct > 0 ? .red : .green
     }
 
     private func extractDigits(from string: String) -> Int {
@@ -131,8 +179,17 @@ struct TotalSpentCardView: View {
 // MARK: - Preview
 #Preview {
     VStack(spacing: 20) {
-        TotalSpentCardView(label: "Coste de vida este mes", totalAmount: "1,229.89 €", onAddExpense: {})
-        TotalSpentCardView(label: "Coste de hoy", totalAmount: "52,340.50 USD", onAddExpense: {})
+        TotalSpentCardView(
+            label: "Coste de hoy", totalAmount: "50,45 €",
+            currentRawAmount: 50.45, comparisonAmount: 53.10,
+            onAddExpense: {}
+        )
+        TotalSpentCardView(
+            label: "Coste de hoy", totalAmount: "50,45 €",
+            currentRawAmount: 50.45, comparisonAmount: 53.10,
+            onAddExpense: {},
+            isSuccess: true, successLabel: "Compras del súper"
+        )
     }
     .padding()
     .background(Color.black)

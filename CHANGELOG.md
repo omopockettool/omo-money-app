@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.30] - 2026-04-22
+
+### Added
+- **Yesterday / last-month trend comparison** (`TotalSpentCardView`, `DashboardViewModel`) — hero widget shows a trend line below the amount: "↓ 5% menos que ayer" (green) or "↑ 12% más que ayer" (red); in "Este mes" mode compares to last month; "Sin datos de comparación" shown when no prior data exists
+- **Hero card success flash on item creation** (`TotalSpentCardView`, `DashboardView`) — when the user taps Save, the hero widget transitions in-place: label → item description, amount → "¡Listo!", button → green checkmark (`.symbolEffect` swap); resets to normal after 1.2 s once data is committed
+- **`hideSectionHeaders` param** (`ExpenseListView`) — suppresses section date headers when `true`; used in today-only mode where "Hoy" is redundant with the hero widget
+
+### Changed
+- **Hero widget moved to top** (`DashboardView`) — `TotalSpentCardView` now sits between the view-picker pill and the expense list; bottom controls reverts to group selector + filter/search row only
+- **Hero widget visual separation** (`DashboardView`) — 8 pt bottom padding + `shadow(color: .black.opacity(0.1), radius: 8, y: 4)` elevates the card above the list
+- **"Hoy" section header hidden in today mode** (`DashboardView`, `ExpenseListView`) — `hideSectionHeaders: true` passed when `showingFullMonth == false`; date headers and per-day totals still shown in full-month mode
+
+### Fixed
+- **Hero total not refreshing after add** (`TotalSpentCardView`) — `displayedAmount` was blocked while `isSuccess == true`; the 5 € added during the success window was silently discarded; guard now only blocks flash/scale effects — `displayedAmount` always updates
+
+### Internal
+- **`DashboardViewModel` trend properties** — four pure computed properties derived from already-loaded data (no new fetches): `todayRawTotal`, `yesterdayItemLists`, `yesterdayTotal`, `lastMonthTotal`
+- **`TotalSpentCardView` `isSuccess` mode** — `isSuccess: Bool` + `successLabel: String` optional params; button animates accent → green, plus → checkmark; `onAddExpense` no-ops during success window
+
+---
+
 ## [1.0.29] - 2026-04-22
 
 ### Added

@@ -19,6 +19,7 @@ struct ExpenseListView: View {
     var isCompact: Bool = false
     var getDayTotal: ((Date) -> String)? = nil
     var focusedDate: Date? = nil
+    var hideSectionHeaders: Bool = false
     
     var body: some View {
         List {
@@ -91,7 +92,7 @@ struct ExpenseListView: View {
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            Text("Pulsa el + para agregar una lista")
+            Text("Pulsa el + para agregar un registro")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -102,7 +103,7 @@ struct ExpenseListView: View {
     
     @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
-        if !isCompact {
+        if !isCompact && !hideSectionHeaders {
             HStack {
                 Text(formatSectionDate(date))
                     .font(.subheadline)

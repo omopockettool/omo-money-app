@@ -48,6 +48,10 @@ struct DashboardView: View {
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var viewMode: DashboardViewMode = .list
 
+    // Hero success flash
+    @State private var heroIsSuccess: Bool = false
+    @State private var heroSuccessDescription: String = ""
+
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
@@ -141,13 +145,27 @@ struct DashboardView: View {
                 if let group = viewModel.currentGroup {
                     NavigationStack {
                         AddItemListView(
-                            group: group,  // ✅ Already a Domain model
+                            group: group,
                             initialDate: selectedCalendarDay,
                             onItemListCreated: { createdItemList in
-                                Task {
-                                    await viewModel.addItemList(createdItemList)
+                                guard !heroIsSuccess else {
+                                    showingAddItemList = false
+                                    Task { await viewModel.addItemList(createdItemList) }
+                                    return
+                                }
+                                withAnimation(AnimationHelper.smoothSpring) {
+                                    heroIsSuccess = true
+                                    heroSuccessDescription = createdItemList.itemListDescription
                                 }
                                 showingAddItemList = false
+                                Task {
+                                    await viewModel.addItemList(createdItemList)
+                                    try? await Task.sleep(for: .milliseconds(1200))
+                                    withAnimation(AnimationHelper.smoothSpring) {
+                                        heroIsSuccess = false
+                                        heroSuccessDescription = ""
+                                    }
+                                }
                             },
                             onCancel: {
                                 showingAddItemList = false
@@ -219,6 +237,29 @@ struct DashboardView: View {
             // iOS 26-style view picker dropdown
             viewPickerBar
 
+            // Hero card — totals + add button, moved to top
+            TotalSpentCardView(
+                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
+                totalAmount: viewModel.showingFullMonth
+                    ? viewModel.formattedCachedMonthTotal()
+                    : viewModel.formattedTodayTotal,
+                currentRawAmount: viewModel.showingFullMonth
+                    ? viewModel.currentMonthTotal
+                    : viewModel.todayRawTotal,
+                comparisonAmount: viewModel.showingFullMonth
+                    ? viewModel.lastMonthTotal
+                    : viewModel.yesterdayTotal,
+                comparisonLabel: viewModel.showingFullMonth ? "el mes pasado" : "ayer",
+                onAddExpense: { showingAddItemList = true },
+                isSuccess: heroIsSuccess,
+                successLabel: heroSuccessDescription
+            )
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.top, AppConstants.UserInterface.smallPadding)
+            .padding(.bottom, AppConstants.UserInterface.smallPadding)
+            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
+
             // Content switches based on selected view mode
             switch viewMode {
 //            case .calendar:
@@ -265,8 +306,9 @@ struct DashboardView: View {
                     onTogglePaid: { viewModel.togglePaid(for: $0) },
                     onRefresh: { await viewModel.refreshData() },
                     onDelete: { await viewModel.deleteItemList($0) },
-                    getDayTotal: { viewModel.formattedTotal(for: $0) },
-                    focusedDate: viewModel.showingFullMonth ? Date() : nil
+                    getDayTotal: viewModel.showingFullMonth ? { viewModel.formattedTotal(for: $0) } : nil,
+                    focusedDate: viewModel.showingFullMonth ? Date() : nil,
+                    hideSectionHeaders: !viewModel.showingFullMonth
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)
@@ -472,14 +514,6 @@ struct DashboardView: View {
 
     private var bottomControls: some View {
         VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
-            TotalSpentCardView(
-                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
-                totalAmount: viewModel.showingFullMonth ? viewModel.formattedCachedMonthTotal() : viewModel.formattedTodayTotal,
-                secondaryAmount: viewModel.showingFullMonth ? nil : viewModel.formattedCachedMonthTotal(),
-                secondaryLabel: viewModel.showingFullMonth ? nil : "este mes",
-                onAddExpense: { showingAddItemList = true }
-            )
-
             // Group chips + Filters + Search in same row
             HStack(spacing: AppConstants.UserInterface.smallPadding) {
                 if let currentGroup = viewModel.currentGroup,

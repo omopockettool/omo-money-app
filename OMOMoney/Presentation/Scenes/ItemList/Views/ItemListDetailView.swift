@@ -153,9 +153,8 @@ struct ItemListDetailView: View {
                 TotalSpentCardView(
                     label: "Coste de \(itemList.itemListDescription)",
                     totalAmount: viewModel.getFormattedTotal(),
-                    onAddExpense: {
-                        sheetMode = .create
-                    }
+                    currentRawAmount: 0,
+                    onAddExpense: { sheetMode = .create }
                 )
             }
             .padding(AppConstants.UserInterface.padding)
