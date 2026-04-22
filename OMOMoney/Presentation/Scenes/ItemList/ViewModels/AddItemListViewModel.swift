@@ -190,6 +190,17 @@ final class AddItemListViewModel {
         isLoading = true
         errorMessage = nil
 
+        if let newCategory = selectedCategory,
+           newCategory.id != toEdit.category?.id,
+           let oldCategoryName = toEdit.category?.name,
+           toEdit.items.count == 1,
+           let item = toEdit.items.first,
+           toEdit.itemListDescription == oldCategoryName,
+           item.itemDescription == oldCategoryName {
+            description = newCategory.name
+            item.itemDescription = newCategory.name
+        }
+
         toEdit.itemListDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
         toEdit.date = date
         if let category = selectedCategory { toEdit.category = category }

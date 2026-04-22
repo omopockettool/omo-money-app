@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.23] - 2026-04-22
+
+### Added
+- **Auto-sync descriptions on category change** (`AddItemListViewModel`) — when editing an item list created via quick-add (single item, both `itemListDescription` and `item.itemDescription` equal the **current category name**), changing the category renames both descriptions to the new category name; condition requires descriptions to match the current category name exactly — manually typed names like "Internet" are never touched even if both happen to be equal
+
+---
+
 ## [1.0.22] - 2026-04-22
 
 ### Added
