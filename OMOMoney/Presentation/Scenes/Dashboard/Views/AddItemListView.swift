@@ -14,6 +14,7 @@ struct AddItemListView: View {
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
     @State private var showPaymentMethodOverflow = false
+    @State private var scrollToPaymentMethods = false
     @State private var orderedCategories: [SDCategory] = []
     @State private var orderedPaymentMethods: [SDPaymentMethod] = []
 
@@ -82,12 +83,20 @@ struct AddItemListView: View {
         Array(orderedCategories.dropFirst(Self.gridCategoryLimit))
     }
 
+    private var displayedCategories: [SDCategory] {
+        showCategoryOverflow ? orderedCategories : gridCategories
+    }
+
     private var gridPaymentMethods: [SDPaymentMethod] {
         orderedPaymentMethods.prefix(Self.gridPaymentMethodLimit).map { $0 }
     }
 
     private var overflowPaymentMethods: [SDPaymentMethod] {
         Array(orderedPaymentMethods.dropFirst(Self.gridPaymentMethodLimit))
+    }
+
+    private var displayedPaymentMethods: [SDPaymentMethod] {
+        showPaymentMethodOverflow ? orderedPaymentMethods : gridPaymentMethods
     }
 
     private func recordCategoryUsage(_ category: SDCategory) {
@@ -99,11 +108,11 @@ struct AddItemListView: View {
     }
 
     private var categoryChipMinHeight: CGFloat {
-        showDetails ? 44 : 88
+        (showDetails || showCategoryOverflow) ? 44 : 88
     }
 
     private var categoryChipCornerRadius: CGFloat {
-        showDetails ? 12 : 16
+        (showDetails || showCategoryOverflow) ? 12 : 16
     }
 
     private var currencySymbol: String {
@@ -137,10 +146,20 @@ struct AddItemListView: View {
             .padding(.bottom, 8)
         }
 
+        .onChange(of: scrollToPaymentMethods) { _, fire in
+            guard fire else { return }
+            scrollToPaymentMethods = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    proxy.scrollTo("paymentMethodAnchor", anchor: .top)
+                }
+            }
+        }
+
         } // ScrollViewReader
-        .scrollDisabled(!showDetails && !viewModel.isEditMode)
+        .scrollDisabled(!showDetails && !viewModel.isEditMode && !showCategoryOverflow && !showPaymentMethodOverflow)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.isEditMode ? "Editar" : "Nuevo Registro")
+        .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -163,20 +182,6 @@ struct AddItemListView: View {
                 Spacer()
                 Button("Listo") { focusedField = nil }
             }
-        }
-        .sheet(isPresented: $showCategoryOverflow) {
-            categoryOverflowSheet
-                .presentationDetents([.height(CGFloat(ceil(Double(overflowCategories.count) / 2)) * 56 + 80)])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(24)
-                .presentationBackgroundInteraction(.enabled(upThrough: .large))
-        }
-        .sheet(isPresented: $showPaymentMethodOverflow) {
-            paymentMethodOverflowSheet
-                .presentationDetents([.height(CGFloat(ceil(Double(overflowPaymentMethods.count) / 2)) * 56 + 80)])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(24)
-                .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
@@ -263,13 +268,36 @@ struct AddItemListView: View {
                 .padding(.horizontal, 4)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(gridCategories) { category in
+                ForEach(displayedCategories) { category in
                     categoryChip(category)
+                        .transition(.opacity.combined(with: .scale(scale: 0.88, anchor: .top)))
                 }
-
-                if !overflowCategories.isEmpty {
+                if !overflowCategories.isEmpty && !showCategoryOverflow {
                     overflowChip
                 }
+            }
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showCategoryOverflow)
+
+            if showCategoryOverflow {
+                Button {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                        showCategoryOverflow = false
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Ver menos")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.up")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity)
             }
         }
     }
@@ -278,6 +306,7 @@ struct AddItemListView: View {
     private func categoryChip(_ category: SDCategory) -> some View {
         let isSelected = viewModel.selectedCategory?.id == category.id
         let chipColor = Color(hex: category.color) ?? Color.accentColor
+        let compact = showDetails || showCategoryOverflow
         Button {
             withAnimation(AnimationHelper.quickSpring) {
                 viewModel.selectedCategory = category
@@ -297,8 +326,8 @@ struct AddItemListView: View {
                         .lineLimit(1)
                     Spacer(minLength: 0)
                 }
-                .opacity(showDetails ? 1 : 0)
-                .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
+                .opacity(compact ? 1 : 0)
+                .scaleEffect(compact ? 1 : 0.85, anchor: .leading)
 
                 VStack(spacing: 6) {
                     Image(systemName: category.icon)
@@ -311,70 +340,23 @@ struct AddItemListView: View {
                         .lineLimit(1)
                         .multilineTextAlignment(.center)
                 }
-                .opacity(showDetails ? 0 : 1)
-                .scaleEffect(showDetails ? 0.85 : 1, anchor: .center)
-                .frame(maxHeight: showDetails ? 0 : .infinity)
+                .opacity(compact ? 0 : 1)
+                .scaleEffect(compact ? 0.85 : 1, anchor: .center)
+                .frame(maxHeight: compact ? 0 : .infinity)
                 .clipped()
             }
             .frame(maxWidth: .infinity, minHeight: categoryChipMinHeight)
-            .padding(.horizontal, showDetails ? 14 : 12)
-            .padding(.vertical, showDetails ? 12 : 10)
+            .padding(.horizontal, compact ? 14 : 12)
+            .padding(.vertical, compact ? 12 : 10)
             .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: categoryChipCornerRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: categoryChipCornerRadius)
                     .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
             )
-            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: compact)
         }
         .buttonStyle(.plain)
-    }
-
-    private var categoryOverflowSheet: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Más categorías")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(overflowCategories) { category in
-                    let isSelected = viewModel.selectedCategory?.id == category.id
-                    let chipColor = Color(hex: category.color) ?? Color.accentColor
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) {
-                            viewModel.selectedCategory = category
-                            recordCategoryUsage(category)
-                            showCategoryOverflow = false
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: category.icon)
-                                .font(.subheadline)
-                                .foregroundStyle(isSelected ? .white : chipColor)
-                            Text(category.name)
-                                .font(.subheadline)
-                                .fontWeight(isSelected ? .semibold : .regular)
-                                .foregroundStyle(isSelected ? .white : .primary)
-                                .lineLimit(1)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var overflowChip: some View {
@@ -515,14 +497,40 @@ struct AddItemListView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 4)
+                .id("paymentMethodAnchor")
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(gridPaymentMethods) { method in
+                ForEach(displayedPaymentMethods) { method in
                     paymentMethodChip(method)
+                        .transition(.opacity.combined(with: .scale(scale: 0.88, anchor: .top)))
                 }
-                if !overflowPaymentMethods.isEmpty {
+                if !overflowPaymentMethods.isEmpty && !showPaymentMethodOverflow {
                     paymentMethodOverflowChip
                 }
+            }
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showPaymentMethodOverflow)
+
+            if showPaymentMethodOverflow {
+                Button {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                        showPaymentMethodOverflow = false
+                    }
+                    scrollToPaymentMethods = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Ver menos")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.up")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity)
             }
         }
     }
@@ -538,6 +546,8 @@ struct AddItemListView: View {
                     viewModel.selectedPaymentMethod = method
                     UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
                 }
+                showPaymentMethodOverflow = false
+                scrollToPaymentMethods = true
             }
         } label: {
             HStack(spacing: 8) {
@@ -603,58 +613,6 @@ struct AddItemListView: View {
             .animation(AnimationHelper.quickSpring, value: showPaymentMethodOverflow)
         }
         .buttonStyle(.plain)
-    }
-
-    private var paymentMethodOverflowSheet: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Más métodos de pago")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(overflowPaymentMethods) { method in
-                    let isSelected = viewModel.selectedPaymentMethod?.id == method.id
-                    let chipColor = paymentMethodColor(method.type)
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) {
-                            if viewModel.selectedPaymentMethod?.id == method.id {
-                                viewModel.selectedPaymentMethod = nil
-                            } else {
-                                viewModel.selectedPaymentMethod = method
-                                UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
-                            }
-                            showPaymentMethodOverflow = false
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: paymentMethodIcon(method))
-                                .font(.subheadline)
-                                .foregroundStyle(isSelected ? .white : chipColor)
-                            Text(method.name)
-                                .font(.subheadline)
-                                .fontWeight(isSelected ? .semibold : .regular)
-                                .foregroundStyle(isSelected ? .white : .primary)
-                                .lineLimit(1)
-                            Spacer(minLength: 0)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Date Card

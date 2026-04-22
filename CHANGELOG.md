@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.24] - 2026-04-22
+
+### Changed
+- **Overflow categories/payment methods expand inline** (`AddItemListView`) — replaced `.sheet` presentation with in-grid expansion; tapping the overflow chip reveals all hidden chips in the same grid with a spring animation; a "Ver menos ↑" row collapses them back; both `categoryOverflowSheet` and `paymentMethodOverflowSheet` deleted
+- **Category chips go compact when grid expands** (`AddItemListView`) — `categoryChip` uses `showDetails || showCategoryOverflow` as the compact flag so chips switch to horizontal layout when the overflow grid opens, matching the "Más detalles" layout
+- **Scroll unlocks when overflow grids are open** (`AddItemListView`) — `scrollDisabled` condition extended to allow scrolling whenever `showCategoryOverflow` or `showPaymentMethodOverflow` is true
+- **Selecting a payment method closes the expanded grid** (`AddItemListView`) — tapping any method chip sets `showPaymentMethodOverflow = false`, matching category behaviour
+- **Scroll-to-anchor on payment method collapse** (`AddItemListView`) — after the grid collapses (via selection or "Ver menos"), a delayed `proxy.scrollTo("paymentMethodAnchor")` brings the section header back into view so the collapse feels natural regardless of scroll position
+
+---
+
 ## [1.0.23] - 2026-04-22
 
 ### Added
