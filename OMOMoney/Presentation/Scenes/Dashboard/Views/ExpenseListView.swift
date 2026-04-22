@@ -18,6 +18,7 @@ struct ExpenseListView: View {
     let onDelete: (SDItemList) async -> Void
     var isCompact: Bool = false
     var getDayTotal: ((Date) -> String)? = nil
+    var focusedDate: Date? = nil
     
     var body: some View {
         List {
@@ -35,13 +36,13 @@ struct ExpenseListView: View {
                         } header: {
                             sectionHeader(for: date)
                         }
+                        .opacity(sectionOpacity(for: date))
                     }
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .animation(.easeInOut(duration: 0.2), value: itemLists.count)
         .if(!isCompact) { $0.refreshable { await onRefresh() } }
     }
 
@@ -121,6 +122,11 @@ struct ExpenseListView: View {
     }
     
     // MARK: - Helper Methods
+
+    private func sectionOpacity(for date: Date) -> Double {
+        guard let focused = focusedDate else { return 1.0 }
+        return Calendar.current.isDate(date, inSameDayAs: focused) ? 1.0 : 0.4
+    }
 
     private var groupedItemLists: [Date: [SDItemList]] {
         let calendar = Calendar.current

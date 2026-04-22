@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.29] - 2026-04-22
+
+### Added
+- **Today-only dashboard list** (`DashboardView`, `DashboardViewModel`) — the expense list defaults to showing only today's item lists; past days are hidden by default so the view stays focused on what's actionable right now
+- **"Hoy / Este mes" segmented pill** (`DashboardView`) — appears in the top bar (left of the gear icon) whenever there are past items in the current month; tap "Este mes" to expand to the full month timeline, tap "Hoy" to collapse back; pill is absent when no past items exist
+- **Past-day dimming in full-month view** (`ExpenseListView`) — new `focusedDate` parameter; when set, sections from days other than the focused date render at 40% opacity so today's section always stands out visually even in the expanded view
+- **Filter logic in ViewModel** (`DashboardViewModel`) — `showingFullMonth`, `todayItemLists`, `monthItemLists`, and `hasItemsOutsideToday` all live in the ViewModel; `DashboardView` holds no filtering logic
+
+---
+
 ## [1.0.28] - 2026-04-22
 
 ### Changed

@@ -39,7 +39,6 @@ final class DefaultGroupRepository: GroupRepository {
                 ("Hogar",        "#45B7D1", "house.fill",           0),
                 ("Ocio",         "#96CEB4", "theatermasks.fill",    0),
                 ("Salud",        "#FFEAA7", "heart.fill",           0),
-                ("Otros",        "#BDC3C7", "ellipsis.circle.fill", 999)
             ]
             for (catName, catColor, catIcon, catSortOrder) in defaultCategories {
                 let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder)

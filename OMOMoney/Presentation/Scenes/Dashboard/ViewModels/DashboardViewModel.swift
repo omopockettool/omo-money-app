@@ -36,6 +36,21 @@ class DashboardViewModel {
     var currentUser: SDUser?
     var availableGroups: [SDGroup] = []
     var showingSettings = false
+    var showingFullMonth = false
+
+    // MARK: - Filtered Lists
+
+    var todayItemLists: [SDItemList] {
+        itemLists.filter { Calendar.current.isDateInToday($0.date) }
+    }
+
+    var monthItemLists: [SDItemList] {
+        itemLists.filter { Calendar.current.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+    }
+
+    var hasItemsOutsideToday: Bool {
+        monthItemLists.count > todayItemLists.count
+    }
 
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
@@ -689,7 +704,9 @@ class DashboardViewModel {
         updatedItemLists.remove(at: index)
 
         await MainActor.run {
-            itemLists = updatedItemLists
+            withAnimation(.easeInOut(duration: 0.25)) {
+                itemLists = updatedItemLists
+            }
         }
 
         await calculateTotalSpent()

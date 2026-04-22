@@ -106,6 +106,7 @@ struct DashboardView: View {
                     listDragOffset = 0
                     displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
                     viewMode = .list
+                    viewModel.showingFullMonth = false
                 }
             }
             .navigationDestination(for: SDItemList.self) { itemList in
@@ -254,9 +255,7 @@ struct DashboardView: View {
 
             case .calendar, .list:
                 ExpenseListView(
-                    itemLists: viewModel.itemLists.filter {
-                        Calendar.current.isDate($0.date, equalTo: displayedCalendarMonth, toGranularity: .month)
-                    },
+                    itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
                     getFormattedAmount: { viewModel.formattedPaid(for: $0) },
                     getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
                     itemListCounts: viewModel.itemListCounts,
@@ -266,7 +265,8 @@ struct DashboardView: View {
                     onTogglePaid: { viewModel.togglePaid(for: $0) },
                     onRefresh: { await viewModel.refreshData() },
                     onDelete: { await viewModel.deleteItemList($0) },
-                    getDayTotal: { viewModel.formattedTotal(for: $0) }
+                    getDayTotal: { viewModel.formattedTotal(for: $0) },
+                    focusedDate: viewModel.showingFullMonth ? Date() : nil
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)
@@ -280,9 +280,39 @@ struct DashboardView: View {
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
     }
 
-    // View picker: settings icon on right (dropdown hidden for v1)
+    // View picker: filter pill on left, settings icon on right
     private var viewPickerBar: some View {
         HStack {
+            if viewModel.hasItemsOutsideToday {
+                HStack(spacing: 0) {
+                    Button {
+                        withAnimation(AnimationHelper.quickSpring) { viewModel.showingFullMonth = false }
+                    } label: {
+                        Label("Hoy", systemImage: "sparkles")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(!viewModel.showingFullMonth ? Color.accentColor : Color.clear)
+                            .foregroundStyle(!viewModel.showingFullMonth ? Color.white : Color.secondary)
+                            .clipShape(Capsule())
+                    }
+                    Button {
+                        withAnimation(AnimationHelper.quickSpring) { viewModel.showingFullMonth = true }
+                    } label: {
+                        Text("Este mes")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(viewModel.showingFullMonth ? Color.accentColor : Color.clear)
+                            .foregroundStyle(viewModel.showingFullMonth ? Color.white : Color.secondary)
+                            .clipShape(Capsule())
+                    }
+                }
+                .background(Color(.tertiarySystemFill))
+                .clipShape(Capsule())
+                .animation(AnimationHelper.quickSpring, value: viewModel.showingFullMonth)
+            }
+
 //            Menu {
 //                Button {
 //                    withAnimation(AnimationHelper.quickEase) {
@@ -443,10 +473,10 @@ struct DashboardView: View {
     private var bottomControls: some View {
         VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
             TotalSpentCardView(
-                label: "Coste de hoy",
-                totalAmount: viewModel.formattedTodayTotal,
-                secondaryAmount: viewModel.formattedCachedMonthTotal(),
-                secondaryLabel: "este mes",
+                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
+                totalAmount: viewModel.showingFullMonth ? viewModel.formattedCachedMonthTotal() : viewModel.formattedTodayTotal,
+                secondaryAmount: viewModel.showingFullMonth ? nil : viewModel.formattedCachedMonthTotal(),
+                secondaryLabel: viewModel.showingFullMonth ? nil : "este mes",
                 onAddExpense: { showingAddItemList = true }
             )
 
