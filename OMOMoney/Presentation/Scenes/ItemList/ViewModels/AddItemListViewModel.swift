@@ -132,10 +132,6 @@ final class AddItemListViewModel {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
             if isEditMode {
                 selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
-            } else {
-                selectedPaymentMethod = lastUsedPaymentMethodId.flatMap { id in
-                    paymentMethods.first { $0.id == id }
-                }
             }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.28] - 2026-04-22
+
+### Changed
+- **Payment method starts unselected on new item list** (`AddItemListViewModel`) — `selectedPaymentMethod` is always `nil` when creating; the last-used payment method is no longer pre-filled so quick-add doesn't accidentally associate a payment method; edit mode still restores the existing value
+
+---
+
 ## [1.0.27] - 2026-04-22
 
 ### Changed
