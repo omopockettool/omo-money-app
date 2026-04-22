@@ -429,6 +429,8 @@ struct AddItemView: View {
             icon: "text.alignleft",
             placeholder: itemListDescription,
             text: $viewModel.description,
+            maxLength: 200,
+            axis: .vertical,
             focusedField: $focusedField,
             fieldValue: .description
         )

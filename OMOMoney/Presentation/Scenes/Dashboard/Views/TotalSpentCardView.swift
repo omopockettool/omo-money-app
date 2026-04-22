@@ -26,6 +26,8 @@ struct TotalSpentCardView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                         .animation(.easeInOut(duration: 0.2), value: label)
 
                     Text(displayedAmount)
@@ -36,6 +38,7 @@ struct TotalSpentCardView: View {
                         .contentTransition(.numericText(countsDown: isDecreasing))
                         .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 8)
 

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.25] - 2026-04-22
+
+### Changed
+- **Item description field is multiline** (`AddItemView`) — `descriptionCard` now uses `axis: .vertical` and `maxLength: 200`; field grows with content instead of truncating to a single line
+- **`LimitedTextField` supports multiline** (`LimitedTextField`) — added optional `axis: Axis = .horizontal` parameter; when `.vertical`, icon and clear button align to `.top` so they stay anchored as the field grows; all existing callers unchanged
+
+### Fixed
+- **`TotalSpentCardView` label truncates correctly** — added `.lineLimit(1)` + `.truncationMode(.tail)` to prevent wrapping; added `.frame(maxWidth: .infinity)` to the VStack so the label gets full available width before truncating (e.g. "Barbacoa..." instead of "Bar...")
+
+---
+
 ## [1.0.24] - 2026-04-22
 
 ### Changed
