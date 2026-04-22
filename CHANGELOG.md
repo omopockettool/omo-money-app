@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.26] - 2026-04-22
+
+### Changed
+- **Cost card always shows today** (`DashboardView`, `TotalSpentCardView`) — card label and amount are now permanently "Coste de hoy" using `formattedTodayTotal`; no longer adapts to calendar day/month selection — today's spend is the strategic primary metric
+- **Month total shown as secondary line** (`TotalSpentCardView`) — new optional `secondaryAmount` / `secondaryLabel` props render a caption line below the main amount; dashboard passes `formattedCachedMonthTotal()` + "este mes" so both time scopes are visible at a glance
+- **`formattedTodayTotal`** (`DashboardViewModel`) — new computed property wrapping `formattedTotal(for: Date())`; reuses existing day-total logic
+
+---
+
 ## [1.0.25] - 2026-04-22
 
 ### Changed

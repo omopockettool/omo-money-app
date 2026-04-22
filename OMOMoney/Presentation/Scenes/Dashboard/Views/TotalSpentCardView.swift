@@ -10,6 +10,8 @@ import SwiftUI
 struct TotalSpentCardView: View {
     let label: String
     let totalAmount: String
+    var secondaryAmount: String? = nil
+    var secondaryLabel: String? = nil
     let onAddExpense: () -> Void
 
     @State private var displayedAmount: String = ""
@@ -37,6 +39,19 @@ struct TotalSpentCardView: View {
                         .lineLimit(1)
                         .contentTransition(.numericText(countsDown: isDecreasing))
                         .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+
+                    if let secondary = secondaryAmount {
+                        HStack(spacing: 4) {
+                            Text(secondary)
+                            if let secLabel = secondaryLabel {
+                                Text("· \(secLabel)")
+                            }
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

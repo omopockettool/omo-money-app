@@ -443,8 +443,10 @@ struct DashboardView: View {
     private var bottomControls: some View {
         VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
             TotalSpentCardView(
-                label: totalCardLabel,
-                totalAmount: displayedTotal,
+                label: "Coste de hoy",
+                totalAmount: viewModel.formattedTodayTotal,
+                secondaryAmount: viewModel.formattedCachedMonthTotal(),
+                secondaryLabel: "este mes",
                 onAddExpense: { showingAddItemList = true }
             )
 

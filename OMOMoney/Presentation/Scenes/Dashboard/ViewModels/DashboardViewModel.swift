@@ -548,6 +548,10 @@ class DashboardViewModel {
         return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
     }
 
+    var formattedTodayTotal: String {
+        formattedTotal(for: Date())
+    }
+
     func formattedCachedMonthTotal() -> String {
         makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
     }
