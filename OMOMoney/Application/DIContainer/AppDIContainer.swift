@@ -126,6 +126,9 @@ final class AppDIContainer {
     func makeFetchGroupsForUserUseCase() -> FetchGroupsForUserUseCase {
         DefaultFetchGroupsForUserUseCase(groupRepository: groupRepository)
     }
+    func makeUpdateGroupUseCase() -> UpdateGroupUseCase {
+        DefaultUpdateGroupUseCase(groupRepository: groupRepository)
+    }
 
     // MARK: - UserGroup Use Cases
 

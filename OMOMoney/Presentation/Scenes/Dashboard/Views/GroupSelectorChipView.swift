@@ -82,10 +82,11 @@ struct GroupPickerSheet: View {
     let deleteGroupUseCase: DeleteGroupUseCase
 
     @State private var showingCreateGroup = false
-    @State private var selectedGroupID: UUID?  // ✅ Track del grupo siendo cargado (Domain UUID)
+    @State private var selectedGroupID: UUID?
     @State private var showingDeleteAlert = false
-    @State private var groupToDelete: SDGroup?  // ✅ Clean Architecture: Domain model
-    @State private var isDeletingGroup = false  // ✅ Track eliminación en progreso
+    @State private var groupToDelete: SDGroup?
+    @State private var isDeletingGroup = false
+    @State private var groupToEdit: SDGroup?
 
     init(currentGroup: SDGroup,
          availableGroups: [SDGroup],
@@ -146,7 +147,6 @@ struct GroupPickerSheet: View {
                         }
                         .disabled(isChangingGroup || isDeletingGroup)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            // Solo mostrar botón de eliminar si no es el último grupo
                             if availableGroups.count > 1 && !isDeletingGroup {
                                 Button {
                                     groupToDelete = group
@@ -154,8 +154,15 @@ struct GroupPickerSheet: View {
                                 } label: {
                                     Label("Eliminar", systemImage: "trash")
                                 }
-                                .tint(.red)  // 🔧 Manual red styling instead of role: .destructive
-                                .disabled(isDeletingGroup)
+                                .tint(.red)
+                            }
+                            if !isDeletingGroup {
+                                Button {
+                                    groupToEdit = group
+                                } label: {
+                                    Label("Editar", systemImage: "pencil")
+                                }
+                                .tint(.orange)
                             }
                         }
                     }
@@ -230,6 +237,13 @@ struct GroupPickerSheet: View {
                     }
                 )
                 .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(item: $groupToEdit) { group in
+                NavigationStack {
+                    GroupFormView(group: group) { }
+                }
+                .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
             .onChange(of: isChangingGroup) { oldValue, newValue in

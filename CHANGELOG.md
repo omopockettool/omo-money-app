@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.22] - 2026-04-22
+
+### Added
+- **Edit group from chip picker** (`GroupSelectorChipView`) — orange "Editar" swipe action on each group row in `GroupPickerSheet`; opens `GroupFormView` as a `.medium` sheet where name and currency can be changed; sits alongside the existing delete swipe so all group management (create, select, edit, delete) lives in one place
+- **`GroupFormView`** (`Group/Views/GroupFormView.swift`) — self-contained edit form for a group: `LimitedTextField` for name (30 char max) + inline currency picker (EUR/USD) with checkmark selection; gets `UpdateGroupUseCase` directly from `AppDIContainer.shared`; xmark/checkmark toolbar; no external ViewModel dependency
+- **`makeUpdateGroupUseCase()`** (`AppDIContainer`) — factory method added so `GroupFormView` and future callers can resolve `UpdateGroupUseCase` from the shared container
+
+### Fixed
+- **Currency rows fully tappable** (`GroupFormView`) — `.contentShape(Rectangle())` added to the currency `HStack` so the entire row (including the `Spacer` gap) registers taps, not just the label text
+
+### Removed
+- **`GroupManagementView` + `GroupManagementViewModel`** — deleted; group editing moved into the existing chip picker sheet; Settings (`SettingsSheetView`) stays group-contextual (Categories, Payment Methods only)
+
+---
+
 ## [1.0.21] - 2026-04-22
 
 ### Fixed
