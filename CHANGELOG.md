@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Past-day dimming in full-month view** (`ExpenseListView`) — new `focusedDate` parameter; when set, sections from days other than the focused date render at 40% opacity so today's section always stands out visually even in the expanded view
 - **Filter logic in ViewModel** (`DashboardViewModel`) — `showingFullMonth`, `todayItemLists`, `monthItemLists`, and `hasItemsOutsideToday` all live in the ViewModel; `DashboardView` holds no filtering logic
 
+### Fixed
+- **Section jump on item deletion** (`DashboardViewModel`) — wrapping the optimistic `itemLists` removal in `withAnimation(.easeInOut(duration: 0.25))` ensures section disappearance and row repositioning animate in a single pass; previously the swipe animation and the layout restructure fired as two separate steps causing a visible jump
+
 ---
 
 ## [1.0.28] - 2026-04-22
