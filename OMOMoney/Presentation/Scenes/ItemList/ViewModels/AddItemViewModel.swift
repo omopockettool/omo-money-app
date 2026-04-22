@@ -104,7 +104,7 @@ final class AddItemViewModel {
             isSaving = false
             return item
         } catch {
-            errorMessage = "Error al guardar item: \(error.localizedDescription)"
+            errorMessage = "Error al guardar artículo: \(error.localizedDescription)"
             print("❌ AddItemViewModel: Error saving item: \(error.localizedDescription)")
             isSaving = false
             return nil

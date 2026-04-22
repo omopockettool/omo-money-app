@@ -31,7 +31,7 @@ struct ExpenseRowView: View {
                     Circle()
                         .fill(categoryColor ?? Color(.systemGray3))
                         .frame(width: 7, height: 7)
-                    Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
+                    Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

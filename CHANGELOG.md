@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.27] - 2026-04-22
+
+### Changed
+- **"artículo/artículos" replaces "ítem/ítems"** (`ExpenseRowView`) — row subtitle now reads "1 artículo" or "X artículos"; more natural Spanish terminology
+- **Loading and empty-state strings updated** (`ItemListDetailView`) — "Cargando artículos...", "No hay artículos", "Agrega tu primer artículo con el botón +"
+- **Error messages updated** (`ItemListDetailViewModel`, `AddItemViewModel`) — all user-facing error strings use "artículo" consistently
+
+---
+
 ## [1.0.26] - 2026-04-22
 
 ### Changed

@@ -64,7 +64,7 @@ struct ItemListDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if viewModel.isLoading {
-                ProgressView("Cargando items...")
+                ProgressView("Cargando artículos...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = viewModel.errorMessage {
                 errorView(errorMessage)
@@ -210,11 +210,11 @@ struct ItemListDetailView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
 
-            Text("No hay items")
+            Text("No hay artículos")
                 .font(.title3)
                 .fontWeight(.semibold)
 
-            Text("Agrega tu primer item con el botón +")
+            Text("Agrega tu primer artículo con el botón +")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -381,7 +381,7 @@ struct AddItemView: View {
                 .padding(.bottom, 8)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(viewModel.isEditMode ? "Editar Item" : "Nuevo Item")
+            .navigationTitle(viewModel.isEditMode ? "Editar Artículo" : "Nuevo Artículo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

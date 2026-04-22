@@ -76,7 +76,7 @@ class ItemListDetailViewModel {
             isLoading = false
         } catch {
             print("❌ [LOAD-ITEMS] ERROR loading items: \(error.localizedDescription)")
-            errorMessage = "No se pudieron cargar los items: \(error.localizedDescription)"
+            errorMessage = "No se pudieron cargar los artículos: \(error.localizedDescription)"
             isLoading = false
         }
     }
@@ -111,7 +111,7 @@ class ItemListDetailViewModel {
         } catch {
             print("❌ [DELETE] Error deleting item, rolling back...")
             items.insert(item, at: index)
-            errorMessage = "Error al eliminar item: \(error.localizedDescription)"
+            errorMessage = "Error al eliminar artículo: \(error.localizedDescription)"
         }
     }
 
@@ -122,7 +122,7 @@ class ItemListDetailViewModel {
             try await toggleItemPaidUseCase.execute(itemId: item.id, isPaid: newIsPaid)
         } catch {
             item.isPaid = !newIsPaid  // rollback
-            errorMessage = "Error al actualizar item"
+            errorMessage = "Error al actualizar artículo"
         }
     }
 
