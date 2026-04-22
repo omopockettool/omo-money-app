@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.21] - 2026-04-22
+
+### Fixed
+- **Paid status no longer dims text** (`ExpenseRowView`, `ItemRowView`) — removed opacity and `.secondary` foreground style changes on description and amount when `isPaid` is toggled; only the check icon changes color (green `checkmark.circle.fill` when paid, gray `circle` when not) — improves readability in both dashboard list and item detail
+
+---
+
 ## [1.0.20] - 2026-04-22
 
 ### Added

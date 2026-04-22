@@ -10,6 +10,7 @@ struct AddItemListView: View {
     @FocusState private var focusedField: Field?
     @State private var showDatePicker = false
     @State private var calendarExpanded = false
+    @State private var suppressCalendarExpand = false
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
     @State private var showPaymentMethodOverflow = false
@@ -135,20 +136,7 @@ struct AddItemListView: View {
             .padding(AppConstants.UserInterface.padding)
             .padding(.bottom, 8)
         }
-        .task(id: showDetails) {
-            guard showDetails, !viewModel.isEditMode else { return }
-            try? await Task.sleep(for: .milliseconds(300))
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                proxy.scrollTo("moreDetailsAnchor", anchor: .bottom)
-            }
-        }
-        .task(id: showDatePicker) {
-            guard showDatePicker else { return }
-            try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) {
-                proxy.scrollTo("datePickerAnchor", anchor: .bottom)
-            }
-        }
+
         } // ScrollViewReader
         .scrollDisabled(!showDetails && !viewModel.isEditMode)
         .background(Color(.systemGroupedBackground))
@@ -205,6 +193,10 @@ struct AddItemListView: View {
             orderedPaymentMethods = sortedPaymentMethods()
             if viewModel.isEditMode {
                 showDetails = true
+                if !Calendar.current.isDateInToday(viewModel.date) {
+                    suppressCalendarExpand = true
+                    showDatePicker = true
+                }
             }
         }
         .toast($viewModel.toast)
@@ -460,6 +452,10 @@ struct AddItemListView: View {
                 Button {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                         showDetails.toggle()
+                        if !showDetails {
+                            showDatePicker = false
+                            calendarExpanded = false
+                        }
                     }
                 } label: {
                     HStack {
@@ -680,7 +676,7 @@ struct AddItemListView: View {
                             Text("Fecha")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-                            Text(showDatePicker ? viewModel.formattedDate : "Hoy")
+                            Text(Calendar.current.isDateInToday(viewModel.date) ? "Hoy" : viewModel.formattedDate)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -700,8 +696,12 @@ struct AddItemListView: View {
                     .onChange(of: showDatePicker) { _, on in
                         focusedField = nil
                         if on {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                                calendarExpanded = true
+                            if suppressCalendarExpand {
+                                suppressCalendarExpand = false
+                            } else {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                                    calendarExpanded = true
+                                }
                             }
                         } else {
                             viewModel.date = Date()
