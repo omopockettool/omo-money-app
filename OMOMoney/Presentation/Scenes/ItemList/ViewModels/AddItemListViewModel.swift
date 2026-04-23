@@ -18,6 +18,8 @@ final class AddItemListViewModel {
     var date = Date()
     var selectedCategory: SDCategory?
     var selectedPaymentMethod: SDPaymentMethod?
+    var suggestions: [String] = []
+    var lastUsedConcept: String?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
@@ -117,6 +119,7 @@ final class AddItemListViewModel {
                     categories.first { $0.id == id }
                 }
             }
+            updateSuggestions()
         } catch {
             errorMessage = "Error al cargar categorías: \(error.localizedDescription)"
         }
@@ -256,6 +259,16 @@ final class AddItemListViewModel {
         } else {
             return integerPart
         }
+    }
+
+    func updateSuggestions() {
+        suggestions = ConceptSuggestionEngine.getSuggestions(
+            query: description,
+            amount: priceAsDecimal.map { Double(truncating: $0 as NSDecimalNumber) },
+            forCategory: selectedCategory,
+            allCategories: categories
+        )
+        lastUsedConcept = ConceptSuggestionEngine.lastUsed(forCategory: selectedCategory)
     }
 
     func clearError() {

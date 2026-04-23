@@ -124,6 +124,9 @@ struct AddItemListView: View {
     }
 
     private var descriptionPlaceholder: String {
+        if let concept = viewModel.lastUsedConcept {
+            return concept
+        }
         if let category = viewModel.selectedCategory {
             return "Concepto (ej. \(category.name))"
         }
@@ -205,6 +208,11 @@ struct AddItemListView: View {
             }
         }
         .toast($viewModel.toast)
+        .onChange(of: viewModel.description) { viewModel.updateSuggestions() }
+        .onChange(of: viewModel.price) { viewModel.updateSuggestions() }
+        .onChange(of: viewModel.selectedCategory) { viewModel.updateSuggestions() }
+        .onChange(of: focusedField) { _, _ in viewModel.updateSuggestions() }
+        .animation(AnimationHelper.quickEase, value: focusedField == .description)
     }
 
     // MARK: - Top Card (Concept + Amount)
@@ -252,6 +260,17 @@ struct AddItemListView: View {
                 }
             }
             .padding(viewModel.isEditMode ? AppConstants.UserInterface.largePadding : AppConstants.UserInterface.padding)
+
+            if focusedField == .description && !viewModel.suggestions.isEmpty {
+                ConceptSuggestionChipsView(
+                    suggestions: viewModel.suggestions,
+                    categoryColor: Color(hex: viewModel.selectedCategory?.color ?? "") ?? Color(.systemGray4)
+                ) { selected in
+                    viewModel.description = selected
+                }
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
@@ -734,7 +753,7 @@ struct AddItemListView: View {
 
     private func saveItemList() async {
         let finalDescription = viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? (viewModel.selectedCategory?.name ?? "Concepto")
+            ? (viewModel.lastUsedConcept ?? viewModel.selectedCategory?.name ?? "Concepto")
             : viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if viewModel.isEditMode {

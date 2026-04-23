@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.31] - 2026-04-23
+
+### Added
+- **Concept suggestion engine** (`ConceptSuggestionEngine`) — pure Swift runtime engine that derives concept suggestions from existing `SDItemList` data; no new SwiftData entities; ranking: prefix match → contains match → recency → frequency; strictly category-scoped (no cross-category bleed)
+- **Amount-aware suggestion boosting** (`ConceptSuggestionEngine`) — when a price is entered, past item lists whose total falls within ±5% of the current amount are ranked first; suggestions re-rank in real time as the user types the amount
+- **Concept suggestion chips** (`ConceptSuggestionChipsView`) — horizontal pill row shown below the concept field only when it is focused and history exists for the selected category; max 3 chips; tapping fills the field and keeps the keyboard open; animated fade + slide on appear/disappear
+- **Category-colored chips** — chip background uses the selected category's color (same hex as the category grid chip) with white text; falls back to `systemGray4` when no category is selected; instant visual link between chip and category
+- **Silent autofill placeholder** (`AddItemListView`) — when a category with history is selected, the concept field placeholder shows the most recently used concept for that category instead of the generic hint; if saved with an empty concept, this value is used as the fallback (before category name)
+
+### Changed
+- **`descriptionPlaceholder`** (`AddItemListView`) — priority order: last used concept for category → "Concepto (ej. CategoryName)" → "Concepto"
+- **`saveItemList()` fallback** (`AddItemListView`) — empty concept now resolves to `lastUsedConcept ?? selectedCategory?.name ?? "Concepto"` instead of skipping the history
+
+### Internal
+- **`ConceptSuggestionEngine`** (`Infrastructure/Helpers/`) — `getSuggestions(query:amount:forCategory:allCategories:)` + `lastUsed(forCategory:)`; ±5% amount tolerance via `abs(value - target) / target <= 0.05`
+- **`AddItemListViewModel`** — `suggestions: [String]`, `lastUsedConcept: String?`, `updateSuggestions()` triggered on category load, description change, price change, category change, and focus change
+- **`ConceptSuggestionChipsView`** (`Presentation/Common/Components/`) — `categoryColor: Color` parameter; uses iOS semantic colors (`Color(.secondaryLabel)`, `Color(.systemGray4)`) as fallback
+
+---
+
 ## [1.0.30] - 2026-04-22
 
 ### Added
