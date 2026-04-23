@@ -20,6 +20,7 @@ struct ExpenseListView: View {
     var getDayTotal: ((Date) -> String)? = nil
     var focusedDate: Date? = nil
     var hideSectionHeaders: Bool = false
+    var onAddForDate: ((Date) -> Void)? = nil
     
     var body: some View {
         List {
@@ -106,19 +107,29 @@ struct ExpenseListView: View {
     @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
         if !isCompact && !hideSectionHeaders {
-            HStack {
+            HStack(spacing: 8) {
                 Text(formatSectionDate(date))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
                     .textCase(.uppercase)
+                Spacer()
                 if let total = getDayTotal?(date) {
-                    Spacer()
                     Text(total)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
                         .textCase(.none)
+                }
+                if let onAdd = onAddForDate {
+                    Button {
+                        onAdd(date)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(PressHapticButtonStyle())
                 }
             }
         }

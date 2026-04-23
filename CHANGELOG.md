@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.34] - 2026-04-23
+
+### Added
+- **Date-scoped "+" button in month section headers** (`ExpenseListView`, `DashboardView`) — in "Este mes" mode each date section header shows a `plus.circle.fill` button aligned after the day total; tapping opens `AddItemListView` with that date pre-selected
+
+### Changed
+- **All sections render at full opacity in month mode** (`DashboardView`) — removed the `focusedDate: Date()` pass that dimmed non-today sections to 40%; all rows now render equally
+
+### Fixed
+- **Wrong date on first sheet open** (`DashboardView`) — replaced `sheet(isPresented:)` + two-state pattern (`showingAddItemList` + `addForDate`) with `sheet(item:)` driven by a single `AddItemListTrigger: Identifiable`; eliminates the SwiftUI first-render race where the sheet content was evaluated before `addForDate` propagated, causing `initialDate` to be `nil` and defaulting to today
+
+### Internal
+- **`AddItemListTrigger`** — private `Identifiable` struct (`id: UUID`, `initialDate: Date?`) replaces `showingAddItemList: Bool` + `addForDate: Date?`; FAB and header "+" both set the trigger in one atomic assignment
+- **`onAddForDate: ((Date) -> Void)?`** added to `ExpenseListView`; `nil` in "Hoy" mode, non-nil in "Este mes" mode
+
+---
+
 ## [1.0.33] - 2026-04-23
 
 ### Changed

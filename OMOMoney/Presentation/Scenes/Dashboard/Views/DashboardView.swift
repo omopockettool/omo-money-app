@@ -42,8 +42,13 @@ struct DashboardView: View {
     @State private var navigationPath = NavigationPath()
     @State private var contentOpacity: Double = 0.0
     @State private var hasLoadedInitialData = false
-    @State private var showingAddItemList = false
     @State private var selectedCalendarDay: Date? = nil
+    @State private var addItemListTrigger: AddItemListTrigger? = nil
+
+    private struct AddItemListTrigger: Identifiable {
+        let id = UUID()
+        let initialDate: Date?
+    }
     @State private var listDragOffset: CGFloat = 0
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var viewMode: DashboardViewMode = .list
@@ -141,15 +146,15 @@ struct DashboardView: View {
                     )
                 }
             }
-            .sheet(isPresented: $showingAddItemList) {
+            .sheet(item: $addItemListTrigger) { trigger in
                 if let group = viewModel.currentGroup {
                     NavigationStack {
                         AddItemListView(
                             group: group,
-                            initialDate: selectedCalendarDay,
+                            initialDate: trigger.initialDate,
                             onItemListCreated: { createdItemList in
                                 guard !heroIsSuccess else {
-                                    showingAddItemList = false
+                                    addItemListTrigger = nil
                                     Task { await viewModel.addItemList(createdItemList) }
                                     return
                                 }
@@ -157,7 +162,7 @@ struct DashboardView: View {
                                     heroIsSuccess = true
                                     heroSuccessDescription = createdItemList.itemListDescription
                                 }
-                                showingAddItemList = false
+                                addItemListTrigger = nil
                                 Task {
                                     await viewModel.addItemList(createdItemList)
                                     try? await Task.sleep(for: .milliseconds(1200))
@@ -168,7 +173,7 @@ struct DashboardView: View {
                                 }
                             },
                             onCancel: {
-                                showingAddItemList = false
+                                addItemListTrigger = nil
                             }
                         )
                     }
@@ -250,7 +255,7 @@ struct DashboardView: View {
                     ? viewModel.lastMonthTotal
                     : viewModel.yesterdayTotal,
                 comparisonLabel: viewModel.showingFullMonth ? "el mes pasado" : "ayer",
-                onAddExpense: { showingAddItemList = true },
+                onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
                 isSuccess: heroIsSuccess,
                 successLabel: heroSuccessDescription
             )
@@ -307,8 +312,11 @@ struct DashboardView: View {
                     onRefresh: { await viewModel.refreshData() },
                     onDelete: { await viewModel.deleteItemList($0) },
                     getDayTotal: viewModel.showingFullMonth ? { viewModel.formattedTotal(for: $0) } : nil,
-                    focusedDate: viewModel.showingFullMonth ? Date() : nil,
-                    hideSectionHeaders: !viewModel.showingFullMonth
+                    focusedDate: nil,
+                    hideSectionHeaders: !viewModel.showingFullMonth,
+                    onAddForDate: viewModel.showingFullMonth ? { date in
+                        addItemListTrigger = AddItemListTrigger(initialDate: date)
+                    } : nil
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)
