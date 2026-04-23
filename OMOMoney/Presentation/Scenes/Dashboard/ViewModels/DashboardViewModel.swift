@@ -26,7 +26,7 @@ class DashboardViewModel {
     var itemListUnpaidTotals: [UUID: Double] = [:]
     var itemListCounts: [UUID: Int] = [:]
     var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]
-    var categories: [UUID: (name: String, color: String)] = [:]
+    var categories: [UUID: (name: String, color: String, icon: String)] = [:]
     var isLoading = false
     var isRefreshing = false
     var isChangingGroup = false
@@ -149,9 +149,9 @@ class DashboardViewModel {
 
             print("🔄 DashboardViewModel: Loading categories...")
             let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: firstGroup.id)
-            var categoriesDict: [UUID: (name: String, color: String)] = [:]
+            var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
             for cat in sdCategories {
-                categoriesDict[cat.id] = (name: cat.name, color: cat.color)
+                categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
 
@@ -259,9 +259,9 @@ class DashboardViewModel {
 
             print("🔄 DashboardViewModel: Loading categories for new group...")
             let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
-            var categoriesDict: [UUID: (name: String, color: String)] = [:]
+            var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
             for cat in sdCategories {
-                categoriesDict[cat.id] = (name: cat.name, color: cat.color)
+                categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
 
@@ -347,8 +347,8 @@ class DashboardViewModel {
         guard let groupId = currentGroup?.id else { return }
         do {
             let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
-            var dict: [UUID: (name: String, color: String)] = [:]
-            for cat in sdCategories { dict[cat.id] = (name: cat.name, color: cat.color) }
+            var dict: [UUID: (name: String, color: String, icon: String)] = [:]
+            for cat in sdCategories { dict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon) }
             categories = dict
         } catch {}
     }
@@ -486,7 +486,7 @@ class DashboardViewModel {
     
     func togglePaid(for itemList: SDItemList) {
         guard (itemListCounts[itemList.id] ?? 0) > 0 else {
-            toast = ToastMessage("Lista vacía", type: .info)
+            toast = ToastMessage("Registro vacío", type: .info)
             return
         }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none

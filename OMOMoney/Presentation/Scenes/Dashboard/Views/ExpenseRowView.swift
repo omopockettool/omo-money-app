@@ -7,6 +7,7 @@ struct ExpenseRowView: View {
     let itemCount: Int
     let categoryName: String?
     let categoryColor: Color?
+    let categoryIcon: String?
     let paidStatus: ItemListPaidStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
@@ -28,9 +29,9 @@ struct ExpenseRowView: View {
                     .lineLimit(1)
 
                 HStack(spacing: 5) {
-                    Circle()
-                        .fill(categoryColor ?? Color(.systemGray3))
-                        .frame(width: 7, height: 7)
+                    Image(systemName: categoryIcon ?? "tag.fill")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(categoryColor ?? Color(.systemGray3))
                     Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -89,6 +90,7 @@ struct ExpenseRowView: View {
             itemCount: 3,
             categoryName: "Supermercado",
             categoryColor: .green,
+            categoryIcon: "cart.fill",
             paidStatus: .all,
             onTap: {},
             onTogglePaid: {}
@@ -100,6 +102,7 @@ struct ExpenseRowView: View {
             itemCount: 1,
             categoryName: nil,
             categoryColor: nil,
+            categoryIcon: nil,
             paidStatus: .partial,
             onTap: {},
             onTogglePaid: {}

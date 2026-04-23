@@ -10,7 +10,7 @@ struct ExpenseListView: View {
     let getFormattedAmount: (SDItemList) -> String
     let getFormattedUnpaidAmount: (SDItemList) -> String?
     let itemListCounts: [UUID: Int]
-    let categories: [UUID: (name: String, color: String)]
+    let categories: [UUID: (name: String, color: String, icon: String)]
     let itemListPaidStatus: [UUID: ItemListPaidStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -51,6 +51,7 @@ struct ExpenseListView: View {
     private func itemListRow(_ itemList: SDItemList) -> some View {
         let categoryName = itemList.category.flatMap { categories[$0.id]?.name }
         let categoryColor = itemList.category.flatMap { categories[$0.id]?.color }.flatMap { Color(hex: $0) }
+        let categoryIcon = itemList.category.flatMap { categories[$0.id]?.icon }
         ExpenseRowView(
             itemList: itemList,
             formattedAmount: getFormattedAmount(itemList),
@@ -58,6 +59,7 @@ struct ExpenseListView: View {
             itemCount: itemListCounts[itemList.id] ?? 0,
             categoryName: categoryName,
             categoryColor: categoryColor,
+            categoryIcon: categoryIcon,
             paidStatus: itemListPaidStatus[itemList.id] ?? .none,
             onTap: { onItemTap(itemList) },
             onTogglePaid: { onTogglePaid(itemList) },

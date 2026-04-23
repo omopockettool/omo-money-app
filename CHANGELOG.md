@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.32] - 2026-04-23
+
+### Changed
+- **Category icon in expense row** (`ExpenseRowView`) — replaced the 7pt color dot in the subtitle line with the category's SF Symbol at 11pt medium weight in the category color; falls back to `tag.fill` in `systemGray3` when no category is set
+
+### Internal
+- **`categories` tuple extended** (`DashboardViewModel`, `ExpenseListView`) — tuple type updated from `(name: String, color: String)` to `(name: String, color: String, icon: String)` across declaration and all 3 build sites in `DashboardViewModel`
+- **`ExpenseRowView`** — new `categoryIcon: String?` parameter replaces `Circle` dot
+
+---
+
 ## [1.0.31] - 2026-04-23
 
 ### Added
