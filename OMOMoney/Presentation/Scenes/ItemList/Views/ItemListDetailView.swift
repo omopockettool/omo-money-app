@@ -1,8 +1,3 @@
-//
-//  ItemListDetailView.swift
-//  OMOMoney
-//
-
 import SwiftUI
 
 struct ItemListDetailView: View {
@@ -15,7 +10,15 @@ struct ItemListDetailView: View {
     @State private var sheetMode: ItemSheetMode?
     @State private var hasLoadedInitialData = false
 
-    // MARK: - Sheet Mode (UI State)
+    // Hero card animation state (mirrors TotalSpentCardView)
+    @State private var displayedTotal: String = ""
+    @State private var totalIsDecreasing: Bool = false
+    @State private var heroFlashColor: Color = .clear
+    @State private var heroCardScale: CGFloat = 1.0
+    @State private var isAddPressed: Bool = false
+    @State private var heroIsSuccess: Bool = false
+    @State private var heroSuccessLabel: String = ""
+
     enum ItemSheetMode: Identifiable {
         case create
         case edit(SDItem)
@@ -23,12 +26,9 @@ struct ItemListDetailView: View {
 
         var id: String {
             switch self {
-            case .create:
-                return "create"
-            case .edit(let item):
-                return "edit-\(item.id)"
-            case .editRegistry:
-                return "editRegistry"
+            case .create:       return "create"
+            case .edit(let i):  return "edit-\(i.id)"
+            case .editRegistry: return "editRegistry"
             }
         }
     }
@@ -49,7 +49,6 @@ struct ItemListDetailView: View {
         self.onPaidStatusChanged = onPaidStatusChanged
 
         let container = AppDIContainer.shared
-
         self._viewModel = State(wrappedValue: ItemListDetailViewModel(
             itemList: itemList,
             currencyCode: currencyCode,
@@ -87,7 +86,6 @@ struct ItemListDetailView: View {
         }
         .onAppear {
             guard !hasLoadedInitialData else {
-                print("📍 ItemListDetailView: Sheet dismissed, reloading items...")
                 Task { await viewModel.loadItems() }
                 return
             }
@@ -96,7 +94,6 @@ struct ItemListDetailView: View {
         }
         .sheet(item: $sheetMode) { mode in
             let container = AppDIContainer.shared
-
             switch mode {
             case .create:
                 AddItemView(
@@ -106,6 +103,17 @@ struct ItemListDetailView: View {
                     currencyCode: currencyCode,
                     onItemSaved: { item in
                         Task { await viewModel.addItem(item) }
+                        withAnimation(AnimationHelper.smoothSpring) {
+                            heroIsSuccess = true
+                            heroSuccessLabel = item.itemDescription
+                        }
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(900))
+                            withAnimation(AnimationHelper.smoothSpring) {
+                                heroIsSuccess = false
+                                heroSuccessLabel = ""
+                            }
+                        }
                     },
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
@@ -116,9 +124,7 @@ struct ItemListDetailView: View {
                     itemToEdit: item,
                     itemListDescription: itemList.itemListDescription,
                     currencyCode: currencyCode,
-                    onItemSaved: { item in
-                        Task { await viewModel.updateItem(item) }
-                    },
+                    onItemSaved: { item in Task { await viewModel.updateItem(item) } },
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
                 )
@@ -139,58 +145,209 @@ struct ItemListDetailView: View {
         }
     }
 
-    // MARK: - UI Components
+    // MARK: - Computed
+
+    private var categoryColor: Color {
+        Color(hex: itemList.category?.color ?? "") ?? .accentColor
+    }
+
+    // MARK: - Main Content
 
     private var mainContentView: some View {
         VStack(spacing: 0) {
-            if viewModel.items.isEmpty {
-                emptyStateView
-            } else {
-                itemsListView
-            }
-
-            VStack(spacing: AppConstants.UserInterface.padding) {
-                TotalSpentCardView(
-                    label: "Coste de \(itemList.itemListDescription)",
-                    totalAmount: viewModel.getFormattedTotal(),
-                    currentRawAmount: 0,
-                    onAddExpense: { sheetMode = .create }
-                )
-            }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.systemBackground))
+            heroCard
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.vertical, 12)
+                .background(Color(.systemGroupedBackground))
+            itemsList
         }
-        .ignoresSafeArea(.keyboard)
     }
 
-    private var itemsListView: some View {
-        List {
-            ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
-                ItemRowView(
-                    item: item,
-                    formattedAmount: viewModel.getFormattedAmount(item),
-                    currencyCode: currencyCode,
-                    onTap: { sheetMode = .edit(item) },
-                    onTogglePaid: {
-                        Task {
-                            await viewModel.toggleItemPaid(item)
-                            onPaidStatusChanged?()
-                        }
+    // MARK: - Hero Card (static, mirrors TotalSpentCardView)
+
+    private var heroCard: some View {
+        Button(action: heroIsSuccess ? {} : { sheetMode = .create }) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if heroIsSuccess {
+                        Text(heroSuccessLabel)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .transition(.push(from: .top).combined(with: .opacity))
+
+                        Text("¡Listo!")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .transition(.push(from: .top).combined(with: .opacity))
+
+                        Label("añadido a tu lista", systemImage: "arrow.down")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                            .transition(.opacity)
+                    } else {
+                        Text(itemList.itemListDescription)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+
+                        Text(displayedTotal)
+                            .font(.system(size: dynamicTotalFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(countsDown: totalIsDecreasing))
+                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedTotal)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+
+                        heroMetaRow
                     }
-                )
-                .listRowInsets(EdgeInsets(
-                    top: 4,
-                    leading: AppConstants.UserInterface.padding,
-                    bottom: 4,
-                    trailing: AppConstants.UserInterface.padding
-                ))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task { await viewModel.deleteItem(item, at: index) }
-                    } label: {
-                        Label("Eliminar", systemImage: "trash")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(AnimationHelper.smoothSpring, value: heroIsSuccess)
+
+                Spacer(minLength: 8)
+
+                ZStack {
+                    Circle()
+                        .fill(heroIsSuccess ? Color.green.opacity(0.45) : Color.accentColor.opacity(0.45))
+                        .frame(width: 48, height: 48)
+                        .offset(y: 4)
+
+                    Circle()
+                        .fill(heroIsSuccess ? Color.green : Color.accentColor)
+                        .frame(width: 48, height: 48)
+                        .overlay {
+                            Image(systemName: heroIsSuccess ? "checkmark" : "plus")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .contentTransition(.symbolEffect(.replace.downUp))
+                        }
+                        .offset(y: isAddPressed ? 4 : 0)
+                }
+                .frame(width: 48, height: 52)
+                .animation(AnimationHelper.smoothSpring, value: heroIsSuccess)
+                .animation(.spring(response: 0.18, dampingFraction: 0.6), value: isAddPressed)
+            }
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, 16)
+            .background(.regularMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                    .fill(heroFlashColor)
+                    .allowsHitTesting(false)
+            )
+            .cornerRadius(AppConstants.UserInterface.cornerRadius)
+            .scaleEffect(heroCardScale)
+        }
+        .buttonStyle(PressHapticButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in if !heroIsSuccess { isAddPressed = true } }
+                .onEnded   { _ in isAddPressed = false }
+        )
+        .onAppear {
+            displayedTotal = viewModel.getFormattedTotal()
+        }
+        .onChange(of: viewModel.getFormattedTotal()) { _, newValue in
+            let oldDigits = Int(displayedTotal.filter(\.isNumber)) ?? 0
+            let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
+            totalIsDecreasing = newDigits < oldDigits
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                displayedTotal = newValue
+            }
+            guard !heroIsSuccess else { return }
+            let targetColor: Color = totalIsDecreasing ? .red.opacity(0.12) : .green.opacity(0.12)
+            withAnimation(.easeIn(duration: 0.12)) { heroFlashColor = targetColor }
+            withAnimation(.easeOut(duration: 0.45).delay(0.15)) { heroFlashColor = .clear }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) { heroCardScale = 1.025 }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.12)) { heroCardScale = 1.0 }
+        }
+    }
+
+    private var heroMetaRow: some View {
+        HStack(spacing: 10) {
+            if let category = itemList.category {
+                let color = Color(hex: category.color) ?? .accentColor
+                HStack(spacing: 4) {
+                    Image(systemName: category.icon)
+                        .foregroundStyle(color)
+                    Text(category.name)
+                        .foregroundStyle(color)
+                }
+                .font(.caption)
+                .fontWeight(.medium)
+            }
+            if let pm = itemList.paymentMethod {
+                let color = pmColor(pm.type)
+                HStack(spacing: 4) {
+                    Image(systemName: pm.icon.isEmpty ? pmDefaultIcon(pm.type) : pm.icon)
+                        .foregroundStyle(color)
+                    Text(pm.name)
+                        .foregroundStyle(color)
+                }
+                .font(.caption)
+                .fontWeight(.medium)
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private func pmColor(_ type: String) -> Color {
+        switch type {
+        case "cash":          return .green
+        case "bank_transfer": return .orange
+        case "card_credit":   return .purple
+        default:              return .blue
+        }
+    }
+
+    private var dynamicTotalFontSize: CGFloat {
+        let length = viewModel.getFormattedTotal().count
+        switch length {
+        case 0...10:  return 34
+        case 11...15: return 28
+        case 16...20: return 22
+        default:      return 18
+        }
+    }
+
+    // MARK: - Items List (scrollable)
+
+    private var itemsList: some View {
+        List {
+            if viewModel.items.isEmpty {
+                emptyStateRow
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
+                    ItemRowView(
+                        item: item,
+                        formattedAmount: viewModel.getFormattedAmount(item),
+                        currencyCode: currencyCode,
+                        onTap: { sheetMode = .edit(item) },
+                        onTogglePaid: {
+                            Task {
+                                await viewModel.toggleItemPaid(item)
+                                onPaidStatusChanged?()
+                            }
+                        }
+                    )
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task { await viewModel.deleteItem(item, at: index) }
+                        } label: {
+                            Label("Eliminar", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -198,28 +355,69 @@ struct ItemListDetailView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .animation(.easeInOut(duration: 0.2), value: viewModel.items.count)
-        .refreshable {
-            await viewModel.loadItems()
-        }
+        .refreshable { await viewModel.loadItems() }
     }
 
-    private var emptyStateView: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
+    // MARK: - Add Item Button
+
+    private var addItemButton: some View {
+        Button { sheetMode = .create } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.accentColor)
+                Text("Añadir artículo")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.accentColor)
+                Spacer()
+            }
+            .padding(AppConstants.UserInterface.padding)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        }
+        .buttonStyle(PressHapticButtonStyle())
+    }
+
+    // MARK: - Empty State
+
+    private var emptyStateRow: some View {
+        VStack(spacing: 10) {
             Image(systemName: "tray")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
-
-            Text("No hay artículos")
-                .font(.title3)
-                .fontWeight(.semibold)
-
-            Text("Agrega tu primer artículo con el botón +")
-                .font(.body)
-                .foregroundColor(.secondary)
+                .font(.system(size: 40))
+                .foregroundStyle(.tertiary)
+            Text("Sin artículos")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+            Text("Agrega el primero con el botón de arriba")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(AppConstants.UserInterface.largePadding)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+
+    // MARK: - Helpers
+
+    private var formattedItemListDate: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        let cal = Calendar.current
+        if cal.isDateInToday(itemList.date) { return "Hoy" }
+        if cal.isDateInYesterday(itemList.date) { return "Ayer" }
+        formatter.dateFormat = cal.isDate(itemList.date, equalTo: Date(), toGranularity: .year)
+            ? "d MMM" : "d MMM yyyy"
+        return formatter.string(from: itemList.date)
+    }
+
+    private func pmDefaultIcon(_ type: String) -> String {
+        switch type {
+        case "cash":          return "banknote.fill"
+        case "bank_transfer": return "arrow.left.arrow.right"
+        default:              return "creditcard.fill"
+        }
     }
 
     private func errorView(_ message: String) -> some View {
@@ -227,16 +425,13 @@ struct ItemListDetailView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundColor(.orange)
-
             Text("Error")
                 .font(.title2)
                 .fontWeight(.semibold)
-
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-
             Button("Reintentar") {
                 Task { await viewModel.loadItems() }
             }
@@ -247,7 +442,7 @@ struct ItemListDetailView: View {
     }
 }
 
-// MARK: - Item Row View Component
+// MARK: - Item Row View
 
 struct ItemRowView: View {
     let item: SDItem
@@ -339,8 +534,6 @@ struct AddItemView: View {
         ))
     }
 
-    // MARK: - Computed
-
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -349,9 +542,7 @@ struct AddItemView: View {
         return formatter.currencySymbol
     }
 
-    private var quantityValue: Int {
-        Int(viewModel.quantity) ?? 1
-    }
+    private var quantityValue: Int { Int(viewModel.quantity) ?? 1 }
 
     private var subtotalAmount: String {
         let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
@@ -364,8 +555,6 @@ struct AddItemView: View {
         guard quantityValue > 1 else { return "" }
         return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds."
     }
-
-    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -384,9 +573,7 @@ struct AddItemView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -396,9 +583,7 @@ struct AddItemView: View {
                                 dismiss()
                             }
                         }
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+                    } label: { Image(systemName: "checkmark") }
                     .disabled(!viewModel.canSave)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -409,8 +594,6 @@ struct AddItemView: View {
         }
     }
 
-    // MARK: - Hero Amount Input
-
     private var heroAmountInput: some View {
         HeroAmountInputView(
             text: $viewModel.amount,
@@ -420,8 +603,6 @@ struct AddItemView: View {
             fieldValue: .amount
         )
     }
-
-    // MARK: - Description Card
 
     private var descriptionCard: some View {
         LimitedTextField(
@@ -434,8 +615,6 @@ struct AddItemView: View {
             fieldValue: .description
         )
     }
-
-    // MARK: - Quantity Stepper
 
     private var quantityBinding: Binding<Int> {
         Binding(
@@ -480,8 +659,6 @@ struct AddItemView: View {
         }
     }
 
-    // MARK: - Subtotal Card
-
     private var subtotalCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
@@ -508,9 +685,7 @@ struct AddItemView: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-        .onAppear {
-            displayedSubtotal = subtotalAmount
-        }
+        .onAppear { displayedSubtotal = subtotalAmount }
         .onChange(of: subtotalAmount) { _, newValue in
             let oldDigits = Int(displayedSubtotal.filter(\.isNumber)) ?? 0
             let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
@@ -526,12 +701,7 @@ struct AddItemView: View {
 #Preview {
     let itemList = SDItemList.mock(itemListDescription: "Compras del supermercado")
     let group = SDGroup.mock(name: "Casa", currency: "EUR")
-
     return NavigationStack {
-        ItemListDetailView(
-            itemList: itemList,
-            currencyCode: "EUR",
-            group: group
-        )
+        ItemListDetailView(itemList: itemList, currencyCode: "EUR", group: group)
     }
 }

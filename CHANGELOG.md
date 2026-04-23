@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.35] - 2026-04-23
+
+### Changed
+- **`ItemListDetailView` rediseñado** — hero card estático encima de la lista scrolleable; réplica exacta de `TotalSpentCardView`: total animado con `numericText`, botón 3D "+" en acento, flash verde/rojo al cambiar total, scale effect en el card; meta row debajo del total con icono + nombre de categoría en su color e icono + nombre de método de pago en su color semántico (verde/naranja/morado/azul)
+- **Animación ¡Listo! en `ItemListDetailView`** — al guardar un artículo el hero card transiciona a `heroSuccessLabel` + "¡Listo!" + flecha verde, botón pasa a verde con checkmark; idéntico al comportamiento del dashboard
+- **Duración de animación success reducida a 900ms** (`DashboardView`, `ItemListDetailView`) — era 1200ms, demasiado lento para añadir varios artículos seguidos
+
+### Fixed
+- **Regresión de Xcode+Claude** — revertidos todos los cambios rotos: `.glassEffect()`, `.primary.gradient`, `LiquidGlassButtonStyle`, `withAnimation { Task {} }`; restaurado a SwiftUI estándar limpio
+
+---
+
 ## [1.0.34] - 2026-04-23
 
 ### Added

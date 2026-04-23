@@ -165,7 +165,7 @@ struct DashboardView: View {
                                 addItemListTrigger = nil
                                 Task {
                                     await viewModel.addItemList(createdItemList)
-                                    try? await Task.sleep(for: .milliseconds(1200))
+                                    try? await Task.sleep(for: .milliseconds(900))
                                     withAnimation(AnimationHelper.smoothSpring) {
                                         heroIsSuccess = false
                                         heroSuccessDescription = ""
