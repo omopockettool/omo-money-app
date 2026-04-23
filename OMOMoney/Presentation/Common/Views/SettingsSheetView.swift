@@ -10,7 +10,7 @@ struct SettingsSheetView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Grupo") {
+                Section("Grupo: \(group.name)") {
                     NavigationLink {
                         CategoryManagementView(group: group)
                     } label: {

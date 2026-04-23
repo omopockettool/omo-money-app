@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.33] - 2026-04-23
+
+### Changed
+- **Settings group section header** (`SettingsSheetView`) — section label updated from "Grupo" to "Grupo: {group name}" so the user knows which group the settings apply to
+
+---
+
 ## [1.0.32] - 2026-04-23
 
 ### Changed
