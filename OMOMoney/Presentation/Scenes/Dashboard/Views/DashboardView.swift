@@ -55,7 +55,6 @@ struct DashboardView: View {
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
-    @State private var heroSuccessDescription: String = ""
 
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
@@ -160,7 +159,6 @@ struct DashboardView: View {
                                 }
                                 withAnimation(AnimationHelper.smoothSpring) {
                                     heroIsSuccess = true
-                                    heroSuccessDescription = createdItemList.itemListDescription
                                 }
                                 addItemListTrigger = nil
                                 Task {
@@ -168,7 +166,6 @@ struct DashboardView: View {
                                     try? await Task.sleep(for: .milliseconds(900))
                                     withAnimation(AnimationHelper.smoothSpring) {
                                         heroIsSuccess = false
-                                        heroSuccessDescription = ""
                                     }
                                 }
                             },
@@ -248,12 +245,8 @@ struct DashboardView: View {
                 totalAmount: viewModel.showingFullMonth
                     ? viewModel.formattedCachedMonthTotal()
                     : viewModel.formattedTodayTotal,
-                currentRawAmount: viewModel.showingFullMonth
-                    ? viewModel.currentMonthTotal
-                    : viewModel.todayRawTotal,
                 onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
-                isSuccess: heroIsSuccess,
-                successLabel: heroSuccessDescription
+                isSuccess: heroIsSuccess
             )
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.top, AppConstants.UserInterface.smallPadding)

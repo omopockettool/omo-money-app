@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.0.36] - 2026-04-24
+
+### Changed
+- **`TotalSpentCardView` refactorizado como componente genérico** — ahora acepta un `@ViewBuilder bottomContent` slot; `ItemListDetailView` reutiliza el componente pasando `heroMetaRow` como contenido extra, eliminando ~70 líneas de código duplicado. Añadida extensión `EmptyView` para el Dashboard sin cambios en su call site.
+- **Animación de icono +/✓ corregida** — reemplazado `contentTransition(.symbolEffect(.replace.downUp))` por `if/else` con `.scale(0.4).combined(with: .opacity)`; transición controlada por SwiftUI, sin corte abrupto.
+- **Botón 2D durante success** — el círculo top baja a `y: 4` (flush con la sombra = aspecto plano) mientras `isSuccess` está activo; al terminar hace spring de vuelta a posición 3D.
+- **Estado success simplificado** — eliminados `¡Listo!`, `heroSuccessLabel` y `successLabel`; el card mantiene el total y la etiqueta durante el success, solo cambia el icono a verde ✓.
 
 ### Removed
 - **Comparativa de % en `TotalSpentCardView`** — eliminados los indicadores "X% más/menos que ayer" y "X% más/menos que el mes pasado"; fuera del alcance de MVP0. Eliminados también `yesterdayItemLists`, `yesterdayTotal` y `lastMonthTotal` de `DashboardViewModel`.
 
 ---
 
-## [1.0.35] - 2026-04-23
+## [1.0.35] - 2026-04-24
 
 ### Changed
 - **`ItemListDetailView` rediseñado** — hero card estático encima de la lista scrolleable; réplica exacta de `TotalSpentCardView`: total animado con `numericText`, botón 3D "+" en acento, flash verde/rojo al cambiar total, scale effect en el card; meta row debajo del total con icono + nombre de categoría en su color e icono + nombre de método de pago en su color semántico (verde/naranja/morado/azul)

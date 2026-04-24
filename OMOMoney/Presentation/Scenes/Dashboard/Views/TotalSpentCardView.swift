@@ -7,13 +7,12 @@
 
 import SwiftUI
 
-struct TotalSpentCardView: View {
+struct TotalSpentCardView<BottomContent: View>: View {
     let label: String
     let totalAmount: String
-    let currentRawAmount: Double
     let onAddExpense: () -> Void
     var isSuccess: Bool = false
-    var successLabel: String = ""
+    @ViewBuilder let bottomContent: () -> BottomContent
 
     @State private var displayedAmount: String = ""
     @State private var isDecreasing: Bool = false
@@ -21,52 +20,43 @@ struct TotalSpentCardView: View {
     @State private var cardScale: CGFloat = 1.0
     @State private var isAddPressed = false
 
+    init(
+        label: String,
+        totalAmount: String,
+        onAddExpense: @escaping () -> Void,
+        isSuccess: Bool = false,
+        @ViewBuilder bottomContent: @escaping () -> BottomContent
+    ) {
+        self.label = label
+        self.totalAmount = totalAmount
+        self.onAddExpense = onAddExpense
+        self.isSuccess = isSuccess
+        self.bottomContent = bottomContent
+    }
+
     var body: some View {
         Button(action: isSuccess ? {} : onAddExpense) {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    if isSuccess {
-                        Text(successLabel)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .transition(.push(from: .top).combined(with: .opacity))
+                    Text(label)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .animation(.easeInOut(duration: 0.2), value: label)
 
-                        Text("¡Listo!")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .transition(.push(from: .top).combined(with: .opacity))
+                    Text(displayedAmount)
+                        .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .contentTransition(.numericText(countsDown: isDecreasing))
+                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
 
-                        Label("añadida a tu lista", systemImage: "arrow.down")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.green)
-                            .transition(.opacity)
-                    } else {
-                        Text(label)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .animation(.easeInOut(duration: 0.2), value: label)
-                            .transition(.push(from: .bottom).combined(with: .opacity))
-
-                        Text(displayedAmount)
-                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                            .contentTransition(.numericText(countsDown: isDecreasing))
-                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
-                            .transition(.push(from: .bottom).combined(with: .opacity))
-
-
-                    }
+                    bottomContent()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .animation(AnimationHelper.smoothSpring, value: isSuccess)
 
                 Spacer(minLength: 8)
 
@@ -80,12 +70,21 @@ struct TotalSpentCardView: View {
                         .fill(isSuccess ? Color.green : Color.accentColor)
                         .frame(width: 48, height: 48)
                         .overlay {
-                            Image(systemName: isSuccess ? "checkmark" : "plus")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.white)
-                                .contentTransition(.symbolEffect(.replace.downUp))
+                            ZStack {
+                                if isSuccess {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                                } else {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                                }
+                            }
                         }
-                        .offset(y: isAddPressed ? 4 : 0)
+                        .offset(y: isSuccess || isAddPressed ? 4 : 0)
                 }
                 .frame(width: 48, height: 52)
                 .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isSuccess)
@@ -142,19 +141,36 @@ struct TotalSpentCardView: View {
     }
 }
 
+extension TotalSpentCardView where BottomContent == EmptyView {
+    init(
+        label: String,
+        totalAmount: String,
+        onAddExpense: @escaping () -> Void,
+        isSuccess: Bool = false
+    ) {
+        self.init(
+            label: label,
+            totalAmount: totalAmount,
+            onAddExpense: onAddExpense,
+            isSuccess: isSuccess,
+            bottomContent: { EmptyView() }
+        )
+    }
+}
+
 // MARK: - Preview
 #Preview {
     VStack(spacing: 20) {
         TotalSpentCardView(
-            label: "Coste de hoy", totalAmount: "50,45 €",
-            currentRawAmount: 50.45,
+            label: "Coste de hoy",
+            totalAmount: "50,45 €",
             onAddExpense: {}
         )
         TotalSpentCardView(
-            label: "Coste de hoy", totalAmount: "50,45 €",
-            currentRawAmount: 50.45,
+            label: "Coste de hoy",
+            totalAmount: "50,45 €",
             onAddExpense: {},
-            isSuccess: true, successLabel: "Compras del súper"
+            isSuccess: true
         )
     }
     .padding()

@@ -10,14 +10,7 @@ struct ItemListDetailView: View {
     @State private var sheetMode: ItemSheetMode?
     @State private var hasLoadedInitialData = false
 
-    // Hero card animation state (mirrors TotalSpentCardView)
-    @State private var displayedTotal: String = ""
-    @State private var totalIsDecreasing: Bool = false
-    @State private var heroFlashColor: Color = .clear
-    @State private var heroCardScale: CGFloat = 1.0
-    @State private var isAddPressed: Bool = false
     @State private var heroIsSuccess: Bool = false
-    @State private var heroSuccessLabel: String = ""
 
     enum ItemSheetMode: Identifiable {
         case create
@@ -103,16 +96,10 @@ struct ItemListDetailView: View {
                     currencyCode: currencyCode,
                     onItemSaved: { item in
                         Task { await viewModel.addItem(item) }
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            heroIsSuccess = true
-                            heroSuccessLabel = item.itemDescription
-                        }
+                        withAnimation(AnimationHelper.smoothSpring) { heroIsSuccess = true }
                         Task {
                             try? await Task.sleep(for: .milliseconds(900))
-                            withAnimation(AnimationHelper.smoothSpring) {
-                                heroIsSuccess = false
-                                heroSuccessLabel = ""
-                            }
+                            withAnimation(AnimationHelper.smoothSpring) { heroIsSuccess = false }
                         }
                     },
                     createItemUseCase: container.makeCreateItemUseCase(),
@@ -163,110 +150,16 @@ struct ItemListDetailView: View {
         }
     }
 
-    // MARK: - Hero Card (static, mirrors TotalSpentCardView)
+    // MARK: - Hero Card
 
     private var heroCard: some View {
-        Button(action: heroIsSuccess ? {} : { sheetMode = .create }) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if heroIsSuccess {
-                        Text(heroSuccessLabel)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .transition(.push(from: .top).combined(with: .opacity))
-
-                        Text("¡Listo!")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .transition(.push(from: .top).combined(with: .opacity))
-
-                        Label("añadido a tu lista", systemImage: "arrow.down")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.green)
-                            .transition(.opacity)
-                    } else {
-                        Text(itemList.itemListDescription)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .transition(.push(from: .bottom).combined(with: .opacity))
-
-                        Text(displayedTotal)
-                            .font(.system(size: dynamicTotalFontSize, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                            .contentTransition(.numericText(countsDown: totalIsDecreasing))
-                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedTotal)
-                            .transition(.push(from: .bottom).combined(with: .opacity))
-
-                        heroMetaRow
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .animation(AnimationHelper.smoothSpring, value: heroIsSuccess)
-
-                Spacer(minLength: 8)
-
-                ZStack {
-                    Circle()
-                        .fill(heroIsSuccess ? Color.green.opacity(0.45) : Color.accentColor.opacity(0.45))
-                        .frame(width: 48, height: 48)
-                        .offset(y: 4)
-
-                    Circle()
-                        .fill(heroIsSuccess ? Color.green : Color.accentColor)
-                        .frame(width: 48, height: 48)
-                        .overlay {
-                            Image(systemName: heroIsSuccess ? "checkmark" : "plus")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.white)
-                                .contentTransition(.symbolEffect(.replace.downUp))
-                        }
-                        .offset(y: isAddPressed ? 4 : 0)
-                }
-                .frame(width: 48, height: 52)
-                .animation(AnimationHelper.smoothSpring, value: heroIsSuccess)
-                .animation(.spring(response: 0.18, dampingFraction: 0.6), value: isAddPressed)
-            }
-            .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.vertical, 16)
-            .background(.regularMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                    .fill(heroFlashColor)
-                    .allowsHitTesting(false)
-            )
-            .cornerRadius(AppConstants.UserInterface.cornerRadius)
-            .scaleEffect(heroCardScale)
-        }
-        .buttonStyle(PressHapticButtonStyle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in if !heroIsSuccess { isAddPressed = true } }
-                .onEnded   { _ in isAddPressed = false }
-        )
-        .onAppear {
-            displayedTotal = viewModel.getFormattedTotal()
-        }
-        .onChange(of: viewModel.getFormattedTotal()) { _, newValue in
-            let oldDigits = Int(displayedTotal.filter(\.isNumber)) ?? 0
-            let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
-            totalIsDecreasing = newDigits < oldDigits
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                displayedTotal = newValue
-            }
-            guard !heroIsSuccess else { return }
-            let targetColor: Color = totalIsDecreasing ? .red.opacity(0.12) : .green.opacity(0.12)
-            withAnimation(.easeIn(duration: 0.12)) { heroFlashColor = targetColor }
-            withAnimation(.easeOut(duration: 0.45).delay(0.15)) { heroFlashColor = .clear }
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) { heroCardScale = 1.025 }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.6).delay(0.12)) { heroCardScale = 1.0 }
+        TotalSpentCardView(
+            label: itemList.itemListDescription,
+            totalAmount: viewModel.getFormattedTotal(),
+            onAddExpense: { sheetMode = .create },
+            isSuccess: heroIsSuccess
+        ) {
+            heroMetaRow
         }
     }
 
@@ -304,16 +197,6 @@ struct ItemListDetailView: View {
         case "bank_transfer": return .orange
         case "card_credit":   return .purple
         default:              return .blue
-        }
-    }
-
-    private var dynamicTotalFontSize: CGFloat {
-        let length = viewModel.getFormattedTotal().count
-        switch length {
-        case 0...10:  return 34
-        case 11...15: return 28
-        case 16...20: return 22
-        default:      return 18
         }
     }
 
