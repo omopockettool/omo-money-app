@@ -263,10 +263,7 @@ class DashboardViewModel {
                 print("📋 DashboardViewModel: Cargados \(fetchedItemLists.count) ItemLists")
             }
         } catch {
-            await MainActor.run {
-                errorMessage = "Error al cambiar de grupo: \(error.localizedDescription)"
-                isChangingGroup = false
-            }
+            await MainActor.run { isChangingGroup = false }
             print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
         }
     }
@@ -681,9 +678,6 @@ class DashboardViewModel {
         do {
             try await deleteItemListUseCase.execute(id: itemList.id)
         } catch {
-            await MainActor.run {
-                errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
-            }
             await loadDashboardData()
         }
     }

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.41] - 2026-04-24
+
+### Fixed
+- **`errorMessage` usado incorrectamente en operaciones no fatales** — `deleteItemList`, `changeGroup`, `deleteItem` y `toggleItemPaid` asignaban `errorMessage` en su catch, lo que reemplazaba toda la pantalla con `errorView` de forma incorrecta. Ahora `errorMessage` solo se asigna en fallos de carga fatal (`loadDashboardData`, `loadItems`); las operaciones no fatales hacen rollback silencioso o recargan datos sin bloquear la UI.
+
+---
+
 ## [1.0.40] - 2026-04-24
 
 ### Changed

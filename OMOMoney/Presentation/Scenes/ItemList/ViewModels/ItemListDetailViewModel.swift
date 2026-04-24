@@ -104,7 +104,6 @@ class ItemListDetailViewModel {
             try await deleteItemUseCase.execute(id: item.id)
         } catch {
             withAnimation { items.insert(item, at: index) }
-            errorMessage = "Error al eliminar artículo: \(error.localizedDescription)"
         }
     }
 
@@ -114,8 +113,7 @@ class ItemListDetailViewModel {
         do {
             try await toggleItemPaidUseCase.execute(itemId: item.id, isPaid: newIsPaid)
         } catch {
-            item.isPaid = !newIsPaid  // rollback
-            errorMessage = "Error al actualizar artículo"
+            item.isPaid = !newIsPaid
         }
     }
 
