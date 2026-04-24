@@ -615,15 +615,6 @@ class DashboardViewModel {
         }
     }
     
-    func formatDate(_ date: Date?) -> String {
-        guard let date = date else { return "Unknown Date" }
-        
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: date)
-    }
-    
     private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus) {
         do {
             let items = try await fetchItemsUseCase.execute(forItemListId: itemList.id)

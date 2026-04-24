@@ -73,12 +73,7 @@ final class AddItemListViewModel {
 
     // MARK: - Computed Properties
 
-    var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: date)
-    }
+    var formattedDate: String { DateFormatterHelper.formatDate(date) }
 
     var canSave: Bool {
         isPriceValid

@@ -404,45 +404,6 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private func sheetTitle(for date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Gastos de hoy" }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        formatter.dateFormat = "d 'de' MMMM"
-        let s = formatter.string(from: date)
-        return s.prefix(1).uppercased() + s.dropFirst()
-    }
-
-    private var displayedTotal: String {
-        guard let day = selectedCalendarDay else {
-            // Use cached month total when showing current month, avoid inline filter
-            if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
-                return viewModel.formattedCachedMonthTotal()
-            }
-            return viewModel.formattedTotal(forMonth: displayedCalendarMonth)
-        }
-        return viewModel.formattedTotal(for: day)
-    }
-
-    private var totalCardLabel: String {
-        if let day = selectedCalendarDay {
-            if Calendar.current.isDateInToday(day) { return "Coste de vida hoy" }
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "es_ES")
-            formatter.dateFormat = "d MMM"
-            return "Coste del \(formatter.string(from: day))"
-        }
-        if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
-            return "Coste de vida este mes"
-        }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        let sameYear = Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .year)
-        formatter.dateFormat = sameYear ? "MMMM" : "MMMM yyyy"
-        let s = formatter.string(from: displayedCalendarMonth)
-        return "Coste en \(s.prefix(1).uppercased() + s.dropFirst())"
-    }
-
     // MARK: - Debug Helper
     
     /// Debug function to log all entities in the database (moved from AppContentView)

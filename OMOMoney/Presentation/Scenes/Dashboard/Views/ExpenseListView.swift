@@ -108,7 +108,7 @@ struct ExpenseListView: View {
     private func sectionHeader(for date: Date) -> some View {
         if !isCompact && !hideSectionHeaders {
             HStack(spacing: 8) {
-                Text(formatSectionDate(date))
+                Text(DateFormatterHelper.formatSectionDate(date))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
@@ -150,23 +150,6 @@ struct ExpenseListView: View {
         return grouped
     }
     
-    private func formatSectionDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            return "Hoy"
-        } else if calendar.isDateInYesterday(date) {
-            return "Ayer"
-        } else if calendar.isDate(date, equalTo: Date(), toGranularity: .year) {
-            formatter.dateFormat = "d MMM"
-            return formatter.string(from: date)
-        } else {
-            formatter.dateFormat = "d MMM yyyy"
-            return formatter.string(from: date)
-        }
-    }
 }
 
 // MARK: - Preview

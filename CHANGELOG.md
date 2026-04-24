@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.42] - 2026-04-24
+
+### Refactor
+- **`DateFormatterHelper.formatSectionDate` extraído** — lógica de formato de fecha de sección ("Hoy", "Ayer", "d MMM", "d MMM yyyy") movida de `ExpenseListView` a `DateFormatterHelper`; `AddItemListViewModel.formattedDate` reemplazado con `DateFormatterHelper.formatDate`.
+- **Dead code eliminado** — `formattedItemListDate` (`ItemListDetailView`), `formatDate` (`DashboardViewModel`), `sheetTitle`/`displayedTotal`/`totalCardLabel` (`DashboardView`) eran propiedades/métodos sin uso; eliminados.
+
+---
+
 ## [1.0.41] - 2026-04-24
 
 ### Fixed

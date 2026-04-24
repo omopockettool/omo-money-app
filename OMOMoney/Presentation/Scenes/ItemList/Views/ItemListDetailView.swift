@@ -283,19 +283,6 @@ struct ItemListDetailView: View {
         .padding(.top, 50)
     }
 
-    // MARK: - Helpers
-
-    private var formattedItemListDate: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        let cal = Calendar.current
-        if cal.isDateInToday(itemList.date) { return "Hoy" }
-        if cal.isDateInYesterday(itemList.date) { return "Ayer" }
-        formatter.dateFormat = cal.isDate(itemList.date, equalTo: Date(), toGranularity: .year)
-            ? "d MMM" : "d MMM yyyy"
-        return formatter.string(from: itemList.date)
-    }
-
     private func pmDefaultIcon(_ type: String) -> String {
         switch type {
         case "cash":          return "banknote.fill"
