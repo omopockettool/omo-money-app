@@ -11,8 +11,6 @@ struct TotalSpentCardView: View {
     let label: String
     let totalAmount: String
     let currentRawAmount: Double
-    var comparisonAmount: Double? = nil
-    var comparisonLabel: String = "ayer"
     let onAddExpense: () -> Void
     var isSuccess: Bool = false
     var successLabel: String = ""
@@ -64,13 +62,7 @@ struct TotalSpentCardView: View {
                             .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
                             .transition(.push(from: .bottom).combined(with: .opacity))
 
-                        if comparisonAmount != nil {
-                            Label(trendText, systemImage: trendIcon)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(trendColor)
-                                .transition(.opacity)
-                        }
+
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -135,32 +127,6 @@ struct TotalSpentCardView: View {
         }
     }
 
-    // MARK: - Trend logic
-
-    private var percentChange: Double? {
-        guard let comparison = comparisonAmount, comparison > 0 else { return nil }
-        return ((currentRawAmount - comparison) / comparison) * 100
-    }
-
-    private var trendText: String {
-        guard let pct = percentChange else { return "Sin datos de \(comparisonLabel)" }
-        if pct == 0 { return "Igual que \(comparisonLabel)" }
-        let rounded = String(format: "%.0f", abs(pct))
-        return pct > 0 ? "\(rounded)% más que \(comparisonLabel)" : "\(rounded)% menos que \(comparisonLabel)"
-    }
-
-    private var trendIcon: String {
-        guard let pct = percentChange else { return "minus.circle" }
-        if pct == 0 { return "equal.circle" }
-        return pct > 0 ? "arrow.up" : "arrow.down"
-    }
-
-    private var trendColor: Color {
-        guard let pct = percentChange else { return .secondary }
-        if pct == 0 { return .secondary }
-        return pct > 0 ? .red : .green
-    }
-
     private func extractDigits(from string: String) -> Int {
         Int(string.filter(\.isNumber)) ?? 0
     }
@@ -181,12 +147,12 @@ struct TotalSpentCardView: View {
     VStack(spacing: 20) {
         TotalSpentCardView(
             label: "Coste de hoy", totalAmount: "50,45 €",
-            currentRawAmount: 50.45, comparisonAmount: 53.10,
+            currentRawAmount: 50.45,
             onAddExpense: {}
         )
         TotalSpentCardView(
             label: "Coste de hoy", totalAmount: "50,45 €",
-            currentRawAmount: 50.45, comparisonAmount: 53.10,
+            currentRawAmount: 50.45,
             onAddExpense: {},
             isSuccess: true, successLabel: "Compras del súper"
         )

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Removed
+- **Comparativa de % en `TotalSpentCardView`** — eliminados los indicadores "X% más/menos que ayer" y "X% más/menos que el mes pasado"; fuera del alcance de MVP0. Eliminados también `yesterdayItemLists`, `yesterdayTotal` y `lastMonthTotal` de `DashboardViewModel`.
+
+---
+
 ## [1.0.35] - 2026-04-23
 
 ### Changed

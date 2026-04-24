@@ -251,10 +251,6 @@ struct DashboardView: View {
                 currentRawAmount: viewModel.showingFullMonth
                     ? viewModel.currentMonthTotal
                     : viewModel.todayRawTotal,
-                comparisonAmount: viewModel.showingFullMonth
-                    ? viewModel.lastMonthTotal
-                    : viewModel.yesterdayTotal,
-                comparisonLabel: viewModel.showingFullMonth ? "el mes pasado" : "ayer",
                 onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
                 isSuccess: heroIsSuccess,
                 successLabel: heroSuccessDescription

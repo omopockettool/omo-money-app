@@ -56,26 +56,6 @@ class DashboardViewModel {
         todayItemLists.reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
     }
 
-    var yesterdayItemLists: [SDItemList] {
-        guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) else { return [] }
-        return itemLists.filter { Calendar.current.isDate($0.date, inSameDayAs: yesterday) }
-    }
-
-    var yesterdayTotal: Double {
-        yesterdayItemLists.reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-    }
-
-    var lastMonthTotal: Double {
-        let cal = Calendar.current
-        guard let lastMonth = cal.date(byAdding: .month, value: -1, to: Date()) else { return 0 }
-        let comps = cal.dateComponents([.year, .month], from: lastMonth)
-        return itemLists
-            .filter {
-                let c = cal.dateComponents([.year, .month], from: $0.date)
-                return c.year == comps.year && c.month == comps.month
-            }
-            .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-    }
 
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
