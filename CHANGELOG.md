@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.38] - 2026-04-24
+
+### Changed
+- **`TotalSpentCardView` movido al fondo** — en `DashboardView` el hero card se sitúa entre la lista de registros y `bottomControls`; en `ItemListDetailView` se sitúa debajo de la lista de artículos.
+
+---
+
 ## [1.0.37] - 2026-04-24
 
 ### Changed

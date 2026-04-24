@@ -142,11 +142,11 @@ struct ItemListDetailView: View {
 
     private var mainContentView: some View {
         VStack(spacing: 0) {
+            itemsList
             heroCard
                 .padding(.horizontal, AppConstants.UserInterface.padding)
                 .padding(.vertical, 12)
                 .background(Color(.systemGroupedBackground))
-            itemsList
         }
     }
 

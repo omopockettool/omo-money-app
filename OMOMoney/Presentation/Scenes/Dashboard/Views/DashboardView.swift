@@ -239,21 +239,6 @@ struct DashboardView: View {
             // iOS 26-style view picker dropdown
             viewPickerBar
 
-            // Hero card — totals + add button, moved to top
-            TotalSpentCardView(
-                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
-                totalAmount: viewModel.showingFullMonth
-                    ? viewModel.formattedCachedMonthTotal()
-                    : viewModel.formattedTodayTotal,
-                onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
-                isSuccess: heroIsSuccess
-            )
-            .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.top, AppConstants.UserInterface.smallPadding)
-            .padding(.bottom, AppConstants.UserInterface.smallPadding)
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
-
             // Content switches based on selected view mode
             switch viewMode {
 //            case .calendar:
@@ -311,6 +296,21 @@ struct DashboardView: View {
                 .transition(.opacity)
 
             }
+
+            // Hero card — totals + add button
+            TotalSpentCardView(
+                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
+                totalAmount: viewModel.showingFullMonth
+                    ? viewModel.formattedCachedMonthTotal()
+                    : viewModel.formattedTodayTotal,
+                onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
+                isSuccess: heroIsSuccess
+            )
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.top, AppConstants.UserInterface.smallPadding)
+            .padding(.bottom, AppConstants.UserInterface.smallPadding)
+            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
 
             // Bottom controls — always visible in all modes
             bottomControls
