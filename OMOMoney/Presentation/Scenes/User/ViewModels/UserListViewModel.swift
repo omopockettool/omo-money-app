@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 @MainActor
 
@@ -98,23 +99,20 @@ class UserListViewModel {
     }
 
     func deleteUser(_ user: SDUser) async -> Bool {
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            try await deleteUserUseCase.execute(userId: user.id)
+        withAnimation {
             allUsers.removeAll { $0.id == user.id }
             users.removeAll { $0.id == user.id }
-
-            if users.isEmpty && hasMoreUsers {
-                await loadMoreUsers()
-            }
-
-            isLoading = false
+        }
+        do {
+            try await deleteUserUseCase.execute(userId: user.id)
+            if users.isEmpty && hasMoreUsers { await loadMoreUsers() }
             return true
         } catch {
+            withAnimation {
+                allUsers.append(user)
+                users.append(user)
+            }
             errorMessage = "Error deleting user: \(error.localizedDescription)"
-            isLoading = false
             return false
         }
     }

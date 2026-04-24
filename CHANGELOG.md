@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.37] - 2026-04-24
+
+### Changed
+- **Animación de eliminación estandarizada** — todas las eliminaciones con swipe (`SDItem`, `SDItemList`, `SDCategory`, `SDPaymentMethod`, `SDUser`, `SDGroup`) usan ahora `withAnimation { array.removeAll/remove }` optimista antes de la llamada a DB; la UI cede el control de la animación a SwiftUI para coordinar el slide-out de la fila y el reflow de la lista como una sola transición. Rollback animado con `append` en caso de error de persistencia.
+- **`import SwiftUI` añadido** a `CategoryListViewModel`, `PaymentMethodListViewModel` y `UserListViewModel` para permitir el uso de `withAnimation`.
+
+---
+
 ## [1.0.36] - 2026-04-24
 
 ### Changed

@@ -293,7 +293,7 @@ struct GroupPickerSheet: View {
         // Esto previene el parpadeo visual del grupo desapareciendo y reapareciendo
         print("🔄 [GroupPicker] Eliminando de lista local ANTES de DB...")
         print("🔄 [GroupPicker] availableGroups.count ANTES de removeAll: \(availableGroups.count)")
-        availableGroups.removeAll { $0.id == groupToDelete.id }  // ✅ Domain: UUID comparison
+        withAnimation { availableGroups.removeAll { $0.id == groupToDelete.id } }
         print("🔄 [GroupPicker] availableGroups.count DESPUÉS de removeAll: \(availableGroups.count)")
         print("🔄 [GroupPicker] availableGroups DESPUÉS: \(availableGroups.map { $0.name })")  // ✅ Domain: non-optional
 

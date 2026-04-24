@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 @MainActor
 
@@ -124,17 +125,14 @@ class PaymentMethodListViewModel {
     }
 
     func deletePaymentMethod(paymentMethodId: UUID) async -> Bool {
-        isLoading = true
-        errorMessage = nil
-
+        guard let pm = paymentMethods.first(where: { $0.id == paymentMethodId }) else { return false }
+        withAnimation { paymentMethods.removeAll { $0.id == paymentMethodId } }
         do {
             try await deletePaymentMethodUseCase.execute(id: paymentMethodId)
-            paymentMethods.removeAll { $0.id == paymentMethodId }
-            isLoading = false
             return true
         } catch {
+            withAnimation { paymentMethods.append(pm) }
             errorMessage = "Error deleting paymentMethod: \(error.localizedDescription)"
-            isLoading = false
             return false
         }
     }

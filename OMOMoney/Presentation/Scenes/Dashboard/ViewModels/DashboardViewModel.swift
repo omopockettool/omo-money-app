@@ -677,24 +677,13 @@ class DashboardViewModel {
     }
 
     func deleteItemList(_ itemList: SDItemList) async {
-        print("🗑️ DashboardViewModel: deleteItemList() called for: \(itemList.itemListDescription)")
-
+        await removeItemList(itemList)
         do {
-            print("⚡️ DashboardViewModel: Optimistic update - removing from UI")
-            await removeItemList(itemList)
-
-            print("🔄 DashboardViewModel: Deleting from persistence...")
             try await deleteItemListUseCase.execute(id: itemList.id)
-            print("✅ DashboardViewModel: ItemList deleted successfully")
-
         } catch {
-            print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")
-
             await MainActor.run {
                 errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
             }
-
-            print("🔄 DashboardViewModel: Rolling back - reloading from database")
             await loadDashboardData()
         }
     }

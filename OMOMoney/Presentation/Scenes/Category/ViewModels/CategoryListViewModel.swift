@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 @MainActor
 
@@ -101,17 +102,13 @@ class CategoryListViewModel {
     }
 
     func deleteCategory(_ category: SDCategory) async -> Bool {
-        isLoading = true
-        errorMessage = nil
-
+        withAnimation { categories.removeAll { $0.id == category.id } }
         do {
             try await deleteCategoryUseCase.execute(categoryId: category.id)
-            categories.removeAll { $0.id == category.id }
-            isLoading = false
             return true
         } catch {
+            withAnimation { categories.append(category) }
             errorMessage = "Error deleting category: \(error.localizedDescription)"
-            isLoading = false
             return false
         }
     }

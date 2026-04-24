@@ -99,18 +99,11 @@ class ItemListDetailViewModel {
     }
 
     func deleteItem(_ item: SDItem, at index: Int) async {
-        let itemDesc = item.itemDescription
-
-        print("🗑️ [DELETE] Removing item: '\(itemDesc)'")
-
-        items.remove(at: index)
-
+        withAnimation { items.remove(at: index) }
         do {
             try await deleteItemUseCase.execute(id: item.id)
-            print("✅ [DELETE] Item deleted from DB")
         } catch {
-            print("❌ [DELETE] Error deleting item, rolling back...")
-            items.insert(item, at: index)
+            withAnimation { items.insert(item, at: index) }
             errorMessage = "Error al eliminar artículo: \(error.localizedDescription)"
         }
     }

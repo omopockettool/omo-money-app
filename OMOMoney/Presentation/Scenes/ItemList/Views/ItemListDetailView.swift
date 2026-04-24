@@ -265,21 +265,22 @@ struct ItemListDetailView: View {
     // MARK: - Empty State
 
     private var emptyStateRow: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "tray")
-                .font(.system(size: 40))
-                .foregroundStyle(.tertiary)
-            Text("Sin artículos")
+        VStack(spacing: AppConstants.UserInterface.padding) {
+            Image(systemName: "sparkles.2")
+                .font(.largeTitle)
+                .foregroundColor(.secondary)
+
+            Text("Nada por aquí...")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text("Pulsa el + para agregar un artículo")
                 .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-            Text("Agrega el primero con el botón de arriba")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.top, 50)
     }
 
     // MARK: - Helpers
