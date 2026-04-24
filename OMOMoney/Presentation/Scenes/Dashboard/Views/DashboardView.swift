@@ -237,7 +237,11 @@ struct DashboardView: View {
     private var mainContentView: some View {
         VStack(spacing: 0) {
             // iOS 26-style view picker dropdown
-            viewPickerBar
+            DashboardTopBarView(
+                showingFullMonth: $viewModel.showingFullMonth,
+                hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
+                onOpenSettings: { viewModel.openSettings() }
+            )
 
             // Content switches based on selected view mode
             switch viewMode {
@@ -312,91 +316,21 @@ struct DashboardView: View {
             .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
             .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
 
-            // Bottom controls — always visible in all modes
-            bottomControls
+            DashboardBottomBarView(
+                currentGroup: viewModel.currentGroup,
+                availableGroups: viewModel.availableGroups,
+                userId: viewModel.currentUser?.id,
+                isChangingGroup: viewModel.isChangingGroup,
+                onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
+                onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
+                onGroupDeleted: { deletedGroup in viewModel.removeGroup(deletedGroup) }
+            )
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
     }
 
     // View picker: filter pill on left, settings icon on right
-    private var viewPickerBar: some View {
-        HStack {
-            if viewModel.hasItemsOutsideToday {
-                HStack(spacing: 0) {
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) { viewModel.showingFullMonth = false }
-                    } label: {
-                        Label("Hoy", systemImage: "sparkles")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(!viewModel.showingFullMonth ? Color.accentColor : Color.clear)
-                            .foregroundStyle(!viewModel.showingFullMonth ? Color.white : Color.secondary)
-                            .clipShape(Capsule())
-                    }
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) { viewModel.showingFullMonth = true }
-                    } label: {
-                        Text("Este mes")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(viewModel.showingFullMonth ? Color.accentColor : Color.clear)
-                            .foregroundStyle(viewModel.showingFullMonth ? Color.white : Color.secondary)
-                            .clipShape(Capsule())
-                    }
-                }
-                .background(Color(.tertiarySystemFill))
-                .clipShape(Capsule())
-                .animation(AnimationHelper.quickSpring, value: viewModel.showingFullMonth)
-            }
-
-//            Menu {
-//                Button {
-//                    withAnimation(AnimationHelper.quickEase) {
-//                        viewMode = .calendar
-//                        selectedCalendarDay = nil
-//                    }
-//                } label: {
-//                    Label("Calendario", systemImage: viewMode == .calendar ? "checkmark" : "calendar")
-//                }
-//
-//                Button {
-//                    withAnimation(AnimationHelper.quickEase) {
-//                        viewMode = .list
-//                        selectedCalendarDay = nil
-//                    }
-//                } label: {
-//                    Label("Lista", systemImage: viewMode == .list ? "checkmark" : "list.bullet")
-//                }
-//            } label: {
-//                HStack(spacing: 5) {
-//                    Text(viewMode.title)
-//                        .font(.subheadline.weight(.semibold))
-//                    Image(systemName: "chevron.down")
-//                        .font(.system(size: 10, weight: .bold))
-//                }
-//                .foregroundColor(.accentColor)
-//                .padding(.horizontal, 14)
-//                .padding(.vertical, 8)
-//                .background(Color.accentColor.opacity(0.1))
-//                .clipShape(Capsule())
-//            }
-
-            Spacer()
-
-            Button { viewModel.openSettings() } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundColor(.primary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, AppConstants.UserInterface.smallPadding)
-    }
-
 
     private var dayListPanel: some View {
         VStack(spacing: 0) {
@@ -507,63 +441,6 @@ struct DashboardView: View {
         formatter.dateFormat = sameYear ? "MMMM" : "MMMM yyyy"
         let s = formatter.string(from: displayedCalendarMonth)
         return "Coste en \(s.prefix(1).uppercased() + s.dropFirst())"
-    }
-
-    private var bottomControls: some View {
-        VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
-            // Group chips + Filters + Search in same row
-            HStack(spacing: AppConstants.UserInterface.smallPadding) {
-                if let currentGroup = viewModel.currentGroup,
-                   let userId = viewModel.currentUser?.id {
-                    GroupSelectorChipView(
-                        currentGroup: currentGroup,
-                        availableGroups: viewModel.availableGroups,
-                        userId: userId,
-                        isChangingGroup: viewModel.isChangingGroup,
-                        onGroupChange: { newGroup in
-                            Task { await viewModel.changeGroup(to: newGroup) }
-                        },
-                        onGroupCreated: { newGroup in
-                            viewModel.addGroup(newGroup)
-                        },
-                        onGroupDeleted: { deletedGroup in
-                            viewModel.removeGroup(deletedGroup)
-                        }
-                    )
-                }
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 0) {
-                    Button { } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .frame(height: 16)
-
-                    Button { } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .background(Color(.systemGray5))
-                .clipShape(Capsule())
-            }
-        }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.top, AppConstants.UserInterface.smallPadding)
-        .padding(.bottom, AppConstants.UserInterface.smallPadding)
-        .background(Color(.systemBackground).ignoresSafeArea(edges: .bottom))
     }
 
     // MARK: - Debug Helper

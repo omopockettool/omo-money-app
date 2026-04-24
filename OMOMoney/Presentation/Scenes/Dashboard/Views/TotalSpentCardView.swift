@@ -46,17 +46,26 @@ struct TotalSpentCardView<BottomContent: View>: View {
                         .truncationMode(.tail)
                         .animation(.easeInOut(duration: 0.2), value: label)
 
-                    Text(displayedAmount)
-                        .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                        .contentTransition(.numericText(countsDown: isDecreasing))
-                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                    if isSuccess {
+                        Text("¡Listo!")
+                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .transition(.push(from: .top).combined(with: .opacity))
+                    } else {
+                        Text(displayedAmount)
+                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(countsDown: isDecreasing))
+                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+                    }
 
                     bottomContent()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(AnimationHelper.smoothSpring, value: isSuccess)
 
                 Spacer(minLength: 8)
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.40] - 2026-04-24
+
+### Changed
+- **Animación "¡Listo!" restaurada en `TotalSpentCardView`** — cuando `isSuccess` es `true`, el importe se reemplaza momentáneamente por "¡Listo!" con transición `.push(from: .top)` entrante y `.push(from: .bottom)` saliente; la etiqueta permanece fija. Color `.primary` (blanco en dark mode).
+- **`DashboardTopBarView` y `DashboardBottomBarView` extraídos** — `viewPickerBar` y `bottomControls` movidos a sus propios ficheros; `DashboardView` los instancia con parámetros explícitos.
+
+---
+
 ## [1.0.39] - 2026-04-24
 
 ### Changed
