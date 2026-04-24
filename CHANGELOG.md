@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.39] - 2026-04-24
+
+### Changed
+- **Sincronización de nombre al renombrar un registro** — al editar un `SDItemList` que tiene exactamente un artículo cuyo nombre coincide con el nombre anterior del registro, el artículo se renombra automáticamente al nuevo nombre en la misma transacción de `context.save()`.
+
+---
+
 ## [1.0.38] - 2026-04-24
 
 ### Changed

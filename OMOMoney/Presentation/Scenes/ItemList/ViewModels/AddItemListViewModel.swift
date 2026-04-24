@@ -200,7 +200,19 @@ final class AddItemListViewModel {
             item.itemDescription = newCategory.name
         }
 
-        toEdit.itemListDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let oldDescription = toEdit.itemListDescription
+
+        // If the item list has exactly one item whose name matches the old list name,
+        // keep them in sync when the user renames the list.
+        if newDescription != oldDescription,
+           toEdit.items.count == 1,
+           let singleItem = toEdit.items.first,
+           singleItem.itemDescription == oldDescription {
+            singleItem.itemDescription = newDescription
+        }
+
+        toEdit.itemListDescription = newDescription
         toEdit.date = date
         if let category = selectedCategory { toEdit.category = category }
         toEdit.paymentMethod = selectedPaymentMethod
