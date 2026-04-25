@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SettingsSheetView: View {
-    let group: SDGroup
     let user: SDUser
     let onUserUpdated: (SDUser) -> Void
 
@@ -10,20 +9,6 @@ struct SettingsSheetView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Grupo: \(group.name)") {
-                    NavigationLink {
-                        CategoryManagementView(group: group)
-                    } label: {
-                        settingsRow(icon: "tag.fill", color: .orange, title: "Categorías")
-                    }
-
-                    NavigationLink {
-                        PaymentMethodManagementView(group: group)
-                    } label: {
-                        settingsRow(icon: "creditcard.fill", color: .blue, title: "Métodos de pago")
-                    }
-                }
-
                 Section("Cuenta") {
                     NavigationLink {
                         UserProfileView(user: user, onUserUpdated: onUserUpdated)

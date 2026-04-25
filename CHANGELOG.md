@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.47] - 2026-04-25
+
+### Refactor
+- **`GroupFormViewModel` extraído** — `CreateGroupView` y `GroupFormView` llamaban directamente a `CreateGroupUseCase`, `CreateUserGroupUseCase` y `UpdateGroupUseCase` desde la Vista, violando Clean Architecture. Ahora ambas vistas usan `GroupFormViewModel` dedicado con `create(name:currency:userId:) -> SDGroup?` y `update(group:name:currency:) -> Bool`. Las vistas quedan como orquestadores UI finos (trim → VM → callback + dismiss).
+
+### Changed
+- **Ajustes de grupo movidos al chip de grupo** — Categorías y Métodos de pago se eliminaron de `SettingsSheetView` (icono gear) y se colocaron en `GroupFormView` (swipe → "Ajustes" sobre el chip de grupo). `SettingsSheetView` queda solo con la sección "Cuenta". `GroupFormView` pasa a presentación `ScrollView/VStack` con tarjetas separadas por sección (Nombre, Moneda, Contenido), abre en `.large` y muestra cada fila de navegación con icono coloreado, label blanco y flecha `chevron.right`.
+
+---
+
 ## [1.0.46] - 2026-04-25
 
 ### Refactor

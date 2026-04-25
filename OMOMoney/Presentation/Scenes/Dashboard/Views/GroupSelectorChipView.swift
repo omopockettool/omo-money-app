@@ -152,7 +152,7 @@ struct GroupPickerSheet: View {
                                 Button {
                                     groupToEdit = group
                                 } label: {
-                                    Label("Editar", systemImage: "pencil")
+                                    Label("Ajustes", systemImage: "gearshape.fill")
                                 }
                                 .tint(.orange)
                             }
@@ -221,10 +221,7 @@ struct GroupPickerSheet: View {
                     showingPicker = false
                 }
             }) {
-                let appContainer = AppDIContainer.shared
                 CreateGroupView(
-                    createGroupUseCase: appContainer.makeCreateGroupUseCase(),
-                    createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase(),
                     userId: userId,
                     onGroupCreated: { newGroup in
                         availableGroups.append(newGroup)
@@ -240,7 +237,7 @@ struct GroupPickerSheet: View {
                 NavigationStack {
                     GroupFormView(group: group) { }
                 }
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
             .onChange(of: isChangingGroup) { oldValue, newValue in
