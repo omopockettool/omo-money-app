@@ -30,6 +30,7 @@ class DashboardViewModel {
     var isLoading = false
     var isRefreshing = false
     var isChangingGroup = false
+    var isDeletingGroup = false
     var errorMessage: String?
     var toast: ToastMessage?
     var currentGroup: SDGroup?
@@ -65,6 +66,7 @@ class DashboardViewModel {
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
+    private let deleteGroupUseCase: DeleteGroupUseCase
 
     // MARK: - Cache
     private let cacheManager = CacheManager.shared
@@ -77,7 +79,8 @@ class DashboardViewModel {
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
-        toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
+        toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase,
+        deleteGroupUseCase: DeleteGroupUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
@@ -86,6 +89,7 @@ class DashboardViewModel {
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.toggleAllItemsPaidInListUseCase = toggleAllItemsPaidInListUseCase
+        self.deleteGroupUseCase = deleteGroupUseCase
     }
     
     // MARK: - Public Methods
@@ -304,12 +308,18 @@ class DashboardViewModel {
     }
     
     func removeGroup(_ group: SDGroup) {
-        print("🗑️ [DashboardVM] removeGroup() llamado")
-        print("🗑️ [DashboardVM] Grupo a eliminar: '\(group.name)' (ID: \(group.id.uuidString))")
-        print("🗑️ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
-
         availableGroups.removeAll { $0.id == group.id }
-        print("✅ [DashboardVM] removeGroup() completado")
+    }
+
+    func deleteGroup(_ group: SDGroup) async throws {
+        withAnimation { availableGroups.removeAll { $0.id == group.id } }
+        do {
+            try await deleteGroupUseCase.execute(groupId: group.id)
+        } catch {
+            availableGroups.append(group)
+            availableGroups.sort { $0.name < $1.name }
+            throw error
+        }
     }
     
     func openSettings() {

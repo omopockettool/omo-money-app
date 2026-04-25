@@ -14,10 +14,10 @@ struct GroupSelectorChipView: View {
     let availableGroups: [SDGroup]  // ✅ Clean Architecture: Domain models
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga del cambio de grupo
-    let onGroupChange: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupCreated: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupDeleted: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-    
+    let onGroupChange: (SDGroup) -> Void
+    let onGroupCreated: (SDGroup) -> Void
+    let onDeleteGroup: (SDGroup) async -> Void
+
     @State private var showingPicker = false
     
     var body: some View {
@@ -45,23 +45,19 @@ struct GroupSelectorChipView: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingPicker) {
-            // ✅ Clean Architecture: Get DeleteGroupUseCase from DI Container
-            let deleteGroupUseCase = AppDIContainer.shared.makeGroupSceneDIContainer().makeDeleteGroupUseCase()
-
             GroupPickerSheet(
                 currentGroup: currentGroup,
                 availableGroups: availableGroups,
                 userId: userId,
                 isChangingGroup: isChangingGroup,
-                showingPicker: $showingPicker,  // ✅ Binding para cerrar el sheet
-                deleteGroupUseCase: deleteGroupUseCase,
+                showingPicker: $showingPicker,
                 onGroupChange: onGroupChange,
                 onGroupCreated: onGroupCreated,
-                onGroupDeleted: onGroupDeleted
+                onDeleteGroup: onDeleteGroup
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .interactiveDismissDisabled(isChangingGroup)  // ✅ No permitir cerrar mientras carga o elimina
+            .interactiveDismissDisabled(isChangingGroup)
         }
     }
 }
@@ -74,14 +70,12 @@ struct GroupPickerSheet: View {
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga
     @Binding var showingPicker: Bool  // ✅ Para cerrar el sheet
-    let onGroupChange: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupCreated: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-    let onGroupDeleted: (SDGroup) -> Void  // ✅ Clean Architecture: Domain callback
-
-    // ✅ Clean Architecture: Use Cases instead of direct service access
-    let deleteGroupUseCase: DeleteGroupUseCase
+    let onGroupChange: (SDGroup) -> Void
+    let onGroupCreated: (SDGroup) -> Void
+    let onDeleteGroup: (SDGroup) async -> Void
 
     @State private var showingCreateGroup = false
+    @State private var groupWasCreated = false
     @State private var selectedGroupID: UUID?
     @State private var showingDeleteAlert = false
     @State private var groupToDelete: SDGroup?
@@ -93,19 +87,17 @@ struct GroupPickerSheet: View {
          userId: UUID,
          isChangingGroup: Bool,
          showingPicker: Binding<Bool>,
-         deleteGroupUseCase: DeleteGroupUseCase,
          onGroupChange: @escaping (SDGroup) -> Void,
          onGroupCreated: @escaping (SDGroup) -> Void,
-         onGroupDeleted: @escaping (SDGroup) -> Void) {
+         onDeleteGroup: @escaping (SDGroup) async -> Void) {
         self.currentGroup = currentGroup
         self._availableGroups = State(initialValue: availableGroups)
         self.userId = userId
         self.isChangingGroup = isChangingGroup
         self._showingPicker = showingPicker
-        self.deleteGroupUseCase = deleteGroupUseCase
         self.onGroupChange = onGroupChange
         self.onGroupCreated = onGroupCreated
-        self.onGroupDeleted = onGroupDeleted
+        self.onDeleteGroup = onDeleteGroup
     }
     
     var body: some View {
@@ -223,8 +215,12 @@ struct GroupPickerSheet: View {
                     .disabled(isChangingGroup || isDeletingGroup)
                 }
             }
-            .sheet(isPresented: $showingCreateGroup) {
-                // ✅ Clean Architecture: Pass Use Cases from DI Container
+            .sheet(isPresented: $showingCreateGroup, onDismiss: {
+                if groupWasCreated {
+                    groupWasCreated = false
+                    showingPicker = false
+                }
+            }) {
                 let appContainer = AppDIContainer.shared
                 CreateGroupView(
                     createGroupUseCase: appContainer.makeCreateGroupUseCase(),
@@ -234,6 +230,7 @@ struct GroupPickerSheet: View {
                         availableGroups.append(newGroup)
                         onGroupCreated(newGroup)
                         onGroupChange(newGroup)
+                        groupWasCreated = true
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -259,77 +256,31 @@ struct GroupPickerSheet: View {
     }
     
     // MARK: - Delete Group
-    private func deleteGroup(_ groupToDelete: SDGroup) {  // ✅ Clean Architecture: Domain parameter
-        print("🗑️ [GroupPicker] deleteGroup() iniciado")
-        print("🗑️ [GroupPicker] availableGroups.count ANTES: \(availableGroups.count)")
-        print("🗑️ [GroupPicker] availableGroups ANTES: \(availableGroups.map { ($0.name, $0.id) })")  // ✅ Domain: .id UUID
+    private func deleteGroup(_ groupToDelete: SDGroup) {
+        guard availableGroups.count > 1 else { return }
 
-        print("🗑️ [GroupPicker] Grupo a eliminar: '\(groupToDelete.name)' (ID: \(groupToDelete.id))")  // ✅ Domain: non-optional
-        print("🗑️ [GroupPicker] Grupo actual: '\(currentGroup.name)' (ID: \(currentGroup.id))")  // ✅ Domain: non-optional
+        let isDeletingCurrentGroup = groupToDelete.id == currentGroup.id
+        let newGroupToSelect = isDeletingCurrentGroup
+            ? availableGroups.first { $0.id != groupToDelete.id }
+            : nil
 
-        // Prevenir eliminar el último grupo
-        if availableGroups.count <= 1 {
-            print("⚠️ [GroupPicker] No se puede eliminar el último grupo - CANCELADO")
-            return
-        }
-
-        print("✅ [GroupPicker] Validaciones pasadas, procediendo con eliminación...")
-
-        // Determinar si necesitamos cambiar de grupo después de eliminar
-        let isDeletingCurrentGroup = groupToDelete.id == currentGroup.id  // ✅ Domain: UUID comparison
-        var newGroupToSelect: SDGroup?  // ✅ Clean Architecture: Domain model
-
-        if isDeletingCurrentGroup {
-            // Buscar el primer grupo que no sea el que vamos a eliminar
-            newGroupToSelect = availableGroups.first { $0.id != groupToDelete.id }  // ✅ Domain: UUID comparison
-            print("⚠️ [GroupPicker] Eliminando grupo actual, cambiaremos a: '\(newGroupToSelect?.name ?? "Sin nombre")'")
-        }
-
-        // ✅ Activar estado de eliminación
         isDeletingGroup = true
-
-        // 🔧 FIX: Eliminar de la lista local PRIMERO (optimistic update)
-        // Esto previene el parpadeo visual del grupo desapareciendo y reapareciendo
-        print("🔄 [GroupPicker] Eliminando de lista local ANTES de DB...")
-        print("🔄 [GroupPicker] availableGroups.count ANTES de removeAll: \(availableGroups.count)")
         withAnimation { availableGroups.removeAll { $0.id == groupToDelete.id } }
-        print("🔄 [GroupPicker] availableGroups.count DESPUÉS de removeAll: \(availableGroups.count)")
-        print("🔄 [GroupPicker] availableGroups DESPUÉS: \(availableGroups.map { $0.name })")  // ✅ Domain: non-optional
 
         Task {
             do {
-                print("🔥 [GroupPicker] Llamando a deleteGroupUseCase.execute()...")
-                // ✅ Clean Architecture: Use Case handles everything (no Core Data conversion needed)
-                try await deleteGroupUseCase.execute(groupId: groupToDelete.id)
-                print("✅ [GroupPicker] deleteGroupUseCase.execute() completado")
+                try await onDeleteGroup(groupToDelete)
 
-                await MainActor.run {
-                    print("📤 [GroupPicker] Llamando a onGroupDeleted callback...")
-                    onGroupDeleted(groupToDelete)
-
-                    if isDeletingCurrentGroup, let newGroup = newGroupToSelect {
-                        print("🔄 [GroupPicker] Cambiando al nuevo grupo: '\(newGroup.name)'")
-                        onGroupChange(newGroup)
-                    }
+                if isDeletingCurrentGroup, let newGroup = newGroupToSelect {
+                    onGroupChange(newGroup)
                 }
 
                 try? await Task.sleep(for: .seconds(1.5))
-
-                await MainActor.run {
-                    isDeletingGroup = false
-                    print("✅ [GroupPicker] Eliminación completa")
-                }
+                isDeletingGroup = false
             } catch {
-                await MainActor.run {
-                    // 🔧 En caso de error, RE-AGREGAR el grupo a la lista (rollback)
-                    print("❌ [GroupPicker] Error en eliminación, restaurando grupo a la lista")
-                    availableGroups.append(groupToDelete)
-                    availableGroups.sort { $0.name < $1.name }  // ✅ Domain: non-optional
-
-                    // ✅ Desactivar estado de eliminación
-                    isDeletingGroup = false
-                }
-                print("❌ [GroupPicker] Error eliminando grupo '\(groupToDelete.name)': \(error)")  // ✅ Domain: non-optional
+                availableGroups.append(groupToDelete)
+                availableGroups.sort { $0.name < $1.name }
+                isDeletingGroup = false
             }
         }
     }
@@ -351,7 +302,7 @@ struct GroupPickerSheet: View {
                 isChangingGroup: false,
                 onGroupChange: { _ in },
                 onGroupCreated: { _ in },
-                onGroupDeleted: { _ in }
+                onDeleteGroup: { _ in }
             )
 
             Spacer()

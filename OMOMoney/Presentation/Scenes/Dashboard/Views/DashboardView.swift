@@ -67,7 +67,8 @@ struct DashboardView: View {
             getCurrentUserUseCase: container.makeGetCurrentUserUseCase(),
             fetchGroupsForUserUseCase: container.makeFetchGroupsForUserUseCase(),
             fetchCategoriesUseCase: container.makeFetchCategoriesUseCase(),
-            toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase()
+            toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase(),
+            deleteGroupUseCase: container.makeGroupSceneDIContainer().makeDeleteGroupUseCase()
         ))
     }
     
@@ -323,7 +324,7 @@ struct DashboardView: View {
                 isChangingGroup: viewModel.isChangingGroup,
                 onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
                 onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
-                onGroupDeleted: { deletedGroup in viewModel.removeGroup(deletedGroup) }
+                onDeleteGroup: { deletedGroup in try? await viewModel.deleteGroup(deletedGroup) }
             )
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)

@@ -7,7 +7,7 @@ struct DashboardBottomBarView: View {
     let isChangingGroup: Bool
     let onGroupChange: (SDGroup) -> Void
     let onGroupCreated: (SDGroup) -> Void
-    let onGroupDeleted: (SDGroup) -> Void
+    let onDeleteGroup: (SDGroup) async -> Void
 
     var body: some View {
         HStack(spacing: AppConstants.UserInterface.smallPadding) {
@@ -19,7 +19,7 @@ struct DashboardBottomBarView: View {
                     isChangingGroup: isChangingGroup,
                     onGroupChange: onGroupChange,
                     onGroupCreated: onGroupCreated,
-                    onGroupDeleted: onGroupDeleted
+                    onDeleteGroup: onDeleteGroup
                 )
             }
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.44] - 2026-04-25
+
+### Refactor
+- **`deleteGroupUseCase` movido de View a `DashboardViewModel`** — violación de arquitectura: `GroupPickerSheet` (View) llamaba directamente a `DeleteGroupUseCase`. Ahora el UseCase vive en `DashboardViewModel.deleteGroup()` y el View solo llama el callback `onDeleteGroup: (SDGroup) async -> Void`. `DashboardViewModel` gestiona la eliminación de persistencia y el rollback de `availableGroups`; `GroupPickerSheet` conserva su propio estado de presentación (`isDeletingGroup`, lista local optimista). Cadena de propagación: `DashboardView` → `DashboardBottomBarView` → `GroupSelectorChipView` → `GroupPickerSheet`.
+
+### Fixed
+- **Sheet "Seleccionar Grupo" no se cerraba al crear un nuevo grupo** — al crear un grupo, `CreateGroupView` llamaba `onGroupCreated` antes de `dismiss()`, por lo que cerrar ambos sheets simultáneamente fallaba silenciosamente. Solución: flag `groupWasCreated` + `onDismiss` en el sheet hijo; el sheet padre se cierra solo después de que el hijo haya terminado su animación de cierre.
+
+---
+
 ## [1.0.43] - 2026-04-25
 
 ### Refactor
@@ -14,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GroupSelectorChipView` — cierre de sheet post-cambio de grupo (300ms) y desactivación de overlay de eliminación (1.5s).
   - `CustomAlertView.dismissAlert()` — set de `isPresented = false` tras animación de salida (250ms).
   - `AddItemListView` — scroll a `paymentMethodAnchor` tras expandir métodos de pago (350ms).
-  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s).
+  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s); se añadió `@State var resetTask` para cancelar el timer anterior en cada tap, evitando timers huérfanos.
 - **`DashboardHeaderView` eliminado** — archivo dead code; reemplazado por `DashboardTopBarView` en refactor anterior y nunca removido.
 
 ---
