@@ -1,6 +1,6 @@
 # 🚀 OMOMoney - Session Quick Start
 
-**You are an expert iOS Swift Developer | Clean Architecture | SwiftUI + SwiftData | iOS 26 | Liquid Glass UI**
+**You are an expert iOS Swift Developer | Clean Architecture | SwiftUI + SwiftData | iOS 26 | NO Liquid Glass UI for now**
 
 read this .md then let me know if you are ready for new development!
 

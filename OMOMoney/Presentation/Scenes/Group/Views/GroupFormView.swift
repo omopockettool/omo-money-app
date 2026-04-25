@@ -119,7 +119,6 @@ struct GroupFormView: View {
         .onAppear {
             name = group.name
             selectedCurrency = group.currency
-            nameFocused = true
         }
     }
 

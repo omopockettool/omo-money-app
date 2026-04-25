@@ -7,11 +7,7 @@ struct PaymentMethodPickerView: View {
     @Binding var selectedPaymentMethod: SDPaymentMethod?
     let groupId: UUID
 
-    @Query(sort: \SDPaymentMethod.name) private var allPaymentMethods: [SDPaymentMethod]
-
-    private var availablePaymentMethods: [SDPaymentMethod] {
-        allPaymentMethods.filter { $0.group?.id == groupId && $0.isActive }
-    }
+    @Query private var availablePaymentMethods: [SDPaymentMethod]
 
     private var groupedPaymentMethods: [String: [SDPaymentMethod]] {
         Dictionary(grouping: availablePaymentMethods) { $0.type }
@@ -20,6 +16,11 @@ struct PaymentMethodPickerView: View {
     init(selectedPaymentMethod: Binding<SDPaymentMethod?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
         self.groupId = groupId
+        let id = groupId
+        self._availablePaymentMethods = Query(
+            filter: #Predicate<SDPaymentMethod> { $0.group?.id == id && $0.isActive },
+            sort: \SDPaymentMethod.name
+        )
     }
 
     var body: some View {

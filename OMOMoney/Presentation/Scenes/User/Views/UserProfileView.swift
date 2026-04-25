@@ -69,7 +69,7 @@ struct UserProfileView: View {
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
             }
         }
-        .onAppear { name = user.name; nameFocused = true }
+        .onAppear { name = user.name }
     }
 
     private func save() async {

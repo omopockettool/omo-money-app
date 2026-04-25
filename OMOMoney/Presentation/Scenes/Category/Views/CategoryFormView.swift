@@ -134,7 +134,6 @@ struct CategoryFormView: View {
                 selectedColor = cat.color
                 selectedIcon = cat.icon
             }
-            nameFocused = true
         }
     }
 

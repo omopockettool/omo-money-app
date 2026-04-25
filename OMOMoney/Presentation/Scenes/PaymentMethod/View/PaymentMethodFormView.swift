@@ -131,7 +131,6 @@ struct PaymentMethodFormView: View {
                 selectedType = pm.type
                 selectedIcon = pm.icon.isEmpty ? typeIcon(pm.type) : pm.icon
             }
-            nameFocused = true
         }
     }
 

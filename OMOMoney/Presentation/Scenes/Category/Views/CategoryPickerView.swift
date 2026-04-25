@@ -7,15 +7,16 @@ struct CategoryPickerView: View {
     @Binding var selectedCategoryId: UUID?
     let groupId: UUID
 
-    @Query(sort: \SDCategory.name) private var allCategories: [SDCategory]
-
-    private var categories: [SDCategory] {
-        allCategories.filter { $0.group?.id == groupId }
-    }
+    @Query private var categories: [SDCategory]
 
     init(selectedCategoryId: Binding<UUID?>, groupId: UUID) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
+        let id = groupId
+        self._categories = Query(
+            filter: #Predicate<SDCategory> { $0.group?.id == id },
+            sort: \SDCategory.name
+        )
     }
 
     var body: some View {

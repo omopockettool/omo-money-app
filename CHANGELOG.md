@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.49] - 2026-04-25
+
+### Refactor
+- **Tests legacy eliminados, SwiftData tests añadidos** — los archivos de test basados en CoreData (`TestEntityFactory`, `MockCoreDataStack`, mocks con `*Domain`, y todos los `*ServiceTests`) referenciaban tipos que ya no existen tras la migración a SwiftData; eliminados. Se añade `SwiftDataTestContainer` como helper de test con `ModelContainer` en memoria. Nuevos tests: `CreateGroupUseCaseTests` (validación de nombre vacío, trim, uppercase de moneda) y `FetchCategoriesUseCaseTests` (scope por grupo, sin datos de otros grupos, orden por nombre). Los test targets se actualizan a `IPHONEOS_DEPLOYMENT_TARGET = 26.0` para coincidir con el target principal.
+
+---
+
+## [1.0.48] - 2026-04-25
+
+### Refactor
+- **`@Query` globales eliminados en picker Views** — `CategoryPickerView` y `PaymentMethodPickerView` cargaban todas las entidades de la base de datos y filtraban en memoria (`allCategories.filter { $0.group?.id == groupId }`). Ahora usan `Query(filter: #Predicate<SD...> { $0.group?.id == id }, sort: ...)` inicializado en `init`, de modo que SwiftData emite un `WHERE group_id = ?` en SQLite en lugar de un full table scan. `PaymentMethodPickerView` incluye además `&& $0.isActive` en el predicado.
+
+---
+
 ## [1.0.47] - 2026-04-25
 
 ### Refactor
