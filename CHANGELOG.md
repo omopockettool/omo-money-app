@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.51] - 2026-04-25
+
+### Refactor
+- **`PaymentMethodFormViewModel` extraído** — `PaymentMethodFormView` usaba `PaymentMethodListViewModel` (VM de lista) para operaciones de formulario (create/update), igual que el bug corregido en CategoryFormView en v1.0.46. Se crea `PaymentMethodFormViewModel` dedicado con `save(name:type:icon:groupId:methodToEdit:) -> Bool` que maneja tanto creación como edición. `save()` en la View queda como orquestador UI fino (trim → VM → `onSaved` + `dismiss`).
+- **`PaymentMethodListViewModel` reducido** — eliminados `createPaymentMethodUseCase`, `updatePaymentMethodUseCase` y los métodos `createPaymentMethod()`, `updatePaymentMethod()`, `loadActivePaymentMethods()`, `loadPaymentMethods(forGroupId:type:)`, `toggleActiveStatus()`, `getPaymentMethodsCount()` y las computed properties `activePaymentMethods`, `inactivePaymentMethods`, `paymentMethodsByType` — ninguno era llamado desde `PaymentMethodManagementView`. De 184 líneas a 55.
+- **`AddPaymentMethodViewModel` eliminado** — nunca fue usado por ninguna View; su API (`configureForCreation`, `configureForEditing`, `submit()`) era incompatible con `PaymentMethodFormView` (no tenía `icon`, tenía validaciones en inglés y strings de tipo libres en lugar de los códigos internos del app).
+
+---
+
+## [1.0.50] - 2026-04-25
+
+### Refactor
+- **`AddItemListViewModel` movido a `Dashboard/ViewModels/`** — el VM vivía en `ItemList/ViewModels/` pero ninguna View de esa escena lo usaba; su único consumidor es `AddItemListView` que vive en `Dashboard/Views/`. Movido para colocar VM y View en la misma escena.
+
+---
+
 ## [1.0.49] - 2026-04-25
 
 ### Refactor

@@ -6,7 +6,7 @@ struct PaymentMethodFormView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = PaymentMethodListViewModel()
+    @State private var viewModel = PaymentMethodFormViewModel()
 
     @State private var name = ""
     @State private var selectedType = "card_debit"
@@ -137,13 +137,9 @@ struct PaymentMethodFormView: View {
     private func save() async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
-        if let pm = methodToEdit {
-            let success = await viewModel.updatePaymentMethod(pm, name: trimmed, type: selectedType, icon: selectedIcon)
-            if success { onSaved(); dismiss() }
-        } else {
-            let success = await viewModel.createPaymentMethod(name: trimmed, type: selectedType, icon: selectedIcon, groupId: group.id)
-            if success { onSaved(); dismiss() }
+        if await viewModel.save(name: trimmed, type: selectedType, icon: selectedIcon, groupId: group.id, methodToEdit: methodToEdit) {
+            onSaved()
+            dismiss()
         }
     }
 
