@@ -1,7 +1,6 @@
 import Foundation
 
 protocol FetchPaymentMethodsUseCase {
-    func execute(paymentMethodId: UUID) async throws -> SDPaymentMethod?
     func execute(forGroupId groupId: UUID) async throws -> [SDPaymentMethod]
     func executeActive(forGroupId groupId: UUID) async throws -> [SDPaymentMethod]
 }
@@ -11,10 +10,6 @@ final class DefaultFetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase {
 
     init(paymentMethodRepository: PaymentMethodRepository) {
         self.paymentMethodRepository = paymentMethodRepository
-    }
-
-    func execute(paymentMethodId: UUID) async throws -> SDPaymentMethod? {
-        return try await paymentMethodRepository.fetchPaymentMethod(id: paymentMethodId)
     }
 
     func execute(forGroupId groupId: UUID) async throws -> [SDPaymentMethod] {

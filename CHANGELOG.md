@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.45] - 2026-04-25
+
+### Refactor
+- **Queries globales eliminadas de los Use Cases** — ningún `Fetch*UseCase` puede ejecutarse sin un scope obligatorio (`groupId` o `itemListId`). Overloads eliminados:
+  - `FetchCategoriesUseCase` — `execute()` (global) y `execute(categoryId:)` (nunca llamado).
+  - `FetchItemListsUseCase` — `execute()` (global), `execute(itemListId:)`, `execute(forCategoryId:)` (sin groupId), `execute(from:to:)` (sin groupId).
+  - `FetchItemsUseCase` — `execute()` (global) y `execute(itemId:)` (nunca llamado).
+  - `FetchPaymentMethodsUseCase` — `execute(paymentMethodId:)` (nunca llamado).
+  - Cada use case queda con únicamente las firmas que reciben `forGroupId` o `forItemListId`. `GetCurrentUserUseCase.execute()` se mantiene — fetch de singleton por diseño, no un scan global.
+- **Factory methods huérfanos eliminados de los DIContainers**:
+  - `GroupSceneDIContainer` — eliminados `makeFetchGroupsUseCase()` y `makeUpdateGroupUseCase()` (nadie los llamaba vía scene container).
+  - `UserSceneDIContainer` — eliminados `makeFetchUsersUseCase()`, `makeSearchUsersUseCase()`, `makeUpdateUserUseCase()`, `makeDeleteUserUseCase()` (los callers usan `AppDIContainer` directamente).
+- **UseCase files muertos eliminados** — `FetchGroupsUseCase.swift`, `FetchUsersUseCase.swift`, `SearchUsersUseCase.swift`: protocolos e implementaciones sin ningún caller en el codebase.
+
+---
+
 ## [1.0.44] - 2026-04-25
 
 ### Refactor

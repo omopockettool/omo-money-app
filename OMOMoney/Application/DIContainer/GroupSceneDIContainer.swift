@@ -28,18 +28,10 @@ final class GroupSceneDIContainer {
     
     // MARK: - Use Cases
     
-    func makeFetchGroupsUseCase() -> FetchGroupsUseCase {
-        return DefaultFetchGroupsUseCase(groupRepository: dependencies.groupRepository)
-    }
-    
     func makeCreateGroupUseCase() -> CreateGroupUseCase {
         return DefaultCreateGroupUseCase(groupRepository: dependencies.groupRepository)
     }
-    
-    func makeUpdateGroupUseCase() -> UpdateGroupUseCase {
-        return DefaultUpdateGroupUseCase(groupRepository: dependencies.groupRepository)
-    }
-    
+
     func makeDeleteGroupUseCase() -> DeleteGroupUseCase {
         return DefaultDeleteGroupUseCase(groupRepository: dependencies.groupRepository)
     }

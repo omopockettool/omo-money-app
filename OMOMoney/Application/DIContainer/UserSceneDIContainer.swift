@@ -29,26 +29,10 @@ final class UserSceneDIContainer {
     
     // MARK: - Use Cases
     
-    func makeFetchUsersUseCase() -> FetchUsersUseCase {
-        return DefaultFetchUsersUseCase(userRepository: dependencies.userRepository)
-    }
-    
     func makeCreateUserUseCase() -> CreateUserUseCase {
         return DefaultCreateUserUseCase(userRepository: dependencies.userRepository)
     }
-    
-    func makeUpdateUserUseCase() -> UpdateUserUseCase {
-        return DefaultUpdateUserUseCase(userRepository: dependencies.userRepository)
-    }
-    
-    func makeDeleteUserUseCase() -> DeleteUserUseCase {
-        return DefaultDeleteUserUseCase(userRepository: dependencies.userRepository)
-    }
-    
-    func makeSearchUsersUseCase() -> SearchUsersUseCase {
-        return DefaultSearchUsersUseCase(userRepository: dependencies.userRepository)
-    }
-    
+
     func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
         return DefaultCreateUserGroupUseCase(userGroupRepository: dependencies.userGroupRepository)
     }
