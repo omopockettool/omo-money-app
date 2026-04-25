@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GroupSelectorChipView` — cierre de sheet post-cambio de grupo (300ms) y desactivación de overlay de eliminación (1.5s).
   - `CustomAlertView.dismissAlert()` — set de `isPresented = false` tras animación de salida (250ms).
   - `AddItemListView` — scroll a `paymentMethodAnchor` tras expandir métodos de pago (350ms).
-  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s); ahora usa `@State var resetTask: Task<Void, Never>?` para cancelar el timer anterior en cada tap, evitando timers huérfanos y reseteando 2s desde el último tap en lugar del primero.
+  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s).
+- **`DashboardHeaderView` eliminado** — archivo dead code; reemplazado por `DashboardTopBarView` en refactor anterior y nunca removido.
 
 ---
 
