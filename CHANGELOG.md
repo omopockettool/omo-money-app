@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.46] - 2026-04-25
+
+### Refactor
+- **`CategoryFormViewModel` extraído** — `CategoryFormView` usaba `CategoryListViewModel` (VM de lista con fetch/delete/`categories: [SDCategory]`) para operaciones de formulario. Ahora usa `CategoryFormViewModel` dedicado con solo `createCategoryUseCase` + `updateCategoryUseCase`. El método `save()` devuelve directamente la `SDCategory` creada/editada, eliminando el hack `viewModel.categories.last` que era frágil. El `save()` del View queda como orquestador UI fino (trim → VM → `onSaved` + `dismiss`).
+
+---
+
 ## [1.0.45] - 2026-04-25
 
 ### Refactor

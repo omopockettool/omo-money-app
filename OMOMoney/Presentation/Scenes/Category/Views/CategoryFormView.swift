@@ -6,7 +6,7 @@ struct CategoryFormView: View {
     let onSaved: (SDCategory) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = CategoryListViewModel()
+    @State private var viewModel = CategoryFormViewModel()
 
     @State private var name = ""
     @State private var selectedColor = "#0A84FF"
@@ -141,19 +141,9 @@ struct CategoryFormView: View {
     private func save() async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
-        if let cat = categoryToEdit {
-            let success = await viewModel.updateCategory(cat, name: trimmed, icon: selectedIcon, color: selectedColor)
-            if success {
-                onSaved(cat)
-                dismiss()
-            }
-        } else {
-            let success = await viewModel.createCategory(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id)
-            if success, let created = viewModel.categories.last {
-                onSaved(created)
-                dismiss()
-            }
+        if let saved = await viewModel.save(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id, categoryToEdit: categoryToEdit) {
+            onSaved(saved)
+            dismiss()
         }
     }
 }
