@@ -7,7 +7,7 @@ on:
 
 env:
   XCODE_VERSION: '16.4.0'
-  IOS_VERSION: '18.5'
+  IOS_VERSION: '26.0'
 
 jobs:
   # MARK: - Quick Build Check
