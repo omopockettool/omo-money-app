@@ -109,7 +109,8 @@ struct CustomAlertView: View {
         withAnimation(.easeOut(duration: 0.25)) {
             showContent = false
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
             isPresented = false
             completion?()
         }

@@ -152,7 +152,8 @@ struct AddItemListView: View {
         .onChange(of: scrollToPaymentMethods) { _, fire in
             guard fire else { return }
             scrollToPaymentMethods = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                     proxy.scrollTo("paymentMethodAnchor", anchor: .top)
                 }

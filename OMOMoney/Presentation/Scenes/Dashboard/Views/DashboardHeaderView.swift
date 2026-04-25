@@ -12,6 +12,7 @@ struct DashboardHeaderView: View {
     let onDebugTap: (() -> Void)?
     
     @State private var debugTapCount = 0
+    @State private var resetTask: Task<Void, Never>?
     
     init(onSettingsTap: @escaping () -> Void, onDebugTap: (() -> Void)? = nil) {
         self.onSettingsTap = onSettingsTap
@@ -55,16 +56,19 @@ struct DashboardHeaderView: View {
     /// Handle debug access through multiple taps on group name
     private func handleDebugAccess() {
         guard let debugTap = onDebugTap else { return }
-        
+
         debugTapCount += 1
-        
-        // Reset counter after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            debugTapCount = 0
+
+        resetTask?.cancel()
+        resetTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(2))
+                debugTapCount = 0
+            } catch { }
         }
-        
-        // Trigger debug after 5 taps
+
         if debugTapCount >= 5 {
+            resetTask?.cancel()
             debugTapCount = 0
             debugTap()
         }

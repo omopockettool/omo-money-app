@@ -247,12 +247,11 @@ struct GroupPickerSheet: View {
                 .presentationDragIndicator(.visible)
             }
             .onChange(of: isChangingGroup) { oldValue, newValue in
-                // ✅ Cuando termina de cargar (false), cerrar el sheet
                 if oldValue == true && newValue == false && selectedGroupID != nil {
-                    // Esperar un poquito para que el usuario vea el cambio
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(300))
                         showingPicker = false
-                        selectedGroupID = nil  // Reset
+                        selectedGroupID = nil
                     }
                 }
             }
@@ -306,20 +305,19 @@ struct GroupPickerSheet: View {
 
                 await MainActor.run {
                     print("📤 [GroupPicker] Llamando a onGroupDeleted callback...")
-                    // Notificar al ViewModel
                     onGroupDeleted(groupToDelete)
 
-                    // Si eliminamos el grupo actual, cambiar al nuevo grupo
                     if isDeletingCurrentGroup, let newGroup = newGroupToSelect {
-                        print("🔄 [GroupPicker] Cambiando al nuevo grupo: '\(newGroup.name)'")  // ✅ Domain: non-optional
+                        print("🔄 [GroupPicker] Cambiando al nuevo grupo: '\(newGroup.name)'")
                         onGroupChange(newGroup)
                     }
+                }
 
-                    // ✅ Desactivar estado de eliminación con delay para mejor feedback visual
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        isDeletingGroup = false
-                        print("✅ [GroupPicker] Eliminación completa")
-                    }
+                try? await Task.sleep(for: .seconds(1.5))
+
+                await MainActor.run {
+                    isDeletingGroup = false
+                    print("✅ [GroupPicker] Eliminación completa")
                 }
             } catch {
                 await MainActor.run {

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.43] - 2026-04-25
+
+### Refactor
+- **`DispatchQueue.main.asyncAfter` eliminado en su totalidad** — todas las ocurrencias reemplazadas por `Task { try? await Task.sleep(for:) }` para mantener consistencia con Swift Concurrency:
+  - `GroupSelectorChipView` — cierre de sheet post-cambio de grupo (300ms) y desactivación de overlay de eliminación (1.5s).
+  - `CustomAlertView.dismissAlert()` — set de `isPresented = false` tras animación de salida (250ms).
+  - `AddItemListView` — scroll a `paymentMethodAnchor` tras expandir métodos de pago (350ms).
+  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s); ahora usa `@State var resetTask: Task<Void, Never>?` para cancelar el timer anterior en cada tap, evitando timers huérfanos y reseteando 2s desde el último tap en lugar del primero.
+
+---
+
 ## [1.0.42] - 2026-04-24
 
 ### Refactor
