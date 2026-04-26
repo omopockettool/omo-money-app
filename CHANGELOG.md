@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.54] - 2026-04-26
+
+### Changed
+- **Date header "+" button muted to secondary color** (`ExpenseListView`) — the per-date add button in month-mode section headers changed from `Color.accentColor` to `Color.secondary`; it remains fully functional but no longer competes visually with the primary FAB — secondary feature, secondary color.
+
+---
+
 ## [1.0.53] - 2026-04-26
 
 ### Refactor

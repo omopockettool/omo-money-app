@@ -127,7 +127,7 @@ struct ExpenseListView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(Color.secondary)
                     }
                     .buttonStyle(PressHapticButtonStyle())
                 }
