@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol GroupRepository {
     func fetchGroup(id: UUID) async throws -> SDGroup?
     func createGroup(name: String, currency: String) async throws -> SDGroup

@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol ItemRepository {
     func fetchItems(forItemListId itemListId: UUID) async throws -> [SDItem]
     func createItem(

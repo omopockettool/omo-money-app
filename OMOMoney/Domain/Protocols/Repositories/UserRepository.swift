@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol UserRepository {
     func fetchUsers() async throws -> [SDUser]
     func fetchUser(id: UUID) async throws -> SDUser?

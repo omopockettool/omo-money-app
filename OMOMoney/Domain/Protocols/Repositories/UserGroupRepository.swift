@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol UserGroupRepository {
     func fetchUserGroups() async throws -> [SDUserGroup]
     func fetchUserGroup(id: UUID) async throws -> SDUserGroup?

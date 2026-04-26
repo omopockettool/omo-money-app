@@ -7,171 +7,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.53] - 2026-04-26
+
+### Refactor
+- **All repositories marked `@MainActor` — `MainActor.run { }` removed** — all 7 repository protocols and their 7 implementations are annotated with `@MainActor`. Every `try await MainActor.run { }` wrapper is dropped; the body executes directly on the main actor with no hop. Fixes the Swift 6 strict-concurrency error *"Persistent Models are not Sendable"*: previously `MainActor.run` returned `@Model` objects back to a non-`@MainActor` context, crossing an actor boundary. Now the entire call chain is `@MainActor`: `AppDIContainer` → `ViewModel` → `UseCase` → `Repository` → `ModelContext` — no boundary crossings.
+
+---
+
 ## [1.0.52] - 2026-04-26
 
 ### Refactor
-- **Métodos de fetch globales eliminados de todos los repositorios** — ningún repositorio puede hacer fetch sin scope. Métodos eliminados del protocolo e implementación:
-  - `CategoryRepository`: `fetchCategories()` (sin groupId)
+- **Global (unscoped) fetch methods removed from all repositories** — no repository can fetch without a scope. Methods removed from protocol and implementation:
+  - `CategoryRepository`: `fetchCategories()` (no groupId)
   - `ItemListRepository`: `fetchItemLists()`, `fetchItemList(id:)`, `fetchItemLists(forCategoryId:)`, `fetchItemLists(from:to:)`
   - `ItemRepository`: `fetchItems()`, `fetchItem(id:)`
   - `PaymentMethodRepository`: `fetchPaymentMethods()`, `fetchPaymentMethod(id:)`, `fetchActivePaymentMethods()`
-- Todos eran dead code — sin callers en ninguna capa. Completa a nivel de repositorio lo que v1.0.45 hizo en los Use Cases.
-- `START_HERE.md`: eliminado bullet obsoleto de Liquid Glass.
+- All were dead code — no callers anywhere in the codebase. Mirrors at the repository layer what v1.0.45 did for Use Cases.
+- `START_HERE.md`: removed stale Liquid Glass bullet.
 
 ---
 
 ## [1.0.51] - 2026-04-25
 
 ### Refactor
-- **`PaymentMethodFormViewModel` extraído** — `PaymentMethodFormView` usaba `PaymentMethodListViewModel` (VM de lista) para operaciones de formulario (create/update), igual que el bug corregido en CategoryFormView en v1.0.46. Se crea `PaymentMethodFormViewModel` dedicado con `save(name:type:icon:groupId:methodToEdit:) -> Bool` que maneja tanto creación como edición. `save()` en la View queda como orquestador UI fino (trim → VM → `onSaved` + `dismiss`).
-- **`PaymentMethodListViewModel` reducido** — eliminados `createPaymentMethodUseCase`, `updatePaymentMethodUseCase` y los métodos `createPaymentMethod()`, `updatePaymentMethod()`, `loadActivePaymentMethods()`, `loadPaymentMethods(forGroupId:type:)`, `toggleActiveStatus()`, `getPaymentMethodsCount()` y las computed properties `activePaymentMethods`, `inactivePaymentMethods`, `paymentMethodsByType` — ninguno era llamado desde `PaymentMethodManagementView`. De 184 líneas a 55.
-- **`AddPaymentMethodViewModel` eliminado** — nunca fue usado por ninguna View; su API (`configureForCreation`, `configureForEditing`, `submit()`) era incompatible con `PaymentMethodFormView` (no tenía `icon`, tenía validaciones en inglés y strings de tipo libres en lugar de los códigos internos del app).
+- **`PaymentMethodFormViewModel` extracted** — `PaymentMethodFormView` was using `PaymentMethodListViewModel` (list VM) for form operations (create/update), the same bug fixed for `CategoryFormView` in v1.0.46. Dedicated `PaymentMethodFormViewModel` created with `save(name:type:icon:groupId:methodToEdit:) -> Bool` handling both creation and editing. View's `save()` remains a thin UI orchestrator (trim → VM → `onSaved` + `dismiss`).
+- **`PaymentMethodListViewModel` slimmed down** — removed `createPaymentMethodUseCase`, `updatePaymentMethodUseCase` and the methods `createPaymentMethod()`, `updatePaymentMethod()`, `loadActivePaymentMethods()`, `loadPaymentMethods(forGroupId:type:)`, `toggleActiveStatus()`, `getPaymentMethodsCount()` and computed properties `activePaymentMethods`, `inactivePaymentMethods`, `paymentMethodsByType` — none were called from `PaymentMethodManagementView`. From 184 lines to 55.
+- **`AddPaymentMethodViewModel` deleted** — never used by any View; its API (`configureForCreation`, `configureForEditing`, `submit()`) was incompatible with `PaymentMethodFormView` (missing `icon`, English-language validations, free-form type strings instead of the app's internal type codes).
 
 ---
 
 ## [1.0.50] - 2026-04-25
 
 ### Refactor
-- **`AddItemListViewModel` movido a `Dashboard/ViewModels/`** — el VM vivía en `ItemList/ViewModels/` pero ninguna View de esa escena lo usaba; su único consumidor es `AddItemListView` que vive en `Dashboard/Views/`. Movido para colocar VM y View en la misma escena.
+- **`AddItemListViewModel` moved to `Dashboard/ViewModels/`** — the VM lived in `ItemList/ViewModels/` but no View in that scene used it; its only consumer is `AddItemListView` which lives in `Dashboard/Views/`. Moved to co-locate VM and View in the same scene.
 
 ---
 
 ## [1.0.49] - 2026-04-25
 
 ### Refactor
-- **Tests legacy eliminados, SwiftData tests añadidos** — los archivos de test basados en CoreData (`TestEntityFactory`, `MockCoreDataStack`, mocks con `*Domain`, y todos los `*ServiceTests`) referenciaban tipos que ya no existen tras la migración a SwiftData; eliminados. Se añade `SwiftDataTestContainer` como helper de test con `ModelContainer` en memoria. Nuevos tests: `CreateGroupUseCaseTests` (validación de nombre vacío, trim, uppercase de moneda) y `FetchCategoriesUseCaseTests` (scope por grupo, sin datos de otros grupos, orden por nombre). Los test targets se actualizan a `IPHONEOS_DEPLOYMENT_TARGET = 26.0` para coincidir con el target principal.
+- **Legacy tests removed, SwiftData tests added** — CoreData-based test files (`TestEntityFactory`, `MockCoreDataStack`, `*Domain` mocks, and all `*ServiceTests`) referenced types that no longer exist after the SwiftData migration; removed. Added `SwiftDataTestContainer` as an in-memory `ModelContainer` test helper. New tests: `CreateGroupUseCaseTests` (empty name validation, trim, currency uppercase) and `FetchCategoriesUseCaseTests` (scope by group, no bleed from other groups, sort by name). Test targets updated to `IPHONEOS_DEPLOYMENT_TARGET = 26.0` to match the main target.
 
 ---
 
 ## [1.0.48] - 2026-04-25
 
 ### Refactor
-- **`@Query` globales eliminados en picker Views** — `CategoryPickerView` y `PaymentMethodPickerView` cargaban todas las entidades de la base de datos y filtraban en memoria (`allCategories.filter { $0.group?.id == groupId }`). Ahora usan `Query(filter: #Predicate<SD...> { $0.group?.id == id }, sort: ...)` inicializado en `init`, de modo que SwiftData emite un `WHERE group_id = ?` en SQLite en lugar de un full table scan. `PaymentMethodPickerView` incluye además `&& $0.isActive` en el predicado.
+- **Global `@Query` removed from picker Views** — `CategoryPickerView` and `PaymentMethodPickerView` were loading all entities from the database and filtering in memory (`allCategories.filter { $0.group?.id == groupId }`). Now use `Query(filter: #Predicate<SD...> { $0.group?.id == id }, sort: ...)` initialized in `init`, so SwiftData emits `WHERE group_id = ?` in SQLite instead of a full table scan. `PaymentMethodPickerView` additionally includes `&& $0.isActive` in the predicate.
 
 ---
 
 ## [1.0.47] - 2026-04-25
 
 ### Refactor
-- **`GroupFormViewModel` extraído** — `CreateGroupView` y `GroupFormView` llamaban directamente a `CreateGroupUseCase`, `CreateUserGroupUseCase` y `UpdateGroupUseCase` desde la Vista, violando Clean Architecture. Ahora ambas vistas usan `GroupFormViewModel` dedicado con `create(name:currency:userId:) -> SDGroup?` y `update(group:name:currency:) -> Bool`. Las vistas quedan como orquestadores UI finos (trim → VM → callback + dismiss).
+- **`GroupFormViewModel` extracted** — `CreateGroupView` and `GroupFormView` were calling `CreateGroupUseCase`, `CreateUserGroupUseCase`, and `UpdateGroupUseCase` directly from the View, violating Clean Architecture. Both views now use a dedicated `GroupFormViewModel` with `create(name:currency:userId:) -> SDGroup?` and `update(group:name:currency:) -> Bool`. Views remain thin UI orchestrators (trim → VM → callback + dismiss).
 
 ### Changed
-- **Ajustes de grupo movidos al chip de grupo** — Categorías y Métodos de pago se eliminaron de `SettingsSheetView` (icono gear) y se colocaron en `GroupFormView` (swipe → "Ajustes" sobre el chip de grupo). `SettingsSheetView` queda solo con la sección "Cuenta". `GroupFormView` pasa a presentación `ScrollView/VStack` con tarjetas separadas por sección (Nombre, Moneda, Contenido), abre en `.large` y muestra cada fila de navegación con icono coloreado, label blanco y flecha `chevron.right`.
+- **Group settings moved to the group chip** — Categories and Payment Methods removed from `SettingsSheetView` (gear icon) and placed in `GroupFormView` (swipe → "Settings" on the group chip). `SettingsSheetView` now only contains the "Account" section. `GroupFormView` adopts a `ScrollView/VStack` layout with cards separated by section (Name, Currency, Content), opens as `.large`, and shows each navigation row with a colored icon, white label, and `chevron.right` arrow.
 
 ---
 
 ## [1.0.46] - 2026-04-25
 
 ### Refactor
-- **`CategoryFormViewModel` extraído** — `CategoryFormView` usaba `CategoryListViewModel` (VM de lista con fetch/delete/`categories: [SDCategory]`) para operaciones de formulario. Ahora usa `CategoryFormViewModel` dedicado con solo `createCategoryUseCase` + `updateCategoryUseCase`. El método `save()` devuelve directamente la `SDCategory` creada/editada, eliminando el hack `viewModel.categories.last` que era frágil. El `save()` del View queda como orquestador UI fino (trim → VM → `onSaved` + `dismiss`).
+- **`CategoryFormViewModel` extracted** — `CategoryFormView` was using `CategoryListViewModel` (list VM with fetch/delete/`categories: [SDCategory]`) for form operations. Now uses a dedicated `CategoryFormViewModel` with only `createCategoryUseCase` + `updateCategoryUseCase`. The `save()` method returns the created/edited `SDCategory` directly, eliminating the fragile `viewModel.categories.last` hack. View's `save()` remains a thin UI orchestrator (trim → VM → `onSaved` + `dismiss`).
 
 ---
 
 ## [1.0.45] - 2026-04-25
 
 ### Refactor
-- **Queries globales eliminadas de los Use Cases** — ningún `Fetch*UseCase` puede ejecutarse sin un scope obligatorio (`groupId` o `itemListId`). Overloads eliminados:
-  - `FetchCategoriesUseCase` — `execute()` (global) y `execute(categoryId:)` (nunca llamado).
-  - `FetchItemListsUseCase` — `execute()` (global), `execute(itemListId:)`, `execute(forCategoryId:)` (sin groupId), `execute(from:to:)` (sin groupId).
-  - `FetchItemsUseCase` — `execute()` (global) y `execute(itemId:)` (nunca llamado).
-  - `FetchPaymentMethodsUseCase` — `execute(paymentMethodId:)` (nunca llamado).
-  - Cada use case queda con únicamente las firmas que reciben `forGroupId` o `forItemListId`. `GetCurrentUserUseCase.execute()` se mantiene — fetch de singleton por diseño, no un scan global.
-- **Factory methods huérfanos eliminados de los DIContainers**:
-  - `GroupSceneDIContainer` — eliminados `makeFetchGroupsUseCase()` y `makeUpdateGroupUseCase()` (nadie los llamaba vía scene container).
-  - `UserSceneDIContainer` — eliminados `makeFetchUsersUseCase()`, `makeSearchUsersUseCase()`, `makeUpdateUserUseCase()`, `makeDeleteUserUseCase()` (los callers usan `AppDIContainer` directamente).
-- **UseCase files muertos eliminados** — `FetchGroupsUseCase.swift`, `FetchUsersUseCase.swift`, `SearchUsersUseCase.swift`: protocolos e implementaciones sin ningún caller en el codebase.
+- **Global queries removed from Use Cases** — no `Fetch*UseCase` can execute without a mandatory scope (`groupId` or `itemListId`). Removed overloads:
+  - `FetchCategoriesUseCase` — `execute()` (global) and `execute(categoryId:)` (never called).
+  - `FetchItemListsUseCase` — `execute()` (global), `execute(itemListId:)`, `execute(forCategoryId:)` (no groupId), `execute(from:to:)` (no groupId).
+  - `FetchItemsUseCase` — `execute()` (global) and `execute(itemId:)` (never called).
+  - `FetchPaymentMethodsUseCase` — `execute(paymentMethodId:)` (never called).
+  - Each use case keeps only the signatures that receive `forGroupId` or `forItemListId`. `GetCurrentUserUseCase.execute()` retained — singleton fetch by design, not a global scan.
+- **Orphaned factory methods removed from DIContainers**:
+  - `GroupSceneDIContainer` — removed `makeFetchGroupsUseCase()` and `makeUpdateGroupUseCase()` (no callers via scene container).
+  - `UserSceneDIContainer` — removed `makeFetchUsersUseCase()`, `makeSearchUsersUseCase()`, `makeUpdateUserUseCase()`, `makeDeleteUserUseCase()` (callers use `AppDIContainer` directly).
+- **Dead UseCase files removed** — `FetchGroupsUseCase.swift`, `FetchUsersUseCase.swift`, `SearchUsersUseCase.swift`: protocols and implementations with no callers anywhere in the codebase.
 
 ---
 
 ## [1.0.44] - 2026-04-25
 
 ### Refactor
-- **`deleteGroupUseCase` movido de View a `DashboardViewModel`** — violación de arquitectura: `GroupPickerSheet` (View) llamaba directamente a `DeleteGroupUseCase`. Ahora el UseCase vive en `DashboardViewModel.deleteGroup()` y el View solo llama el callback `onDeleteGroup: (SDGroup) async -> Void`. `DashboardViewModel` gestiona la eliminación de persistencia y el rollback de `availableGroups`; `GroupPickerSheet` conserva su propio estado de presentación (`isDeletingGroup`, lista local optimista). Cadena de propagación: `DashboardView` → `DashboardBottomBarView` → `GroupSelectorChipView` → `GroupPickerSheet`.
+- **`deleteGroupUseCase` moved from View to `DashboardViewModel`** — architecture violation: `GroupPickerSheet` (View) was calling `DeleteGroupUseCase` directly. UseCase now lives in `DashboardViewModel.deleteGroup()` and the View only calls the callback `onDeleteGroup: (SDGroup) async -> Void`. `DashboardViewModel` handles persistence deletion and `availableGroups` rollback; `GroupPickerSheet` retains its own presentation state (`isDeletingGroup`, optimistic local list). Propagation chain: `DashboardView` → `DashboardBottomBarView` → `GroupSelectorChipView` → `GroupPickerSheet`.
 
 ### Fixed
-- **Sheet "Seleccionar Grupo" no se cerraba al crear un nuevo grupo** — al crear un grupo, `CreateGroupView` llamaba `onGroupCreated` antes de `dismiss()`, por lo que cerrar ambos sheets simultáneamente fallaba silenciosamente. Solución: flag `groupWasCreated` + `onDismiss` en el sheet hijo; el sheet padre se cierra solo después de que el hijo haya terminado su animación de cierre.
+- **"Select Group" sheet not closing when creating a new group** — when creating a group, `CreateGroupView` called `onGroupCreated` before `dismiss()`, so closing both sheets simultaneously failed silently. Fix: `groupWasCreated` flag + `onDismiss` on the child sheet; the parent sheet closes only after the child has finished its dismiss animation.
 
 ---
 
 ## [1.0.43] - 2026-04-25
 
 ### Refactor
-- **`DispatchQueue.main.asyncAfter` eliminado en su totalidad** — todas las ocurrencias reemplazadas por `Task { try? await Task.sleep(for:) }` para mantener consistencia con Swift Concurrency:
-  - `GroupSelectorChipView` — cierre de sheet post-cambio de grupo (300ms) y desactivación de overlay de eliminación (1.5s).
-  - `CustomAlertView.dismissAlert()` — set de `isPresented = false` tras animación de salida (250ms).
-  - `AddItemListView` — scroll a `paymentMethodAnchor` tras expandir métodos de pago (350ms).
-  - `DashboardHeaderView.handleDebugAccess()` — reset del contador de taps de debug (2s); se añadió `@State var resetTask` para cancelar el timer anterior en cada tap, evitando timers huérfanos.
-- **`DashboardHeaderView` eliminado** — archivo dead code; reemplazado por `DashboardTopBarView` en refactor anterior y nunca removido.
+- **`DispatchQueue.main.asyncAfter` fully removed** — all occurrences replaced with `Task { try? await Task.sleep(for:) }` for consistency with Swift Concurrency:
+  - `GroupSelectorChipView` — sheet close after group change (300ms) and deactivation of deletion overlay (1.5s).
+  - `CustomAlertView.dismissAlert()` — set `isPresented = false` after exit animation (250ms).
+  - `AddItemListView` — scroll to `paymentMethodAnchor` after expanding payment methods (350ms).
+  - `DashboardHeaderView.handleDebugAccess()` — reset of debug tap counter (2s); `@State var resetTask` added to cancel the previous timer on each tap, avoiding orphaned timers.
+- **`DashboardHeaderView` removed** — dead code file; replaced by `DashboardTopBarView` in a prior refactor and never removed.
 
 ---
 
 ## [1.0.42] - 2026-04-24
 
 ### Refactor
-- **`DateFormatterHelper.formatSectionDate` extraído** — lógica de formato de fecha de sección ("Hoy", "Ayer", "d MMM", "d MMM yyyy") movida de `ExpenseListView` a `DateFormatterHelper`; `AddItemListViewModel.formattedDate` reemplazado con `DateFormatterHelper.formatDate`.
-- **Dead code eliminado** — `formattedItemListDate` (`ItemListDetailView`), `formatDate` (`DashboardViewModel`), `sheetTitle`/`displayedTotal`/`totalCardLabel` (`DashboardView`) eran propiedades/métodos sin uso; eliminados.
+- **`DateFormatterHelper.formatSectionDate` extracted** — section date formatting logic ("Hoy", "Ayer", "d MMM", "d MMM yyyy") moved from `ExpenseListView` to `DateFormatterHelper`; `AddItemListViewModel.formattedDate` replaced with `DateFormatterHelper.formatDate`.
+- **Dead code removed** — `formattedItemListDate` (`ItemListDetailView`), `formatDate` (`DashboardViewModel`), `sheetTitle`/`displayedTotal`/`totalCardLabel` (`DashboardView`) were unused properties/methods; removed.
 
 ---
 
 ## [1.0.41] - 2026-04-24
 
 ### Fixed
-- **`errorMessage` usado incorrectamente en operaciones no fatales** — `deleteItemList`, `changeGroup`, `deleteItem` y `toggleItemPaid` asignaban `errorMessage` en su catch, lo que reemplazaba toda la pantalla con `errorView` de forma incorrecta. Ahora `errorMessage` solo se asigna en fallos de carga fatal (`loadDashboardData`, `loadItems`); las operaciones no fatales hacen rollback silencioso o recargan datos sin bloquear la UI.
+- **`errorMessage` incorrectly used on non-fatal operations** — `deleteItemList`, `changeGroup`, `deleteItem`, and `toggleItemPaid` were assigning `errorMessage` in their catch blocks, incorrectly replacing the entire screen with `errorView`. Now `errorMessage` is only assigned on fatal load failures (`loadDashboardData`, `loadItems`); non-fatal operations perform a silent rollback or reload data without blocking the UI.
 
 ---
 
 ## [1.0.40] - 2026-04-24
 
 ### Changed
-- **Animación "¡Listo!" restaurada en `TotalSpentCardView`** — cuando `isSuccess` es `true`, el importe se reemplaza momentáneamente por "¡Listo!" con transición `.push(from: .top)` entrante y `.push(from: .bottom)` saliente; la etiqueta permanece fija. Color `.primary` (blanco en dark mode).
-- **`DashboardTopBarView` y `DashboardBottomBarView` extraídos** — `viewPickerBar` y `bottomControls` movidos a sus propios ficheros; `DashboardView` los instancia con parámetros explícitos.
+- **"¡Listo!" animation restored in `TotalSpentCardView`** — when `isSuccess` is `true`, the amount is momentarily replaced by "¡Listo!" with a `.push(from: .top)` incoming and `.push(from: .bottom)` outgoing transition; label stays fixed. Color `.primary` (white in dark mode).
+- **`DashboardTopBarView` and `DashboardBottomBarView` extracted** — `viewPickerBar` and `bottomControls` moved to their own files; `DashboardView` instantiates them with explicit parameters.
 
 ---
 
 ## [1.0.39] - 2026-04-24
 
 ### Changed
-- **Sincronización de nombre al renombrar un registro** — al editar un `SDItemList` que tiene exactamente un artículo cuyo nombre coincide con el nombre anterior del registro, el artículo se renombra automáticamente al nuevo nombre en la misma transacción de `context.save()`.
+- **Name sync when renaming a registry** — when editing an `SDItemList` that has exactly one item whose name matches the previous list name, the item is automatically renamed to the new name in the same `context.save()` transaction.
 
 ---
 
 ## [1.0.38] - 2026-04-24
 
 ### Changed
-- **`TotalSpentCardView` movido al fondo** — en `DashboardView` el hero card se sitúa entre la lista de registros y `bottomControls`; en `ItemListDetailView` se sitúa debajo de la lista de artículos.
+- **`TotalSpentCardView` moved to the bottom** — in `DashboardView` the hero card sits between the expense list and `bottomControls`; in `ItemListDetailView` it sits below the item list.
 
 ---
 
 ## [1.0.37] - 2026-04-24
 
 ### Changed
-- **Animación de eliminación estandarizada** — todas las eliminaciones con swipe (`SDItem`, `SDItemList`, `SDCategory`, `SDPaymentMethod`, `SDUser`, `SDGroup`) usan ahora `withAnimation { array.removeAll/remove }` optimista antes de la llamada a DB; la UI cede el control de la animación a SwiftUI para coordinar el slide-out de la fila y el reflow de la lista como una sola transición. Rollback animado con `append` en caso de error de persistencia.
-- **`import SwiftUI` añadido** a `CategoryListViewModel`, `PaymentMethodListViewModel` y `UserListViewModel` para permitir el uso de `withAnimation`.
+- **Standardized delete animation** — all swipe deletions (`SDItem`, `SDItemList`, `SDCategory`, `SDPaymentMethod`, `SDUser`, `SDGroup`) now use `withAnimation { array.removeAll/remove }` optimistically before the DB call; the UI yields animation control to SwiftUI to coordinate the row slide-out and list reflow as a single transition. Animated rollback with `append` on persistence error.
+- **`import SwiftUI` added** to `CategoryListViewModel`, `PaymentMethodListViewModel`, and `UserListViewModel` to enable `withAnimation`.
 
 ---
 
 ## [1.0.36] - 2026-04-24
 
 ### Changed
-- **`TotalSpentCardView` refactorizado como componente genérico** — ahora acepta un `@ViewBuilder bottomContent` slot; `ItemListDetailView` reutiliza el componente pasando `heroMetaRow` como contenido extra, eliminando ~70 líneas de código duplicado. Añadida extensión `EmptyView` para el Dashboard sin cambios en su call site.
-- **Animación de icono +/✓ corregida** — reemplazado `contentTransition(.symbolEffect(.replace.downUp))` por `if/else` con `.scale(0.4).combined(with: .opacity)`; transición controlada por SwiftUI, sin corte abrupto.
-- **Botón 2D durante success** — el círculo top baja a `y: 4` (flush con la sombra = aspecto plano) mientras `isSuccess` está activo; al terminar hace spring de vuelta a posición 3D.
-- **Estado success simplificado** — eliminados `¡Listo!`, `heroSuccessLabel` y `successLabel`; el card mantiene el total y la etiqueta durante el success, solo cambia el icono a verde ✓.
+- **`TotalSpentCardView` refactored as a generic component** — now accepts a `@ViewBuilder bottomContent` slot; `ItemListDetailView` reuses the component passing `heroMetaRow` as extra content, eliminating ~70 lines of duplicate code. Added `EmptyView` extension for Dashboard with no changes at the call site.
+- **+/✓ icon animation fixed** — replaced `contentTransition(.symbolEffect(.replace.downUp))` with `if/else` using `.scale(0.4).combined(with: .opacity)`; transition controlled by SwiftUI, no abrupt cut.
+- **Button goes 2D during success** — the top circle drops to `y: 4` (flush with the shadow = flat appearance) while `isSuccess` is active; springs back to 3D position when done.
+- **Success state simplified** — removed "¡Listo!", `heroSuccessLabel`, and `successLabel`; the card keeps the total and label during success, only the icon changes to a green ✓.
 
 ### Removed
-- **Comparativa de % en `TotalSpentCardView`** — eliminados los indicadores "X% más/menos que ayer" y "X% más/menos que el mes pasado"; fuera del alcance de MVP0. Eliminados también `yesterdayItemLists`, `yesterdayTotal` y `lastMonthTotal` de `DashboardViewModel`.
+- **% comparison in `TotalSpentCardView`** — removed "X% more/less than yesterday" and "X% more/less than last month" indicators; out of scope for MVP0. Also removed `yesterdayItemLists`, `yesterdayTotal`, and `lastMonthTotal` from `DashboardViewModel`.
 
 ---
 
 ## [1.0.35] - 2026-04-24
 
 ### Changed
-- **`ItemListDetailView` rediseñado** — hero card estático encima de la lista scrolleable; réplica exacta de `TotalSpentCardView`: total animado con `numericText`, botón 3D "+" en acento, flash verde/rojo al cambiar total, scale effect en el card; meta row debajo del total con icono + nombre de categoría en su color e icono + nombre de método de pago en su color semántico (verde/naranja/morado/azul)
-- **Animación ¡Listo! en `ItemListDetailView`** — al guardar un artículo el hero card transiciona a `heroSuccessLabel` + "¡Listo!" + flecha verde, botón pasa a verde con checkmark; idéntico al comportamiento del dashboard
-- **Duración de animación success reducida a 900ms** (`DashboardView`, `ItemListDetailView`) — era 1200ms, demasiado lento para añadir varios artículos seguidos
+- **`ItemListDetailView` redesigned** — static hero card above the scrollable list; exact replica of `TotalSpentCardView`: animated total with `numericText`, 3D "+" button in accent color, green/red flash on total change, scale effect on the card; meta row below the total with icon + category name in its color and icon + payment method name in its semantic color (green/orange/purple/blue).
+- **"¡Listo!" animation in `ItemListDetailView`** — when saving an item the hero card transitions to `heroSuccessLabel` + "¡Listo!" + green arrow; button turns green with checkmark; identical to dashboard behavior.
+- **Success animation duration reduced to 900ms** (`DashboardView`, `ItemListDetailView`) — was 1200ms, too slow for adding multiple items in quick succession.
 
 ### Fixed
-- **Regresión de Xcode+Claude** — revertidos todos los cambios rotos: `.glassEffect()`, `.primary.gradient`, `LiquidGlassButtonStyle`, `withAnimation { Task {} }`; restaurado a SwiftUI estándar limpio
+- **Xcode+Claude regression** — reverted all broken changes: `.glassEffect()`, `.primary.gradient`, `LiquidGlassButtonStyle`, `withAnimation { Task {} }`; restored to clean standard SwiftUI.
 
 ---
 

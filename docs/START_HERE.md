@@ -186,3 +186,7 @@ Fix at the lowest layer that makes sense. Don't cascade a change through all lay
 **Framework:** SwiftUI + SwiftData
 **iOS Version:** 26.1
 **Architecture:** Clean Architecture — SwiftData persistence, @Observable ViewModels (in progress)
+
+---
+
+Finally, when the user says "ok, doc and commit" meaning you have to document in english the changelog.md and give the commit name. This is an example: refactor: mark all repositories @MainActor, remove MainActor.run wrappers [v1.0.53] Never make you the commits.

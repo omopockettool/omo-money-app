@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 final class DefaultUserRepository: UserRepository {
     private let context: ModelContext
 
@@ -9,55 +10,43 @@ final class DefaultUserRepository: UserRepository {
     }
 
     func fetchUsers() async throws -> [SDUser] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDUser>()
-            return try context.fetch(descriptor)
-        }
+        let descriptor = FetchDescriptor<SDUser>()
+        return try context.fetch(descriptor)
     }
 
     func fetchUser(id: UUID) async throws -> SDUser? {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first
-        }
+        let targetId = id
+        let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
+        return try context.fetch(descriptor).first
     }
 
     func createUser(name: String, email: String) async throws -> SDUser {
-        try await MainActor.run {
-            let user = SDUser(name: name, email: email)
-            context.insert(user)
-            try context.save()
-            return user
-        }
+        let user = SDUser(name: name, email: email)
+        context.insert(user)
+        try context.save()
+        return user
     }
 
     func updateUser(_ user: SDUser) async throws {
-        try await MainActor.run {
-            user.lastModifiedAt = Date()
-            try context.save()
-        }
+        user.lastModifiedAt = Date()
+        try context.save()
     }
 
     func deleteUser(id: UUID) async throws {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
-            guard let user = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            context.delete(user)
-            try context.save()
+        let targetId = id
+        let descriptor = FetchDescriptor<SDUser>(predicate: #Predicate { $0.id == targetId })
+        guard let user = try context.fetch(descriptor).first else {
+            throw RepositoryError.notFound
         }
+        context.delete(user)
+        try context.save()
     }
 
     func searchUsers(query: String) async throws -> [SDUser] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDUser>()
-            return try context.fetch(descriptor).filter {
-                $0.name.localizedCaseInsensitiveContains(query) ||
-                $0.email.localizedCaseInsensitiveContains(query)
-            }
+        let descriptor = FetchDescriptor<SDUser>()
+        return try context.fetch(descriptor).filter {
+            $0.name.localizedCaseInsensitiveContains(query) ||
+            $0.email.localizedCaseInsensitiveContains(query)
         }
     }
 }

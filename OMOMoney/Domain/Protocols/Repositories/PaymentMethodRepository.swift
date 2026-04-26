@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol PaymentMethodRepository {
     func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [SDPaymentMethod]
     func createPaymentMethod(

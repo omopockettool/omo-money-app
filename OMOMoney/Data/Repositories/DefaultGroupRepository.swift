@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 final class DefaultGroupRepository: GroupRepository {
     private let context: ModelContext
 
@@ -9,74 +10,64 @@ final class DefaultGroupRepository: GroupRepository {
     }
 
     func fetchGroup(id: UUID) async throws -> SDGroup? {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first
-        }
+        let targetId = id
+        let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
+        return try context.fetch(descriptor).first
     }
 
     func createGroup(name: String, currency: String) async throws -> SDGroup {
-        try await MainActor.run {
-            let group = SDGroup(name: name, currency: currency)
-            context.insert(group)
+        let group = SDGroup(name: name, currency: currency)
+        context.insert(group)
 
-            let defaultPaymentMethods: [(String, String, String, String)] = [
-                ("Efectivo",      "cash",          "banknote.fill",          "#4CAF50"),
-                ("Débito",        "card_debit",    "creditcard.fill",        "#2196F3"),
-                ("Crédito",       "card_credit",   "creditcard.fill",        "#9C27B0"),
-                ("Transferencia", "bank_transfer", "arrow.left.arrow.right", "#FF9800")
-            ]
-            for (pmName, pmType, pmIcon, pmColor) in defaultPaymentMethods {
-                let pm = SDPaymentMethod(name: pmName, type: pmType, icon: pmIcon, color: pmColor, isActive: true)
-                pm.group = group
-                context.insert(pm)
-            }
-
-            let defaultCategories: [(String, String, String, Int)] = [
-                ("Alimentación", "#FF6B6B", "cart.fill",            0),
-                ("Movilidad",    "#4ECDC4", "car.fill",             0),
-                ("Hogar",        "#45B7D1", "house.fill",           0),
-                ("Ocio",         "#96CEB4", "theatermasks.fill",    0),
-                ("Salud",        "#FFEAA7", "heart.fill",           0),
-            ]
-            for (catName, catColor, catIcon, catSortOrder) in defaultCategories {
-                let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder)
-                cat.group = group
-                context.insert(cat)
-            }
-
-            try context.save()
-            return group
+        let defaultPaymentMethods: [(String, String, String, String)] = [
+            ("Efectivo",      "cash",          "banknote.fill",          "#4CAF50"),
+            ("Débito",        "card_debit",    "creditcard.fill",        "#2196F3"),
+            ("Crédito",       "card_credit",   "creditcard.fill",        "#9C27B0"),
+            ("Transferencia", "bank_transfer", "arrow.left.arrow.right", "#FF9800")
+        ]
+        for (pmName, pmType, pmIcon, pmColor) in defaultPaymentMethods {
+            let pm = SDPaymentMethod(name: pmName, type: pmType, icon: pmIcon, color: pmColor, isActive: true)
+            pm.group = group
+            context.insert(pm)
         }
+
+        let defaultCategories: [(String, String, String, Int)] = [
+            ("Alimentación", "#FF6B6B", "cart.fill",            0),
+            ("Movilidad",    "#4ECDC4", "car.fill",             0),
+            ("Hogar",        "#45B7D1", "house.fill",           0),
+            ("Ocio",         "#96CEB4", "theatermasks.fill",    0),
+            ("Salud",        "#FFEAA7", "heart.fill",           0),
+        ]
+        for (catName, catColor, catIcon, catSortOrder) in defaultCategories {
+            let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder)
+            cat.group = group
+            context.insert(cat)
+        }
+
+        try context.save()
+        return group
     }
 
     func updateGroup(_ group: SDGroup) async throws {
-        try await MainActor.run {
-            group.lastModifiedAt = Date()
-            try context.save()
-        }
+        group.lastModifiedAt = Date()
+        try context.save()
     }
 
     func deleteGroup(id: UUID) async throws {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
-            guard let group = try context.fetch(descriptor).first else {
-                throw RepositoryError.notFound
-            }
-            context.delete(group)
-            try context.save()
+        let targetId = id
+        let descriptor = FetchDescriptor<SDGroup>(predicate: #Predicate { $0.id == targetId })
+        guard let group = try context.fetch(descriptor).first else {
+            throw RepositoryError.notFound
         }
+        context.delete(group)
+        try context.save()
     }
 
     func fetchGroups(forUserId userId: UUID) async throws -> [SDGroup] {
-        try await MainActor.run {
-            let targetUserId = userId
-            let descriptor = FetchDescriptor<SDUserGroup>(
-                predicate: #Predicate { $0.user?.id == targetUserId }
-            )
-            return try context.fetch(descriptor).compactMap { $0.group }
-        }
+        let targetUserId = userId
+        let descriptor = FetchDescriptor<SDUserGroup>(
+            predicate: #Predicate { $0.user?.id == targetUserId }
+        )
+        return try context.fetch(descriptor).compactMap { $0.group }
     }
 }
