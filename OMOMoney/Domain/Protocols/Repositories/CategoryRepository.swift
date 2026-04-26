@@ -1,7 +1,6 @@
 import Foundation
 
 protocol CategoryRepository {
-    func fetchCategories() async throws -> [SDCategory]
     func fetchCategory(id: UUID) async throws -> SDCategory?
     func fetchCategories(forGroupId groupId: UUID) async throws -> [SDCategory]
     func createCategory(

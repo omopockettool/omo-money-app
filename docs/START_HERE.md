@@ -110,7 +110,6 @@ Infrastructure/
 - ✅ All 7 CoreData mapping files deleted (Phase 4 Step 4.2)
 - ✅ All use cases, repositories, ViewModels, and Views use SD* types directly
 - ✅ @Query adoption in picker views (Phase 4 Step 4.3) — CategoryPickerView + PaymentMethodPickerView now use @Query directly; 2 ViewModels deleted
-- ✅ Liquid Glass UI (Phase 4 Step 4.4) — Dashboard materials upgraded: TotalSpentCardView, bottomControls bar, viewPickerBar pill, filter capsule, dayListPanel all use SwiftUI materials (.regularMaterial / .thinMaterial); auto Liquid Glass on iOS 26
 
 **Active Phase:** Phase 4 — Complete ✅
 

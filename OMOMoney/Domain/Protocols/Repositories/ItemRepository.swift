@@ -1,8 +1,6 @@
 import Foundation
 
 protocol ItemRepository {
-    func fetchItems() async throws -> [SDItem]
-    func fetchItem(id: UUID) async throws -> SDItem?
     func fetchItems(forItemListId itemListId: UUID) async throws -> [SDItem]
     func createItem(
         description: String,

@@ -1,10 +1,7 @@
 import Foundation
 
 protocol PaymentMethodRepository {
-    func fetchPaymentMethods() async throws -> [SDPaymentMethod]
-    func fetchPaymentMethod(id: UUID) async throws -> SDPaymentMethod?
     func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [SDPaymentMethod]
-    func fetchActivePaymentMethods() async throws -> [SDPaymentMethod]
     func createPaymentMethod(
         name: String,
         type: String,

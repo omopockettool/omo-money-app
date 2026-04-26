@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.52] - 2026-04-26
+
+### Refactor
+- **Métodos de fetch globales eliminados de todos los repositorios** — ningún repositorio puede hacer fetch sin scope. Métodos eliminados del protocolo e implementación:
+  - `CategoryRepository`: `fetchCategories()` (sin groupId)
+  - `ItemListRepository`: `fetchItemLists()`, `fetchItemList(id:)`, `fetchItemLists(forCategoryId:)`, `fetchItemLists(from:to:)`
+  - `ItemRepository`: `fetchItems()`, `fetchItem(id:)`
+  - `PaymentMethodRepository`: `fetchPaymentMethods()`, `fetchPaymentMethod(id:)`, `fetchActivePaymentMethods()`
+- Todos eran dead code — sin callers en ninguna capa. Completa a nivel de repositorio lo que v1.0.45 hizo en los Use Cases.
+- `START_HERE.md`: eliminado bullet obsoleto de Liquid Glass.
+
+---
+
 ## [1.0.51] - 2026-04-25
 
 ### Refactor

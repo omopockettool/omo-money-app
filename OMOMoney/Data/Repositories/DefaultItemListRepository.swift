@@ -8,50 +8,12 @@ final class DefaultItemListRepository: ItemListRepository {
         self.context = context
     }
 
-    func fetchItemLists() async throws -> [SDItemList] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDItemList>(
-                sortBy: [SortDescriptor(\.date, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
-            )
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchItemList(id: UUID) async throws -> SDItemList? {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDItemList>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first
-        }
-    }
-
     func fetchItemLists(forGroupId groupId: UUID) async throws -> [SDItemList] {
         try await MainActor.run {
             let targetGroupId = groupId
             let descriptor = FetchDescriptor<SDItemList>(
                 predicate: #Predicate { $0.group?.id == targetGroupId },
                 sortBy: [SortDescriptor(\.date, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
-            )
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchItemLists(forCategoryId categoryId: UUID) async throws -> [SDItemList] {
-        try await MainActor.run {
-            let targetCategoryId = categoryId
-            let descriptor = FetchDescriptor<SDItemList>(
-                predicate: #Predicate { $0.category?.id == targetCategoryId },
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchItemLists(from startDate: Date, to endDate: Date) async throws -> [SDItemList] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDItemList>(
-                predicate: #Predicate { $0.date >= startDate && $0.date <= endDate },
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
             return try context.fetch(descriptor)
         }

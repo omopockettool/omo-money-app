@@ -1,11 +1,7 @@
 import Foundation
 
 protocol ItemListRepository {
-    func fetchItemLists() async throws -> [SDItemList]
-    func fetchItemList(id: UUID) async throws -> SDItemList?
     func fetchItemLists(forGroupId groupId: UUID) async throws -> [SDItemList]
-    func fetchItemLists(forCategoryId categoryId: UUID) async throws -> [SDItemList]
-    func fetchItemLists(from startDate: Date, to endDate: Date) async throws -> [SDItemList]
     func createItemList(
         description: String,
         date: Date,

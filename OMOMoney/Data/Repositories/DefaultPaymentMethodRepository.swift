@@ -8,36 +8,12 @@ final class DefaultPaymentMethodRepository: PaymentMethodRepository {
         self.context = context
     }
 
-    func fetchPaymentMethods() async throws -> [SDPaymentMethod] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDPaymentMethod>()
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchPaymentMethod(id: UUID) async throws -> SDPaymentMethod? {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDPaymentMethod>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first
-        }
-    }
-
     func fetchPaymentMethods(forGroupId groupId: UUID) async throws -> [SDPaymentMethod] {
         try await MainActor.run {
             let targetGroupId = groupId
             let descriptor = FetchDescriptor<SDPaymentMethod>(
                 predicate: #Predicate { $0.group?.id == targetGroupId },
                 sortBy: [SortDescriptor(\.name)]
-            )
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchActivePaymentMethods() async throws -> [SDPaymentMethod] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDPaymentMethod>(
-                predicate: #Predicate { $0.isActive }
             )
             return try context.fetch(descriptor)
         }

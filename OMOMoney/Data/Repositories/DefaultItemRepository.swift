@@ -8,21 +8,6 @@ final class DefaultItemRepository: ItemRepository {
         self.context = context
     }
 
-    func fetchItems() async throws -> [SDItem] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDItem>()
-            return try context.fetch(descriptor)
-        }
-    }
-
-    func fetchItem(id: UUID) async throws -> SDItem? {
-        try await MainActor.run {
-            let targetId = id
-            let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.id == targetId })
-            return try context.fetch(descriptor).first
-        }
-    }
-
     func fetchItems(forItemListId itemListId: UUID) async throws -> [SDItem] {
         try await MainActor.run {
             let targetId = itemListId

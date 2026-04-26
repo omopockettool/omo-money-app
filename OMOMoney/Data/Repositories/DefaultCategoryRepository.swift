@@ -8,13 +8,6 @@ final class DefaultCategoryRepository: CategoryRepository {
         self.context = context
     }
 
-    func fetchCategories() async throws -> [SDCategory] {
-        try await MainActor.run {
-            let descriptor = FetchDescriptor<SDCategory>()
-            return try context.fetch(descriptor)
-        }
-    }
-
     func fetchCategory(id: UUID) async throws -> SDCategory? {
         try await MainActor.run {
             let targetId = id
