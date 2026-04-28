@@ -39,41 +39,6 @@ struct AddItemListView: View {
 
     private var activeGroup: SDGroup { viewModel.selectedGroup ?? group }
 
-    private var lastUsedCategoryIds: [UUID] {
-        UserDefaults.standard
-            .string(forKey: "lastUsedCategoryIds_\(activeGroup.id.uuidString)")
-            .map { $0.components(separatedBy: ",").compactMap { UUID(uuidString: $0) } }
-            ?? []
-    }
-
-    private var lastUsedPaymentMethodId: UUID? {
-        UserDefaults.standard
-            .string(forKey: "lastUsedPaymentMethodId_\(activeGroup.id.uuidString)")
-            .flatMap { UUID(uuidString: $0) }
-    }
-
-    private func sortedCategories() -> [SDCategory] {
-        viewModel.categories.sorted {
-            chipRank($0.id, lastUsed: lastUsedCategoryIds) <
-            chipRank($1.id, lastUsed: lastUsedCategoryIds)
-        }
-    }
-
-    private func sortedPaymentMethods() -> [SDPaymentMethod] {
-        viewModel.paymentMethods.sorted {
-            chipRank($0.id, lastUsed: lastUsedPaymentMethodId) <
-            chipRank($1.id, lastUsed: lastUsedPaymentMethodId)
-        }
-    }
-
-    private func chipRank(_ id: UUID, lastUsed: [UUID]) -> Int {
-        lastUsed.firstIndex(of: id) ?? lastUsed.count
-    }
-
-    private func chipRank(_ id: UUID, lastUsed: UUID?) -> Int {
-        id == lastUsed ? 0 : 1
-    }
-
     private static let gridCategoryLimit = 3
     private static let gridPaymentMethodLimit = 3
 
@@ -99,14 +64,6 @@ struct AddItemListView: View {
 
     private var displayedPaymentMethods: [SDPaymentMethod] {
         showPaymentMethodOverflow ? orderedPaymentMethods : gridPaymentMethods
-    }
-
-    private func recordCategoryUsage(_ category: SDCategory) {
-        var ids = lastUsedCategoryIds
-        ids.removeAll { $0 == category.id }
-        ids.insert(category.id, at: 0)
-        let stored = ids.prefix(Self.gridCategoryLimit).map { $0.uuidString }.joined(separator: ",")
-        UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(activeGroup.id.uuidString)")
     }
 
     private var categoryChipMinHeight: CGFloat {
@@ -199,11 +156,12 @@ struct AddItemListView: View {
         .task {
             await viewModel.loadGroups()
             if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
-            async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: lastUsedCategoryIds.first)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: lastUsedPaymentMethodId)
+            await viewModel.loadUsageMemory(forGroupId: activeGroup.id)
+            async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: viewModel.lastUsedCategoryIds.first)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: viewModel.lastUsedPaymentMethodId)
             _ = await (categories, paymentMethods)
-            orderedCategories = sortedCategories()
-            orderedPaymentMethods = sortedPaymentMethods()
+            orderedCategories = viewModel.orderedCategoriesByUsage()
+            orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
             if viewModel.isEditMode {
                 showDetails = true
                 if !Calendar.current.isDateInToday(viewModel.date) {
@@ -212,26 +170,28 @@ struct AddItemListView: View {
                 }
             }
         }
-        .onChange(of: viewModel.selectedGroup?.id) { _, _ in
+        .onChange(of: viewModel.selectedGroup?.id) { oldValue, _ in
+            guard oldValue != nil else { return }
             let previousCategoryName = viewModel.selectedCategory?.name
             let previousPaymentMethodName = viewModel.selectedPaymentMethod?.name
             viewModel.selectedCategory = nil
             viewModel.selectedPaymentMethod = nil
             Task {
-                async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id)
-                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id)
+                await viewModel.loadUsageMemory(forGroupId: activeGroup.id)
+                async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: viewModel.lastUsedCategoryIds.first)
+                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: viewModel.lastUsedPaymentMethodId)
                 _ = await (categories, paymentMethods)
-                orderedCategories = sortedCategories()
-                orderedPaymentMethods = sortedPaymentMethods()
+                orderedCategories = viewModel.orderedCategoriesByUsage()
+                orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
                 if let name = previousCategoryName {
                     viewModel.selectedCategory = viewModel.categories.first {
                         $0.name.lowercased() == name.lowercased()
-                    }
+                    } ?? viewModel.selectedCategory
                 }
                 if let name = previousPaymentMethodName {
                     viewModel.selectedPaymentMethod = viewModel.paymentMethods.first {
                         $0.name.lowercased() == name.lowercased()
-                    }
+                    } ?? viewModel.selectedPaymentMethod
                 }
             }
         }
@@ -357,7 +317,7 @@ struct AddItemListView: View {
         Button {
             withAnimation(AnimationHelper.quickSpring) {
                 viewModel.selectedCategory = category
-                recordCategoryUsage(category)
+                viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
                 showCategoryOverflow = false
             }
         } label: {
@@ -591,7 +551,7 @@ struct AddItemListView: View {
                     viewModel.selectedPaymentMethod = nil
                 } else {
                     viewModel.selectedPaymentMethod = method
-                    UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
+                    viewModel.recordPaymentMethodUsage(method, forGroupId: activeGroup.id)
                 }
                 showPaymentMethodOverflow = false
                 scrollToPaymentMethods = true
@@ -804,14 +764,9 @@ struct AddItemListView: View {
     // MARK: - Actions
 
     private func saveItemList() async {
-        let finalDescription = viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? (viewModel.lastUsedConcept ?? viewModel.selectedCategory?.name ?? "Concepto")
-            : viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalDescription = viewModel.resolvedDescriptionForSave()
 
         if viewModel.isEditMode {
-            if viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                viewModel.description = finalDescription
-            }
             if let updated = await viewModel.updateItemList(groupId: activeGroup.id) {
                 onItemListUpdated?(updated)
             }
@@ -823,6 +778,12 @@ struct AddItemListView: View {
                 groupId: activeGroup.id,
                 paymentMethodId: viewModel.selectedPaymentMethod?.id
             ) {
+                if let category = viewModel.selectedCategory {
+                    viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
+                }
+                if let paymentMethod = viewModel.selectedPaymentMethod {
+                    viewModel.recordPaymentMethodUsage(paymentMethod, forGroupId: activeGroup.id)
+                }
                 onItemListCreated(created)
             }
         }

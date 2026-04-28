@@ -55,6 +55,7 @@ struct DashboardView: View {
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
+    @State private var lastAddedDescription: String = ""
 
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
@@ -157,6 +158,7 @@ struct DashboardView: View {
                                     Task { await viewModel.addItemList(createdItemList) }
                                     return
                                 }
+                                lastAddedDescription = createdItemList.itemListDescription
                                 withAnimation(AnimationHelper.smoothSpring) {
                                     heroIsSuccess = true
                                 }
@@ -303,7 +305,7 @@ struct DashboardView: View {
 
             // Hero card — totals + add button
             TotalSpentCardView(
-                label: viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy",
+                label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy"),
                 totalAmount: viewModel.showingFullMonth
                     ? viewModel.formattedCachedMonthTotal()
                     : viewModel.formattedTodayTotal,

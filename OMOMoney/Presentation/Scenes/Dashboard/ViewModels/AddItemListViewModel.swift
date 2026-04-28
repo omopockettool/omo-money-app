@@ -22,16 +22,20 @@ final class AddItemListViewModel {
     var selectedPaymentMethod: SDPaymentMethod?
     var suggestions: [String] = []
     var lastUsedConcept: String?
+    var lastUsedCategoryIds: [UUID] = []
+    var lastUsedPaymentMethodId: UUID?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
     private let createItemUseCase: CreateItemUseCase
     private let updateItemListUseCase: UpdateItemListUseCase
+    private let fetchItemListsUseCase: FetchItemListsUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let itemListToEdit: SDItemList?
+    private let categoryUsageLimit = 3
 
     // MARK: - Computed
 
@@ -44,6 +48,7 @@ final class AddItemListViewModel {
         createItemListUseCase: CreateItemListUseCase,
         createItemUseCase: CreateItemUseCase,
         updateItemListUseCase: UpdateItemListUseCase,
+        fetchItemListsUseCase: FetchItemListsUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
         fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
@@ -53,6 +58,7 @@ final class AddItemListViewModel {
         self.createItemListUseCase = createItemListUseCase
         self.createItemUseCase = createItemUseCase
         self.updateItemListUseCase = updateItemListUseCase
+        self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
         self.getCurrentUserUseCase = getCurrentUserUseCase
@@ -72,6 +78,7 @@ final class AddItemListViewModel {
             createItemListUseCase: appContainer.makeCreateItemListUseCase(),
             createItemUseCase: appContainer.makeCreateItemUseCase(),
             updateItemListUseCase: appContainer.makeUpdateItemListUseCase(),
+            fetchItemListsUseCase: appContainer.makeFetchItemListsUseCase(),
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
             fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase(),
             getCurrentUserUseCase: appContainer.makeGetCurrentUserUseCase(),
@@ -110,6 +117,17 @@ final class AddItemListViewModel {
         }
     }
 
+    func resolvedDescriptionForSave() -> String {
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedDescription.isEmpty {
+            return trimmedDescription
+        }
+
+        let fallback = lastUsedConcept ?? selectedCategory?.name ?? "Concepto"
+        description = fallback
+        return fallback
+    }
+
     // MARK: - Public Methods
 
     func loadGroups() async {
@@ -117,6 +135,86 @@ final class AddItemListViewModel {
             guard let user = try await getCurrentUserUseCase.execute() else { return }
             availableGroups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
         } catch { }
+    }
+
+    func loadUsageMemory(forGroupId groupId: UUID) async {
+        let persistedLastUsed = await loadLastUsedSelectionIds(forGroupId: groupId)
+        lastUsedCategoryIds = storedCategoryIds(forGroupId: groupId)
+        if lastUsedCategoryIds.isEmpty, let categoryId = persistedLastUsed.categoryId {
+            lastUsedCategoryIds = [categoryId]
+        }
+        lastUsedPaymentMethodId = storedPaymentMethodId(forGroupId: groupId) ?? persistedLastUsed.paymentMethodId
+    }
+
+    func recordCategoryUsage(_ category: SDCategory, forGroupId groupId: UUID) {
+        var ids = lastUsedCategoryIds
+        ids.removeAll { $0 == category.id }
+        ids.insert(category.id, at: 0)
+        ids = Array(ids.prefix(categoryUsageLimit))
+        lastUsedCategoryIds = ids
+
+        let stored = ids.map { $0.uuidString }.joined(separator: ",")
+        UserDefaults.standard.set(stored, forKey: categoryUsageKey(forGroupId: groupId))
+    }
+
+    func recordPaymentMethodUsage(_ paymentMethod: SDPaymentMethod, forGroupId groupId: UUID) {
+        lastUsedPaymentMethodId = paymentMethod.id
+        UserDefaults.standard.set(paymentMethod.id.uuidString, forKey: paymentMethodUsageKey(forGroupId: groupId))
+    }
+
+    func orderedCategoriesByUsage() -> [SDCategory] {
+        categories.sorted {
+            chipRank($0.id, lastUsed: lastUsedCategoryIds) <
+            chipRank($1.id, lastUsed: lastUsedCategoryIds)
+        }
+    }
+
+    func orderedPaymentMethodsByUsage() -> [SDPaymentMethod] {
+        paymentMethods.sorted {
+            chipRank($0.id, lastUsed: lastUsedPaymentMethodId) <
+            chipRank($1.id, lastUsed: lastUsedPaymentMethodId)
+        }
+    }
+
+    private func loadLastUsedSelectionIds(forGroupId groupId: UUID) async -> (categoryId: UUID?, paymentMethodId: UUID?) {
+        do {
+            let itemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            return (
+                itemLists.first { $0.category != nil }?.category?.id,
+                itemLists.first { $0.paymentMethod != nil }?.paymentMethod?.id
+            )
+        } catch {
+            return (nil, nil)
+        }
+    }
+
+    private func storedCategoryIds(forGroupId groupId: UUID) -> [UUID] {
+        UserDefaults.standard
+            .string(forKey: categoryUsageKey(forGroupId: groupId))
+            .map { $0.components(separatedBy: ",").compactMap { UUID(uuidString: $0) } }
+            ?? []
+    }
+
+    private func storedPaymentMethodId(forGroupId groupId: UUID) -> UUID? {
+        UserDefaults.standard
+            .string(forKey: paymentMethodUsageKey(forGroupId: groupId))
+            .flatMap { UUID(uuidString: $0) }
+    }
+
+    private func categoryUsageKey(forGroupId groupId: UUID) -> String {
+        "lastUsedCategoryIds_\(groupId.uuidString)"
+    }
+
+    private func paymentMethodUsageKey(forGroupId groupId: UUID) -> String {
+        "lastUsedPaymentMethodId_\(groupId.uuidString)"
+    }
+
+    private func chipRank(_ id: UUID, lastUsed: [UUID]) -> Int {
+        lastUsed.firstIndex(of: id) ?? lastUsed.count
+    }
+
+    private func chipRank(_ id: UUID, lastUsed: UUID?) -> Int {
+        id == lastUsed ? 0 : 1
     }
 
     func loadCategories(forGroupId groupId: UUID, lastUsedCategoryId: UUID? = nil) async {
@@ -148,6 +246,10 @@ final class AddItemListViewModel {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
             if isEditMode {
                 selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
+            } else {
+                selectedPaymentMethod = lastUsedPaymentMethodId.flatMap { id in
+                    paymentMethods.first { $0.id == id }
+                }
             }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"

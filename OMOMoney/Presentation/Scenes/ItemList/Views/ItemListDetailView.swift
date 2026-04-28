@@ -12,6 +12,7 @@ struct ItemListDetailView: View {
 
     @State private var heroIsSuccess: Bool = false
     @State private var showMetaLabels: Bool = true
+    @State private var lastAddedDescription: String = ""
 
     enum ItemSheetMode: Identifiable {
         case create
@@ -101,6 +102,7 @@ struct ItemListDetailView: View {
                     currencyCode: currencyCode,
                     onItemSaved: { item in
                         Task { await viewModel.addItem(item) }
+                        lastAddedDescription = item.itemDescription
                         withAnimation(AnimationHelper.smoothSpring) { heroIsSuccess = true }
                         Task {
                             try? await Task.sleep(for: .milliseconds(900))
@@ -159,7 +161,7 @@ struct ItemListDetailView: View {
 
     private var heroCard: some View {
         TotalSpentCardView(
-            label: "Coste de \(itemList.itemListDescription)",
+            label: heroIsSuccess ? lastAddedDescription : "Coste de \(itemList.itemListDescription)",
             totalAmount: viewModel.getFormattedTotal(),
             onAddExpense: { sheetMode = .create },
             isSuccess: heroIsSuccess

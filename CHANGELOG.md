@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2026-04-29
+
+### Fixed
+- **Quick-add category and payment method defaults restored** (`AddItemListView`) — new item lists now auto-select the last used category and payment method for the active group again. The form first uses saved chip usage memory, then falls back to the latest persisted item list in that group when no local usage memory exists.
+- **Last-used selections are persisted after quick save** — selected category and payment method are recorded when creating an item list, even if the user keeps the automatically selected chips and never taps them manually.
+
+### Refactor
+- **Moved last-used selection logic out of `AddItemListView`** — `AddItemListViewModel` now owns usage memory loading, persistence, fallback resolution, category/payment ordering, and blank-description fallback logic. The view stays focused on UI coordination and delegates behavior to the ViewModel.
+
+---
+
 ## [1.1.1] - 2026-04-29
 
 ### Fixed
