@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.7] - 2026-04-29
+
+### Changed
+- **Group swipe action renamed from "Ajustes" to "Detalles"** (`GroupSelectorChipView`) — the group picker swipe action now uses a clearer details label with the info icon while keeping the same navigation to the group detail/settings screen.
+
+### Removed
+- **Unused test data generator tooling removed** — deleted the unreachable `TestDataView` and `TestDataGenerator`. The debug screen was not wired into the app, so keeping it added dead code with no user-facing path to test or maintain.
+
+---
+
 ## [1.1.6] - 2026-04-29
 
 ### Refactor

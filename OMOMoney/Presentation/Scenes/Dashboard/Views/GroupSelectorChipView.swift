@@ -144,7 +144,7 @@ struct GroupPickerSheet: View {
                                 Button {
                                     groupToEdit = group
                                 } label: {
-                                    Label("Ajustes", systemImage: "gearshape.fill")
+                                    Label("Detalles", systemImage: "info")
                                 }
                                 .tint(.orange)
                             }
