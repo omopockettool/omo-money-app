@@ -325,7 +325,7 @@ struct DashboardView: View {
                 isChangingGroup: viewModel.isChangingGroup,
                 onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
                 onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
-                onDeleteGroup: { deletedGroup in try? await viewModel.deleteGroup(deletedGroup) }
+                onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
             )
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)

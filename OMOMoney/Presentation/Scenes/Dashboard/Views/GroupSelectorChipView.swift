@@ -16,7 +16,7 @@ struct GroupSelectorChipView: View {
     let isChangingGroup: Bool  // ✅ Estado de carga del cambio de grupo
     let onGroupChange: (SDGroup) -> Void
     let onGroupCreated: (SDGroup) -> Void
-    let onDeleteGroup: (SDGroup) async -> Void
+    let onDeleteGroup: (SDGroup) async throws -> Void
 
     @State private var showingPicker = false
     
@@ -66,21 +66,16 @@ struct GroupSelectorChipView: View {
 /// ✅ Clean Architecture: Works with Domain models only
 struct GroupPickerSheet: View {
     let currentGroup: SDGroup  // ✅ Clean Architecture: Domain model
-    @State private var availableGroups: [SDGroup]  // ✅ Clean Architecture: Domain models
     let userId: UUID
     let isChangingGroup: Bool  // ✅ Estado de carga
     @Binding var showingPicker: Bool  // ✅ Para cerrar el sheet
     let onGroupChange: (SDGroup) -> Void
     let onGroupCreated: (SDGroup) -> Void
-    let onDeleteGroup: (SDGroup) async -> Void
+    let onDeleteGroup: (SDGroup) async throws -> Void
 
     @State private var showingCreateGroup = false
-    @State private var groupWasCreated = false
-    @State private var selectedGroupID: UUID?
-    @State private var showingDeleteAlert = false
-    @State private var groupToDelete: SDGroup?
-    @State private var isDeletingGroup = false
     @State private var groupToEdit: SDGroup?
+    @State private var viewModel: GroupPickerSheetViewModel
 
     init(currentGroup: SDGroup,
          availableGroups: [SDGroup],
@@ -89,26 +84,24 @@ struct GroupPickerSheet: View {
          showingPicker: Binding<Bool>,
          onGroupChange: @escaping (SDGroup) -> Void,
          onGroupCreated: @escaping (SDGroup) -> Void,
-         onDeleteGroup: @escaping (SDGroup) async -> Void) {
+         onDeleteGroup: @escaping (SDGroup) async throws -> Void) {
         self.currentGroup = currentGroup
-        self._availableGroups = State(initialValue: availableGroups)
         self.userId = userId
         self.isChangingGroup = isChangingGroup
         self._showingPicker = showingPicker
         self.onGroupChange = onGroupChange
         self.onGroupCreated = onGroupCreated
         self.onDeleteGroup = onDeleteGroup
+        self._viewModel = State(wrappedValue: GroupPickerSheetViewModel(availableGroups: availableGroups))
     }
     
     var body: some View {
         NavigationStack {
             ZStack {
                 List {
-                    ForEach(availableGroups, id: \.id) { group in  // ✅ Domain: use .id
+                    ForEach(viewModel.availableGroups, id: \.id) { group in  // ✅ Domain: use .id
                         Button {
-                            // Marcar el grupo como seleccionado y llamar al callback
-                            selectedGroupID = group.id  // ✅ Domain: UUID
-                            onGroupChange(group)
+                            viewModel.selectGroup(group, onGroupChange: onGroupChange)
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -124,7 +117,7 @@ struct GroupPickerSheet: View {
                                 Spacer()
 
                                 // Mostrar spinner si es el grupo seleccionado Y está cargando
-                                if group.id == selectedGroupID && isChangingGroup {  // ✅ Domain: UUID
+                                if group.id == viewModel.selectedGroupID && isChangingGroup {  // ✅ Domain: UUID
                                     ProgressView()
                                         .scaleEffect(0.9)
                                 }
@@ -137,18 +130,17 @@ struct GroupPickerSheet: View {
                             }
                             .contentShape(Rectangle())
                         }
-                        .disabled(isChangingGroup || isDeletingGroup)
+                        .disabled(isChangingGroup || viewModel.isDeletingGroup)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if availableGroups.count > 1 && !isDeletingGroup {
+                            if viewModel.canDeleteGroups {
                                 Button {
-                                    groupToDelete = group
-                                    showingDeleteAlert = true
+                                    viewModel.requestDelete(group)
                                 } label: {
                                     Label("Eliminar", systemImage: "trash")
                                 }
                                 .tint(.red)
                             }
-                            if !isDeletingGroup {
+                            if !viewModel.isDeletingGroup {
                                 Button {
                                     groupToEdit = group
                                 } label: {
@@ -159,10 +151,10 @@ struct GroupPickerSheet: View {
                         }
                     }
                 }
-                .disabled(isDeletingGroup)  // ✅ Deshabilitar lista completa mientras se elimina
+                .disabled(viewModel.isDeletingGroup)  // ✅ Deshabilitar lista completa mientras se elimina
                 
                 // ✅ Overlay de eliminación con spinner
-                if isDeletingGroup {
+                if viewModel.isDeletingGroup {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
                     
@@ -184,19 +176,23 @@ struct GroupPickerSheet: View {
                 }
                 
                 // ✅ Custom Alert para eliminar
-                if showingDeleteAlert, let group = groupToDelete {
+                if viewModel.showingDeleteAlert, let group = viewModel.groupToDelete {
                     CustomAlertView(
                         title: "¿Desea eliminar \(group.name)?",  // ✅ Domain: non-optional name
                         message: "Se eliminarán todos los datos asociados a este grupo.",
                         primaryButton: AlertButton(title: "Eliminar", style: .destructive) {
-                            isDeletingGroup = true
-                            deleteGroup(group)
-                            groupToDelete = nil
+                            Task {
+                                await viewModel.deleteSelectedGroup(
+                                    currentGroup: currentGroup,
+                                    onGroupChange: onGroupChange,
+                                    onDeleteGroup: onDeleteGroup
+                                )
+                            }
                         },
                         secondaryButton: AlertButton(title: "Cancelar", style: .cancel) {
-                            groupToDelete = nil
+                            viewModel.cancelDelete()
                         },
-                        isPresented: $showingDeleteAlert
+                        isPresented: $viewModel.showingDeleteAlert
                     )
                 }
             }
@@ -209,25 +205,26 @@ struct GroupPickerSheet: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
-                            .foregroundColor(isChangingGroup || isDeletingGroup ? .gray : .accentColor)
+                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .accentColor)
                     }
                     .buttonStyle(.plain)
-                    .disabled(isChangingGroup || isDeletingGroup)
+                    .disabled(isChangingGroup || viewModel.isDeletingGroup)
                 }
             }
             .sheet(isPresented: $showingCreateGroup, onDismiss: {
-                if groupWasCreated {
-                    groupWasCreated = false
+                if viewModel.groupWasCreated {
+                    viewModel.groupWasCreated = false
                     showingPicker = false
                 }
             }) {
                 CreateGroupView(
                     userId: userId,
                     onGroupCreated: { newGroup in
-                        availableGroups.append(newGroup)
-                        onGroupCreated(newGroup)
-                        onGroupChange(newGroup)
-                        groupWasCreated = true
+                        viewModel.handleGroupCreated(
+                            newGroup,
+                            onGroupCreated: onGroupCreated,
+                            onGroupChange: onGroupChange
+                        )
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -241,43 +238,11 @@ struct GroupPickerSheet: View {
                 .presentationDragIndicator(.visible)
             }
             .onChange(of: isChangingGroup) { oldValue, newValue in
-                if oldValue == true && newValue == false && selectedGroupID != nil {
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
+                Task {
+                    if await viewModel.finishGroupChangeIfNeeded(wasChanging: oldValue, isChanging: newValue) {
                         showingPicker = false
-                        selectedGroupID = nil
                     }
                 }
-            }
-        }
-    }
-    
-    // MARK: - Delete Group
-    private func deleteGroup(_ groupToDelete: SDGroup) {
-        guard availableGroups.count > 1 else { return }
-
-        let isDeletingCurrentGroup = groupToDelete.id == currentGroup.id
-        let newGroupToSelect = isDeletingCurrentGroup
-            ? availableGroups.first { $0.id != groupToDelete.id }
-            : nil
-
-        isDeletingGroup = true
-        withAnimation { availableGroups.removeAll { $0.id == groupToDelete.id } }
-
-        Task {
-            do {
-                try await onDeleteGroup(groupToDelete)
-
-                if isDeletingCurrentGroup, let newGroup = newGroupToSelect {
-                    onGroupChange(newGroup)
-                }
-
-                try? await Task.sleep(for: .seconds(1.5))
-                isDeletingGroup = false
-            } catch {
-                availableGroups.append(groupToDelete)
-                availableGroups.sort { $0.name < $1.name }
-                isDeletingGroup = false
             }
         }
     }

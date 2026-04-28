@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.6] - 2026-04-29
+
+### Refactor
+- **`GroupPickerSheetViewModel` extracted for group delete flow** — `GroupPickerSheet` no longer owns delete eligibility, optimistic removal, rollback, fallback group selection, or create-group state updates. The delete callback now propagates errors with `async throws`, allowing rollback behavior to remain inside the ViewModel instead of being swallowed by the view chain.
+
+---
+
 ## [1.1.5] - 2026-04-29
 
 ### Refactor
