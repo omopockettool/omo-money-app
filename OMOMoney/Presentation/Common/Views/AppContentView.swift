@@ -9,26 +9,17 @@ import SwiftUI
 
 struct AppContentView: View {
     @State private var navigationPath = NavigationPath()
-    @State private var selectedUser: SDUser?
-    @State private var selectedGroup: SDGroup?
-    @State private var isLoading = true
-
-    // ✅ Clean Architecture: Use DI Container for dependencies
-    private let getCurrentUserUseCase: GetCurrentUserUseCase
-    private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+    @State private var viewModel: AppContentViewModel
 
     init() {
-        let container = AppDIContainer.shared
-        self.getCurrentUserUseCase = container.makeGetCurrentUserUseCase()
-        self.fetchGroupsForUserUseCase = container.makeFetchGroupsForUserUseCase()
+        _viewModel = State(wrappedValue: AppContentViewModel())
     }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            if isLoading {
+            if viewModel.isLoading {
                 loadingView
-            } else if let _ = selectedUser, let _ = selectedGroup {
-                // ✅ Clean Architecture: No context passed to DashboardView
+            } else if viewModel.isSetupComplete {
                 DashboardView()
                     .navigationBarHidden(true)
             } else {
@@ -39,7 +30,7 @@ struct AppContentView: View {
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark) // Apply dark mode for prototype design
         .onAppear {
-            loadInitialData()
+            Task { await viewModel.loadInitialData() }
         }
     }
     
@@ -77,42 +68,6 @@ struct AppContentView: View {
     
     // MARK: - Legacy Views (Moved to DashboardView)
     // Header and Quick Actions have been moved to DashboardView components
-}
-
-// MARK: - Helper Functions
-extension AppContentView {
-    @MainActor
-    private func loadInitialData() {
-        Task {
-            isLoading = true
-
-            do {
-                // ✅ Clean Architecture: Use Use Case instead of Service
-                guard let currentUser = try await getCurrentUserUseCase.execute() else {
-                    print("❌ AppContentView: No users found")
-                    isLoading = false
-                    return
-                }
-
-                // ✅ Clean Architecture: Use Use Case to get groups
-                let groups = try await fetchGroupsForUserUseCase.execute(userId: currentUser.id)
-
-                await MainActor.run {
-                    selectedUser = currentUser
-                    selectedGroup = groups.first
-                    isLoading = false
-                }
-
-                print("✅ AppContentView: Loaded user: \(currentUser.name), groups: \(groups.count)")
-
-            } catch {
-                print("❌ AppContentView: Error loading data: \(error)")
-                await MainActor.run {
-                    isLoading = false
-                }
-            }
-        }
-    }
 }
 
 #Preview {

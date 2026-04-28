@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2026-04-29
+
+### Refactor
+- **`AppContentViewModel` extracted for app content loading** — `AppContentView` no longer creates or executes `GetCurrentUserUseCase` or `FetchGroupsForUserUseCase` directly. Initial user/group loading and setup-complete state now live in `AppContentViewModel`, keeping `AppContentView` focused on routing between loading, dashboard, and setup-required UI.
+
+---
+
 ## [1.1.3] - 2026-04-29
 
 ### Refactor
