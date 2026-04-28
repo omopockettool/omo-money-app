@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.56] - 2026-04-29
+
+### Added
+- **Unpaid total in `ItemListDetailView` hero card** — hero card now shows remaining amount to pay. Status indicator (clock + amount in orange, or checkmark in green) is always visible from first frame. During the first 3 seconds, category and payment method labels are shown with their icons and the status shows icon-only to avoid crowding. After the timer, labels fade out and the full remaining amount appears next to the clock icon.
+- **`EmptyStateView` shared component** (`Presentation/Common/Components/EmptyStateView.swift`) — extracted reusable empty state (sparkles icon + "Nada por aquí..." + custom message). Replaces inline duplicates in `ExpenseListView` and `ItemListDetailView`.
+
+### Changed
+- **Hero card label** (`ItemListDetailView`) — label now reads "Coste de {description}" instead of the bare description.
+- **Hero meta row icons-only after timer** (`ItemListDetailView`) — category and payment method chips collapse to icon-only after 3 seconds; status (clock/checkmark) keeps full context visible at all times.
+
+---
+
 ## [1.0.55] - 2026-04-28
 
 ### Changed

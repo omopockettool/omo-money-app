@@ -139,6 +139,12 @@ class ItemListDetailViewModel {
         return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "\(total) \(currencyCode)"
     }
 
+    func getFormattedUnpaidTotal() -> String? {
+        let unpaid = items.filter { !$0.isPaid }.reduce(0.0) { $0 + $1.totalAmount }
+        guard unpaid > 0 else { return nil }
+        return makeCurrencyFormatter().string(from: NSNumber(value: unpaid)) ?? "\(unpaid) \(currencyCode)"
+    }
+
     func getFormattedAmount(_ item: SDItem) -> String {
         return makeCurrencyFormatter().string(from: NSNumber(value: item.totalAmount)) ?? "\(item.totalAmount) \(currencyCode)"
     }

@@ -86,22 +86,7 @@ struct ExpenseListView: View {
     // MARK: - Private Views
     
     private var emptyStateView: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "sparkles.2")
-                .font(.largeTitle)
-                .foregroundColor(.secondary)
-
-            Text("Nada por aquí...")
-                .font(.headline)
-                .foregroundColor(.secondary)
-
-            Text("Pulsa el + para agregar un registro")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 50)
+        EmptyStateView(message: "Pulsa el + para agregar un registro")
     }
     
     @ViewBuilder

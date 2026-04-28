@@ -11,6 +11,7 @@ struct ItemListDetailView: View {
     @State private var hasLoadedInitialData = false
 
     @State private var heroIsSuccess: Bool = false
+    @State private var showMetaLabels: Bool = true
 
     enum ItemSheetMode: Identifiable {
         case create
@@ -84,6 +85,10 @@ struct ItemListDetailView: View {
             }
             hasLoadedInitialData = true
             Task { await viewModel.loadItems() }
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                withAnimation(.easeInOut(duration: 0.5)) { showMetaLabels = false }
+            }
         }
         .sheet(item: $sheetMode) { mode in
             let container = AppDIContainer.shared
@@ -154,7 +159,7 @@ struct ItemListDetailView: View {
 
     private var heroCard: some View {
         TotalSpentCardView(
-            label: itemList.itemListDescription,
+            label: "Coste de \(itemList.itemListDescription)",
             totalAmount: viewModel.getFormattedTotal(),
             onAddExpense: { sheetMode = .create },
             isSuccess: heroIsSuccess
@@ -170,8 +175,11 @@ struct ItemListDetailView: View {
                 HStack(spacing: 4) {
                     Image(systemName: category.icon)
                         .foregroundStyle(color)
-                    Text(category.name)
-                        .foregroundStyle(color)
+                    if showMetaLabels {
+                        Text(category.name)
+                            .foregroundStyle(color)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
+                    }
                 }
                 .font(.caption)
                 .fontWeight(.medium)
@@ -181,12 +189,33 @@ struct ItemListDetailView: View {
                 HStack(spacing: 4) {
                     Image(systemName: pm.icon.isEmpty ? pmDefaultIcon(pm.type) : pm.icon)
                         .foregroundStyle(color)
-                    Text(pm.name)
-                        .foregroundStyle(color)
+                    if showMetaLabels {
+                        Text(pm.name)
+                            .foregroundStyle(color)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
+                    }
                 }
                 .font(.caption)
                 .fontWeight(.medium)
             }
+            Group {
+                if let unpaid = viewModel.getFormattedUnpaidTotal() {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                        if !showMetaLabels {
+                            Text(unpaid)
+                                .fontWeight(.medium)
+                                .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
+                        }
+                    }
+                    .foregroundStyle(.orange)
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+            }
+            .font(.caption)
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: viewModel.getFormattedUnpaidTotal() == nil)
         }
         .padding(.top, 2)
     }
@@ -265,22 +294,7 @@ struct ItemListDetailView: View {
     // MARK: - Empty State
 
     private var emptyStateRow: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "sparkles.2")
-                .font(.largeTitle)
-                .foregroundColor(.secondary)
-
-            Text("Nada por aquí...")
-                .font(.headline)
-                .foregroundColor(.secondary)
-
-            Text("Pulsa el + para agregar un artículo")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 50)
+        EmptyStateView(message: "Pulsa el + para agregar un artículo")
     }
 
     private func pmDefaultIcon(_ type: String) -> String {
