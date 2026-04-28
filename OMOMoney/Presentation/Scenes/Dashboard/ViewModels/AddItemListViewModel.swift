@@ -10,6 +10,8 @@ final class AddItemListViewModel {
     // MARK: - Published Properties
     var categories: [SDCategory] = []
     var paymentMethods: [SDPaymentMethod] = []
+    var availableGroups: [SDGroup] = []
+    var selectedGroup: SDGroup?
     var isLoading = false
     var errorMessage: String?
     var toast: ToastMessage?
@@ -27,6 +29,8 @@ final class AddItemListViewModel {
     private let updateItemListUseCase: UpdateItemListUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
+    private let getCurrentUserUseCase: GetCurrentUserUseCase
+    private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let itemListToEdit: SDItemList?
 
     // MARK: - Computed
@@ -41,7 +45,9 @@ final class AddItemListViewModel {
         createItemUseCase: CreateItemUseCase,
         updateItemListUseCase: UpdateItemListUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
-        fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
+        fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase,
+        getCurrentUserUseCase: GetCurrentUserUseCase,
+        fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     ) {
         self.itemListToEdit = itemListToEdit
         self.createItemListUseCase = createItemListUseCase
@@ -49,10 +55,13 @@ final class AddItemListViewModel {
         self.updateItemListUseCase = updateItemListUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.fetchPaymentMethodsUseCase = fetchPaymentMethodsUseCase
+        self.getCurrentUserUseCase = getCurrentUserUseCase
+        self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
 
         if let toEdit = itemListToEdit {
             self.description = toEdit.itemListDescription
             self.date = toEdit.date
+            self.selectedGroup = toEdit.group
         }
     }
 
@@ -64,7 +73,9 @@ final class AddItemListViewModel {
             createItemUseCase: appContainer.makeCreateItemUseCase(),
             updateItemListUseCase: appContainer.makeUpdateItemListUseCase(),
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
-            fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase()
+            fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase(),
+            getCurrentUserUseCase: appContainer.makeGetCurrentUserUseCase(),
+            fetchGroupsForUserUseCase: appContainer.makeFetchGroupsForUserUseCase()
         )
         if itemListToEdit == nil, let initialDate {
             self.date = initialDate
@@ -100,6 +111,13 @@ final class AddItemListViewModel {
     }
 
     // MARK: - Public Methods
+
+    func loadGroups() async {
+        do {
+            guard let user = try await getCurrentUserUseCase.execute() else { return }
+            availableGroups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
+        } catch { }
+    }
 
     func loadCategories(forGroupId groupId: UUID, lastUsedCategoryId: UUID? = nil) async {
         isLoading = true
@@ -211,6 +229,7 @@ final class AddItemListViewModel {
         toEdit.date = date
         if let category = selectedCategory { toEdit.category = category }
         toEdit.paymentMethod = selectedPaymentMethod
+        if let group = selectedGroup { toEdit.group = group }
 
         do {
             try await updateItemListUseCase.execute(toEdit)

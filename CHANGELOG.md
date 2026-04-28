@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-04-29
+
+> **Versioning note:** Starting from this release the project follows Semantic Versioning strictly.
+> Patch (`x.x.N`) = bug fixes. Minor (`x.N.0`) = new features. Major (`N.0.0`) = breaking changes.
+> All previous 1.0.x releases were features; they would have been 1.x.0 under this scheme.
+
+### Added
+- **Change group in create/edit item list** (`AddItemListView`) — the Group row in the "Más detalles" section is now an interactive `Menu` listing all user groups. Selecting a different group reloads its categories and payment methods. If the previously selected category or payment method has a name match in the new group it is auto-selected. On save, the item list is persisted under the chosen group.
+
+---
+
 ## [1.0.56] - 2026-04-29
 
 ### Added

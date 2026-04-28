@@ -37,16 +37,18 @@ struct AddItemListView: View {
 
     // MARK: - Computed
 
+    private var activeGroup: SDGroup { viewModel.selectedGroup ?? group }
+
     private var lastUsedCategoryIds: [UUID] {
         UserDefaults.standard
-            .string(forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
+            .string(forKey: "lastUsedCategoryIds_\(activeGroup.id.uuidString)")
             .map { $0.components(separatedBy: ",").compactMap { UUID(uuidString: $0) } }
             ?? []
     }
 
     private var lastUsedPaymentMethodId: UUID? {
         UserDefaults.standard
-            .string(forKey: "lastUsedPaymentMethodId_\(group.id.uuidString)")
+            .string(forKey: "lastUsedPaymentMethodId_\(activeGroup.id.uuidString)")
             .flatMap { UUID(uuidString: $0) }
     }
 
@@ -104,7 +106,7 @@ struct AddItemListView: View {
         ids.removeAll { $0 == category.id }
         ids.insert(category.id, at: 0)
         let stored = ids.prefix(Self.gridCategoryLimit).map { $0.uuidString }.joined(separator: ",")
-        UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
+        UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(activeGroup.id.uuidString)")
     }
 
     private var categoryChipMinHeight: CGFloat {
@@ -118,7 +120,7 @@ struct AddItemListView: View {
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = group.currency
+        formatter.currencyCode = activeGroup.currency
         formatter.locale = Locale(identifier: "en_US")
         return formatter.currencySymbol
     }
@@ -195,8 +197,10 @@ struct AddItemListView: View {
             }
         }
         .task {
-            async let categories: () = viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedPaymentMethodId)
+            await viewModel.loadGroups()
+            if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
+            async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: lastUsedCategoryIds.first)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: lastUsedPaymentMethodId)
             _ = await (categories, paymentMethods)
             orderedCategories = sortedCategories()
             orderedPaymentMethods = sortedPaymentMethods()
@@ -205,6 +209,29 @@ struct AddItemListView: View {
                 if !Calendar.current.isDateInToday(viewModel.date) {
                     suppressCalendarExpand = true
                     showDatePicker = true
+                }
+            }
+        }
+        .onChange(of: viewModel.selectedGroup?.id) { _, _ in
+            let previousCategoryName = viewModel.selectedCategory?.name
+            let previousPaymentMethodName = viewModel.selectedPaymentMethod?.name
+            viewModel.selectedCategory = nil
+            viewModel.selectedPaymentMethod = nil
+            Task {
+                async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id)
+                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id)
+                _ = await (categories, paymentMethods)
+                orderedCategories = sortedCategories()
+                orderedPaymentMethods = sortedPaymentMethods()
+                if let name = previousCategoryName {
+                    viewModel.selectedCategory = viewModel.categories.first {
+                        $0.name.lowercased() == name.lowercased()
+                    }
+                }
+                if let name = previousPaymentMethodName {
+                    viewModel.selectedPaymentMethod = viewModel.paymentMethods.first {
+                        $0.name.lowercased() == name.lowercased()
+                    }
                 }
             }
         }
@@ -708,22 +735,46 @@ struct AddItemListView: View {
     // MARK: - Group Card
 
     private var groupCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "person.2.fill")
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 20)
-            Text("Grupo")
-                .foregroundStyle(.secondary)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-            Spacer()
-            Text(group.name)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
+        Menu {
+            ForEach(viewModel.availableGroups, id: \.id) { g in
+                Button {
+                    withAnimation(AnimationHelper.quickSpring) {
+                        viewModel.selectedGroup = g
+                    }
+                } label: {
+                    if g.id == activeGroup.id {
+                        Label(g.name, systemImage: "checkmark")
+                    } else {
+                        Text(g.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.2.fill")
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 20)
+                Text("Grupo")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Spacer()
+                HStack(spacing: 4) {
+                    Text(activeGroup.name)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                    if viewModel.availableGroups.count > 1 {
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+            .padding(AppConstants.UserInterface.padding)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .buttonStyle(.plain)
     }
 
     // MARK: - Payment Method Helpers
@@ -761,7 +812,7 @@ struct AddItemListView: View {
             if viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 viewModel.description = finalDescription
             }
-            if let updated = await viewModel.updateItemList(groupId: group.id) {
+            if let updated = await viewModel.updateItemList(groupId: activeGroup.id) {
                 onItemListUpdated?(updated)
             }
         } else {
@@ -769,7 +820,7 @@ struct AddItemListView: View {
                 description: finalDescription,
                 date: viewModel.date,
                 categoryId: viewModel.selectedCategory?.id ?? UUID(),
-                groupId: group.id,
+                groupId: activeGroup.id,
                 paymentMethodId: viewModel.selectedPaymentMethod?.id
             ) {
                 onItemListCreated(created)
