@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.55] - 2026-04-28
+
+### Changed
+- **Date header "+" replaced with "…" context menu** (`ExpenseListView`) — the per-date add button in month-mode section headers is now an ellipsis menu (`ellipsis`, 18pt). Tapping it reveals a single action: "Añadir en esta fecha". Reduces visual noise while keeping the action accessible.
+
+---
+
 ## [1.0.54] - 2026-04-26
 
 ### Changed

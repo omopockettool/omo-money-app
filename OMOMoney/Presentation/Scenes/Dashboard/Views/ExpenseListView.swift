@@ -122,14 +122,18 @@ struct ExpenseListView: View {
                         .textCase(.none)
                 }
                 if let onAdd = onAddForDate {
-                    Button {
-                        onAdd(date)
+                    Menu {
+                        Button {
+                            onAdd(date)
+                        } label: {
+                            Label("Añadir en esta fecha", systemImage: "plus")
+                        }
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 18))
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(Color.secondary)
+                            .padding(.horizontal, 4)
                     }
-                    .buttonStyle(PressHapticButtonStyle())
                 }
             }
         }
