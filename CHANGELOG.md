@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.5] - 2026-04-29
+
+### Refactor
+- **`UserProfileViewModel` extracted for profile saving** — `UserProfileView` no longer creates `UpdateUserUseCase`, mutates `SDUser`, sets modification timestamps, or manages save errors directly. Profile name editing, validation, loading state, persistence, and error handling now live in `UserProfileViewModel`.
+
+---
+
 ## [1.1.4] - 2026-04-29
 
 ### Refactor
