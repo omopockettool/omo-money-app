@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-04-29
+
+### Fixed
+- **Category and payment method labels truncate correctly in hero meta row** (`ItemListDetailView`) — during the 3-second label phase, long names like "Alimentación" now truncate with `...` instead of wrapping. Added `.lineLimit(1).truncationMode(.tail)` to both label texts in `heroMetaRow`.
+- **Category chip labels truncate correctly in `AddItemListView`** — replaced `ZStack` dual-layout with `if/else` + `.transition` in `categoryChip` and `overflowChip`. ZStack was passing an unconstrained width proposal to `Text`, preventing truncation from triggering.
+
+---
+
 ## [1.1.0] - 2026-04-29
 
 > **Versioning note:** Starting from this release the project follows Semantic Versioning strictly.

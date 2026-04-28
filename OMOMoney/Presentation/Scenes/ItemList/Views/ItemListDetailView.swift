@@ -178,6 +178,8 @@ struct ItemListDetailView: View {
                     if showMetaLabels {
                         Text(category.name)
                             .foregroundStyle(color)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                             .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
                     }
                 }
@@ -192,6 +194,8 @@ struct ItemListDetailView: View {
                     if showMetaLabels {
                         Text(pm.name)
                             .foregroundStyle(color)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                             .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
                     }
                 }
