@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2026-04-29
+
+### Refactor
+- **`MainViewModel` extracted for app bootstrap flow** — `MainView` no longer creates or executes `GetCurrentUserUseCase` directly. Startup state (`isLoading`, `hasUsers`), first-user detection, and the minimum splash display timing now live in `MainViewModel`, keeping `MainView` focused on rendering `SplashView`, `AppContentView`, or `CreateFirstUserView`.
+
+---
+
 ## [1.1.2] - 2026-04-29
 
 ### Fixed
