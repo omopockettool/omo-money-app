@@ -126,7 +126,7 @@ struct CreateFirstUserView: View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(focusedField == field ? Color.accentColor : Color.secondary)
+                .foregroundStyle(Color.secondary)
                 .frame(width: 24)
                 .contentTransition(.symbolEffect(.replace))
             
@@ -153,7 +153,7 @@ struct CreateFirstUserView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(
-                            focusedField == field ? Color.accentColor.opacity(0.6) : Color.clear,
+                            focusedField == field ? Color(.systemGray3) : Color.clear,
                             lineWidth: 2
                         )
                 )

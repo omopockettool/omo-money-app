@@ -49,7 +49,7 @@ struct LimitedTextField<F: Hashable>: View {
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(isFocused ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                .stroke(isFocused ? Color(.systemGray3) : Color.clear, lineWidth: 1.5)
                 .animation(AnimationHelper.formFocus, value: isFocused)
         )
     }

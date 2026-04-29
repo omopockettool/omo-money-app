@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-04-29
+
+### Changed
+- **Form focus borders aligned to neutral gray** — shared `LimitedTextField` focus borders now match the money hero input by using `systemGray3` instead of accent/primary styling. This aligns focus feedback across Nuevo Artículo, Nueva Categoría, Métodos de Pago, Grupo, Perfil, and first-user setup forms.
+- **Nuevo Artículo quantity focus border added** — the quantity stepper field now uses the same gray focus outline as the rest of the form fields.
+
+---
+
 ## [1.2.0] - 2026-04-29
 
 ### Added

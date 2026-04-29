@@ -570,6 +570,11 @@ struct AddItemView: View {
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                    .stroke(focusedField == .quantity ? Color(.systemGray3) : Color.clear, lineWidth: 1.5)
+                    .animation(AnimationHelper.formFocus, value: focusedField == .quantity)
+            )
         }
     }
 
