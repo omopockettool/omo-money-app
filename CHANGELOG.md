@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-04-29
+
+### Added
+- **Group picker rows redesigned** (`GroupSelectorChipView`) — the group picker sheet now shows each group as a richer row with the selected/empty status icon on the left, the group name, and the total spent in that group below it.
+- **Visible group row actions** (`GroupSelectorChipView`) — each group row now has a trailing three-dot menu exposing the same `Detalles` and `Eliminar` actions as the existing swipe actions, making group management discoverable without removing swipe support.
+- **Shared haptic feedback on group selection** (`GroupSelectorChipView`) — tapping anywhere on the selectable row area now uses the shared `PressHapticButtonStyle`, so changing groups gets the same tactile feedback as the rest of the app.
+
+---
+
 ## [1.2.1] - 2026-04-29
 
 ### Changed

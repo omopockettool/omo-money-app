@@ -100,54 +100,9 @@ struct GroupPickerSheet: View {
             ZStack {
                 List {
                     ForEach(viewModel.availableGroups, id: \.id) { group in  // ✅ Domain: use .id
-                        Button {
-                            viewModel.selectGroup(group, onGroupChange: onGroupChange)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(group.name)  // ✅ Domain: non-optional name
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-
-                                    Text(group.currency)  // ✅ Domain: non-optional currency
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                // Mostrar spinner si es el grupo seleccionado Y está cargando
-                                if group.id == viewModel.selectedGroupID && isChangingGroup {  // ✅ Domain: UUID
-                                    ProgressView()
-                                        .scaleEffect(0.9)
-                                }
-                                // Mostrar checkmark si es el grupo actual Y NO está cargando
-                                else if group.id == currentGroup.id {  // ✅ Domain: UUID
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .disabled(isChangingGroup || viewModel.isDeletingGroup)
+                        groupRow(group)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if viewModel.canDeleteGroups {
-                                Button {
-                                    viewModel.requestDelete(group)
-                                } label: {
-                                    Label("Eliminar", systemImage: "trash")
-                                }
-                                .tint(.red)
-                            }
-                            if !viewModel.isDeletingGroup {
-                                Button {
-                                    groupToEdit = group
-                                } label: {
-                                    Label("Detalles", systemImage: "info")
-                                }
-                                .tint(.gray)
-                            }
+                            groupSwipeActions(for: group)
                         }
                     }
                 }
@@ -245,6 +200,115 @@ struct GroupPickerSheet: View {
                 }
             }
         }
+    }
+
+    private func groupRow(_ group: SDGroup) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                viewModel.selectGroup(group, onGroupChange: onGroupChange)
+            } label: {
+                HStack(spacing: 12) {
+                    selectionIndicator(for: group)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(group.name)  // ✅ Domain: non-optional name
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+
+                        Text(formattedTotalSpent(for: group))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(PressHapticButtonStyle())
+            .disabled(isChangingGroup || viewModel.isDeletingGroup)
+
+            Menu {
+                groupMenuActions(for: group)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isChangingGroup || viewModel.isDeletingGroup)
+            .accessibilityLabel("Opciones de \(group.name)")
+        }
+    }
+
+    @ViewBuilder
+    private func selectionIndicator(for group: SDGroup) -> some View {
+        if group.id == viewModel.selectedGroupID && isChangingGroup {  // ✅ Domain: UUID
+            ProgressView()
+                .scaleEffect(0.85)
+                .frame(width: 24, height: 24)
+        } else {
+            Image(systemName: group.id == currentGroup.id ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundColor(group.id == currentGroup.id ? .accentColor : Color(.systemGray3))
+                .frame(width: 24, height: 24)
+        }
+    }
+
+    @ViewBuilder
+    private func groupSwipeActions(for group: SDGroup) -> some View {
+        if viewModel.canDeleteGroups {
+            Button {
+                viewModel.requestDelete(group)
+            } label: {
+                Label("Eliminar", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+        if !viewModel.isDeletingGroup {
+            Button {
+                groupToEdit = group
+            } label: {
+                Label("Detalles", systemImage: "info")
+            }
+            .tint(.gray)
+        }
+    }
+
+    @ViewBuilder
+    private func groupMenuActions(for group: SDGroup) -> some View {
+        if !viewModel.isDeletingGroup {
+            Button {
+                groupToEdit = group
+            } label: {
+                Label("Detalles", systemImage: "info.circle")
+            }
+        }
+        if viewModel.canDeleteGroups {
+            Button(role: .destructive) {
+                viewModel.requestDelete(group)
+            } label: {
+                Label("Eliminar", systemImage: "trash")
+            }
+        }
+    }
+
+    private func formattedTotalSpent(for group: SDGroup) -> String {
+        let total = group.itemLists.reduce(0.0) { $0 + $1.totalAmount }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = group.currency
+        formatter.locale = Locale(identifier: "es_ES")
+
+        let symbolFormatter = NumberFormatter()
+        symbolFormatter.numberStyle = .currency
+        symbolFormatter.currencyCode = group.currency
+        symbolFormatter.locale = Locale(identifier: "en_US")
+        formatter.currencySymbol = symbolFormatter.currencySymbol
+
+        return formatter.string(from: NSNumber(value: total)) ?? "\(total) \(group.currency)"
     }
 }
 
