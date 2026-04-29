@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-04-29
+
+### Added
+- **Dedicated group information editor** (`GroupInfoEditSheet`) — group name and currency editing now opens in its own sheet with its own `X` and save action, avoiding confusion with category and payment method management screens.
+
+### Changed
+- **Group settings screen simplified** (`GroupFormView`) — the group settings view now acts as a management hub with separate rows for group information, categories, and payment methods, and no longer shows a global save action while navigating nested management flows.
+- **Group settings UI modularized** (`GroupFormView`) — extracted reusable private section and row components to keep the main view focused on composition.
+
+---
+
 ## [1.3.1] - 2026-04-29
 
 ### Fixed

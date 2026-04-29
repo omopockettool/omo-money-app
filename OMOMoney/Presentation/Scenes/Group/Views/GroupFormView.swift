@@ -5,96 +5,17 @@ struct GroupFormView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = GroupFormViewModel()
-    @State private var name = ""
-    @State private var selectedCurrency = "EUR"
-    @FocusState private var nameFocused: Bool?
-
-    private let availableCurrencies = [
-        ("EUR", "Euro (EUR)"),
-        ("USD", "Dólar (USD)")
-    ]
+    @State private var showingGroupInfoEditor = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
 
-                // MARK: Nombre
-                LimitedTextField(
-                    icon: "person.2.fill",
-                    placeholder: "Nombre del grupo",
-                    text: $name,
-                    maxLength: 30,
-                    focusedField: $nameFocused,
-                    fieldValue: true
-                )
-
-                // MARK: Moneda
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Moneda")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-
-                    VStack(spacing: 0) {
-                        ForEach(availableCurrencies, id: \.0) { code, label in
-                            Button {
-                                withAnimation(AnimationHelper.quickSpring) { selectedCurrency = code }
-                            } label: {
-                                HStack {
-                                    Text(label)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if selectedCurrency == code {
-                                        Image(systemName: "checkmark")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(Color.accentColor)
-                                    }
-                                }
-                                .padding(AppConstants.UserInterface.padding)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-
-                            if code != availableCurrencies.last?.0 {
-                                Divider()
-                                    .padding(.horizontal, AppConstants.UserInterface.padding)
-                            }
-                        }
-                    }
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-                }
+                // MARK: Información del grupo
+                groupSection
 
                 // MARK: Contenido del grupo
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Contenido")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-
-                    VStack(spacing: 0) {
-                        NavigationLink {
-                            CategoryManagementView(group: group)
-                        } label: {
-                            settingsRow(icon: "tag.fill", color: .orange, title: "Categorías")
-                                .padding(AppConstants.UserInterface.padding)
-                        }
-
-                        Divider()
-                            .padding(.horizontal, AppConstants.UserInterface.padding)
-
-                        NavigationLink {
-                            PaymentMethodManagementView(group: group)
-                        } label: {
-                            settingsRow(icon: "creditcard.fill", color: .blue, title: "Métodos de pago")
-                                .padding(AppConstants.UserInterface.padding)
-                        }
-                    }
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-                }
+                contentSection
             }
             .padding(AppConstants.UserInterface.padding)
         }
@@ -107,22 +28,93 @@ struct GroupFormView: View {
                     Image(systemName: "xmark")
                 }
             }
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    Task { await save() }
-                } label: {
-                    Image(systemName: "checkmark")
-                }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
-            }
         }
-        .onAppear {
-            name = group.name
-            selectedCurrency = group.currency
+        .sheet(isPresented: $showingGroupInfoEditor) {
+            GroupInfoEditSheet(group: group) {
+                onSaved()
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
-    private func settingsRow(icon: String, color: Color, title: String) -> some View {
+    private var groupSection: some View {
+        GroupSettingsSection(title: "Grupo") {
+            Button {
+                showingGroupInfoEditor = true
+            } label: {
+                GroupSettingsRow(
+                    icon: "person.2.fill",
+                    color: .accentColor,
+                    title: group.name,
+                    subtitle: group.currency
+                )
+                .padding(AppConstants.UserInterface.padding)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var contentSection: some View {
+        GroupSettingsSection(title: "Contenido") {
+            NavigationLink {
+                CategoryManagementView(group: group)
+            } label: {
+                GroupSettingsRow(
+                    icon: "tag.fill",
+                    color: .orange,
+                    title: "Categorías",
+                    titleColor: .white
+                )
+                .padding(AppConstants.UserInterface.padding)
+            }
+
+            Divider()
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+
+            NavigationLink {
+                PaymentMethodManagementView(group: group)
+            } label: {
+                GroupSettingsRow(
+                    icon: "creditcard.fill",
+                    color: .blue,
+                    title: "Métodos de pago",
+                    titleColor: .white
+                )
+                .padding(AppConstants.UserInterface.padding)
+            }
+        }
+    }
+}
+
+private struct GroupSettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                content
+            }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        }
+    }
+}
+
+private struct GroupSettingsRow: View {
+    let icon: String
+    let color: Color
+    let title: String
+    var subtitle: String?
+    var titleColor: Color = .primary
+
+    var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
@@ -132,22 +124,20 @@ struct GroupFormView: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white)
             }
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(titleColor)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color(.tertiaryLabel))
-        }
-    }
-
-    private func save() async {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        if await viewModel.update(group: group, name: trimmed, currency: selectedCurrency) {
-            onSaved()
-            dismiss()
         }
     }
 }
