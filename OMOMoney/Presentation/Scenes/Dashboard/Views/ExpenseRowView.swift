@@ -62,12 +62,13 @@ struct ExpenseRowView: View {
                 }
                 .layoutPriority(1)
             }
-            .padding(.vertical, isCompact ? 12 : 14)
+            .padding(.top, isCompact ? 12 : 14)
+            .padding(.bottom, isCompact ? 16 : 18)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(Color(.separator).opacity(0.18))
-                    .frame(height: 0.5)
-                    .padding(.leading, 2)
+                    .fill(Color(.separator).opacity(0.15))
+                    .frame(height: 2.0)
+                    .frame(maxWidth: 120)
             }
         }
         .padding(.trailing, 2)

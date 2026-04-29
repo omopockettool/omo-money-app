@@ -71,7 +71,7 @@ class ItemListDetailViewModel {
         do {
             let fetchedItems = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
 
-            items = fetchedItems.sorted { $0.createdAt > $1.createdAt }
+            items = sortItems(fetchedItems)
             print("✅ [LOAD-ITEMS] Loaded \(items.count) items")
             isLoading = false
         } catch {
@@ -86,15 +86,15 @@ class ItemListDetailViewModel {
     func addItem(_ item: SDItem) async {
         print("➕ [ADD] Adding new item: '\(item.itemDescription)'")
         items.append(item)
-        items.sort { $0.createdAt > $1.createdAt }
+        items = sortItems(items)
         print("📊 [ADD] New count: \(items.count)")
     }
 
     func updateItem(_ item: SDItem) async {
         print("✏️ [EDIT] Updating item: '\(item.itemDescription)'")
         // SDItem is a reference type — the object is already updated in place.
-        // Re-sort in case createdAt ordering changed.
-        items.sort { $0.createdAt > $1.createdAt }
+        // Re-sort in case payment status or createdAt ordering changed.
+        items = sortItems(items)
         print("✅ [EDIT] Item updated")
     }
 
@@ -110,14 +110,30 @@ class ItemListDetailViewModel {
     func toggleItemPaid(_ item: SDItem) async {
         let newIsPaid = !item.isPaid
         item.isPaid = newIsPaid
+        withAnimation(.easeInOut(duration: 0.2)) {
+            items = sortItems(items)
+        }
         do {
             try await toggleItemPaidUseCase.execute(itemId: item.id, isPaid: newIsPaid)
         } catch {
             item.isPaid = !newIsPaid
+            withAnimation(.easeInOut(duration: 0.2)) {
+                items = sortItems(items)
+            }
         }
     }
 
     // MARK: - Formatting Helpers
+
+    private func sortItems(_ items: [SDItem]) -> [SDItem] {
+        items.sorted { lhs, rhs in
+            if lhs.isPaid != rhs.isPaid {
+                return lhs.isPaid == false
+            }
+
+            return lhs.createdAt > rhs.createdAt
+        }
+    }
 
     private func makeCurrencyFormatter() -> NumberFormatter {
         let formatter = NumberFormatter()

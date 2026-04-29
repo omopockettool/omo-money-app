@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.4] - 2026-04-29
 
+### Changed
+- **Item-list detail now prioritizes unpaid items** (`ItemListDetailViewModel`) — items in a registry are now sorted with pending entries first and completed entries moved to the end, while keeping newest items first inside each status group. Toggling paid status immediately reorders the row so the detail screen behaves more like an actionable checklist.
+
 ### Refactor
 - **Removed redundant `MainActor.run` blocks from `DashboardViewModel`** — since the ViewModel is already isolated with `@MainActor`, direct state reads and writes now happen inline instead of being wrapped in repeated `await MainActor.run { }` calls. This keeps the dashboard concurrency model clearer without changing behavior.
 
