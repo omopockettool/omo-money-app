@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] - 2026-04-29
+
+### Refactor
+- **DI container layer simplified** (`AppDIContainer`) — removed the partial `UserSceneDIContainer` and `GroupSceneDIContainer` wrappers and routed their remaining factories through the main app container for a single dependency creation path.
+- **Delete group factory centralized** (`AppDIContainer`) — added `makeDeleteGroupUseCase()` directly to the main container and updated dashboard/user creation flows to avoid scene-container indirection.
+
+---
+
 ## [1.4.1] - 2026-04-29
 
 ### Fixed

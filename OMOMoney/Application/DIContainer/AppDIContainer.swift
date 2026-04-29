@@ -129,27 +129,13 @@ final class AppDIContainer {
     func makeUpdateGroupUseCase() -> UpdateGroupUseCase {
         DefaultUpdateGroupUseCase(groupRepository: groupRepository)
     }
+    func makeDeleteGroupUseCase() -> DeleteGroupUseCase {
+        DefaultDeleteGroupUseCase(groupRepository: groupRepository)
+    }
 
     // MARK: - UserGroup Use Cases
 
     func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
         DefaultCreateUserGroupUseCase(userGroupRepository: userGroupRepository)
-    }
-
-    // MARK: - Scene DI Containers
-
-    func makeUserSceneDIContainer() -> UserSceneDIContainer {
-        UserSceneDIContainer(dependencies: .init(
-            userRepository: userRepository,
-            groupRepository: groupRepository,
-            userGroupRepository: userGroupRepository
-        ))
-    }
-
-    func makeGroupSceneDIContainer() -> GroupSceneDIContainer {
-        GroupSceneDIContainer(dependencies: .init(
-            groupRepository: groupRepository,
-            userRepository: userRepository
-        ))
     }
 }

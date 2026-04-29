@@ -70,7 +70,7 @@ struct DashboardView: View {
             fetchCategoriesUseCase: container.makeFetchCategoriesUseCase(),
             toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase(),
             toggleItemPaidUseCase: container.makeToggleItemPaidUseCase(),
-            deleteGroupUseCase: container.makeGroupSceneDIContainer().makeDeleteGroupUseCase()
+            deleteGroupUseCase: container.makeDeleteGroupUseCase()
         ))
     }
     

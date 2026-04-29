@@ -34,12 +34,10 @@ class CreateUserViewModel {
     /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
-        let userSceneContainer = appContainer.makeUserSceneDIContainer()
-        let groupSceneContainer = appContainer.makeGroupSceneDIContainer()
-        
+
         self.init(
-            createUserUseCase: userSceneContainer.makeCreateUserUseCase(),
-            createGroupUseCase: groupSceneContainer.makeCreateGroupUseCase()
+            createUserUseCase: appContainer.makeCreateUserUseCase(),
+            createGroupUseCase: appContainer.makeCreateGroupUseCase()
         )
     }
     
