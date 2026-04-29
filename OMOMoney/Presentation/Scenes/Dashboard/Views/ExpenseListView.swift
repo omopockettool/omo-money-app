@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct ExpenseListView: View {
+    @Binding private var collapsedDays: Set<Date>
+
     let itemLists: [SDItemList]
     let getFormattedAmount: (SDItemList) -> String
     let getFormattedUnpaidAmount: (SDItemList) -> String?
@@ -21,6 +23,45 @@ struct ExpenseListView: View {
     var focusedDate: Date? = nil
     var hideSectionHeaders: Bool = false
     var onAddForDate: ((Date) -> Void)? = nil
+    var allowsDayCollapse: Bool = false
+
+    init(
+        itemLists: [SDItemList],
+        getFormattedAmount: @escaping (SDItemList) -> String,
+        getFormattedUnpaidAmount: @escaping (SDItemList) -> String?,
+        itemListCounts: [UUID: Int],
+        categories: [UUID: (name: String, color: String, icon: String)],
+        itemListPaidStatus: [UUID: ItemListPaidStatus],
+        onItemTap: @escaping (SDItemList) -> Void,
+        onTogglePaid: @escaping (SDItemList) -> Void,
+        onRefresh: @escaping () async -> Void,
+        onDelete: @escaping (SDItemList) async -> Void,
+        isCompact: Bool = false,
+        getDayTotal: ((Date) -> String)? = nil,
+        focusedDate: Date? = nil,
+        hideSectionHeaders: Bool = false,
+        onAddForDate: ((Date) -> Void)? = nil,
+        collapsedDays: Binding<Set<Date>> = .constant([]),
+        allowsDayCollapse: Bool = false
+    ) {
+        self.itemLists = itemLists
+        self.getFormattedAmount = getFormattedAmount
+        self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
+        self.itemListCounts = itemListCounts
+        self.categories = categories
+        self.itemListPaidStatus = itemListPaidStatus
+        self.onItemTap = onItemTap
+        self.onTogglePaid = onTogglePaid
+        self.onRefresh = onRefresh
+        self.onDelete = onDelete
+        self.isCompact = isCompact
+        self.getDayTotal = getDayTotal
+        self.focusedDate = focusedDate
+        self.hideSectionHeaders = hideSectionHeaders
+        self.onAddForDate = onAddForDate
+        self._collapsedDays = collapsedDays
+        self.allowsDayCollapse = allowsDayCollapse
+    }
     
     var body: some View {
         List {
@@ -32,14 +73,16 @@ struct ExpenseListView: View {
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
                         Section {
-                            ForEach(Array(itemListsForDate.enumerated()), id: \.element.id) { index, itemList in
-                                itemListRow(
-                                    itemList,
-                                    timelinePosition: timelinePosition(
-                                        index: index,
-                                        count: itemListsForDate.count
+                            if !isCollapsed(date) {
+                                ForEach(Array(itemListsForDate.enumerated()), id: \.element.id) { index, itemList in
+                                    itemListRow(
+                                        itemList,
+                                        timelinePosition: timelinePosition(
+                                            index: index,
+                                            count: itemListsForDate.count
+                                        )
                                     )
-                                )
+                                }
                             }
                         } header: {
                             sectionHeader(for: date)
@@ -100,19 +143,36 @@ struct ExpenseListView: View {
     private func sectionHeader(for date: Date) -> some View {
         if !isCompact && !hideSectionHeaders {
             HStack(spacing: 8) {
-                Text(DateFormatterHelper.formatSectionDate(date))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                if let total = getDayTotal?(date) {
-                    Text(total)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                        .textCase(.none)
+                Button {
+                    guard allowsDayCollapse else { return }
+                    toggleCollapsed(date)
+                } label: {
+                    HStack(spacing: 8) {
+                        if allowsDayCollapse {
+                            Image(systemName: isCollapsed(date) ? "chevron.right" : "chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.secondary)
+                                .frame(width: 12)
+                        }
+                        Text(DateFormatterHelper.formatSectionDate(date))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        Spacer()
+                        if let total = getDayTotal?(date) {
+                            Text(total)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                                .textCase(.none)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .disabled(!allowsDayCollapse)
+
                 if let onAdd = onAddForDate {
                     Menu {
                         Button {
@@ -136,6 +196,21 @@ struct ExpenseListView: View {
     private func sectionOpacity(for date: Date) -> Double {
         guard let focused = focusedDate else { return 1.0 }
         return Calendar.current.isDate(date, inSameDayAs: focused) ? 1.0 : 0.4
+    }
+
+    private func isCollapsed(_ date: Date) -> Bool {
+        collapsedDays.contains(Calendar.current.startOfDay(for: date))
+    }
+
+    private func toggleCollapsed(_ date: Date) {
+        let day = Calendar.current.startOfDay(for: date)
+        withAnimation(AnimationHelper.quickEase) {
+            if collapsedDays.contains(day) {
+                collapsedDays.remove(day)
+            } else {
+                collapsedDays.insert(day)
+            }
+        }
     }
 
     private var groupedItemLists: [Date: [SDItemList]] {

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-04-29
+
+### Added
+- **Collapsible monthly day summaries** (`ExpenseListView`, `DashboardView`) — in `Este mes`, tapping a date header now collapses or expands that day’s entries while keeping the daily total visible for a cleaner month summary. The feature is not shown in `Hoy`.
+
+### Changed
+- **Monthly collapse state persists across Today/Month toggles** (`DashboardView`) — collapsed days remain remembered when switching to `Hoy` and back to `Este mes`, and reset only when the active group changes.
+
+---
+
 ## [1.4.2] - 2026-04-29
 
 ### Refactor

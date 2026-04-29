@@ -52,6 +52,7 @@ struct DashboardView: View {
     @State private var listDragOffset: CGFloat = 0
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var viewMode: DashboardViewMode = .list
+    @State private var collapsedMonthDays: Set<Date> = []
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
@@ -297,7 +298,9 @@ struct DashboardView: View {
                     hideSectionHeaders: !viewModel.showingFullMonth,
                     onAddForDate: viewModel.showingFullMonth ? { date in
                         addItemListTrigger = AddItemListTrigger(initialDate: date)
-                    } : nil
+                    } : nil,
+                    collapsedDays: viewModel.showingFullMonth ? $collapsedMonthDays : .constant([]),
+                    allowsDayCollapse: viewModel.showingFullMonth
                 )
                 .contentMargins(.top, 0, for: .scrollContent)
                 .transition(.opacity)
@@ -331,6 +334,9 @@ struct DashboardView: View {
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
+        .onChange(of: viewModel.currentGroup?.id) { _, _ in
+            collapsedMonthDays.removeAll()
+        }
     }
 
     // View picker: filter pill on left, settings icon on right
