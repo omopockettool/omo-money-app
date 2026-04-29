@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-04-30
+
+### Added
+- **Dedicated "Sobre OMO" experience in Settings** (`SettingsSheetView`, `AboutOMOView`) — users can open an about screen from settings to view app/company information, the current app version shown to users (`1.5.4`), donation access, direct web/contact actions with copy support, and a user-facing release-notes page.
+
+---
+
 ## [1.5.4] - 2026-04-29
 
 ### Changed

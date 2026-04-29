@@ -16,6 +16,14 @@ struct SettingsSheetView: View {
                         settingsRow(icon: "person.fill", color: .purple, title: user.name)
                     }
                 }
+
+                Section("OMO") {
+                    NavigationLink {
+                        AboutOMOView()
+                    } label: {
+                        settingsRow(icon: "info.circle.fill", color: .blue, title: "Sobre OMO")
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Ajustes")
