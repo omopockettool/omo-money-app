@@ -148,13 +148,10 @@ struct ItemListDetailView: View {
     // MARK: - Main Content
 
     private var mainContentView: some View {
-        VStack(spacing: 0) {
-            itemsList
-            heroCard
-                .padding(.horizontal, AppConstants.UserInterface.padding)
-                .padding(.vertical, 12)
-                .background(Color(.systemGroupedBackground))
-        }
+        itemsList
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                heroCardInset
+            }
     }
 
     // MARK: - Hero Card
@@ -278,6 +275,13 @@ struct ItemListDetailView: View {
         .scrollContentBackground(.hidden)
         .animation(.easeInOut(duration: 0.2), value: viewModel.items.count)
         .refreshable { await viewModel.loadItems() }
+    }
+
+    private var heroCardInset: some View {
+        heroCard
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, 12)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea(edges: .bottom))
     }
 
     // MARK: - Add Item Button

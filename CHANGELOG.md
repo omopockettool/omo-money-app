@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-04-29
+
+### Fixed
+- **Item-list detail hero stays anchored at the bottom** (`ItemListDetailView`) — the total hero now uses a bottom safe-area inset instead of sitting below an expanding `List`, preventing large empty gaps between items and the hero while keeping the hero fixed at the bottom of the screen.
+
+---
+
 ## [1.5.0] - 2026-04-29
 
 ### Added
