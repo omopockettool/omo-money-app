@@ -239,98 +239,62 @@ struct DashboardView: View {
     }
     
     private var mainContentView: some View {
-        VStack(spacing: 0) {
+        ExpenseListView(
+            itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
+            getFormattedAmount: { viewModel.formattedPaid(for: $0) },
+            getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            itemListCounts: viewModel.itemListCounts,
+            categories: viewModel.categories,
+            itemListPaidStatus: viewModel.itemListPaidStatus,
+            onItemTap: { navigationPath.append($0) },
+            onTogglePaid: { viewModel.togglePaid(for: $0) },
+            onRefresh: { await viewModel.refreshData() },
+            onDelete: { await viewModel.deleteItemList($0) },
+            getDayTotal: viewModel.showingFullMonth ? { viewModel.formattedTotal(for: $0) } : nil,
+            focusedDate: nil,
+            hideSectionHeaders: !viewModel.showingFullMonth,
+            onAddForDate: viewModel.showingFullMonth ? { date in
+                addItemListTrigger = AddItemListTrigger(initialDate: date)
+            } : nil,
+            collapsedDays: viewModel.showingFullMonth ? $collapsedMonthDays : .constant([]),
+            allowsDayCollapse: viewModel.showingFullMonth
+        )
+        .safeAreaInset(edge: .top, spacing: 0) {
             // iOS 26-style view picker dropdown
             DashboardTopBarView(
                 showingFullMonth: $viewModel.showingFullMonth,
                 hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
                 onOpenSettings: { viewModel.openSettings() }
             )
-
-            // Content switches based on selected view mode
-            switch viewMode {
-//            case .calendar:
-//                CalendarGridView(
-//                    itemLists: viewModel.itemLists,
-//                    itemListTotals: viewModel.itemListTotals,
-//                    itemListPaidStatus: viewModel.itemListPaidStatus,
-//                    currencyCode: viewModel.currentGroup?.currency ?? "EUR",
-//                    selectedDay: selectedCalendarDay,
-//                    onDayTap: { date in
-//                        withAnimation(AnimationHelper.smoothSpring) {
-//                            if let current = selectedCalendarDay,
-//                               Calendar.current.isDate(current, inSameDayAs: date) {
-//                                selectedCalendarDay = nil
-//                            } else {
-//                                selectedCalendarDay = date
-//                                listDragOffset = 0
-//                            }
-//                        }
-//                    },
-//                    onMonthChange: { month in
-//                        displayedCalendarMonth = month
-//                        selectedCalendarDay = nil
-//                        listDragOffset = 0
-//                    }
-//                )
-//                .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
-//
-//                if selectedCalendarDay != nil {
-//                    dayListPanel
-//                        .padding(.horizontal, AppConstants.UserInterface.padding)
-//                        .transition(.move(edge: .bottom).combined(with: .opacity))
-//                }
-
-            case .calendar, .list:
-                ExpenseListView(
-                    itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
-                    getFormattedAmount: { viewModel.formattedPaid(for: $0) },
-                    getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-                    itemListCounts: viewModel.itemListCounts,
-                    categories: viewModel.categories,
-                    itemListPaidStatus: viewModel.itemListPaidStatus,
-                    onItemTap: { navigationPath.append($0) },
-                    onTogglePaid: { viewModel.togglePaid(for: $0) },
-                    onRefresh: { await viewModel.refreshData() },
-                    onDelete: { await viewModel.deleteItemList($0) },
-                    getDayTotal: viewModel.showingFullMonth ? { viewModel.formattedTotal(for: $0) } : nil,
-                    focusedDate: nil,
-                    hideSectionHeaders: !viewModel.showingFullMonth,
-                    onAddForDate: viewModel.showingFullMonth ? { date in
-                        addItemListTrigger = AddItemListTrigger(initialDate: date)
-                    } : nil,
-                    collapsedDays: viewModel.showingFullMonth ? $collapsedMonthDays : .constant([]),
-                    allowsDayCollapse: viewModel.showingFullMonth
+            .background(Color(.systemBackground))
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                // Hero card — totals + add button
+                TotalSpentCardView(
+                    label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy"),
+                    totalAmount: viewModel.showingFullMonth
+                        ? viewModel.formattedCachedMonthTotal()
+                        : viewModel.formattedTodayTotal,
+                    onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
+                    isSuccess: heroIsSuccess
                 )
-                .contentMargins(.top, 0, for: .scrollContent)
-                .transition(.opacity)
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, AppConstants.UserInterface.smallPadding)
+                .padding(.bottom, AppConstants.UserInterface.smallPadding)
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
 
+                DashboardBottomBarView(
+                    currentGroup: viewModel.currentGroup,
+                    availableGroups: viewModel.availableGroups,
+                    userId: viewModel.currentUser?.id,
+                    isChangingGroup: viewModel.isChangingGroup,
+                    onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
+                    onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
+                    onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
+                )
             }
-
-            // Hero card — totals + add button
-            TotalSpentCardView(
-                label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy"),
-                totalAmount: viewModel.showingFullMonth
-                    ? viewModel.formattedCachedMonthTotal()
-                    : viewModel.formattedTodayTotal,
-                onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
-                isSuccess: heroIsSuccess
-            )
-            .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.top, AppConstants.UserInterface.smallPadding)
-            .padding(.bottom, AppConstants.UserInterface.smallPadding)
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
-
-            DashboardBottomBarView(
-                currentGroup: viewModel.currentGroup,
-                availableGroups: viewModel.availableGroups,
-                userId: viewModel.currentUser?.id,
-                isChangingGroup: viewModel.isChangingGroup,
-                onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
-                onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
-                onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
-            )
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.3] - 2026-04-29
+
+### Fixed
+- **Dashboard pull-to-refresh row jump eliminated** (`DashboardView`) — `ExpenseListView` is now the root view of the dashboard content with top and bottom bars attached via `.safeAreaInset`, mirroring `ItemListDetailView`. The refresh spinner now appears in the top safe-area inset instead of pushing the list’s constrained frame, removing the visible downward-then-upward row shift on every pull-to-refresh.
+
+---
+
 ## [1.5.2] - 2026-04-29
 
 ### Fixed
