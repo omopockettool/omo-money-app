@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-04-29
+
+### Fixed
+- **Undo for bulk paid toggles** (`DashboardViewModel`, `ToastView`) — tapping an item-list paid status now stores the previous per-item paid state and shows a `Deshacer` action in the reusable toast. Undo restores each item exactly, protecting mixed paid/unpaid lists from accidental bulk changes.
+- **Toast action support** (`ToastView`) — reusable toast notifications now support an optional action button while keeping existing dismiss-only toasts unchanged.
+
+---
+
 ## [1.4.0] - 2026-04-29
 
 ### Added

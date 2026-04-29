@@ -66,10 +66,12 @@ class DashboardViewModel {
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
+    private let toggleItemPaidUseCase: ToggleItemPaidUseCase
     private let deleteGroupUseCase: DeleteGroupUseCase
 
     // MARK: - Cache
     private let cacheManager = CacheManager.shared
+    private var paidToggleTasks: [UUID: Task<Void, Never>] = [:]
 
     // MARK: - Initialization
     init(
@@ -80,6 +82,7 @@ class DashboardViewModel {
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
         toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase,
+        toggleItemPaidUseCase: ToggleItemPaidUseCase,
         deleteGroupUseCase: DeleteGroupUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
@@ -89,6 +92,7 @@ class DashboardViewModel {
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.toggleAllItemsPaidInListUseCase = toggleAllItemsPaidInListUseCase
+        self.toggleItemPaidUseCase = toggleItemPaidUseCase
         self.deleteGroupUseCase = deleteGroupUseCase
     }
     
@@ -476,13 +480,41 @@ class DashboardViewModel {
             toast = ToastMessage("Registro vacío", type: .info)
             return
         }
+        let previousStates = itemList.items.map { (id: $0.id, isPaid: $0.isPaid) }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
         itemListPaidStatus[itemList.id] = newValue ? .all : .none
-        Task {
+        itemList.items.forEach { $0.isPaid = newValue }
+        toast = ToastMessage(
+            newValue ? "Todo marcado como pagado" : "Todo marcado como pendiente",
+            type: .info,
+            actionTitle: "Deshacer"
+        ) { [weak self] in
+            Task { @MainActor in
+                await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
+            }
+        }
+        paidToggleTasks[itemList.id] = Task {
             try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
             await calculateTotalSpent()
+            paidToggleTasks[itemList.id] = nil
         }
+    }
+
+    private func undoTogglePaid(
+        for itemList: SDItemList,
+        previousStates: [(id: UUID, isPaid: Bool)]
+    ) async {
+        if let pendingTask = paidToggleTasks[itemList.id] {
+            await pendingTask.value
+        }
+
+        for state in previousStates {
+            itemList.items.first { $0.id == state.id }?.isPaid = state.isPaid
+            try? await toggleItemPaidUseCase.execute(itemId: state.id, isPaid: state.isPaid)
+        }
+        await calculateTotalSpent()
+        toast = ToastMessage("Cambio deshecho", type: .info)
     }
 
     func forceRefresh() async {
