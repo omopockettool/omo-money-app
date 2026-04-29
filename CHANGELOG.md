@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.1] - 2026-04-30
+
+### Fixed
+- **Dashboard total-cost footer now stays visually anchored** (`DashboardView`) — the hero total card and group chip area now sit on a solid bottom panel with a clear top boundary, preventing scrolling item rows from bleeding through the gap and reducing visual distraction while browsing the dashboard.
+
+---
+
 ## [1.6.0] - 2026-04-30
 
 ### Added

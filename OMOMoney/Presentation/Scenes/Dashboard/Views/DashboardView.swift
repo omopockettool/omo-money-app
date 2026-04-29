@@ -280,9 +280,8 @@ struct DashboardView: View {
                     isSuccess: heroIsSuccess
                 )
                 .padding(.horizontal, AppConstants.UserInterface.padding)
-                .padding(.top, AppConstants.UserInterface.smallPadding)
-                .padding(.bottom, AppConstants.UserInterface.smallPadding)
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .padding(.top, AppConstants.UserInterface.padding)
+                .padding(.bottom, 10)
                 .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
 
                 DashboardBottomBarView(
@@ -294,6 +293,28 @@ struct DashboardView: View {
                     onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
                     onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
                 )
+            }
+            .background {
+                ZStack(alignment: .top) {
+                    Color(.systemBackground)
+                        .ignoresSafeArea(edges: .bottom)
+
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.22))
+                        .frame(height: 1)
+
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.08),
+                            Color.black.opacity(0.03),
+                            Color.clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 18)
+                    .allowsHitTesting(false)
+                }
             }
         }
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
