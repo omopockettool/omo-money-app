@@ -195,7 +195,9 @@ class DashboardViewModel {
             }
 
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
                     itemLists = sortedItemLists
                 }
             }
@@ -204,11 +206,6 @@ class DashboardViewModel {
 
             await MainActor.run {
                 print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
-            }
-            
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
-            await MainActor.run {
                 isRefreshing = false
                 print("✅ DashboardViewModel: Refresh completed smoothly")
             }

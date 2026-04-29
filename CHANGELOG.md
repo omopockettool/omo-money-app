@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.2] - 2026-04-29
+
+### Fixed
+- **Dashboard pull-to-refresh layout stability** (`ExpenseListView`, `DashboardViewModel`) — the Today list now renders flat rows when date headers are hidden, avoiding invisible `Section` spacing during refresh, and refresh updates item lists without row animations so SwiftUI’s native pull-to-refresh physics are not disturbed.
+
+---
+
 ## [1.5.1] - 2026-04-29
 
 ### Fixed

@@ -69,6 +69,16 @@ struct ExpenseListView: View {
                 emptyStateView
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+            } else if hideSectionHeaders {
+                ForEach(Array(itemLists.enumerated()), id: \.element.id) { index, itemList in
+                    itemListRow(
+                        itemList,
+                        timelinePosition: timelinePosition(
+                            index: index,
+                            count: itemLists.count
+                        )
+                    )
+                }
             } else {
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
