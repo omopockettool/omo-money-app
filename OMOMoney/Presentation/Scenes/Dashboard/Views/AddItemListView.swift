@@ -196,9 +196,9 @@ struct AddItemListView: View {
             }
         }
         .toast($viewModel.toast)
-        .onChange(of: viewModel.description) { viewModel.updateSuggestions() }
+        .onChange(of: viewModel.description) { viewModel.updateConceptAssists() }
         .onChange(of: viewModel.price) { viewModel.updateSuggestions() }
-        .onChange(of: viewModel.selectedCategory) { viewModel.updateSuggestions() }
+        .onChange(of: viewModel.selectedCategory) { viewModel.updateConceptAssists() }
         .onChange(of: focusedField) { _, _ in viewModel.updateSuggestions() }
         .animation(AnimationHelper.quickEase, value: focusedField == .description)
     }
@@ -548,7 +548,7 @@ struct AddItemListView: View {
         return Button {
             withAnimation(AnimationHelper.quickSpring) {
                 if viewModel.selectedPaymentMethod?.id == method.id {
-                    viewModel.selectedPaymentMethod = nil
+                    viewModel.deselectPaymentMethodManually()
                 } else {
                     viewModel.selectedPaymentMethod = method
                     viewModel.recordPaymentMethodUsage(method, forGroupId: activeGroup.id)

@@ -35,7 +35,10 @@ final class AddItemListViewModel {
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let itemListToEdit: SDItemList?
+    private let cacheManager = CacheManager.shared
     private let categoryUsageLimit = 3
+    private var usageMemoryItemLists: [SDItemList] = []
+    private var didManuallyChoosePaymentMethod = false
 
     // MARK: - Computed
 
@@ -138,12 +141,15 @@ final class AddItemListViewModel {
     }
 
     func loadUsageMemory(forGroupId groupId: UUID) async {
+        didManuallyChoosePaymentMethod = false
         let persistedLastUsed = await loadLastUsedSelectionIds(forGroupId: groupId)
         lastUsedCategoryIds = storedCategoryIds(forGroupId: groupId)
         if lastUsedCategoryIds.isEmpty, let categoryId = persistedLastUsed.categoryId {
             lastUsedCategoryIds = [categoryId]
         }
-        lastUsedPaymentMethodId = storedPaymentMethodId(forGroupId: groupId) ?? persistedLastUsed.paymentMethodId
+        lastUsedPaymentMethodId = persistedLastUsed.hasHistory
+            ? persistedLastUsed.paymentMethodId
+            : storedPaymentMethodId(forGroupId: groupId)
     }
 
     func recordCategoryUsage(_ category: SDCategory, forGroupId groupId: UUID) {
@@ -158,8 +164,14 @@ final class AddItemListViewModel {
     }
 
     func recordPaymentMethodUsage(_ paymentMethod: SDPaymentMethod, forGroupId groupId: UUID) {
+        didManuallyChoosePaymentMethod = true
         lastUsedPaymentMethodId = paymentMethod.id
         UserDefaults.standard.set(paymentMethod.id.uuidString, forKey: paymentMethodUsageKey(forGroupId: groupId))
+    }
+
+    func deselectPaymentMethodManually() {
+        didManuallyChoosePaymentMethod = true
+        selectedPaymentMethod = nil
     }
 
     func orderedCategoriesByUsage() -> [SDCategory] {
@@ -176,16 +188,39 @@ final class AddItemListViewModel {
         }
     }
 
-    private func loadLastUsedSelectionIds(forGroupId groupId: UUID) async -> (categoryId: UUID?, paymentMethodId: UUID?) {
+    private func loadLastUsedSelectionIds(forGroupId groupId: UUID) async -> (categoryId: UUID?, paymentMethodId: UUID?, hasHistory: Bool) {
         do {
-            let itemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            let itemLists = try await loadUsageMemoryItemLists(forGroupId: groupId)
+            usageMemoryItemLists = itemLists
+            let lastRegistered = itemLists.max { $0.createdAt < $1.createdAt }
             return (
                 itemLists.first { $0.category != nil }?.category?.id,
-                itemLists.first { $0.paymentMethod != nil }?.paymentMethod?.id
+                lastRegistered?.paymentMethod?.id,
+                lastRegistered != nil
             )
         } catch {
-            return (nil, nil)
+            usageMemoryItemLists = []
+            return (nil, nil, false)
         }
+    }
+
+    private func loadUsageMemoryItemLists(forGroupId groupId: UUID) async throws -> [SDItemList] {
+        let key = usageMemoryCacheKey(forGroupId: groupId)
+        if let cached: [SDItemList] = cacheManager.getCachedData(for: key) {
+            return cached
+        }
+
+        let itemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+        cacheManager.cacheData(itemLists, for: key)
+        return itemLists
+    }
+
+    private func clearUsageMemoryCache(forGroupId groupId: UUID) {
+        cacheManager.clearDataCache(for: usageMemoryCacheKey(forGroupId: groupId))
+    }
+
+    private func usageMemoryCacheKey(forGroupId groupId: UUID) -> String {
+        "quick_add_usage_memory_\(groupId.uuidString)"
     }
 
     private func storedCategoryIds(forGroupId groupId: UUID) -> [UUID] {
@@ -285,10 +320,11 @@ final class AddItemListViewModel {
                     amount: priceDecimal,
                     quantity: 1,
                     itemListId: itemList.id,
-                    isPaid: priceDecimal > 0
+                    isPaid: paymentMethodId != nil && priceDecimal > 0
                 )
             }
 
+            clearUsageMemoryCache(forGroupId: groupId)
             isLoading = false
             return itemList
         } catch {
@@ -397,6 +433,39 @@ final class AddItemListViewModel {
             allCategories: categories
         )
         lastUsedConcept = ConceptSuggestionEngine.lastUsed(forCategory: selectedCategory)
+    }
+
+    func updateConceptAssists() {
+        updateSuggestions()
+        applyPaymentMethodSuggestionForCurrentConcept()
+    }
+
+    private func applyPaymentMethodSuggestionForCurrentConcept() {
+        guard !isEditMode, !didManuallyChoosePaymentMethod else { return }
+        guard let selectedCategory else { return }
+
+        let normalizedDescription = normalizedConcept(description)
+        guard !normalizedDescription.isEmpty else { return }
+
+        let matchingItemList = usageMemoryItemLists
+            .filter {
+                $0.category?.id == selectedCategory.id &&
+                normalizedConcept($0.itemListDescription) == normalizedDescription
+            }
+            .max { $0.createdAt < $1.createdAt }
+
+        guard let matchingItemList else { return }
+
+        selectedPaymentMethod = matchingItemList.paymentMethod.flatMap { paymentMethod in
+            paymentMethods.first { $0.id == paymentMethod.id }
+        }
+        lastUsedPaymentMethodId = selectedPaymentMethod?.id
+    }
+
+    private func normalizedConcept(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
     }
 
     func clearError() {

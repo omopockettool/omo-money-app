@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-04-29
+
+### Fixed
+- **Quick-add unpaid state without payment method** (`AddItemListViewModel`) — new quick-add items now start as unpaid when no payment method is selected, even if the amount is greater than zero. A missing payment method now represents a pending/future reminder instead of an already completed payment.
+- **Payment method preselection respects the last registered item list** (`AddItemListViewModel`) — the quick-add form now derives the initial payment method from the most recently created item list by `createdAt`. If that last registered item list had no payment method, the next form starts with no payment method selected instead of falling back to older saved usage memory.
+
+---
+
 ## [1.3.0] - 2026-04-29
 
 ### Added
