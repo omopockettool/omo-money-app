@@ -146,7 +146,7 @@ struct GroupPickerSheet: View {
                                 } label: {
                                     Label("Detalles", systemImage: "info")
                                 }
-                                .tint(.orange)
+                                .tint(.gray)
                             }
                         }
                     }

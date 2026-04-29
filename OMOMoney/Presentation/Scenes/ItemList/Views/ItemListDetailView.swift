@@ -249,6 +249,10 @@ struct ItemListDetailView: View {
                         item: item,
                         formattedAmount: viewModel.getFormattedAmount(item),
                         currencyCode: currencyCode,
+                        timelinePosition: timelinePosition(
+                            index: index,
+                            count: viewModel.items.count
+                        ),
                         onTap: { sheetMode = .edit(item) },
                         onTogglePaid: {
                             Task {
@@ -257,7 +261,7 @@ struct ItemListDetailView: View {
                             }
                         }
                     )
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 16))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -311,6 +315,13 @@ struct ItemListDetailView: View {
         }
     }
 
+    private func timelinePosition(index: Int, count: Int) -> TimelinePosition {
+        if count == 1 { return .single }
+        if index == 0 { return .first }
+        if index == count - 1 { return .last }
+        return .middle
+    }
+
     private func errorView(_ message: String) -> some View {
         VStack(spacing: AppConstants.UserInterface.padding) {
             Image(systemName: "exclamationmark.triangle")
@@ -339,6 +350,7 @@ struct ItemRowView: View {
     let item: SDItem
     let formattedAmount: String
     let currencyCode: String
+    let timelinePosition: TimelinePosition
     let onTap: () -> Void
     let onTogglePaid: () -> Void
 
@@ -352,15 +364,20 @@ struct ItemRowView: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(alignment: .center, spacing: 12) {
-                Button(action: onTogglePaid) {
-                    Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
-                        .font(.title2)
-                        .foregroundStyle(item.isPaid ? Color.green : Color(.systemGray3))
-                }
-                .buttonStyle(PressHapticButtonStyle())
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: onTogglePaid) {
+                TimelineRailView(
+                    position: timelinePosition,
+                    color: item.isPaid ? .green : Color(.systemGray3),
+                    isActive: item.isPaid,
+                    iconName: item.isPaid ? "checkmark.circle.fill" : "circle",
+                    iconColor: item.isPaid ? .green : Color(.systemGray3)
+                )
+                .frame(width: 44)
+            }
+            .buttonStyle(PressHapticButtonStyle())
 
+            HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.itemDescription)
                         .font(.subheadline)
@@ -382,11 +399,17 @@ struct ItemRowView: View {
                     .lineLimit(1)
                     .layoutPriority(1)
             }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+            .padding(.vertical, 14)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(.separator).opacity(0.18))
+                    .frame(height: 0.5)
+                    .padding(.leading, 2)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.trailing, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 }
 

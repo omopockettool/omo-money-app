@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-04-29
+
+### Added
+- **Connected timeline list design** (`ExpenseListView`, `ExpenseRowView`, `ItemListDetailView`) — dashboard item lists and item-list detail rows now render as a continuous timeline instead of separate rounded row cards. The existing paid/unpaid icon is the timeline node, with plain solid connector lines between rows and light separators for a more modern, connected visual system.
+- **Reusable `TimelineRailView` component** — centralizes timeline node/connector rendering so dashboard rows and item detail rows share the same visual language while preserving paid-toggle behavior on the node itself.
+
+---
+
 ## [1.1.7] - 2026-04-29
 
 ### Changed

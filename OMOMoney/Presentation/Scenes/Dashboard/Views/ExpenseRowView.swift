@@ -12,53 +12,65 @@ struct ExpenseRowView: View {
     let onTap: () -> Void
     let onTogglePaid: () -> Void
     var isCompact: Bool = false
+    var timelinePosition: TimelinePosition = .single
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
-                Image(systemName: paidStatusIcon)
-                    .font(.title2)
-                    .foregroundStyle(paidStatusColor)
+                TimelineRailView(
+                    position: timelinePosition,
+                    color: paidStatus == .all ? .green : Color(.systemGray3),
+                    isActive: paidStatus != .none,
+                    iconName: paidStatusIcon,
+                    iconColor: paidStatusColor
+                )
+                .frame(width: 44)
             }
             .buttonStyle(PressHapticButtonStyle())
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(itemList.itemListDescription)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-
-                HStack(spacing: 5) {
-                    Image(systemName: categoryIcon ?? "tag.fill")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(categoryColor ?? Color(.systemGray3))
-                    Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(itemList.itemListDescription)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                         .lineLimit(1)
+
+                    HStack(spacing: 5) {
+                        Image(systemName: categoryIcon ?? "tag.fill")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(categoryColor ?? Color(.systemGray3))
+                        Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
-            }
 
-            Spacer()
+                Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(formattedAmount)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                if let unpaid = formattedUnpaidAmount {
-                    Text("\(unpaid) por pagar")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formattedAmount)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
                         .lineLimit(1)
+                    if let unpaid = formattedUnpaidAmount {
+                        Text("\(unpaid) por pagar")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
+                .layoutPriority(1)
             }
-            .layoutPriority(1)
+            .padding(.vertical, isCompact ? 12 : 14)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(.separator).opacity(0.18))
+                    .frame(height: 0.5)
+                    .padding(.leading, 2)
+            }
         }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, isCompact ? 12 : AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .padding(.trailing, 2)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
     }

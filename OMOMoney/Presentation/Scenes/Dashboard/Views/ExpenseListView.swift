@@ -32,8 +32,14 @@ struct ExpenseListView: View {
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
                         Section {
-                            ForEach(itemListsForDate, id: \.id) { itemList in
-                                itemListRow(itemList)
+                            ForEach(Array(itemListsForDate.enumerated()), id: \.element.id) { index, itemList in
+                                itemListRow(
+                                    itemList,
+                                    timelinePosition: timelinePosition(
+                                        index: index,
+                                        count: itemListsForDate.count
+                                    )
+                                )
                             }
                         } header: {
                             sectionHeader(for: date)
@@ -49,7 +55,7 @@ struct ExpenseListView: View {
     }
 
     @ViewBuilder
-    private func itemListRow(_ itemList: SDItemList) -> some View {
+    private func itemListRow(_ itemList: SDItemList, timelinePosition: TimelinePosition) -> some View {
         let categoryName = itemList.category.flatMap { categories[$0.id]?.name }
         let categoryColor = itemList.category.flatMap { categories[$0.id]?.color }.flatMap { Color(hex: $0) }
         let categoryIcon = itemList.category.flatMap { categories[$0.id]?.icon }
@@ -64,12 +70,13 @@ struct ExpenseListView: View {
             paidStatus: itemListPaidStatus[itemList.id] ?? .none,
             onTap: { onItemTap(itemList) },
             onTogglePaid: { onTogglePaid(itemList) },
-            isCompact: isCompact
+            isCompact: isCompact,
+            timelinePosition: timelinePosition
         )
         .listRowInsets(EdgeInsets(
-            top: AppConstants.UserInterface.smallPadding / 2,
-            leading: AppConstants.UserInterface.padding,
-            bottom: AppConstants.UserInterface.smallPadding / 2,
+            top: 0,
+            leading: AppConstants.UserInterface.smallPadding,
+            bottom: 0,
             trailing: AppConstants.UserInterface.padding
         ))
         .listRowBackground(Color.clear)
@@ -137,6 +144,13 @@ struct ExpenseListView: View {
             calendar.startOfDay(for: itemList.date)
         }
         return grouped
+    }
+
+    private func timelinePosition(index: Int, count: Int) -> TimelinePosition {
+        if count == 1 { return .single }
+        if index == 0 { return .first }
+        if index == count - 1 { return .last }
+        return .middle
     }
     
 }
