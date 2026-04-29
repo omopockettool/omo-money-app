@@ -46,15 +46,15 @@ struct AppContentView: View {
                 .font(.largeTitle)
                 .foregroundColor(.orange)
             
-            Text("Configuración requerida")
+            Text(LocalizationKey.Settings.requiredConfig.localized)
                 .font(.title)
-            
-            Text("Por favor crea un usuario y grupo para continuar")
+
+            Text(LocalizationKey.Settings.requiredConfigMsg.localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
-            Button("Ir a Configuración") {
+
+            Button(LocalizationKey.Settings.goToSettings.localized) {
                 // TODO: Navigate to settings or user management
                 print("Navigate to settings")
             }

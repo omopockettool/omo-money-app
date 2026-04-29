@@ -10,11 +10,11 @@ struct AboutOMOView: View {
         List {
             heroSection
 
-            Section("Aplicación") {
+            Section(LocalizationKey.About.application.localized) {
                 infoRow(
                     icon: "app.badge.fill",
                     color: .red,
-                    title: "Versión actual",
+                    title: LocalizationKey.About.currentVersion.localized,
                     value: appInfo.fullVersionLabel
                 )
 
@@ -24,17 +24,17 @@ struct AboutOMOView: View {
                     infoRow(
                         icon: "clock.arrow.circlepath",
                         color: .orange,
-                        title: "Novedades y cambios",
-                        value: "Ver historial"
+                        title: LocalizationKey.About.whatsNew.localized,
+                        value: LocalizationKey.About.viewHistory.localized
                     )
                 }
             }
 
-            Section("Sobre OMONI") {
+            Section("OMONI") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Descripción")
+                    Text(LocalizationKey.About.descriptionLabel.localized)
                         .font(.headline)
-                    Text("Pocket tool. Consciencia financiera en tu bolsillo. Sin fricción.")
+                    Text(LocalizationKey.About.tagline.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -44,7 +44,7 @@ struct AboutOMOView: View {
                 copyableLinkRow(
                     icon: "globe",
                     color: .indigo,
-                    title: "Web oficial",
+                    title: LocalizationKey.About.officialWeb.localized,
                     value: "omopockettool.com",
                     destination: URL(string: "https://omopockettool.com/")!
                 )
@@ -52,17 +52,17 @@ struct AboutOMOView: View {
                 copyableLinkRow(
                     icon: "envelope.fill",
                     color: .green,
-                    title: "Contacto",
+                    title: LocalizationKey.About.contact.localized,
                     value: "omopockettool@gmail.com",
                     destination: URL(string: "mailto:omopockettool@gmail.com")!
                 )
             }
 
-            Section("Apoyar OMO") {
+            Section(LocalizationKey.About.support.localized) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("¿Te está ayudando OMO Money?")
+                    Text(LocalizationKey.About.supportQuestion.localized)
                         .font(.headline)
-                    Text("Si la app te aporta valor, puedes apoyar su desarrollo con una donación y ayudar a que siga creciendo.")
+                    Text(LocalizationKey.About.supportDescription.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -82,7 +82,7 @@ struct AboutOMOView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Apoyar con una donación")
+                            Text(LocalizationKey.About.donate.localized)
                                 .font(.subheadline)
                                 .foregroundStyle(.primary)
                             Text("buymeacoffee.com/omopockettool")
@@ -95,11 +95,11 @@ struct AboutOMOView: View {
                 }
             }
 
-            Section("Desarrollado por") {
+            Section(LocalizationKey.About.developedBy.localized) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Equipo OMO")
+                    Text(LocalizationKey.About.team.localized)
                         .font(.headline)
-                    Text("Hacia una vida mejor 🌿")
+                    Text(LocalizationKey.About.motto.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -107,7 +107,7 @@ struct AboutOMOView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Sobre OMO")
+        .navigationTitle(LocalizationKey.About.title.localized)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -122,7 +122,7 @@ struct AboutOMOView: View {
                     Text("OMONI")
                         .font(.title2)
                         .fontWeight(.bold)
-                    Text("¿Cuánto te costó vivir hoy?")
+                    Text(LocalizationKey.About.heroTagline.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -204,7 +204,7 @@ struct AppReleaseNotesView: View {
 
     var body: some View {
         List {
-            Section("Historial de cambios") {
+            Section(LocalizationKey.About.changelog.localized) {
                 ForEach(entries) { entry in
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -212,7 +212,7 @@ struct AppReleaseNotesView: View {
                                 .font(.headline)
 
                             if entry.version == installedVersion {
-                                Text("Instalada")
+                                Text(LocalizationKey.About.installed.localized)
                                     .font(.caption)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(.red)
@@ -251,7 +251,7 @@ struct AppReleaseNotesView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Novedades")
+        .navigationTitle(LocalizationKey.About.news.localized)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

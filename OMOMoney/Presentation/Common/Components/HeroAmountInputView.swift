@@ -70,7 +70,7 @@ struct HeroAmountInputView<F: Hashable>: View {
                     focusedField.wrappedValue = fieldValue
                     onPaste()
                 } label: {
-                    Label("Pegar", systemImage: "doc.on.clipboard")
+                    Label(LocalizationKey.General.paste.localized, systemImage: "doc.on.clipboard")
                 }
             }
         }

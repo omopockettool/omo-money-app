@@ -123,3 +123,115 @@
 "success.updated" = "Updated successfully";
 "success.deleted" = "Deleted successfully";
 "success.saved" = "Saved successfully";
+
+// MARK: - General (extended)
+"general.retry" = "Retry";
+"general.empty" = "Nothing here...";
+"general.paste" = "Paste";
+
+// MARK: - Dashboard (extended)
+"dashboard.changingGroup" = "Changing group...";
+"dashboard.today" = "Today";
+"dashboard.costThisMonth" = "Cost this month";
+"dashboard.costToday" = "Cost today";
+"dashboard.allDone" = "All done!";
+
+// MARK: - Entry (extended)
+"entry.newEntry" = "New Entry";
+"entry.concept" = "Concept";
+"entry.viewLess" = "View less";
+"entry.moreDetails" = "More details";
+"entry.tapToAdd" = "Tap + to add an entry";
+"entry.addByDate" = "Add on this date";
+"entry.more" = "More";
+
+// MARK: - Item (extended)
+"item.newItem" = "New Item";
+"item.editItem" = "Edit Item";
+"item.subtotal" = "Subtotal";
+"item.units" = "units";
+"item.loading" = "Loading items...";
+"item.tapToAdd" = "Tap + to add an item";
+"item.costOf" = "Cost of %@";
+"item.oneItem" = "1 item";
+"item.items" = "items";
+"item.unpaid" = "unpaid";
+
+// MARK: - Group (extended)
+"group.selectGroup" = "Select Group";
+"group.deleting" = "Deleting group...";
+"group.deleteWarning" = "All data associated with this group will be deleted.";
+"group.deleteConfirmTitle" = "Delete \"%@\"?";
+"group.details" = "Details";
+"group.info" = "Group Information";
+"group.settings" = "Group Settings";
+"group.content" = "Content";
+"group.currencyEuro" = "Euro (EUR)";
+"group.currencyDollar" = "Dollar (USD)";
+"group.optionsFor" = "Options for %@";
+
+// MARK: - Category (extended)
+"category.selectCategory" = "Select Category";
+"category.emptyHint" = "Categories are created automatically when a group is created";
+"category.icon" = "Icon";
+"category.new" = "New category";
+
+// MARK: - Payment (extended)
+"payment.selectPayment" = "Select Payment Method";
+"payment.emptyHint" = "Create a payment method in the group settings";
+"payment.none" = "None";
+"payment.cards" = "Cards";
+"payment.cash" = "Cash";
+"payment.transfers" = "Transfers";
+"payment.digitalWallets" = "Digital Wallets";
+"payment.digital" = "Digital";
+"payment.others" = "Others";
+"payment.card" = "Card";
+"payment.other" = "Other";
+"payment.debit" = "Debit";
+"payment.credit" = "Credit";
+"payment.transfer" = "Transfer";
+"payment.icon" = "Icon";
+"payment.newMethod" = "New method";
+"payment.editMethod" = "Edit method";
+
+// MARK: - Settings (extended)
+"settings.account" = "Account";
+"settings.aboutOMO" = "About OMO";
+"settings.requiredConfig" = "Required configuration";
+"settings.requiredConfigMsg" = "Please create a user and group to continue";
+"settings.goToSettings" = "Go to Settings";
+
+// MARK: - User (extended)
+"user.welcome.title" = "Welcome to OMONI!";
+"user.welcome.subtitle" = "Create your profile to start\nmanaging your resources";
+"user.name.placeholder" = "Your name";
+"user.email.placeholder" = "your@email.com";
+"user.noEmail" = "No email";
+"user.profile" = "Profile";
+"user.info" = "User Information";
+"user.details" = "User Details";
+"user.createdAt" = "Created";
+"user.updatedAt" = "Last Modified";
+
+// MARK: - About
+"about.application" = "Application";
+"about.currentVersion" = "Current version";
+"about.whatsNew" = "What's new";
+"about.viewHistory" = "View history";
+"about.title" = "About OMO";
+"about.descriptionLabel" = "Description";
+"about.tagline" = "Pocket tool. Financial consciousness in your pocket. No friction.";
+"about.heroTagline" = "How much did it cost you to live today?";
+"about.officialWeb" = "Official website";
+"about.contact" = "Contact";
+"about.support" = "Support OMO";
+"about.supportQuestion" = "Is OMO Money helping you?";
+"about.supportDescription" = "If the app brings you value, you can support its development with a donation and help it keep growing.";
+"about.donate" = "Support with a donation";
+"about.developedBy" = "Developed by";
+"about.team" = "OMO Team";
+"about.motto" = "Towards a better life 🌿";
+"about.installed" = "Installed";
+"about.changelog" = "Change history";
+"about.news" = "What's new";

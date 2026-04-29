@@ -138,7 +138,7 @@ struct ExpenseListView: View {
             Button(role: .destructive) {
                 Task { await onDelete(itemList) }
             } label: {
-                Label("Eliminar", systemImage: "trash")
+                Label(LocalizationKey.General.delete.localized, systemImage: "trash")
             }
         }
     }
@@ -146,7 +146,7 @@ struct ExpenseListView: View {
     // MARK: - Private Views
     
     private var emptyStateView: some View {
-        EmptyStateView(message: "Pulsa el + para agregar un registro")
+        EmptyStateView(message: LocalizationKey.Entry.tapToAdd.localized)
     }
     
     @ViewBuilder
@@ -169,6 +169,23 @@ struct ExpenseListView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
+
+
+                        if let onAdd = onAddForDate {
+                            Menu {
+                                Button {
+                                    onAdd(date)
+                                } label: {
+                                    Label(LocalizationKey.Entry.addByDate.localized, systemImage: "plus")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(Color.secondary)
+                                    .padding(.horizontal, 4)
+                            }
+                        }
+                        
                         Spacer()
                         if let total = getDayTotal?(date) {
                             Text(total)
@@ -183,20 +200,6 @@ struct ExpenseListView: View {
                 .buttonStyle(.plain)
                 .disabled(!allowsDayCollapse)
 
-                if let onAdd = onAddForDate {
-                    Menu {
-                        Button {
-                            onAdd(date)
-                        } label: {
-                            Label("Añadir en esta fecha", systemImage: "plus")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Color.secondary)
-                            .padding(.horizontal, 4)
-                    }
-                }
             }
         }
     }

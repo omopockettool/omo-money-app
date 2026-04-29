@@ -72,11 +72,11 @@ struct CreateFirstUserView: View {
             .padding(.bottom, 8)
             
             VStack(spacing: 8) {
-                Text("¡Bienvenido a OMONI!")
+                Text(LocalizationKey.User.Welcome.title.localized)
                     .font(.title.weight(.bold))
                     .multilineTextAlignment(.center)
-                
-                Text("Crea tu perfil para empezar\na gestionar tus recursos")
+
+                Text(LocalizationKey.User.Welcome.subtitle.localized)
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -91,17 +91,17 @@ struct CreateFirstUserView: View {
         VStack(spacing: 16) {
             inputField(
                 icon: "person.fill",
-                placeholder: "Tu nombre",
+                placeholder: LocalizationKey.User.namePlaceholder.localized,
                 text: $viewModel.name,
                 field: .name,
                 contentType: .name,
                 keyboardType: .default,
                 capitalization: .words
             )
-            
+
             inputField(
                 icon: "envelope.fill",
-                placeholder: "tu@email.com",
+                placeholder: LocalizationKey.User.emailPlaceholder.localized,
                 text: $viewModel.email,
                 field: .email,
                 contentType: .emailAddress,
@@ -177,7 +177,7 @@ struct CreateFirstUserView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .symbolEffect(.bounce, value: viewModel.isFormValid)
                 
-                Text("Crear Usuario")
+                Text(LocalizationKey.User.create.localized)
                     .font(.headline)
             }
             .foregroundStyle(.white)

@@ -58,7 +58,7 @@ struct ItemListDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if viewModel.isLoading {
-                ProgressView("Cargando artículos...")
+                ProgressView(LocalizationKey.Item.loading.localized)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = viewModel.errorMessage {
                 errorView(errorMessage)
@@ -71,7 +71,7 @@ struct ItemListDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Editar Registro", systemImage: "pencil") {
+                    Button(LocalizationKey.Entry.edit.localized, systemImage: "pencil") {
                         sheetMode = .editRegistry
                     }
                 } label: {
@@ -158,7 +158,7 @@ struct ItemListDetailView: View {
 
     private var heroCard: some View {
         TotalSpentCardView(
-            label: heroIsSuccess ? lastAddedDescription : "Coste de \(itemList.itemListDescription)",
+            label: heroIsSuccess ? lastAddedDescription : LocalizationKey.Item.costOf.localized(with: itemList.itemListDescription),
             totalAmount: viewModel.getFormattedTotal(),
             onAddExpense: { sheetMode = .create },
             isSuccess: heroIsSuccess
@@ -265,7 +265,7 @@ struct ItemListDetailView: View {
                         Button(role: .destructive) {
                             Task { await viewModel.deleteItem(item, at: index) }
                         } label: {
-                            Label("Eliminar", systemImage: "trash")
+                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
                         }
                     }
                 }
@@ -292,7 +292,7 @@ struct ItemListDetailView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(Color.accentColor)
-                Text("Añadir artículo")
+                Text(LocalizationKey.Item.add.localized)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.accentColor)
@@ -308,7 +308,7 @@ struct ItemListDetailView: View {
     // MARK: - Empty State
 
     private var emptyStateRow: some View {
-        EmptyStateView(message: "Pulsa el + para agregar un artículo")
+        EmptyStateView(message: LocalizationKey.Item.tapToAdd.localized)
     }
 
     private func pmDefaultIcon(_ type: String) -> String {
@@ -331,14 +331,14 @@ struct ItemListDetailView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundColor(.orange)
-            Text("Error")
+            Text(LocalizationKey.General.error.localized)
                 .font(.title2)
                 .fontWeight(.semibold)
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Reintentar") {
+            Button(LocalizationKey.General.retry.localized) {
                 Task { await viewModel.loadItems() }
             }
             .buttonStyle(.borderedProminent)
@@ -389,7 +389,7 @@ struct ItemRowView: View {
                         .lineLimit(1)
 
                     if showsBreakdown {
-                        Text("\(formattedUnitPrice) × \(item.quantity) uds.")
+                        Text("\(formattedUnitPrice) × \(item.quantity) \(LocalizationKey.Item.units.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -472,7 +472,7 @@ struct AddItemView: View {
 
     private var subtotalFormula: String {
         guard quantityValue > 1 else { return "" }
-        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds."
+        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) \(LocalizationKey.Item.units.localized)"
     }
 
     var body: some View {
@@ -488,7 +488,7 @@ struct AddItemView: View {
                 .padding(.bottom, 8)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(viewModel.isEditMode ? "Editar Artículo" : "Nuevo Artículo")
+            .navigationTitle(viewModel.isEditMode ? LocalizationKey.Item.editItem.localized : LocalizationKey.Item.newItem.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -507,7 +507,7 @@ struct AddItemView: View {
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Listo") { focusedField = nil }
+                    Button(LocalizationKey.General.done.localized) { focusedField = nil }
                 }
             }
         }
@@ -544,7 +544,7 @@ struct AddItemView: View {
 
     private var quantityStepper: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Cantidad")
+            Text(LocalizationKey.Item.quantity.localized)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
@@ -586,7 +586,7 @@ struct AddItemView: View {
     private var subtotalCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Subtotal")
+                Text(LocalizationKey.Item.subtotal.localized)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)

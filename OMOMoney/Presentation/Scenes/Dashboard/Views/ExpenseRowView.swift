@@ -39,7 +39,7 @@ struct ExpenseRowView: View {
                         Image(systemName: categoryIcon ?? "tag.fill")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(categoryColor ?? Color(.systemGray3))
-                        Text(itemCount == 1 ? "1 artículo" : "\(itemCount) artículos")
+                        Text(itemCount == 1 ? LocalizationKey.Item.oneItem.localized : "\(itemCount) \(LocalizationKey.Item.items.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -54,7 +54,7 @@ struct ExpenseRowView: View {
                         .fontWeight(.bold)
                         .lineLimit(1)
                     if let unpaid = formattedUnpaidAmount {
-                        Text("\(unpaid) por pagar")
+                        Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)

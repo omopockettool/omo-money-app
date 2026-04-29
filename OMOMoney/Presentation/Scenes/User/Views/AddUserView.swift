@@ -29,15 +29,15 @@ struct AddUserView: View {
         VStack(spacing: 20) {
             // User Information
             VStack(alignment: .leading, spacing: 12) {
-                Text("User Information")
+                Text(LocalizationKey.User.info.localized)
                     .font(.headline)
-                
-                TextField("Name (Optional)", text: $name)
+
+                TextField(LocalizationKey.User.namePlaceholder.localized, text: $name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
                     .formFocusAnimation()
-                
-                TextField("Email", text: $email)
+
+                TextField(LocalizationKey.User.emailPlaceholder.localized, text: $email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
@@ -52,7 +52,7 @@ struct AddUserView: View {
             .animation(AnimationHelper.gentleEase, value: name.isEmpty)
             
             // Add Button
-            Button("Add User") {
+            Button(LocalizationKey.User.create.localized) {
                 addUser()
             }
             .frame(maxWidth: .infinity)
@@ -68,11 +68,11 @@ struct AddUserView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Add User")
+        .navigationTitle(LocalizationKey.User.create.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") {
+                Button(LocalizationKey.General.cancel.localized) {
                     withAnimation(AnimationHelper.slide) {
                         navigationPath.removeLast()
                     }

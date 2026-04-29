@@ -25,7 +25,7 @@ struct CategoryManagementView: View {
                         Button(role: .destructive) {
                             Task { await viewModel.deleteCategory(category) }
                         } label: {
-                            Label("Eliminar", systemImage: "trash")
+                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
                         }
                     }
             }
@@ -33,7 +33,7 @@ struct CategoryManagementView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Categorías")
+        .navigationTitle(LocalizationKey.Category.title.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

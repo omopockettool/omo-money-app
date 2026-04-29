@@ -24,11 +24,11 @@ struct CategoryPickerView: View {
             VStack(spacing: 0) {
                 if categories.isEmpty {
                     VStack(spacing: 16) {
-                        Text("No hay categorías disponibles")
+                        Text(LocalizationKey.Category.emptyMessage.localized)
                             .font(.headline)
                             .foregroundColor(.secondary)
 
-                        Text("Las categorías se crean automáticamente cuando se crea un grupo")
+                        Text(LocalizationKey.Category.emptyHint.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -63,10 +63,10 @@ struct CategoryPickerView: View {
                     .listStyle(PlainListStyle())
                 }
             }
-            .navigationTitle("Seleccionar Categoría")
+            .navigationTitle(LocalizationKey.Category.selectCategory.localized)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
+                    Button(LocalizationKey.General.cancel.localized) {
                         dismiss()
                     }
                 }

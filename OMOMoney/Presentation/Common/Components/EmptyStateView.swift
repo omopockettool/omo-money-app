@@ -10,7 +10,7 @@ struct EmptyStateView: View {
                 .font(.largeTitle)
                 .foregroundColor(.secondary)
 
-            Text("Nada por aquí...")
+            Text(LocalizationKey.General.empty.localized)
                 .font(.headline)
                 .foregroundColor(.secondary)
 

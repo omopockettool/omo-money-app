@@ -99,7 +99,7 @@ struct DashboardView: View {
                                     .scaleEffect(1.2)
                                     .tint(.white)
 
-                                Text("Cambiando grupo...")
+                                Text(LocalizationKey.Dashboard.changingGroup.localized)
                                     .font(.subheadline)
                                     .foregroundColor(.white)
                             }
@@ -218,16 +218,16 @@ struct DashboardView: View {
                 .font(.largeTitle)
                 .foregroundColor(.orange)
             
-            Text("Error")
+            Text(LocalizationKey.General.error.localized)
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
-            Button("Reintentar") {
+
+            Button(LocalizationKey.General.retry.localized) {
                 Task {
                     await viewModel.loadDashboardData()
                 }
@@ -272,7 +272,7 @@ struct DashboardView: View {
             VStack(spacing: 0) {
                 // Hero card — totals + add button
                 TotalSpentCardView(
-                    label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? "Coste de este mes" : "Coste de hoy"),
+                    label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? LocalizationKey.Dashboard.costThisMonth.localized : LocalizationKey.Dashboard.costToday.localized),
                     totalAmount: viewModel.showingFullMonth
                         ? viewModel.formattedCachedMonthTotal()
                         : viewModel.formattedTodayTotal,

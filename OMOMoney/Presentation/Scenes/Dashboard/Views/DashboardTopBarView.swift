@@ -12,7 +12,7 @@ struct DashboardTopBarView: View {
                     Button {
                         withAnimation(AnimationHelper.quickSpring) { showingFullMonth = false }
                     } label: {
-                        Label("Hoy", systemImage: "sparkles")
+                        Label(LocalizationKey.Dashboard.today.localized, systemImage: "sparkles")
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
@@ -23,7 +23,7 @@ struct DashboardTopBarView: View {
                     Button {
                         withAnimation(AnimationHelper.quickSpring) { showingFullMonth = true }
                     } label: {
-                        Text("Este mes")
+                        Text(LocalizationKey.Dashboard.thisMonth.localized)
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)

@@ -23,12 +23,12 @@ struct EditUserView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("User Information")) {
-                TextField("Name (Optional)", text: $viewModel.name)
+            Section(header: Text(LocalizationKey.User.info.localized)) {
+                TextField(LocalizationKey.User.namePlaceholder.localized, text: $viewModel.name)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .formFocusAnimation()
 
-                TextField("Email", text: $viewModel.email)
+                TextField(LocalizationKey.User.emailPlaceholder.localized, text: $viewModel.email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
@@ -36,16 +36,16 @@ struct EditUserView: View {
                     .formFocusAnimation()
             }
 
-            Section(header: Text("User Details")) {
+            Section(header: Text(LocalizationKey.User.details.localized)) {
                 HStack {
-                    Text("Created")
+                    Text(LocalizationKey.User.createdAt.localized)
                     Spacer()
                     Text(DateFormatterHelper.formatDate(viewModel.userCreatedAt))
                         .foregroundColor(.secondary)
                 }
 
                 HStack {
-                    Text("Last Modified")
+                    Text(LocalizationKey.User.updatedAt.localized)
                     Spacer()
                     Text(DateFormatterHelper.formatDate(viewModel.userLastModifiedAt))
                         .foregroundColor(.secondary)
@@ -53,7 +53,7 @@ struct EditUserView: View {
             }
 
             Section {
-                Button("Update User") {
+                Button(LocalizationKey.User.edit.localized) {
                     Task {
                         await viewModel.updateUser()
                     }
@@ -65,11 +65,11 @@ struct EditUserView: View {
                 .animation(AnimationHelper.buttonState, value: viewModel.name.isEmpty)
             }
         }
-        .navigationTitle("Edit User")
+        .navigationTitle(LocalizationKey.User.edit.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") {
+                Button(LocalizationKey.General.cancel.localized) {
                     withAnimation(AnimationHelper.slide) {
                         navigationPath.removeLast()
                     }

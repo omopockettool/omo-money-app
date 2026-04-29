@@ -118,7 +118,7 @@ struct GroupPickerSheet: View {
                             .scaleEffect(1.5)
                             .tint(.white)
                         
-                        Text("Eliminando grupo...")
+                        Text(LocalizationKey.Group.deleting.localized)
                             .font(.headline)
                             .foregroundColor(.white)
                     }
@@ -133,9 +133,9 @@ struct GroupPickerSheet: View {
                 // ✅ Custom Alert para eliminar
                 if viewModel.showingDeleteAlert, let group = viewModel.groupToDelete {
                     CustomAlertView(
-                        title: "¿Desea eliminar \(group.name)?",  // ✅ Domain: non-optional name
-                        message: "Se eliminarán todos los datos asociados a este grupo.",
-                        primaryButton: AlertButton(title: "Eliminar", style: .destructive) {
+                        title: LocalizationKey.Group.deleteConfirmTitle.localized(with: group.name),
+                        message: LocalizationKey.Group.deleteWarning.localized,
+                        primaryButton: AlertButton(title: LocalizationKey.General.delete.localized, style: .destructive) {
                             Task {
                                 await viewModel.deleteSelectedGroup(
                                     currentGroup: currentGroup,
@@ -144,14 +144,14 @@ struct GroupPickerSheet: View {
                                 )
                             }
                         },
-                        secondaryButton: AlertButton(title: "Cancelar", style: .cancel) {
+                        secondaryButton: AlertButton(title: LocalizationKey.General.cancel.localized, style: .cancel) {
                             viewModel.cancelDelete()
                         },
                         isPresented: $viewModel.showingDeleteAlert
                     )
                 }
             }
-            .navigationTitle("Seleccionar Grupo")
+            .navigationTitle(LocalizationKey.Group.selectGroup.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -239,7 +239,7 @@ struct GroupPickerSheet: View {
             }
             .buttonStyle(.plain)
             .disabled(isChangingGroup || viewModel.isDeletingGroup)
-            .accessibilityLabel("Opciones de \(group.name)")
+            .accessibilityLabel(LocalizationKey.Group.optionsFor.localized(with: group.name))
         }
     }
 
@@ -263,7 +263,7 @@ struct GroupPickerSheet: View {
             Button {
                 viewModel.requestDelete(group)
             } label: {
-                Label("Eliminar", systemImage: "trash")
+                Label(LocalizationKey.General.delete.localized, systemImage: "trash")
             }
             .tint(.red)
         }
@@ -271,7 +271,7 @@ struct GroupPickerSheet: View {
             Button {
                 groupToEdit = group
             } label: {
-                Label("Detalles", systemImage: "info")
+                Label(LocalizationKey.Group.details.localized, systemImage: "info")
             }
             .tint(.gray)
         }
@@ -283,14 +283,14 @@ struct GroupPickerSheet: View {
             Button {
                 groupToEdit = group
             } label: {
-                Label("Detalles", systemImage: "info.circle")
+                Label(LocalizationKey.Group.details.localized, systemImage: "info.circle")
             }
         }
         if viewModel.canDeleteGroups {
             Button(role: .destructive) {
                 viewModel.requestDelete(group)
             } label: {
-                Label("Eliminar", systemImage: "trash")
+                Label(LocalizationKey.General.delete.localized, systemImage: "trash")
             }
         }
     }

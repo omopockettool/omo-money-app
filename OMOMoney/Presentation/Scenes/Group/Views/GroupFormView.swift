@@ -20,7 +20,7 @@ struct GroupFormView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Ajustes del grupo")
+        .navigationTitle(LocalizationKey.Group.settings.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -39,7 +39,7 @@ struct GroupFormView: View {
     }
 
     private var groupSection: some View {
-        GroupSettingsSection(title: "Grupo") {
+        GroupSettingsSection(title: LocalizationKey.Group.title.localized) {
             Button {
                 showingGroupInfoEditor = true
             } label: {
@@ -56,14 +56,14 @@ struct GroupFormView: View {
     }
 
     private var contentSection: some View {
-        GroupSettingsSection(title: "Contenido") {
+        GroupSettingsSection(title: LocalizationKey.Group.content.localized) {
             NavigationLink {
                 CategoryManagementView(group: group)
             } label: {
                 GroupSettingsRow(
                     icon: "tag.fill",
                     color: .orange,
-                    title: "Categorías",
+                    title: LocalizationKey.Category.title.localized,
                     titleColor: .white
                 )
                 .padding(AppConstants.UserInterface.padding)
@@ -78,7 +78,7 @@ struct GroupFormView: View {
                 GroupSettingsRow(
                     icon: "creditcard.fill",
                     color: .blue,
-                    title: "Métodos de pago",
+                    title: LocalizationKey.Payment.title.localized,
                     titleColor: .white
                 )
                 .padding(AppConstants.UserInterface.padding)

@@ -10,10 +10,12 @@ struct GroupInfoEditSheet: View {
     @State private var selectedCurrency = "EUR"
     @FocusState private var nameFocused: Bool?
 
-    private let availableCurrencies = [
-        ("EUR", "Euro (EUR)"),
-        ("USD", "Dólar (USD)")
-    ]
+    private var availableCurrencies: [(String, String)] {
+        [
+            ("EUR", LocalizationKey.Group.currencyEuro.localized),
+            ("USD", LocalizationKey.Group.currencyDollar.localized)
+        ]
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,7 +23,7 @@ struct GroupInfoEditSheet: View {
                 VStack(spacing: 20) {
                     LimitedTextField(
                         icon: "person.2.fill",
-                        placeholder: "Nombre del grupo",
+                        placeholder: LocalizationKey.Group.name.localized,
                         text: $name,
                         maxLength: 30,
                         focusedField: $nameFocused,
@@ -29,7 +31,7 @@ struct GroupInfoEditSheet: View {
                     )
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Moneda")
+                        Text(LocalizationKey.Group.currency.localized)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
@@ -68,7 +70,7 @@ struct GroupInfoEditSheet: View {
                 .padding(AppConstants.UserInterface.padding)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Información del grupo")
+            .navigationTitle(LocalizationKey.Group.info.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

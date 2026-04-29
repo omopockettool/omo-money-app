@@ -25,7 +25,7 @@ struct PaymentMethodManagementView: View {
                         Button(role: .destructive) {
                             Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
                         } label: {
-                            Label("Eliminar", systemImage: "trash")
+                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
                         }
                     }
             }
@@ -33,7 +33,7 @@ struct PaymentMethodManagementView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Métodos de pago")
+        .navigationTitle(LocalizationKey.Payment.title.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -110,10 +110,10 @@ struct PaymentMethodManagementView: View {
 
     private func typeName(_ type: String) -> String {
         switch type {
-        case "cash":          return "Efectivo"
-        case "card_debit":    return "Débito"
-        case "card_credit":   return "Crédito"
-        case "bank_transfer": return "Transfer..."
+        case "cash":          return LocalizationKey.Payment.cash.localized
+        case "card_debit":    return LocalizationKey.Payment.debit.localized
+        case "card_credit":   return LocalizationKey.Payment.credit.localized
+        case "bank_transfer": return LocalizationKey.Payment.transfer.localized
         default:              return type
         }
     }

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] - 2026-04-30
+
+### Added
+- **Full EN/ES localization across all views** — every user-facing string in the app is now served through the `LocalizationKey` enum and `Localizable.strings` files for English and Spanish. When the device OS language is Spanish the app renders in Spanish; all other locales fall back to English. Covers ~27 view files across the Dashboard, Group, Category, Payment, User, ItemList, and Settings scenes, plus shared components (`EmptyStateView`, `HeroAmountInputView`, `AppContentView`, `SettingsSheetView`, `AboutOMOView`). Around 100 new localization keys were added spanning General, Dashboard, Entry, Item, Group, Category, Payment, Settings, User, and About domains.
+
+---
+
 ## [1.6.1] - 2026-04-30
 
 ### Fixed

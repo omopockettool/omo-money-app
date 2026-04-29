@@ -48,7 +48,7 @@ struct CategoryFormView: View {
                 // Name
                 LimitedTextField(
                     icon: "textformat",
-                    placeholder: "Nombre",
+                    placeholder: LocalizationKey.Category.name.localized,
                     text: $name,
                     maxLength: 20,
                     focusedField: $nameFocused,
@@ -57,7 +57,7 @@ struct CategoryFormView: View {
 
                 // Color picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Color")
+                    Text(LocalizationKey.Category.color.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -83,7 +83,7 @@ struct CategoryFormView: View {
 
                 // Icon picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Icono")
+                    Text(LocalizationKey.Category.icon.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -111,7 +111,7 @@ struct CategoryFormView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(isEditMode ? "Editar categoría" : "Nueva categoría")
+        .navigationTitle(isEditMode ? LocalizationKey.Category.edit.localized : LocalizationKey.Category.new.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

@@ -24,7 +24,7 @@ struct UserListView: View {
                     }
                 }
             }
-            .navigationTitle("Usuarios")
+            .navigationTitle(LocalizationKey.User.title.localized)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     addUserButton
@@ -73,7 +73,7 @@ struct UserListView: View {
                 VStack(alignment: .leading) {
                     Text(user.name)
                         .font(.headline)
-                    Text(user.email.isEmpty ? "Sin email" : user.email)
+                    Text(user.email.isEmpty ? LocalizationKey.User.noEmail.localized : user.email)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -84,7 +84,7 @@ struct UserListView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button("Delete", role: .destructive) {
+            Button(LocalizationKey.General.delete.localized, role: .destructive) {
                 Task {
                     await viewModel.deleteUser(user)
                 }
@@ -128,7 +128,7 @@ struct UserListView: View {
                 }
             },
             label: {
-                Label("Agregar Usuario", systemImage: "plus")
+                Label(LocalizationKey.User.create.localized, systemImage: "plus")
             }
         )
         .buttonPressAnimation()

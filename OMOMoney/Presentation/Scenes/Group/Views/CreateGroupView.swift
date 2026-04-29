@@ -10,30 +10,32 @@ struct CreateGroupView: View {
     @State private var groupName = ""
     @State private var selectedCurrency = "EUR"
 
-    private let availableCurrencies = [
-        ("EUR", "Euro (EUR)"),
-        ("USD", "Dólar (USD)")
-    ]
+    private var availableCurrencies: [(String, String)] {
+        [
+            ("EUR", LocalizationKey.Group.currencyEuro.localized),
+            ("USD", LocalizationKey.Group.currencyDollar.localized)
+        ]
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Nombre del grupo", text: $groupName)
+                    TextField(LocalizationKey.Group.name.localized, text: $groupName)
                         .textInputAutocapitalization(.words)
                 } header: {
-                    Text("Información del Grupo")
+                    Text(LocalizationKey.Group.info.localized)
                 }
 
                 Section {
-                    Picker("Moneda", selection: $selectedCurrency) {
+                    Picker(LocalizationKey.Group.currency.localized, selection: $selectedCurrency) {
                         ForEach(availableCurrencies, id: \.0) { currency in
                             Text(currency.1).tag(currency.0)
                         }
                     }
                     .pickerStyle(.menu)
                 } header: {
-                    Text("Configuración")
+                    Text(LocalizationKey.Group.settings.localized)
                 }
 
                 if let error = viewModel.errorMessage {
@@ -44,7 +46,7 @@ struct CreateGroupView: View {
                     }
                 }
             }
-            .navigationTitle("Crear Grupo")
+            .navigationTitle(LocalizationKey.Group.create.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

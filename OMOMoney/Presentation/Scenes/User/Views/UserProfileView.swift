@@ -31,7 +31,7 @@ struct UserProfileView: View {
                 // Name field
                 LimitedTextField(
                     icon: "person.fill",
-                    placeholder: "Nombre",
+                    placeholder: LocalizationKey.User.name.localized,
                     text: $viewModel.name,
                     maxLength: 40,
                     focusedField: $nameFocused,
@@ -61,11 +61,11 @@ struct UserProfileView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Perfil")
+        .navigationTitle(LocalizationKey.User.profile.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button(LocalizationKey.General.save.localized) {
                     Task { await save() }
                 }
                 .disabled(!viewModel.canSave)

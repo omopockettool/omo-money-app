@@ -87,9 +87,9 @@ struct AddItemListView: View {
             return concept
         }
         if let category = viewModel.selectedCategory {
-            return "Concepto (ej. \(category.name))"
+            return "\(LocalizationKey.Entry.concept.localized) (ej. \(category.name))"
         }
-        return "Concepto"
+        return LocalizationKey.Entry.concept.localized
     }
 
     // MARK: - Body
@@ -122,7 +122,7 @@ struct AddItemListView: View {
         } // ScrollViewReader
         .scrollDisabled(!showDetails && !viewModel.isEditMode && !showCategoryOverflow && !showPaymentMethodOverflow)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
+        .navigationTitle(viewModel.isEditMode ? LocalizationKey.Entry.edit.localized : LocalizationKey.Entry.newEntry.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -143,7 +143,7 @@ struct AddItemListView: View {
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Listo") { focusedField = nil }
+                Button(LocalizationKey.General.done.localized) { focusedField = nil }
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -268,7 +268,7 @@ struct AddItemListView: View {
 
     private var categoryGridSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Categoría")
+            Text(LocalizationKey.Entry.category.localized)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
@@ -292,7 +292,7 @@ struct AddItemListView: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Text("Ver menos")
+                        Text(LocalizationKey.Entry.viewLess.localized)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Image(systemName: "chevron.up")
@@ -370,7 +370,7 @@ struct AddItemListView: View {
         let overflowSelected = overflowCategories.first { $0.id == viewModel.selectedCategory?.id }
         let chipColor = overflowSelected.flatMap { Color(hex: $0.color) } ?? Color(.systemGray3)
         let icon = overflowSelected?.icon ?? "ellipsis.circle.fill"
-        let label = overflowSelected?.name ?? "Más"
+        let label = overflowSelected?.name ?? LocalizationKey.Entry.more.localized
         let isActive = overflowSelected != nil
 
         return Button {
@@ -448,7 +448,7 @@ struct AddItemListView: View {
                     }
                 } label: {
                     HStack {
-                        Text("Más detalles")
+                        Text(LocalizationKey.Entry.moreDetails.localized)
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
@@ -499,7 +499,7 @@ struct AddItemListView: View {
 
     private var paymentMethodGridSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Método de pago")
+            Text(LocalizationKey.Entry.paymentMethod.localized)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
@@ -525,7 +525,7 @@ struct AddItemListView: View {
                     scrollToPaymentMethods = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("Ver menos")
+                        Text(LocalizationKey.Entry.viewLess.localized)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Image(systemName: "chevron.up")
@@ -585,7 +585,7 @@ struct AddItemListView: View {
         let overflowSelected = overflowPaymentMethods.first { $0.id == viewModel.selectedPaymentMethod?.id }
         let chipColor = overflowSelected.map { paymentMethodColor($0.type) } ?? Color(.systemGray3)
         let icon = overflowSelected.map { paymentMethodIcon($0) } ?? "ellipsis.circle.fill"
-        let label = overflowSelected?.name ?? "Más"
+        let label = overflowSelected?.name ?? LocalizationKey.Entry.more.localized
         let isActive = overflowSelected != nil
 
         return Button {
@@ -638,10 +638,10 @@ struct AddItemListView: View {
                             .foregroundStyle(Color.accentColor)
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Fecha")
+                            Text(LocalizationKey.Entry.date.localized)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-                            Text(Calendar.current.isDateInToday(viewModel.date) ? "Hoy" : viewModel.formattedDate)
+                            Text(Calendar.current.isDateInToday(viewModel.date) ? LocalizationKey.Dashboard.today.localized : viewModel.formattedDate)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -714,7 +714,7 @@ struct AddItemListView: View {
                 Image(systemName: "person.2.fill")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 20)
-                Text("Grupo")
+                Text(LocalizationKey.Group.title.localized)
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
                     .fontWeight(.semibold)

@@ -39,7 +39,7 @@ struct PaymentMethodFormView: View {
                 // Name
                 LimitedTextField(
                     icon: "textformat",
-                    placeholder: "Nombre",
+                    placeholder: LocalizationKey.Payment.name.localized,
                     text: $name,
                     maxLength: 30,
                     focusedField: $nameFocused,
@@ -48,7 +48,7 @@ struct PaymentMethodFormView: View {
 
                 // Type picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Tipo")
+                    Text(LocalizationKey.Payment.type.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -80,7 +80,7 @@ struct PaymentMethodFormView: View {
 
                 // Icon picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Icono")
+                    Text(LocalizationKey.Payment.icon.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -108,7 +108,7 @@ struct PaymentMethodFormView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(isEditMode ? "Editar método" : "Nuevo método")
+        .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -163,10 +163,10 @@ struct PaymentMethodFormView: View {
 
     private func typeName(_ type: String) -> String {
         switch type {
-        case "cash":          return "Efectivo"
-        case "card_debit":    return "Débito"
-        case "card_credit":   return "Crédito"
-        case "bank_transfer": return "Transferencia"
+        case "cash":          return LocalizationKey.Payment.cash.localized
+        case "card_debit":    return LocalizationKey.Payment.debit.localized
+        case "card_credit":   return LocalizationKey.Payment.credit.localized
+        case "bank_transfer": return LocalizationKey.Payment.transfer.localized
         default:              return type
         }
     }

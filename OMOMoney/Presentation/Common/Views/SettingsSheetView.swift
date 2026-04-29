@@ -9,7 +9,7 @@ struct SettingsSheetView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Cuenta") {
+                Section(LocalizationKey.Settings.account.localized) {
                     NavigationLink {
                         UserProfileView(user: user, onUserUpdated: onUserUpdated)
                     } label: {
@@ -21,12 +21,12 @@ struct SettingsSheetView: View {
                     NavigationLink {
                         AboutOMOView()
                     } label: {
-                        settingsRow(icon: "info.circle.fill", color: .blue, title: "Sobre OMO")
+                        settingsRow(icon: "info.circle.fill", color: .blue, title: LocalizationKey.Settings.aboutOMO.localized)
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Ajustes")
+            .navigationTitle(LocalizationKey.Settings.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

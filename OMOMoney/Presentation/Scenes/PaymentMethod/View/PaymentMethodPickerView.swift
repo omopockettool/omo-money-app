@@ -32,11 +32,11 @@ struct PaymentMethodPickerView: View {
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
 
-                        Text("No hay métodos de pago")
+                        Text(LocalizationKey.Payment.emptyMessage.localized)
                             .font(.headline)
                             .foregroundColor(.primary)
 
-                        Text("Crea un método de pago en la configuración del grupo")
+                        Text(LocalizationKey.Payment.emptyHint.localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -61,17 +61,17 @@ struct PaymentMethodPickerView: View {
                     .listStyle(InsetGroupedListStyle())
                 }
             }
-            .navigationTitle("Seleccionar Método de Pago")
+            .navigationTitle(LocalizationKey.Payment.selectPayment.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
+                    Button(LocalizationKey.General.cancel.localized) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Ninguno") {
+                    Button(LocalizationKey.Payment.none.localized) {
                         selectedPaymentMethod = nil
                         dismiss()
                     }
@@ -82,16 +82,11 @@ struct PaymentMethodPickerView: View {
 
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
-        case "card":
-            return "Tarjetas"
-        case "cash":
-            return "Efectivo"
-        case "transfer":
-            return "Transferencias"
-        case "digital":
-            return "Billeteras Digitales"
-        default:
-            return "Otros"
+        case "card":     return LocalizationKey.Payment.cards.localized
+        case "cash":     return LocalizationKey.Payment.cash.localized
+        case "transfer": return LocalizationKey.Payment.transfers.localized
+        case "digital":  return LocalizationKey.Payment.digitalWallets.localized
+        default:         return LocalizationKey.Payment.others.localized
         }
     }
 }
@@ -166,16 +161,11 @@ struct PaymentMethodRow: View {
 
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
-        case "card":
-            return "Tarjeta"
-        case "cash":
-            return "Efectivo"
-        case "transfer":
-            return "Transferencia"
-        case "digital":
-            return "Digital"
-        default:
-            return "Otro"
+        case "card":     return LocalizationKey.Payment.card.localized
+        case "cash":     return LocalizationKey.Payment.cash.localized
+        case "transfer": return LocalizationKey.Payment.transfer.localized
+        case "digital":  return LocalizationKey.Payment.digital.localized
+        default:         return LocalizationKey.Payment.other.localized
         }
     }
 }
