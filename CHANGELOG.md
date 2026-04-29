@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.4] - 2026-04-29
+
+### Refactor
+- **Removed redundant `MainActor.run` blocks from `DashboardViewModel`** — since the ViewModel is already isolated with `@MainActor`, direct state reads and writes now happen inline instead of being wrapped in repeated `await MainActor.run { }` calls. This keeps the dashboard concurrency model clearer without changing behavior.
+
+---
+
 ## [1.5.3] - 2026-04-29
 
 ### Fixed

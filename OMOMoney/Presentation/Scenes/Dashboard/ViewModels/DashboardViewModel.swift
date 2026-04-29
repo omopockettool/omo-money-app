@@ -101,20 +101,16 @@ class DashboardViewModel {
     func loadDashboardData() async {
         print("🔄 DashboardViewModel: loadDashboardData() starting...")
         
-        await MainActor.run {
-            print("🔄 DashboardViewModel: Setting isLoading = true")
-            isLoading = true
-            errorMessage = nil
-        }
+        print("🔄 DashboardViewModel: Setting isLoading = true")
+        isLoading = true
+        errorMessage = nil
         
         do {
             print("🔄 DashboardViewModel: Getting current user...")
             guard let user = try await getCurrentUserUseCase.execute() else {
                 print("❌ DashboardViewModel: No user found")
-                await MainActor.run {
-                    errorMessage = "No user found. Please create a user first."
-                    isLoading = false
-                }
+                errorMessage = "No user found. Please create a user first."
+                isLoading = false
                 return
             }
             print("✅ DashboardViewModel: Found user: \(user.name)")
@@ -123,10 +119,8 @@ class DashboardViewModel {
             let groups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
             guard let firstGroup = groups.first else {
                 print("❌ DashboardViewModel: No groups found")
-                await MainActor.run {
-                    errorMessage = "No groups found. Please create a group first."
-                    isLoading = false
-                }
+                errorMessage = "No groups found. Please create a group first."
+                isLoading = false
                 return
             }
             print("✅ DashboardViewModel: Found \(groups.count) group(s), using: \(firstGroup.name)")
@@ -143,45 +137,37 @@ class DashboardViewModel {
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
 
-            await MainActor.run {
-                print("🔄 DashboardViewModel: Updating UI with new data...")
-                currentUser = user
-                currentGroup = firstGroup
-                availableGroups = groups
-                itemLists = fetchedItemLists
-                categories = categoriesDict
-            }
+            print("🔄 DashboardViewModel: Updating UI with new data...")
+            currentUser = user
+            currentGroup = firstGroup
+            availableGroups = groups
+            itemLists = fetchedItemLists
+            categories = categoriesDict
 
             await calculateTotalSpent()
 
-            await MainActor.run {
-                isLoading = false
-            }
+            isLoading = false
             
         } catch {
-            await MainActor.run {
-                errorMessage = "Error loading dashboard data: \(error.localizedDescription)"
-                isLoading = false
-            }
+            errorMessage = "Error loading dashboard data: \(error.localizedDescription)"
+            isLoading = false
         }
     }
     
     func refreshData() async {
         print("🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH")
         
-        await MainActor.run {
-            isRefreshing = true
-        }
+        isRefreshing = true
         
         do {
             guard let group = currentGroup else {
                 print("⚠️ DashboardViewModel: No current group, skipping refresh")
-                await MainActor.run { isRefreshing = false }
+                isRefreshing = false
                 return
             }
             
             let groupId = group.id
-            let currentItemLists = await MainActor.run { itemLists }
+            let currentItemLists = itemLists
 
             let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
             
@@ -194,27 +180,21 @@ class DashboardViewModel {
                 return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
             }
 
-            await MainActor.run {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    itemLists = sortedItemLists
-                }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                itemLists = sortedItemLists
             }
 
             await calculateTotalSpent()
 
-            await MainActor.run {
-                print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
-                isRefreshing = false
-                print("✅ DashboardViewModel: Refresh completed smoothly")
-            }
+            print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
+            isRefreshing = false
+            print("✅ DashboardViewModel: Refresh completed smoothly")
             
         } catch {
             print("❌ DashboardViewModel: Error during refresh: \(error.localizedDescription)")
-            await MainActor.run {
-                isRefreshing = false
-            }
+            isRefreshing = false
         }
     }
 
@@ -232,9 +212,7 @@ class DashboardViewModel {
 
         print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name)")
 
-        await MainActor.run {
-            isChangingGroup = true
-        }
+        isChangingGroup = true
 
         do {
             try? await Task.sleep(nanoseconds: 300_000_000)
@@ -250,25 +228,21 @@ class DashboardViewModel {
             }
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
 
-            await MainActor.run {
-                currentGroup = newGroup
-                itemListTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
-                itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
-                itemListCounts = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0) })
-                itemListPaidStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListPaidStatus.none) })
-                itemLists = fetchedItemLists
-                categories = categoriesDict
-            }
+            currentGroup = newGroup
+            itemListTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
+            itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
+            itemListCounts = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0) })
+            itemListPaidStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListPaidStatus.none) })
+            itemLists = fetchedItemLists
+            categories = categoriesDict
 
             await calculateTotalSpent()
 
-            await MainActor.run {
-                isChangingGroup = false
-                print("✅ DashboardViewModel: Grupo cambiado exitosamente")
-                print("📋 DashboardViewModel: Cargados \(fetchedItemLists.count) ItemLists")
-            }
+            isChangingGroup = false
+            print("✅ DashboardViewModel: Grupo cambiado exitosamente")
+            print("📋 DashboardViewModel: Cargados \(fetchedItemLists.count) ItemLists")
         } catch {
-            await MainActor.run { isChangingGroup = false }
+            isChangingGroup = false
             print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
         }
     }
@@ -285,10 +259,8 @@ class DashboardViewModel {
             let userId = user.id
             let groups = try await fetchGroupsForUserUseCase.execute(userId: userId)
 
-            await MainActor.run {
-                availableGroups = groups
-                print("✅ DashboardViewModel: Grupos recargados. Total: \(groups.count)")
-            }
+            availableGroups = groups
+            print("✅ DashboardViewModel: Grupos recargados. Total: \(groups.count)")
         } catch {
             print("❌ DashboardViewModel: Error recargando grupos: \(error)")
         }
@@ -549,13 +521,11 @@ class DashboardViewModel {
         let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
         let paidStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidStatus) })
 
-        await MainActor.run {
-            itemListTotals = totals
-            itemListUnpaidTotals = unpaidTotals
-            itemListCounts = counts
-            itemListPaidStatus = paidStatuses
-            currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
-        }
+        itemListTotals = totals
+        itemListUnpaidTotals = unpaidTotals
+        itemListCounts = counts
+        itemListPaidStatus = paidStatuses
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
             guard itemListTotal.isFinite else { return total }
@@ -713,7 +683,7 @@ class DashboardViewModel {
     }
 
     private func removeItemList(_ itemList: SDItemList) async {
-        let currentItemLists = await MainActor.run { itemLists }
+        let currentItemLists = itemLists
 
         guard let index = currentItemLists.firstIndex(where: { $0.id == itemList.id }) else {
             print("⚠️ DashboardViewModel: ItemList not found in current list")
@@ -723,10 +693,8 @@ class DashboardViewModel {
         var updatedItemLists = currentItemLists
         updatedItemLists.remove(at: index)
 
-        await MainActor.run {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                itemLists = updatedItemLists
-            }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            itemLists = updatedItemLists
         }
 
         await calculateTotalSpent()
@@ -737,12 +705,10 @@ class DashboardViewModel {
 
         // Re-sort since date may have changed (SD* reference type, object is already mutated)
         let cal = Calendar.current
-        await MainActor.run {
-            itemLists = itemLists.sorted {
-                let d0 = cal.startOfDay(for: $0.date)
-                let d1 = cal.startOfDay(for: $1.date)
-                return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
-            }
+        itemLists = itemLists.sorted {
+            let d0 = cal.startOfDay(for: $0.date)
+            let d1 = cal.startOfDay(for: $1.date)
+            return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
         }
 
         await calculateTotalSpent()
