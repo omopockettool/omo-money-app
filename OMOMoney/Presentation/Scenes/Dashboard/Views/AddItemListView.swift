@@ -211,11 +211,10 @@ struct AddItemListView: View {
             descriptionPlaceholder: descriptionPlaceholder,
             description: $viewModel.description,
             suggestions: viewModel.suggestions,
-            selectedCategoryColor: Color(hex: viewModel.selectedCategory?.color ?? "") ?? Color(.systemGray4),
             focusedField: $focusedField,
             onValidate: viewModel.validateAndCorrectPrice,
             onPaste: viewModel.pastePrice,
-            onSuggestionSelected: { viewModel.description = $0 },
+            onSuggestionSelected: { viewModel.applySuggestion($0, forGroupId: activeGroup.id) },
             onClearDescription: { viewModel.description = "" }
         )
     }

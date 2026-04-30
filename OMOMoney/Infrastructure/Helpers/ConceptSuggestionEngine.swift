@@ -1,5 +1,10 @@
 import Foundation
 
+struct ConceptSuggestion {
+    let description: String
+    let category: SDCategory
+}
+
 struct ConceptSuggestionEngine {
 
     static func getSuggestions(
@@ -7,8 +12,8 @@ struct ConceptSuggestionEngine {
         amount: Double?,
         forCategory: SDCategory?,
         allCategories: [SDCategory]
-    ) -> [String] {
-        let candidates = buildCandidates(forCategory: forCategory, amount: amount)
+    ) -> [ConceptSuggestion] {
+        let candidates = buildCandidates(forCategory: forCategory, allCategories: allCategories, amount: amount)
         guard !candidates.isEmpty else { return [] }
 
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -17,18 +22,20 @@ struct ConceptSuggestionEngine {
             return Array(
                 candidates
                     .sorted { lhs, rhs in
+                        if lhs.sameCategory != rhs.sameCategory { return lhs.sameCategory }
                         if lhs.amountMatch != rhs.amountMatch { return lhs.amountMatch }
                         if lhs.date != rhs.date { return lhs.date > rhs.date }
                         return lhs.count > rhs.count
                     }
                     .prefix(3)
-                    .map { $0.name }
+                    .map { ConceptSuggestion(description: $0.name, category: $0.category) }
             )
         }
 
         let prefixMatches = candidates
             .filter { $0.name.lowercased().hasPrefix(q) }
             .sorted { lhs, rhs in
+                if lhs.sameCategory != rhs.sameCategory { return lhs.sameCategory }
                 if lhs.amountMatch != rhs.amountMatch { return lhs.amountMatch }
                 if lhs.date != rhs.date { return lhs.date > rhs.date }
                 return lhs.count > rhs.count
@@ -37,12 +44,15 @@ struct ConceptSuggestionEngine {
         let containsMatches = candidates
             .filter { !$0.name.lowercased().hasPrefix(q) && $0.name.lowercased().contains(q) }
             .sorted { lhs, rhs in
+                if lhs.sameCategory != rhs.sameCategory { return lhs.sameCategory }
                 if lhs.amountMatch != rhs.amountMatch { return lhs.amountMatch }
                 if lhs.date != rhs.date { return lhs.date > rhs.date }
                 return lhs.count > rhs.count
             }
 
-        return Array((prefixMatches + containsMatches).prefix(3).map { $0.name })
+        return Array((prefixMatches + containsMatches).prefix(3).map {
+            ConceptSuggestion(description: $0.name, category: $0.category)
+        })
     }
 
     static func lastUsed(forCategory: SDCategory?) -> String? {
@@ -56,6 +66,8 @@ struct ConceptSuggestionEngine {
 
     private struct Candidate {
         let name: String
+        var category: SDCategory
+        var sameCategory: Bool
         var date: Date
         var count: Int
         var amountMatch: Bool
@@ -63,25 +75,47 @@ struct ConceptSuggestionEngine {
 
     private static func buildCandidates(
         forCategory: SDCategory?,
+        allCategories: [SDCategory],
         amount: Double?
     ) -> [Candidate] {
-        guard let cat = forCategory else { return [] }
         var seen: [String: Candidate] = [:]
 
-        for list in cat.itemLists {
-            let raw = list.itemListDescription.trimmingCharacters(in: .whitespaces)
-            guard !raw.isEmpty else { continue }
-            let key = raw.lowercased()
-            let listTotal = list.items.reduce(0.0) { $0 + $1.totalAmount }
-            let matches = amountMatches(listTotal, target: amount)
+        for cat in allCategories {
+            let isSelected = cat.id == forCategory?.id
+            for list in cat.itemLists {
+                let raw = list.itemListDescription.trimmingCharacters(in: .whitespaces)
+                guard !raw.isEmpty else { continue }
+                let key = raw.lowercased()
+                let listTotal = list.items.reduce(0.0) { $0 + $1.totalAmount }
+                let matches = amountMatches(listTotal, target: amount)
 
-            if var existing = seen[key] {
-                existing.count += 1
-                if list.date > existing.date { existing.date = list.date }
-                if matches { existing.amountMatch = true }
-                seen[key] = existing
-            } else {
-                seen[key] = Candidate(name: raw, date: list.date, count: 1, amountMatch: matches)
+                if var existing = seen[key] {
+                    if isSelected && !existing.sameCategory {
+                        // Promote to same-category, preserving accumulated count
+                        seen[key] = Candidate(
+                            name: raw,
+                            category: cat,
+                            sameCategory: true,
+                            date: list.date,
+                            count: existing.count + 1,
+                            amountMatch: matches || existing.amountMatch
+                        )
+                    } else {
+                        existing.count += 1
+                        if list.date > existing.date { existing.date = list.date }
+                        if matches { existing.amountMatch = true }
+                        seen[key] = existing
+                    }
+                } else {
+                    seen[key] = Candidate(
+                        name: raw,
+                        category: cat,
+                        sameCategory: isSelected,
+                        date: list.date,
+                        count: 1,
+                        amountMatch: matches
+                    )
+                }
             }
         }
 

@@ -26,7 +26,7 @@ final class AddItemListViewModel {
     var date = Date()
     var selectedCategory: SDCategory?
     var selectedPaymentMethod: SDPaymentMethod?
-    var suggestions: [String] = []
+    var suggestions: [ConceptSuggestion] = []
     var lastUsedConcept: String?
     var lastUsedCategoryIds: [UUID] = []
     var lastUsedPaymentMethodId: UUID?
@@ -452,6 +452,15 @@ final class AddItemListViewModel {
     func updateConceptAssists() {
         updateSuggestions()
         applyPaymentMethodSuggestionForCurrentConcept()
+    }
+
+    func applySuggestion(_ suggestion: ConceptSuggestion, forGroupId groupId: UUID) {
+        description = suggestion.description
+        if suggestion.category.id != selectedCategory?.id {
+            selectedCategory = suggestion.category
+            recordCategoryUsage(suggestion.category, forGroupId: groupId)
+        }
+        updateConceptAssists()
     }
 
     private func applyPaymentMethodSuggestionForCurrentConcept() {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.5] - 2026-04-30
+
+### Fixed
+- **Description suggestions now search across all categories instead of only the selected one** (`ConceptSuggestionEngine`, `AddItemListViewModel`, `ConceptSuggestionChipsView`, `AddItemListComponents`) — when the typed text matches historical entries from a different category, those suggestions appear as chips in that category's color. Tapping a cross-category chip fills the description and automatically switches the selected category. Same-category results still rank first so the existing behavior is preserved when the description matches the current category.
+
+---
+
 ## [1.8.4] - 2026-04-30
 
 ### Changed

@@ -11,12 +11,11 @@ struct AddItemListTopCard: View {
     let currencySymbol: String
     let descriptionPlaceholder: String
     @Binding var description: String
-    let suggestions: [String]
-    let selectedCategoryColor: Color
+    let suggestions: [ConceptSuggestion]
     let focusedField: FocusState<AddItemListField?>.Binding
     let onValidate: () -> Void
     let onPaste: () -> Void
-    let onSuggestionSelected: (String) -> Void
+    let onSuggestionSelected: (ConceptSuggestion) -> Void
     let onClearDescription: () -> Void
 
     var body: some View {
@@ -48,8 +47,7 @@ struct AddItemListTopCard: View {
 
             if focusedField.wrappedValue == .description && !suggestions.isEmpty {
                 ConceptSuggestionChipsView(
-                    suggestions: suggestions,
-                    categoryColor: selectedCategoryColor
+                    suggestions: suggestions
                 ) { selected in
                     onSuggestionSelected(selected)
                 }
