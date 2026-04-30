@@ -1,39 +1,38 @@
 import SwiftUI
 
 struct DashboardTopBarView: View {
+    private enum DashboardRange: Hashable {
+        case today
+        case month
+    }
+
     @Binding var showingFullMonth: Bool
     let hasItemsOutsideToday: Bool
     let onOpenSettings: () -> Void
 
+    private var selectedRange: Binding<DashboardRange> {
+        Binding(
+            get: { showingFullMonth ? .month : .today },
+            set: { newValue in
+                withAnimation(AnimationHelper.quickSpring) {
+                    showingFullMonth = (newValue == .month)
+                }
+            }
+        )
+    }
+
     var body: some View {
         HStack {
             if hasItemsOutsideToday {
-                HStack(spacing: 0) {
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) { showingFullMonth = false }
-                    } label: {
-                        Label(LocalizationKey.Dashboard.today.localized, systemImage: "sparkles")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(!showingFullMonth ? Color.accentColor : Color.clear)
-                            .foregroundStyle(!showingFullMonth ? Color.white : Color.secondary)
-                            .clipShape(Capsule())
-                    }
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) { showingFullMonth = true }
-                    } label: {
-                        Text(LocalizationKey.Dashboard.thisMonth.localized)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(showingFullMonth ? Color.accentColor : Color.clear)
-                            .foregroundStyle(showingFullMonth ? Color.white : Color.secondary)
-                            .clipShape(Capsule())
-                    }
+                Picker("Dashboard Range", selection: selectedRange) {
+                    Text(LocalizationKey.Dashboard.today.localized)
+                        .tag(DashboardRange.today)
+                    Text(LocalizationKey.Dashboard.thisMonth.localized)
+                        .tag(DashboardRange.month)
                 }
-                .background(Color(.tertiarySystemFill))
-                .clipShape(Capsule())
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 220)
                 .animation(AnimationHelper.quickSpring, value: showingFullMonth)
             }
 

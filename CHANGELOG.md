@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.2] - 2026-04-30
+
+### Changed
+- **Dashboard today/month toggle replaced with a native segmented picker** (`DashboardTopBarView`) — the custom two-button capsule switcher is now a `Picker` with `.segmented` style, reducing manual state management and giving the control a standard iOS appearance.
+
+---
+
 ## [1.8.1] - 2026-04-30
 
 ### Added
