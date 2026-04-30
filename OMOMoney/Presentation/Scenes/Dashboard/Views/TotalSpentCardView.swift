@@ -47,7 +47,7 @@ struct TotalSpentCardView<BottomContent: View>: View {
                         .animation(.easeInOut(duration: 0.2), value: label)
 
                     if isSuccess {
-                        Text(LocalizationKey.Dashboard.allDone.localized)
+                        Text(LocalizationKey.Dashboard.added.localized)
                             .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                             .transition(.push(from: .top).combined(with: .opacity))

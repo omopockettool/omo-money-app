@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.1] - 2026-04-30
+
+### Added
+- **Dashboard and item list expense views are now displayed inside a rounded card container** (`DashboardMainContent`, `ItemListDetailView`, `DashboardComponents`, `ItemListDetailComponents`) — the scrollable list is wrapped in a `secondarySystemBackground` rounded rectangle that matches the width of `TotalSpentCardView`, giving both screens a consistent card-based layout. The background shape is a separate static layer so pull-to-refresh animations and scroll view geometry stay stable. Scroll indicators are hidden on both lists to prevent UIKit clipping artifacts caused by the external `clipShape`.
+
+### Fixed
+- **Success confirmation label on the dashboard hero card now reads "Added!" instead of "All done!"** (`Localizable.strings`, `String+Localization`) — the `dashboard.allDone` key was renamed to `dashboard.added` and the English copy updated to better reflect that a new expense was just recorded, not that all items are completed.
+
+---
+
 ## [1.8.0] - 2026-04-30
 
 ### Fixed

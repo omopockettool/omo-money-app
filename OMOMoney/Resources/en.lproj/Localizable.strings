@@ -135,7 +135,7 @@
 "dashboard.yesterday" = "Yesterday";
 "dashboard.costThisMonth" = "Cost this month";
 "dashboard.costToday" = "Cost today";
-"dashboard.allDone" = "All done!";
+"dashboard.added" = "Added!";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "New Entry";
