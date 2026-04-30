@@ -6,6 +6,12 @@ import UIKit
 
 @Observable
 final class AddItemListViewModel {
+    private struct UsageMemorySnapshot {
+        let itemListDescription: String
+        let createdAt: Date
+        let categoryId: UUID?
+        let paymentMethodId: UUID?
+    }
 
     // MARK: - Published Properties
     var categories: [SDCategory] = []
@@ -37,7 +43,7 @@ final class AddItemListViewModel {
     private let itemListToEdit: SDItemList?
     private let cacheManager = CacheManager.shared
     private let categoryUsageLimit = 3
-    private var usageMemoryItemLists: [SDItemList] = []
+    private var usageMemorySnapshots: [UsageMemorySnapshot] = []
     private var didManuallyChoosePaymentMethod = false
 
     // MARK: - Computed
@@ -190,29 +196,37 @@ final class AddItemListViewModel {
 
     private func loadLastUsedSelectionIds(forGroupId groupId: UUID) async -> (categoryId: UUID?, paymentMethodId: UUID?, hasHistory: Bool) {
         do {
-            let itemLists = try await loadUsageMemoryItemLists(forGroupId: groupId)
-            usageMemoryItemLists = itemLists
-            let lastRegistered = itemLists.max { $0.createdAt < $1.createdAt }
+            let snapshots = try await loadUsageMemorySnapshots(forGroupId: groupId)
+            usageMemorySnapshots = snapshots
+            let lastRegistered = snapshots.max { $0.createdAt < $1.createdAt }
             return (
-                itemLists.first { $0.category != nil }?.category?.id,
-                lastRegistered?.paymentMethod?.id,
+                snapshots.first { $0.categoryId != nil }?.categoryId,
+                lastRegistered?.paymentMethodId,
                 lastRegistered != nil
             )
         } catch {
-            usageMemoryItemLists = []
+            usageMemorySnapshots = []
             return (nil, nil, false)
         }
     }
 
-    private func loadUsageMemoryItemLists(forGroupId groupId: UUID) async throws -> [SDItemList] {
+    private func loadUsageMemorySnapshots(forGroupId groupId: UUID) async throws -> [UsageMemorySnapshot] {
         let key = usageMemoryCacheKey(forGroupId: groupId)
-        if let cached: [SDItemList] = cacheManager.getCachedData(for: key) {
+        if let cached: [UsageMemorySnapshot] = cacheManager.getCachedData(for: key) {
             return cached
         }
 
         let itemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
-        cacheManager.cacheData(itemLists, for: key)
-        return itemLists
+        let snapshots = itemLists.map {
+            UsageMemorySnapshot(
+                itemListDescription: $0.itemListDescription,
+                createdAt: $0.createdAt,
+                categoryId: $0.category?.id,
+                paymentMethodId: $0.paymentMethod?.id
+            )
+        }
+        cacheManager.cacheData(snapshots, for: key)
+        return snapshots
     }
 
     private func clearUsageMemoryCache(forGroupId groupId: UUID) {
@@ -447,18 +461,16 @@ final class AddItemListViewModel {
         let normalizedDescription = normalizedConcept(description)
         guard !normalizedDescription.isEmpty else { return }
 
-        let matchingItemList = usageMemoryItemLists
+        let matchingSnapshot = usageMemorySnapshots
             .filter {
-                $0.category?.id == selectedCategory.id &&
+                $0.categoryId == selectedCategory.id &&
                 normalizedConcept($0.itemListDescription) == normalizedDescription
             }
             .max { $0.createdAt < $1.createdAt }
 
-        guard let matchingItemList else { return }
+        guard let paymentMethodId = matchingSnapshot?.paymentMethodId else { return }
 
-        selectedPaymentMethod = matchingItemList.paymentMethod.flatMap { paymentMethod in
-            paymentMethods.first { $0.id == paymentMethod.id }
-        }
+        selectedPaymentMethod = paymentMethods.first { $0.id == paymentMethodId }
         lastUsedPaymentMethodId = selectedPaymentMethod?.id
     }
 

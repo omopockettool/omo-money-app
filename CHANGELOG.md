@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.4] - 2026-04-30
+
+### Fixed
+- **Dashboard totals now use a safer cache-first path** (`DashboardViewModel`, `DefaultItemRepository`) — per-item-list paid/unpaid totals, item counts, and payment status now reuse cached aggregate data before falling back to SwiftData fetches, and item-level writes now bump the parent item list’s `lastModifiedAt` so the dashboard cache invalidates correctly when anything changes.
+- **Quick-add usage memory no longer caches live SwiftData models** (`AddItemListViewModel`) — the form now stores lightweight snapshot data for last-used concept/category/payment hints instead of caching raw `SDItemList` objects, reducing stale-reference risk while keeping the same behavior.
+
+---
+
 ## [1.7.3] - 2026-04-30
 
 ### Fixed

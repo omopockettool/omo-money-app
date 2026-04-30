@@ -12,6 +12,14 @@ enum ItemListPaidStatus {
 
 @Observable
 class DashboardViewModel {
+    private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus)
+
+    private struct CachedItemListData {
+        let paidTotal: Double
+        let unpaidTotal: Double
+        let count: Int
+        let paidStatus: ItemListPaidStatus
+    }
 
     // MARK: - Published Properties
     var itemLists: [SDItemList] = [] {
@@ -21,6 +29,7 @@ class DashboardViewModel {
     }
     var currentMonthItemLists: [SDItemList] = []
     var totalSpent: Double = 0.0
+    var todayTotal: Double = 0.0
     var currentMonthTotal: Double = 0.0
     var itemListTotals: [UUID: Double] = [:]
     var itemListUnpaidTotals: [UUID: Double] = [:]
@@ -54,7 +63,7 @@ class DashboardViewModel {
     }
 
     var todayRawTotal: Double {
-        todayItemLists.reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        todayTotal
     }
 
 
@@ -437,11 +446,8 @@ class DashboardViewModel {
 
     @MainActor
     func clearCache() async {
-        guard let group = currentGroup else { return }
-        let groupId = group.id.uuidString
-        let cacheKey = "dashboard_items_\(groupId)"
-        cacheManager.clearDataCache(for: cacheKey)
-        print("🗂️ DashboardViewModel: Cache cleared for group \(groupId)")
+        cacheManager.clearAllCaches()
+        print("🗂️ DashboardViewModel: All caches cleared")
     }
     
     func togglePaid(for itemList: SDItemList) {
@@ -455,6 +461,7 @@ class DashboardViewModel {
         let previousStates = itemList.items.map { (id: $0.id, isPaid: $0.isPaid) }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
+        itemList.lastModifiedAt = Date()
         itemListPaidStatus[itemList.id] = newValue ? .all : .none
         itemList.items.forEach { $0.isPaid = newValue }
 
@@ -491,6 +498,7 @@ class DashboardViewModel {
             itemList.items.first { $0.id == state.id }?.isPaid = state.isPaid
             try? await toggleItemPaidUseCase.execute(itemId: state.id, isPaid: state.isPaid)
         }
+        itemList.lastModifiedAt = Date()
         await calculateTotalSpent()
         toast = ToastMessage("Cambio deshecho", type: .info)
     }
@@ -508,7 +516,6 @@ class DashboardViewModel {
     }
 
     private func calculateTotalSpent() async {
-        typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus)
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
 
@@ -534,6 +541,7 @@ class DashboardViewModel {
         itemListUnpaidTotals = unpaidTotals
         itemListCounts = counts
         itemListPaidStatus = paidStatuses
+        todayTotal = todayItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
         currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
@@ -586,7 +594,7 @@ class DashboardViewModel {
     }
 
     var formattedTodayTotal: String {
-        formattedTotal(for: Date())
+        makeCurrencyFormatter().string(from: NSNumber(value: todayTotal)) ?? "€0.00"
     }
 
     func formattedCachedMonthTotal() -> String {
@@ -634,6 +642,12 @@ class DashboardViewModel {
     }
     
     private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus) {
+        let cacheKey = itemListDataCacheKey(for: itemList)
+
+        if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
+            return (itemList.id, cached.paidTotal, cached.unpaidTotal, cached.count, cached.paidStatus)
+        }
+
         do {
             let items = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
             let paidItems = items.filter { $0.isPaid }
@@ -655,10 +669,22 @@ class DashboardViewModel {
             } else {
                 paidStatus = .partial
             }
-            return (itemList.id, max(0, paidTotal.isFinite ? paidTotal : 0.0), max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0), totalUnits, paidStatus)
+            let result = CachedItemListData(
+                paidTotal: max(0, paidTotal.isFinite ? paidTotal : 0.0),
+                unpaidTotal: max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0),
+                count: totalUnits,
+                paidStatus: paidStatus
+            )
+            cacheManager.cacheCalculation(result, for: cacheKey)
+            return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus)
         } catch {
             return (itemList.id, 0.0, 0.0, 0, .none)
         }
+    }
+
+    private func itemListDataCacheKey(for itemList: SDItemList) -> String {
+        let versionDate = itemList.lastModifiedAt ?? itemList.createdAt
+        return "dashboard_item_list_data_\(itemList.id.uuidString)_\(versionDate.timeIntervalSince1970)"
     }
 
     func getItemListTotal(_ itemList: SDItemList) async -> Double {

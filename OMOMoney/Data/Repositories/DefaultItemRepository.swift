@@ -36,13 +36,16 @@ final class DefaultItemRepository: ItemRepository {
         let targetId = itemListId
         let descriptor = FetchDescriptor<SDItemList>(predicate: #Predicate { $0.id == targetId })
         item.itemList = try context.fetch(descriptor).first
+        item.itemList?.lastModifiedAt = Date()
         context.insert(item)
         try context.save()
         return item
     }
 
     func updateItem(_ item: SDItem) async throws {
-        item.lastModifiedAt = Date()
+        let modifiedAt = Date()
+        item.lastModifiedAt = modifiedAt
+        item.itemList?.lastModifiedAt = modifiedAt
         try context.save()
     }
 
@@ -52,6 +55,7 @@ final class DefaultItemRepository: ItemRepository {
         guard let item = try context.fetch(descriptor).first else {
             throw RepositoryError.notFound
         }
+        item.itemList?.lastModifiedAt = Date()
         context.delete(item)
         try context.save()
     }
@@ -64,6 +68,7 @@ final class DefaultItemRepository: ItemRepository {
         items.forEach {
             $0.isPaid = isPaid
             $0.lastModifiedAt = modifiedAt
+            $0.itemList?.lastModifiedAt = modifiedAt
         }
         try context.save()
     }
@@ -74,8 +79,10 @@ final class DefaultItemRepository: ItemRepository {
         guard let item = try context.fetch(descriptor).first else {
             throw RepositoryError.notFound
         }
+        let modifiedAt = Date()
         item.isPaid = isPaid
-        item.lastModifiedAt = Date()
+        item.lastModifiedAt = modifiedAt
+        item.itemList?.lastModifiedAt = modifiedAt
         try context.save()
     }
 }
