@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.6] - 2026-04-30
+
+### Fixed
+- **New entry form now correctly defaults the initial item to paid for today and past dates** (`AddItemListViewModel`) — the first item created when saving a new entry was using a legacy `paymentMethodId != nil` check instead of the date-based rule, causing it to be unpaid even for today. Aligned with `AddItemViewModel`: today and past → `isPaid = true`, future → `isPaid = false`.
+
+### Removed
+- **Dead seed-data generator deleted** (`DashboardViewModel`) — `generateSeedDataDebug()` and `generateSeedData()` were unreachable dev utilities (~80 lines) that duplicated the item list creation path. Removed to keep a single creation path through `AddItemListViewModel`.
+
+---
+
 ## [1.8.5] - 2026-04-30
 
 ### Fixed

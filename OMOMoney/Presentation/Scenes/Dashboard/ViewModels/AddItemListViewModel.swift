@@ -329,12 +329,13 @@ final class AddItemListViewModel {
             )
 
             if let priceDecimal = priceAsDecimal {
+                let isFuture = Calendar.current.startOfDay(for: date) > Calendar.current.startOfDay(for: Date())
                 let _ = try await createItemUseCase.execute(
                     description: trimmedDescription,
                     amount: priceDecimal,
                     quantity: 1,
                     itemListId: itemList.id,
-                    isPaid: paymentMethodId != nil && priceDecimal > 0
+                    isPaid: !isFuture
                 )
             }
 
