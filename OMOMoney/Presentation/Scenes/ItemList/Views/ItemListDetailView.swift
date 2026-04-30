@@ -142,10 +142,25 @@ struct ItemListDetailView: View {
     // MARK: - Main Content
 
     private var mainContentView: some View {
-        itemsList
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                heroCardInset
-            }
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+
+            itemsList
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            heroCardInset
+        }
     }
 
     // MARK: - Hero Card

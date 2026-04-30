@@ -146,6 +146,7 @@ struct ItemListItemsSection: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollIndicators(.hidden)
         .animation(.easeInOut(duration: 0.2), value: items.count)
         .refreshable { await onRefresh() }
     }

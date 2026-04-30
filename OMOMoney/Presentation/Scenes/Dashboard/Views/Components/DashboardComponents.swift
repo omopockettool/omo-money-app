@@ -68,7 +68,7 @@ struct DashboardHeroSection: View {
         )
         .padding(.horizontal, AppConstants.UserInterface.padding)
         .padding(.top, AppConstants.UserInterface.padding)
-        .padding(.bottom, 10)
+        .padding(.bottom, 4)
         .animation(AnimationHelper.smoothSpring, value: showingFullMonth)
     }
 }
@@ -127,24 +127,38 @@ struct DashboardMainContent: View {
     let bottomInset: AnyView
 
     var body: some View {
-        ExpenseListView(
-            itemLists: itemLists,
-            getFormattedAmount: getFormattedAmount,
-            getFormattedUnpaidAmount: getFormattedUnpaidAmount,
-            itemListCounts: itemListCounts,
-            categories: categories,
-            itemListPaidStatus: itemListPaidStatus,
-            onItemTap: onItemTap,
-            onTogglePaid: onTogglePaid,
-            onRefresh: onRefresh,
-            onDelete: onDelete,
-            getDayTotal: showingFullMonth ? getDayTotal : nil,
-            focusedDate: nil,
-            hideSectionHeaders: !showingFullMonth,
-            onAddForDate: showingFullMonth ? onAddForDate : nil,
-            collapsedDays: showingFullMonth ? $collapsedMonthDays : .constant([]),
-            allowsDayCollapse: showingFullMonth
-        )
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+
+            ExpenseListView(
+                itemLists: itemLists,
+                getFormattedAmount: getFormattedAmount,
+                getFormattedUnpaidAmount: getFormattedUnpaidAmount,
+                itemListCounts: itemListCounts,
+                categories: categories,
+                itemListPaidStatus: itemListPaidStatus,
+                onItemTap: onItemTap,
+                onTogglePaid: onTogglePaid,
+                onRefresh: onRefresh,
+                onDelete: onDelete,
+                getDayTotal: showingFullMonth ? getDayTotal : nil,
+                focusedDate: nil,
+                hideSectionHeaders: !showingFullMonth,
+                onAddForDate: showingFullMonth ? onAddForDate : nil,
+                collapsedDays: showingFullMonth ? $collapsedMonthDays : .constant([]),
+                allowsDayCollapse: showingFullMonth
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.top, AppConstants.UserInterface.smallPadding)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             DashboardTopBarView(
                 showingFullMonth: $showingFullMonth,
