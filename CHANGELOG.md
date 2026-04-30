@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.3] - 2026-04-30
+
+### Fixed
+- **Completed items now reorder more calmly after a paid toggle** (`ItemListDetailViewModel`, `DefaultItemRepository`) — when an item is marked as paid, the paid section no longer reshuffles only by original creation time. Completed items now use `lastModifiedAt` for their in-section ordering, which keeps the transition more stable and reduces the dizzying jumpiness caused by rapid reordering after completion.
+
+---
+
 ## [1.7.2] - 2026-04-30
 
 ### Fixed

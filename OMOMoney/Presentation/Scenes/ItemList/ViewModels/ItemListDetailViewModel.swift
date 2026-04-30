@@ -93,7 +93,7 @@ class ItemListDetailViewModel {
     func updateItem(_ item: SDItem) async {
         print("✏️ [EDIT] Updating item: '\(item.itemDescription)'")
         // SDItem is a reference type — the object is already updated in place.
-        // Re-sort in case payment status or createdAt ordering changed.
+        // Re-sort in case payment status or lastModifiedAt ordering changed.
         items = sortItems(items)
         print("✅ [EDIT] Item updated")
     }
@@ -109,7 +109,9 @@ class ItemListDetailViewModel {
 
     func toggleItemPaid(_ item: SDItem) async {
         let newIsPaid = !item.isPaid
+        let previousLastModifiedAt = item.lastModifiedAt
         item.isPaid = newIsPaid
+        item.lastModifiedAt = Date()
         withAnimation(.easeInOut(duration: 0.2)) {
             items = sortItems(items)
         }
@@ -117,6 +119,7 @@ class ItemListDetailViewModel {
             try await toggleItemPaidUseCase.execute(itemId: item.id, isPaid: newIsPaid)
         } catch {
             item.isPaid = !newIsPaid
+            item.lastModifiedAt = previousLastModifiedAt
             withAnimation(.easeInOut(duration: 0.2)) {
                 items = sortItems(items)
             }
@@ -131,8 +134,12 @@ class ItemListDetailViewModel {
                 return lhs.isPaid == false
             }
 
-            return lhs.createdAt > rhs.createdAt
+            return sortDate(for: lhs) > sortDate(for: rhs)
         }
+    }
+
+    private func sortDate(for item: SDItem) -> Date {
+        item.isPaid ? (item.lastModifiedAt ?? item.createdAt) : item.createdAt
     }
 
     private func makeCurrencyFormatter() -> NumberFormatter {

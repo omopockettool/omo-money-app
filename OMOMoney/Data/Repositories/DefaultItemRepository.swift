@@ -60,7 +60,11 @@ final class DefaultItemRepository: ItemRepository {
         let targetId = itemListId
         let descriptor = FetchDescriptor<SDItem>(predicate: #Predicate { $0.itemList?.id == targetId })
         let items = try context.fetch(descriptor)
-        items.forEach { $0.isPaid = isPaid }
+        let modifiedAt = Date()
+        items.forEach {
+            $0.isPaid = isPaid
+            $0.lastModifiedAt = modifiedAt
+        }
         try context.save()
     }
 
@@ -71,6 +75,7 @@ final class DefaultItemRepository: ItemRepository {
             throw RepositoryError.notFound
         }
         item.isPaid = isPaid
+        item.lastModifiedAt = Date()
         try context.save()
     }
 }
