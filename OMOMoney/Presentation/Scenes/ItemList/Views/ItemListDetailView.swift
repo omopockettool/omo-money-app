@@ -139,12 +139,6 @@ struct ItemListDetailView: View {
         }
     }
 
-    // MARK: - Computed
-
-    private var categoryColor: Color {
-        Color(hex: itemList.category?.color ?? "") ?? .accentColor
-    }
-
     // MARK: - Main Content
 
     private var mainContentView: some View {
@@ -157,124 +151,36 @@ struct ItemListDetailView: View {
     // MARK: - Hero Card
 
     private var heroCard: some View {
-        TotalSpentCardView(
-            label: heroIsSuccess ? lastAddedDescription : LocalizationKey.Item.costOf.localized(with: itemList.itemListDescription),
+        ItemListDetailHeroCard(
+            itemList: itemList,
+            heroIsSuccess: heroIsSuccess,
+            lastAddedDescription: lastAddedDescription,
             totalAmount: viewModel.getFormattedTotal(),
-            onAddExpense: { sheetMode = .create },
-            isSuccess: heroIsSuccess
-        ) {
-            heroMetaRow
-        }
-    }
-
-    private var heroMetaRow: some View {
-        HStack(spacing: 10) {
-            if let category = itemList.category {
-                let color = Color(hex: category.color) ?? .accentColor
-                HStack(spacing: 4) {
-                    Image(systemName: category.icon)
-                        .foregroundStyle(color)
-                    if showMetaLabels {
-                        Text(category.name)
-                            .foregroundStyle(color)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
-                    }
-                }
-                .font(.caption)
-                .fontWeight(.medium)
-            }
-            if let pm = itemList.paymentMethod {
-                let color = pmColor(pm.type)
-                HStack(spacing: 4) {
-                    Image(systemName: pm.icon.isEmpty ? pmDefaultIcon(pm.type) : pm.icon)
-                        .foregroundStyle(color)
-                    if showMetaLabels {
-                        Text(pm.name)
-                            .foregroundStyle(color)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
-                    }
-                }
-                .font(.caption)
-                .fontWeight(.medium)
-            }
-            Group {
-                if let unpaid = viewModel.getFormattedUnpaidTotal() {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                        if !showMetaLabels {
-                            Text(unpaid)
-                                .fontWeight(.medium)
-                                .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))
-                        }
-                    }
-                    .foregroundStyle(.orange)
-                } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
-            }
-            .font(.caption)
-            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: viewModel.getFormattedUnpaidTotal() == nil)
-        }
-        .padding(.top, 2)
-    }
-
-    private func pmColor(_ type: String) -> Color {
-        switch type {
-        case "cash":          return .green
-        case "bank_transfer": return .orange
-        case "card_credit":   return .purple
-        default:              return .blue
-        }
+            unpaidTotal: viewModel.getFormattedUnpaidTotal(),
+            showMetaLabels: showMetaLabels,
+            onAddExpense: { sheetMode = .create }
+        )
     }
 
     // MARK: - Items List (scrollable)
 
     private var itemsList: some View {
-        List {
-            if viewModel.items.isEmpty {
-                emptyStateRow
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            } else {
-                ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
-                    ItemRowView(
-                        item: item,
-                        formattedAmount: viewModel.getFormattedAmount(item),
-                        currencyCode: currencyCode,
-                        timelinePosition: timelinePosition(
-                            index: index,
-                            count: viewModel.items.count
-                        ),
-                        onTap: { sheetMode = .edit(item) },
-                        onTogglePaid: {
-                            Task {
-                                await viewModel.toggleItemPaid(item)
-                                onPaidStatusChanged?()
-                            }
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 16))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            Task { await viewModel.deleteItem(item, at: index) }
-                        } label: {
-                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
-                        }
-                    }
+        ItemListItemsSection(
+            items: viewModel.items,
+            currencyCode: currencyCode,
+            formattedAmount: viewModel.getFormattedAmount,
+            onItemTap: { sheetMode = .edit($0) },
+            onTogglePaid: { item in
+                Task {
+                    await viewModel.toggleItemPaid(item)
+                    onPaidStatusChanged?()
                 }
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.items.count)
-        .refreshable { await viewModel.loadItems() }
+            },
+            onDelete: { item, index in
+                Task { await viewModel.deleteItem(item, at: index) }
+            },
+            onRefresh: { await viewModel.loadItems() }
+        )
     }
 
     private var heroCardInset: some View {
@@ -284,67 +190,10 @@ struct ItemListDetailView: View {
             .background(Color(.systemGroupedBackground).ignoresSafeArea(edges: .bottom))
     }
 
-    // MARK: - Add Item Button
-
-    private var addItemButton: some View {
-        Button { sheetMode = .create } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Color.accentColor)
-                Text(LocalizationKey.Item.add.localized)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
-                Spacer()
-            }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        }
-        .buttonStyle(PressHapticButtonStyle())
-    }
-
-    // MARK: - Empty State
-
-    private var emptyStateRow: some View {
-        EmptyStateView(message: LocalizationKey.Item.tapToAdd.localized)
-    }
-
-    private func pmDefaultIcon(_ type: String) -> String {
-        switch type {
-        case "cash":          return "banknote.fill"
-        case "bank_transfer": return "arrow.left.arrow.right"
-        default:              return "creditcard.fill"
-        }
-    }
-
-    private func timelinePosition(index: Int, count: Int) -> TimelinePosition {
-        if count == 1 { return .single }
-        if index == 0 { return .first }
-        if index == count - 1 { return .last }
-        return .middle
-    }
-
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.orange)
-            Text(LocalizationKey.General.error.localized)
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text(message)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            Button(LocalizationKey.General.retry.localized) {
-                Task { await viewModel.loadItems() }
-            }
-            .buttonStyle(.borderedProminent)
+        ItemListErrorState(message: message) {
+            Task { await viewModel.loadItems() }
         }
-        .padding(AppConstants.UserInterface.largePadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -415,209 +264,6 @@ struct ItemRowView: View {
         .padding(.trailing, 2)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
-    }
-}
-
-// MARK: - Add/Edit Item View
-
-struct AddItemView: View {
-    let onItemSaved: (SDItem) -> Void
-    let currencyCode: String
-    let itemListDescription: String
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var viewModel: AddItemViewModel
-    @FocusState private var focusedField: Field?
-    @State private var displayedSubtotal: String = ""
-    @State private var subtotalIsDecreasing: Bool = false
-    private enum Field { case description, amount, quantity }
-
-    init(
-        itemListId: UUID,
-        itemToEdit: SDItem? = nil,
-        itemListDescription: String,
-        currencyCode: String = "EUR",
-        onItemSaved: @escaping (SDItem) -> Void,
-        createItemUseCase: CreateItemUseCase,
-        updateItemUseCase: UpdateItemUseCase
-    ) {
-        self.onItemSaved = onItemSaved
-        self.currencyCode = currencyCode
-        self.itemListDescription = itemListDescription
-        self._viewModel = State(wrappedValue: AddItemViewModel(
-            itemListId: itemListId,
-            itemToEdit: itemToEdit,
-            itemListDescription: itemListDescription,
-            createItemUseCase: createItemUseCase,
-            updateItemUseCase: updateItemUseCase
-        ))
-    }
-
-    private var currencySymbol: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        formatter.locale = Locale(identifier: "en_US")
-        return formatter.currencySymbol
-    }
-
-    private var quantityValue: Int { Int(viewModel.quantity) ?? 1 }
-
-    private var subtotalAmount: String {
-        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return "" }
-        let total = price * Decimal(quantityValue)
-        return String(format: "%.2f", NSDecimalNumber(decimal: total).doubleValue) + " " + currencySymbol
-    }
-
-    private var subtotalFormula: String {
-        guard quantityValue > 1 else { return "" }
-        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) \(LocalizationKey.Item.units.localized)"
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    heroAmountInput
-                    descriptionCard
-                    quantityStepper
-                    if viewModel.showsTotalPreview { subtotalCard }
-                }
-                .padding(AppConstants.UserInterface.padding)
-                .padding(.bottom, 8)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(viewModel.isEditMode ? LocalizationKey.Item.editItem.localized : LocalizationKey.Item.newItem.localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: { Image(systemName: "xmark") }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let item = await viewModel.saveItem() {
-                                onItemSaved(item)
-                                dismiss()
-                            }
-                        }
-                    } label: { Image(systemName: "checkmark") }
-                    .disabled(!viewModel.canSave)
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(LocalizationKey.General.done.localized) { focusedField = nil }
-                }
-            }
-        }
-    }
-
-    private var heroAmountInput: some View {
-        HeroAmountInputView(
-            text: $viewModel.amount,
-            currencySymbol: currencySymbol,
-            onValidate: viewModel.validateAndCorrectAmount,
-            focusedField: $focusedField,
-            fieldValue: .amount
-        )
-    }
-
-    private var descriptionCard: some View {
-        LimitedTextField(
-            icon: "text.alignleft",
-            placeholder: itemListDescription,
-            text: $viewModel.description,
-            maxLength: 200,
-            axis: .vertical,
-            focusedField: $focusedField,
-            fieldValue: .description
-        )
-    }
-
-    private var quantityBinding: Binding<Int> {
-        Binding(
-            get: { max(1, Int(viewModel.quantity) ?? 1) },
-            set: { viewModel.quantity = String($0) }
-        )
-    }
-
-    private var quantityStepper: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(LocalizationKey.Item.quantity.localized)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            HStack(spacing: 12) {
-                Image(systemName: "number")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-
-                TextField("1", text: $viewModel.quantity)
-                    .keyboardType(.numberPad)
-                    .font(.subheadline.weight(.semibold))
-                    .focused($focusedField, equals: .quantity)
-                    .onChange(of: viewModel.quantity) { _, newValue in
-                        let digits = newValue.filter { $0.isNumber }
-                        if let n = Int(digits) {
-                            viewModel.quantity = String(min(n, 999999))
-                        } else {
-                            viewModel.quantity = digits
-                        }
-                    }
-
-                Stepper("", value: quantityBinding, in: 1...999999)
-                    .labelsHidden()
-                    .fixedSize()
-            }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                    .stroke(focusedField == .quantity ? Color(.systemGray3) : Color.clear, lineWidth: 1.5)
-                    .animation(AnimationHelper.formFocus, value: focusedField == .quantity)
-            )
-        }
-    }
-
-    private var subtotalCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(LocalizationKey.Item.subtotal.localized)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(subtotalFormula)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text(displayedSubtotal.isEmpty ? subtotalAmount : displayedSubtotal)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
-                .contentTransition(.numericText(countsDown: subtotalIsDecreasing))
-                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedSubtotal)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-        .onAppear { displayedSubtotal = subtotalAmount }
-        .onChange(of: subtotalAmount) { _, newValue in
-            let oldDigits = Int(displayedSubtotal.filter(\.isNumber)) ?? 0
-            let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
-            subtotalIsDecreasing = newDigits < oldDigits
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                displayedSubtotal = newValue
-            }
-        }
     }
 }
 

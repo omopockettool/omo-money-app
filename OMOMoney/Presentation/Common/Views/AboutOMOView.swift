@@ -265,7 +265,7 @@ private struct AppInfo {
     }
 
     static var current: AppInfo {
-        let version = "1.6.2"
+        let version = "1.8.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return AppInfo(version: version, build: build)
     }

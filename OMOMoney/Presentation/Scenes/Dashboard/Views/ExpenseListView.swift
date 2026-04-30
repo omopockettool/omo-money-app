@@ -112,7 +112,7 @@ struct ExpenseListView: View {
         let categoryName = itemList.category.flatMap { categories[$0.id]?.name }
         let categoryColor = itemList.category.flatMap { categories[$0.id]?.color }.flatMap { Color(hex: $0) }
         let categoryIcon = itemList.category.flatMap { categories[$0.id]?.icon }
-        ExpenseRowView(
+        ExpenseListRowContainer(
             itemList: itemList,
             formattedAmount: getFormattedAmount(itemList),
             formattedUnpaidAmount: getFormattedUnpaidAmount(itemList),
@@ -121,87 +121,36 @@ struct ExpenseListView: View {
             categoryColor: categoryColor,
             categoryIcon: categoryIcon,
             paidStatus: itemListPaidStatus[itemList.id] ?? .none,
+            isCompact: isCompact,
+            timelinePosition: timelinePosition,
             onTap: { onItemTap(itemList) },
             onTogglePaid: { onTogglePaid(itemList) },
-            isCompact: isCompact,
-            timelinePosition: timelinePosition
-        )
-        .listRowInsets(EdgeInsets(
-            top: 0,
-            leading: AppConstants.UserInterface.smallPadding,
-            bottom: 0,
-            trailing: AppConstants.UserInterface.padding
-        ))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
+            onDelete: {
                 Task { await onDelete(itemList) }
-            } label: {
-                Label(LocalizationKey.General.delete.localized, systemImage: "trash")
             }
-        }
+        )
     }
     
     // MARK: - Private Views
     
     private var emptyStateView: some View {
-        EmptyStateView(message: LocalizationKey.Entry.tapToAdd.localized)
+        ExpenseListEmptyState()
     }
     
     @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {
-        if !isCompact && !hideSectionHeaders {
-            HStack(spacing: 8) {
-                Button {
-                    guard allowsDayCollapse else { return }
-                    toggleCollapsed(date)
-                } label: {
-                    HStack(spacing: 8) {
-                        if allowsDayCollapse {
-                            Image(systemName: isCollapsed(date) ? "chevron.right" : "chevron.down")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 12)
-                        }
-                        Text(DateFormatterHelper.formatSectionDate(date))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-
-
-                        // if let onAdd = onAddForDate {
-                        //     Menu {
-                        //         Button {
-                        //             onAdd(date)
-                        //         } label: {
-                        //             Label(LocalizationKey.Entry.addByDate.localized, systemImage: "plus")
-                        //         }
-                        //     } label: {
-                        //         Image(systemName: "ellipsis")
-                        //             .font(.system(size: 18, weight: .medium))
-                        //             .foregroundStyle(Color.secondary)
-                        //             .padding(.horizontal, 4)
-                        //     }
-                        // }
-                        
-                        Spacer()
-                        if let total = getDayTotal?(date) {
-                            Text(total)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-                                .textCase(.none)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(!allowsDayCollapse)
-
+        ExpenseListSectionHeader(
+            date: date,
+            isCompact: isCompact,
+            hideSectionHeaders: hideSectionHeaders,
+            allowsDayCollapse: allowsDayCollapse,
+            isCollapsed: isCollapsed(date),
+            total: getDayTotal?(date),
+            onToggleCollapsed: {
+                guard allowsDayCollapse else { return }
+                toggleCollapsed(date)
             }
-        }
+        )
     }
     
     // MARK: - Helper Methods

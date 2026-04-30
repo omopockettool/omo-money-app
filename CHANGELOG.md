@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.0] - 2026-04-30
+
+### Fixed
+- **Large dashboard and item-list views were modularized into scene-local components** (`AddItemListView`, `ItemListDetailView`, `DashboardView`, `GroupSelectorChipView`, `ExpenseListView`, `CalendarGridView`) — the heaviest SwiftUI screens were split into dedicated `Views/Components/` files so rendering sections, pickers, hero cards, overlays, and list headers are easier to maintain without changing behavior or architecture responsibilities.
+- **Scene-local extracted views now live under `Views/Components/`** (`Dashboard`, `ItemList`) — moved newly extracted subviews out of the main `Views/` folder and into scene-scoped component directories, making the screen entry points easier to scan and keeping shared `Common/Components/` reserved for truly reusable UI.
+
+---
+
 ## [1.7.4] - 2026-04-30
 
 ### Fixed

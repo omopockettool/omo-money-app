@@ -89,21 +89,8 @@ struct DashboardView: View {
                 }
                 .opacity(viewModel.isLoading ? 1.0 : contentOpacity)
 
-                // Overlay sutil para cambio de grupo (NO splash completo)
                 if viewModel.isChangingGroup {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .overlay {
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                    .tint(.white)
-
-                                Text(LocalizationKey.Dashboard.changingGroup.localized)
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                            }
-                        }
+                    DashboardChangingGroupOverlay()
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.isChangingGroup)
                 }
@@ -209,37 +196,17 @@ struct DashboardView: View {
     // MARK: - Private Views
     
     private var loadingView: some View {
-        Color(.systemBackground).ignoresSafeArea()
+        DashboardLoadingState()
     }
     
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.orange)
-            
-            Text(LocalizationKey.General.error.localized)
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text(message)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button(LocalizationKey.General.retry.localized) {
-                Task {
-                    await viewModel.loadDashboardData()
-                }
-            }
-            .buttonStyle(.borderedProminent)
+        DashboardErrorState(message: message) {
+            Task { await viewModel.loadDashboardData() }
         }
-        .padding(AppConstants.UserInterface.largePadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var mainContentView: some View {
-        ExpenseListView(
+        DashboardMainContent(
             itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
@@ -250,40 +217,36 @@ struct DashboardView: View {
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
             onDelete: { await viewModel.deleteItemList($0) },
-            getDayTotal: viewModel.showingFullMonth ? { viewModel.formattedTotal(for: $0) } : nil,
-            focusedDate: nil,
-            hideSectionHeaders: !viewModel.showingFullMonth,
-            onAddForDate: viewModel.showingFullMonth ? { date in
+            showingFullMonth: $viewModel.showingFullMonth,
+            hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
+            getDayTotal: { viewModel.formattedTotal(for: $0) },
+            onOpenSettings: { viewModel.openSettings() },
+            onAddForDate: { date in
                 addItemListTrigger = AddItemListTrigger(initialDate: date)
-            } : nil,
-            collapsedDays: viewModel.showingFullMonth ? $collapsedMonthDays : .constant([]),
-            allowsDayCollapse: viewModel.showingFullMonth
+            },
+            collapsedMonthDays: $collapsedMonthDays,
+            bottomInset: AnyView(bottomInset)
         )
-        .safeAreaInset(edge: .top, spacing: 0) {
-            // iOS 26-style view picker dropdown
-            DashboardTopBarView(
-                showingFullMonth: $viewModel.showingFullMonth,
-                hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
-                onOpenSettings: { viewModel.openSettings() }
-            )
-            .background(Color(.systemBackground))
+        .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
+        .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
+        .onChange(of: viewModel.currentGroup?.id) { _, _ in
+            collapsedMonthDays.removeAll()
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                // Hero card — totals + add button
-                TotalSpentCardView(
-                    label: heroIsSuccess ? lastAddedDescription : (viewModel.showingFullMonth ? LocalizationKey.Dashboard.costThisMonth.localized : LocalizationKey.Dashboard.costToday.localized),
-                    totalAmount: viewModel.showingFullMonth
-                        ? viewModel.formattedCachedMonthTotal()
-                        : viewModel.formattedTodayTotal,
-                    onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) },
-                    isSuccess: heroIsSuccess
-                )
-                .padding(.horizontal, AppConstants.UserInterface.padding)
-                .padding(.top, AppConstants.UserInterface.padding)
-                .padding(.bottom, 10)
-                .animation(AnimationHelper.smoothSpring, value: viewModel.showingFullMonth)
+    }
 
+    private var bottomInset: some View {
+        DashboardBottomInset(
+            heroSection: AnyView(
+                DashboardHeroSection(
+                    heroIsSuccess: heroIsSuccess,
+                    lastAddedDescription: lastAddedDescription,
+                    showingFullMonth: viewModel.showingFullMonth,
+                    monthTotal: viewModel.formattedCachedMonthTotal(),
+                    todayTotal: viewModel.formattedTodayTotal,
+                    onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
+                )
+            ),
+            bottomBar: AnyView(
                 DashboardBottomBarView(
                     currentGroup: viewModel.currentGroup,
                     availableGroups: viewModel.availableGroups,
@@ -293,86 +256,36 @@ struct DashboardView: View {
                     onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
                     onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
                 )
-            }
-            .background {
-                ZStack(alignment: .top) {
-                    Color(.systemBackground)
-                        .ignoresSafeArea(edges: .bottom)
-
-                    Rectangle()
-                        .fill(Color(.separator).opacity(0.22))
-                        .frame(height: 1)
-
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.08),
-                            Color.black.opacity(0.03),
-                            Color.clear
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 18)
-                    .allowsHitTesting(false)
-                }
-            }
-        }
-        .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
-        .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
-        .onChange(of: viewModel.currentGroup?.id) { _, _ in
-            collapsedMonthDays.removeAll()
-        }
+            )
+        )
     }
 
     // View picker: filter pill on left, settings icon on right
 
     private var dayListPanel: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(Color(.systemGray4))
-                .frame(width: 36, height: 5)
-                .padding(.top, 6)
-                .padding(.bottom, 2)
-                .frame(maxWidth: .infinity)
-
-            if let day = selectedCalendarDay {
-                ZStack(alignment: .bottom) {
-                    dayExpenseList(for: day, isCompact: true)
-                        .contentMargins(.top, 0, for: .scrollContent)
-
-                    LinearGradient(
-                        colors: [Color(.systemGray5).opacity(0), Color(.systemGray5)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 10)
-                    .allowsHitTesting(false)
-                }
-            }
-        }
-        .background(Color(.systemGray5))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: -4)
-        .offset(y: listDragOffset)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    listDragOffset = max(0, value.translation.height)
-                }
-                .onEnded { value in
-                    if value.translation.height > 80 {
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            selectedCalendarDay = nil
-                        }
-                        listDragOffset = 0
-                    } else {
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            listDragOffset = 0
-                        }
+        DashboardDayPanel(
+            selectedCalendarDay: selectedCalendarDay,
+            listDragOffset: listDragOffset,
+            content: AnyView(
+                Group {
+                    if let day = selectedCalendarDay {
+                        dayExpenseList(for: day, isCompact: true)
                     }
                 }
+            ),
+            onDragChanged: { listDragOffset = $0 },
+            onDismiss: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    selectedCalendarDay = nil
+                }
+                listDragOffset = 0
+            },
+            onResetDrag: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    listDragOffset = 0
+                }
+            }
         )
-        .frame(maxHeight: .infinity)
     }
 
     private func dayExpenseList(for date: Date, onItemTap: ((SDItemList) -> Void)? = nil, isCompact: Bool = false) -> some View {
