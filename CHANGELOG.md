@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.4] - 2026-04-30
+
+### Changed
+- **New items added to a future-dated list now default to unpaid** (`AddItemViewModel`, `AddItemView`, `ItemListDetailView`) — when creating an item inside a list whose date is tomorrow or later, `isPaid` defaults to `false` so the entry acts as a payment reminder rather than a completed expense. Items added to today or past-dated lists keep `isPaid = true` as before.
+
+---
+
 ## [1.8.3] - 2026-04-30
 
 ### Fixed

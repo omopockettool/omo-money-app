@@ -99,6 +99,7 @@ struct ItemListDetailView: View {
                     itemListId: itemList.id,
                     itemToEdit: nil,
                     itemListDescription: itemList.itemListDescription,
+                    itemListDate: itemList.date,
                     currencyCode: currencyCode,
                     onItemSaved: { item in
                         Task { await viewModel.addItem(item) }
@@ -117,6 +118,7 @@ struct ItemListDetailView: View {
                     itemListId: itemList.id,
                     itemToEdit: item,
                     itemListDescription: itemList.itemListDescription,
+                    itemListDate: itemList.date,
                     currencyCode: currencyCode,
                     onItemSaved: { item in Task { await viewModel.updateItem(item) } },
                     createItemUseCase: container.makeCreateItemUseCase(),
