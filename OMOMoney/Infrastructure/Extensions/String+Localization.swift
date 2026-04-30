@@ -204,6 +204,7 @@ enum LocalizationKey {
         static let recentEntries = "dashboard.recentEntries"
         static let changingGroup = "dashboard.changingGroup"
         static let today = "dashboard.today"
+        static let yesterday = "dashboard.yesterday"
         static let costThisMonth = "dashboard.costThisMonth"
         static let costToday = "dashboard.costToday"
         static let allDone = "dashboard.allDone"

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.1] - 2026-04-30
+
+### Fixed
+- **Dashboard day headers now respect the active app language** (`DateFormatterHelper`, `Localizable.strings`) — `Today` and `Yesterday` section headers no longer remain in Spanish when the app is shown in English. The shared date formatter now uses the current locale instead of hardcoded `es_ES`, so month names in those headers also follow the active language.
+
+---
+
 ## [1.7.0] - 2026-04-30
 
 ### Added

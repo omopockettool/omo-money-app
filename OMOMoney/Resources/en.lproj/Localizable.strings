@@ -132,6 +132,7 @@
 // MARK: - Dashboard (extended)
 "dashboard.changingGroup" = "Changing group...";
 "dashboard.today" = "Today";
+"dashboard.yesterday" = "Yesterday";
 "dashboard.costThisMonth" = "Cost this month";
 "dashboard.costToday" = "Cost today";
 "dashboard.allDone" = "All done!";

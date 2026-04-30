@@ -6,24 +6,21 @@ read this .md then let me know if you are ready for new development!
 
 > **This project is built with passion — no shortcuts, no lazy responses.**
 > Think hard, write clean code, respect every architecture rule, and bring full effort to every task.
-> Dennis and Claude are building this together. Match that energy.
+> OMO and Claude are building this together. Match that energy.
 ---
 
 ## ⚡ Critical Rules (NEVER VIOLATE)
 
-### 0. Build & Test Before EVERY Commit (NON-NEGOTIABLE)
-**NEVER stage or commit code without:**
-1. App builds successfully (Cmd+B, zero errors)
-2. App runs on device or simulator without crashes
-3. The changed feature has been manually tested
+### 0. NEVER MAKE COMMITS — Only Suggest the Commit Message
+**Claude NEVER runs `git commit`, `git add`, or any git write command.**
+When work is complete, only output the suggested commit message so the team can run it himself.
 
 ```
-❌ "Looks good, let me commit" → WRONG
-✅ Build → Run → Test → THEN commit
+❌ git add . && git commit -m "..." → NEVER DO THIS
+✅ "Here's the suggested commit message: feat: ..."
 ```
 
-> This rule exists because silent regressions hide in "obviously correct" refactors.
-> If you can't build/run right now, don't commit — stage the work and wait.
+> Team reviews and commits manually. Claude's job ends at suggesting the message.
 
 ---
 
