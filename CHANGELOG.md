@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.2] - 2026-04-30
+
+### Fixed
+- **Dashboard bulk-complete toast now appears only when it is actually useful** (`DashboardViewModel`) — marking a list as paid from the dashboard no longer shows an undo toast when that list contains only 1 item. The notification is now reserved for multi-item lists, where undoing a bulk completion of the remaining items is genuinely helpful and avoids unnecessary toast noise during normal single-item usage.
+
+### Commented
+- Elipsis more options per date commented for now
+
+---
+
 ## [1.7.1] - 2026-04-30
 
 ### Fixed

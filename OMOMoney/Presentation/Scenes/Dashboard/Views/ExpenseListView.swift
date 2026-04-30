@@ -171,20 +171,20 @@ struct ExpenseListView: View {
                             .textCase(.uppercase)
 
 
-                        if let onAdd = onAddForDate {
-                            Menu {
-                                Button {
-                                    onAdd(date)
-                                } label: {
-                                    Label(LocalizationKey.Entry.addByDate.localized, systemImage: "plus")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundStyle(Color.secondary)
-                                    .padding(.horizontal, 4)
-                            }
-                        }
+                        // if let onAdd = onAddForDate {
+                        //     Menu {
+                        //         Button {
+                        //             onAdd(date)
+                        //         } label: {
+                        //             Label(LocalizationKey.Entry.addByDate.localized, systemImage: "plus")
+                        //         }
+                        //     } label: {
+                        //         Image(systemName: "ellipsis")
+                        //             .font(.system(size: 18, weight: .medium))
+                        //             .foregroundStyle(Color.secondary)
+                        //             .padding(.horizontal, 4)
+                        //     }
+                        // }
                         
                         Spacer()
                         if let total = getDayTotal?(date) {

@@ -445,24 +445,33 @@ class DashboardViewModel {
     }
     
     func togglePaid(for itemList: SDItemList) {
-        guard (itemListCounts[itemList.id] ?? 0) > 0 else {
+        let itemCount = itemListCounts[itemList.id] ?? 0
+
+        guard itemCount > 0 else {
             toast = ToastMessage("Registro vacío", type: .info)
             return
         }
+
         let previousStates = itemList.items.map { (id: $0.id, isPaid: $0.isPaid) }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
         itemListPaidStatus[itemList.id] = newValue ? .all : .none
         itemList.items.forEach { $0.isPaid = newValue }
-        toast = ToastMessage(
-            newValue ? "Todo marcado como pagado" : "Todo marcado como pendiente",
-            type: .info,
-            actionTitle: "Deshacer"
-        ) { [weak self] in
-            Task { @MainActor in
-                await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
+
+        if itemCount > 1 {
+            toast = ToastMessage(
+                newValue ? "Todo marcado como pagado" : "Todo marcado como pendiente",
+                type: .info,
+                actionTitle: "Deshacer"
+            ) { [weak self] in
+                Task { @MainActor in
+                    await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
+                }
             }
+        } else {
+            toast = nil
         }
+
         paidToggleTasks[itemList.id] = Task {
             try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
             await calculateTotalSpent()
