@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.3] - 2026-04-30
+
+### Fixed
+- **Excess space above the first section header in month view is removed** (`ExpenseListView`) — the `List` default top content inset was stacking on top of the rounded container padding, pushing the "TODAY" header too far down. Setting `contentMargins(.top, 0, for: .scrollContent)` removes the default inset and lets the container padding alone control the spacing.
+
+---
+
 ## [1.8.2] - 2026-04-30
 
 ### Changed
