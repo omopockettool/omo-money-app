@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.7] - 2026-05-01
+
+### Fixed
+- **Manual items created inside an item-list detail now always start unpaid** (`AddItemViewModel`, `AddItemView`, `ItemListDetailView`) — adding an item from `ItemListDetailView` no longer auto-marks it as paid based on the list date. This keeps shopping lists and note-taking lists pending until the user explicitly marks each item as completed. The dashboard quick-add flow is unchanged: its auto-created first item still uses the list date rule, so today/past entries start paid and tomorrow/future entries start unpaid.
+
+---
+
 ## [1.8.6] - 2026-04-30
 
 ### Fixed

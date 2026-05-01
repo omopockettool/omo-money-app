@@ -21,7 +21,6 @@ struct AddItemView: View {
         itemListId: UUID,
         itemToEdit: SDItem? = nil,
         itemListDescription: String,
-        itemListDate: Date,
         currencyCode: String = "EUR",
         onItemSaved: @escaping (SDItem) -> Void,
         createItemUseCase: CreateItemUseCase,
@@ -34,7 +33,6 @@ struct AddItemView: View {
             itemListId: itemListId,
             itemToEdit: itemToEdit,
             itemListDescription: itemListDescription,
-            itemListDate: itemListDate,
             createItemUseCase: createItemUseCase,
             updateItemUseCase: updateItemUseCase
         ))

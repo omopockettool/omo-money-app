@@ -21,7 +21,6 @@ final class AddItemViewModel {
     private let itemListId: UUID
     private let itemToEdit: SDItem?
     private let itemListDescription: String
-    private let itemListDate: Date
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
 
@@ -46,14 +45,12 @@ final class AddItemViewModel {
         itemListId: UUID,
         itemToEdit: SDItem? = nil,
         itemListDescription: String,
-        itemListDate: Date,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
     ) {
         self.itemListId = itemListId
         self.itemToEdit = itemToEdit
         self.itemListDescription = itemListDescription
-        self.itemListDate = itemListDate
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
 
@@ -93,15 +90,14 @@ final class AddItemViewModel {
                 item = existingItem
                 print("✅ AddItemViewModel: Item updated successfully")
             } else {
-                // Create mode
-                let calendar = Calendar.current
-                let isFuture = calendar.startOfDay(for: itemListDate) > calendar.startOfDay(for: Date())
+                // Items created from the detail view start unpaid by default.
+                // Quick-add from the dashboard uses a different flow.
                 item = try await createItemUseCase.execute(
                     description: finalDescription,
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId,
-                    isPaid: !isFuture
+                    isPaid: false
                 )
                 print("✅ AddItemViewModel: Item created successfully")
             }
