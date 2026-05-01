@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.10] - 2026-05-01
+
+### Fixed
+- **Pending item lists from previous months are now reachable from the dashboard** (`DashboardViewModel`, `DashboardView`, `DashboardBottomBarView`, `DashboardMonthFilterSheet`) — month mode is no longer locked to the current calendar month. The new dashboard filter sheet lets the user pick a month and year, so entries created in April remain accessible on May 1 instead of disappearing from the main month view.
+
+### Changed
+- **Dashboard filter controls now have their first real implementation** (`DashboardBottomBarView`, `DashboardMonthFilterSheet`, `DashboardComponents`, localization files) — the filter button in the bottom bar now opens a dedicated month/year sheet, the active filter state is reflected in the button styling, and the hero label adapts to the selected month instead of always assuming "this month".
+
+---
+
 ## [1.8.9] - 2026-05-01
 
 ### Fixed

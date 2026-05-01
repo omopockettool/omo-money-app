@@ -136,6 +136,10 @@
 "dashboard.costThisMonth" = "Cost this month";
 "dashboard.costToday" = "Cost today";
 "dashboard.added" = "Added!";
+"dashboard.filters" = "Filters";
+"dashboard.month" = "Month";
+"dashboard.year" = "Year";
+"dashboard.currentMonth" = "Back to current month";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "New Entry";

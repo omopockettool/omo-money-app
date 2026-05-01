@@ -56,6 +56,7 @@ class DashboardViewModel {
     var availableGroups: [SDGroup] = []
     var showingSettings = false
     var showingFullMonth = false
+    var selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
 
     // MARK: - Filtered Lists
 
@@ -64,15 +65,36 @@ class DashboardViewModel {
     }
 
     var monthItemLists: [SDItemList] {
-        itemLists.filter { Calendar.current.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        itemLists.filter { Calendar.current.isDate($0.date, equalTo: selectedMonthAnchor, toGranularity: .month) }
     }
 
     var hasItemsOutsideToday: Bool {
-        monthItemLists.count > todayItemLists.count
+        monthItemLists.count > todayItemLists.count || isCustomMonthFilterActive
     }
 
     var todayRawTotal: Double {
         todayTotal
+    }
+
+    var isCustomMonthFilterActive: Bool {
+        !Calendar.current.isDate(selectedMonthAnchor, equalTo: Date(), toGranularity: .month)
+    }
+
+    var selectedMonthTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: selectedMonthAnchor).capitalized(with: Locale.current)
+    }
+
+    var monthHeroLabel: String {
+        isCustomMonthFilterActive ? selectedMonthTitle : LocalizationKey.Dashboard.costThisMonth.localized
+    }
+
+    var availableFilterYears: [Int] {
+        let years = Set(itemLists.map { Calendar.current.component(.year, from: $0.date) })
+            .union([Calendar.current.component(.year, from: Date())])
+        return years.sorted(by: >)
     }
 
 
@@ -159,6 +181,7 @@ class DashboardViewModel {
             currentUser = user
             currentGroup = firstGroup
             availableGroups = groups
+            selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
             itemLists = fetchedItemLists
             categories = categoriesDict
 
@@ -247,6 +270,7 @@ class DashboardViewModel {
             print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
 
             currentGroup = newGroup
+            selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
             itemListTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
             itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
             itemListCounts = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0) })
@@ -450,6 +474,21 @@ class DashboardViewModel {
         await calculateTotalSpent()
     }
 
+    func applyMonthFilter(_ month: Date) {
+        selectedMonthAnchor = Calendar.current.startOfMonth(for: month)
+        updateCurrentMonthCache()
+        refreshSelectedMonthTotal()
+        withAnimation(AnimationHelper.quickSpring) {
+            showingFullMonth = true
+        }
+    }
+
+    func resetMonthFilterToCurrentMonth() {
+        selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+        updateCurrentMonthCache()
+        refreshSelectedMonthTotal()
+    }
+
     private func calculateTotalSpent() async {
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
@@ -561,10 +600,9 @@ class DashboardViewModel {
     
     private func updateCurrentMonthCache() {
         let calendar = Calendar.current
-        let now = Date()
 
         let filtered = itemLists.filter { itemList in
-            calendar.isDate(itemList.date, equalTo: now, toGranularity: .month)
+            calendar.isDate(itemList.date, equalTo: selectedMonthAnchor, toGranularity: .month)
         }
 
         let currentIds = Set(currentMonthItemLists.map { $0.id })
@@ -573,8 +611,14 @@ class DashboardViewModel {
         if currentIds != filteredIds {
             print("🗓️ DashboardViewModel: Updating current month cache")
             print("   - Total ItemLists: \(itemLists.count)")
-            print("   - Current month ItemLists: \(filtered.count)")
+            print("   - Filtered month ItemLists: \(filtered.count)")
             currentMonthItemLists = filtered
+        }
+    }
+
+    private func refreshSelectedMonthTotal() {
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { total, itemList in
+            total + (itemListTotals[itemList.id] ?? 0)
         }
     }
     
@@ -718,9 +762,8 @@ class DashboardViewModel {
 
     func getCurrentMonthItemLists() -> [SDItemList] {
         let calendar = Calendar.current
-        let now = Date()
         return itemLists.filter { itemList in
-            calendar.isDate(itemList.date, equalTo: now, toGranularity: .month)
+            calendar.isDate(itemList.date, equalTo: selectedMonthAnchor, toGranularity: .month)
         }
     }
 }

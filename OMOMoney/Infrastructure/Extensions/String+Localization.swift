@@ -208,6 +208,10 @@ enum LocalizationKey {
         static let costThisMonth = "dashboard.costThisMonth"
         static let costToday = "dashboard.costToday"
         static let added = "dashboard.added"
+        static let filters = "dashboard.filters"
+        static let month = "dashboard.month"
+        static let year = "dashboard.year"
+        static let currentMonth = "dashboard.currentMonth"
     }
     
     // MARK: - Settings

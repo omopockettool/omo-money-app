@@ -136,6 +136,10 @@
 "dashboard.costThisMonth" = "Coste de este mes";
 "dashboard.costToday" = "Coste de hoy";
 "dashboard.added" = "¡Listo!";
+"dashboard.filters" = "Filtros";
+"dashboard.month" = "Mes";
+"dashboard.year" = "Año";
+"dashboard.currentMonth" = "Volver al mes actual";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "Nuevo Registro";

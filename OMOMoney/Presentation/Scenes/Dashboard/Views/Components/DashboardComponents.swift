@@ -55,13 +55,14 @@ struct DashboardHeroSection: View {
     let heroIsSuccess: Bool
     let lastAddedDescription: String
     let showingFullMonth: Bool
+    let monthLabel: String
     let monthTotal: String
     let todayTotal: String
     let onAddExpense: () -> Void
 
     var body: some View {
         TotalSpentCardView(
-            label: heroIsSuccess ? lastAddedDescription : (showingFullMonth ? LocalizationKey.Dashboard.costThisMonth.localized : LocalizationKey.Dashboard.costToday.localized),
+            label: heroIsSuccess ? lastAddedDescription : (showingFullMonth ? monthLabel : LocalizationKey.Dashboard.costToday.localized),
             totalAmount: showingFullMonth ? monthTotal : todayTotal,
             onAddExpense: onAddExpense,
             isSuccess: heroIsSuccess

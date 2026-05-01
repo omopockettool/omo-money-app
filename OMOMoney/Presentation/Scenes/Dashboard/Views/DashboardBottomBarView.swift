@@ -5,9 +5,11 @@ struct DashboardBottomBarView: View {
     let availableGroups: [SDGroup]
     let userId: UUID?
     let isChangingGroup: Bool
+    let isFilterActive: Bool
     let onGroupChange: (SDGroup) -> Void
     let onGroupCreated: (SDGroup) -> Void
     let onDeleteGroup: (SDGroup) async throws -> Void
+    let onOpenFilters: () -> Void
 
     var body: some View {
         HStack(spacing: AppConstants.UserInterface.smallPadding) {
@@ -26,14 +28,15 @@ struct DashboardBottomBarView: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 0) {
-                Button { } label: {
+                Button(action: onOpenFilters) {
                     Image(systemName: "line.3.horizontal.decrease")
                         .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(.primary)
+                        .foregroundColor(isFilterActive ? .accentColor : .primary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                 }
                 .buttonStyle(.plain)
+                .background(isFilterActive ? Color.accentColor.opacity(0.12) : Color.clear)
 
                 Divider()
                     .frame(height: 16)

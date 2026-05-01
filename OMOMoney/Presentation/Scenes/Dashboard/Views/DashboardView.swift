@@ -53,6 +53,7 @@ struct DashboardView: View {
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var viewMode: DashboardViewMode = .list
     @State private var collapsedMonthDays: Set<Date> = []
+    @State private var showingFiltersSheet = false
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
@@ -167,6 +168,26 @@ struct DashboardView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingFiltersSheet) {
+                NavigationStack {
+                    DashboardMonthFilterSheet(
+                        selectedMonth: viewModel.selectedMonthAnchor,
+                        availableYears: viewModel.availableFilterYears,
+                        isCustomFilterActive: viewModel.isCustomMonthFilterActive,
+                        onApply: { month in
+                            viewModel.applyMonthFilter(month)
+                            showingFiltersSheet = false
+                        },
+                        onReset: {
+                            viewModel.resetMonthFilterToCurrentMonth()
+                            showingFiltersSheet = false
+                        },
+                        onClose: { showingFiltersSheet = false }
+                    )
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
         }
         .ignoresSafeArea(.keyboard)
         .toast($viewModel.toast)
@@ -241,6 +262,7 @@ struct DashboardView: View {
                     heroIsSuccess: heroIsSuccess,
                     lastAddedDescription: lastAddedDescription,
                     showingFullMonth: viewModel.showingFullMonth,
+                    monthLabel: viewModel.monthHeroLabel,
                     monthTotal: viewModel.formattedCachedMonthTotal(),
                     todayTotal: viewModel.formattedTodayTotal,
                     onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
@@ -252,9 +274,11 @@ struct DashboardView: View {
                     availableGroups: viewModel.availableGroups,
                     userId: viewModel.currentUser?.id,
                     isChangingGroup: viewModel.isChangingGroup,
+                    isFilterActive: viewModel.isCustomMonthFilterActive,
                     onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
                     onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
-                    onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) }
+                    onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) },
+                    onOpenFilters: { showingFiltersSheet = true }
                 )
             )
         )
