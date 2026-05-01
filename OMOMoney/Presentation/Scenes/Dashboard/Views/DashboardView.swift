@@ -54,6 +54,7 @@ struct DashboardView: View {
     @State private var viewMode: DashboardViewMode = .list
     @State private var collapsedMonthDays: Set<Date> = []
     @State private var showingFiltersSheet = false
+    @State private var isSearchActive = false
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
@@ -107,6 +108,8 @@ struct DashboardView: View {
                     displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
                     viewMode = .list
                     viewModel.showingFullMonth = false
+                    isSearchActive = false
+                    viewModel.clearSearch()
                 }
             }
             .navigationDestination(for: SDItemList.self) { itemList in
@@ -189,7 +192,9 @@ struct DashboardView: View {
                 .presentationDragIndicator(.visible)
             }
         }
-        .ignoresSafeArea(.keyboard)
+        .if(!isSearchActive) { view in
+            view.ignoresSafeArea(.keyboard)
+        }
         .toast($viewModel.toast)
         .onAppear {
             // Only load data on first appearance to avoid splash on navigation back
@@ -228,7 +233,7 @@ struct DashboardView: View {
     
     private var mainContentView: some View {
         DashboardMainContent(
-            itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
+            itemLists: viewModel.showingFullMonth ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists,
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
             itemListRowStatus: viewModel.itemListRowStatus,
@@ -256,18 +261,24 @@ struct DashboardView: View {
     private var bottomInset: some View {
         DashboardBottomInset(
             heroSection: AnyView(
-                DashboardHeroSection(
-                    heroIsSuccess: heroIsSuccess,
-                    lastAddedDescription: lastAddedDescription,
-                    showingFullMonth: viewModel.showingFullMonth,
-                    monthLabel: viewModel.monthHeroLabel,
-                    monthTotal: viewModel.formattedCachedMonthTotal(),
-                    todayTotal: viewModel.formattedTodayTotal,
-                    onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
-                )
+                Group {
+                    if !isSearchActive {
+                        DashboardHeroSection(
+                            heroIsSuccess: heroIsSuccess,
+                            lastAddedDescription: lastAddedDescription,
+                            showingFullMonth: viewModel.showingFullMonth,
+                            monthLabel: viewModel.monthHeroLabel,
+                            monthTotal: viewModel.formattedCachedMonthTotal(),
+                            todayTotal: viewModel.formattedTodayTotal,
+                            onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
+                        )
+                    }
+                }
             ),
             bottomBar: AnyView(
                 DashboardBottomBarView(
+                    searchText: $viewModel.searchQuery,
+                    isSearchActive: $isSearchActive,
                     currentGroup: viewModel.currentGroup,
                     availableGroups: viewModel.availableGroups,
                     userId: viewModel.currentUser?.id,
@@ -312,8 +323,12 @@ struct DashboardView: View {
 
     private func dayExpenseList(for date: Date, onItemTap: ((SDItemList) -> Void)? = nil, isCompact: Bool = false) -> some View {
         let cal = Calendar.current
-        let filtered = viewModel.itemLists.filter {
+        let source = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
+        }
+        let query = viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let filtered = query.isEmpty ? source : source.filter {
+            $0.itemListDescription.localizedCaseInsensitiveContains(query)
         }
         return ExpenseListView(
             itemLists: filtered,

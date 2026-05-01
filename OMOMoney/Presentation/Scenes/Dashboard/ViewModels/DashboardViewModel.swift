@@ -57,6 +57,7 @@ class DashboardViewModel {
     var showingSettings = false
     var showingFullMonth = false
     var selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+    var searchQuery = ""
 
     // MARK: - Filtered Lists
 
@@ -66,6 +67,14 @@ class DashboardViewModel {
 
     var monthItemLists: [SDItemList] {
         itemLists.filter { Calendar.current.isDate($0.date, equalTo: selectedMonthAnchor, toGranularity: .month) }
+    }
+
+    var filteredTodayItemLists: [SDItemList] {
+        filteredItemLists(from: todayItemLists)
+    }
+
+    var filteredMonthItemLists: [SDItemList] {
+        filteredItemLists(from: monthItemLists)
     }
 
     var hasItemsOutsideToday: Bool {
@@ -78,6 +87,10 @@ class DashboardViewModel {
 
     var isCustomMonthFilterActive: Bool {
         !Calendar.current.isDate(selectedMonthAnchor, equalTo: Date(), toGranularity: .month)
+    }
+
+    var hasActiveSearch: Bool {
+        !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var selectedMonthTitle: String {
@@ -489,6 +502,10 @@ class DashboardViewModel {
         refreshSelectedMonthTotal()
     }
 
+    func clearSearch() {
+        searchQuery = ""
+    }
+
     private func calculateTotalSpent() async {
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
@@ -685,6 +702,15 @@ class DashboardViewModel {
             return .partial
         case .all:
             return .paid
+        }
+    }
+
+    private func filteredItemLists(from source: [SDItemList]) -> [SDItemList] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return source }
+
+        return source.filter {
+            $0.itemListDescription.localizedCaseInsensitiveContains(query)
         }
     }
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.15] - 2026-05-01
+
+### Changed
+- **Dashboard inline search now keeps its field visible above the keyboard and hides the hero card while searching** (`DashboardView`, `DashboardBottomBarView`, `DashboardViewModel`) — activating search now lets the bottom action area move with the keyboard instead of being pinned underneath it, and the total hero temporarily disappears to free more vertical space for scanning filtered item-list results in real time.
+
+---
+
+## [1.8.14] - 2026-05-01
+
+### Changed
+- **Dashboard search now works inline from the bottom action bar** (`DashboardViewModel`, `DashboardView`, `DashboardBottomBarView`) — tapping the magnifying glass now expands the action area into a live search field instead of opening a separate modal. The visible list filters in real time using a simple case-insensitive match on item-list descriptions, so users can keep the month/day context on screen while narrowing results.
+
+---
+
 ## [1.8.13] - 2026-05-01
 
 ### Changed
