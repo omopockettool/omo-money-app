@@ -169,7 +169,7 @@
 "group.deleteConfirmTitle" = "¿Desea eliminar \"%@\"?";
 "group.details" = "Detalles";
 "group.info" = "Información del Grupo";
-"group.settings" = "Ajustes del grupo";
+"group.settings" = "Detalles del grupo";
 "group.content" = "Contenido";
 "group.currencyEuro" = "Euro (EUR)";
 "group.currencyDollar" = "Dólar (USD)";
