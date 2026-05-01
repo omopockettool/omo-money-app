@@ -87,7 +87,7 @@ struct TotalSpentCardView<BottomContent: View>: View {
                                         .transition(.scale(scale: 0.4).combined(with: .opacity))
                                 } else {
                                     Image(systemName: "plus")
-                                        .font(.system(size: 20, weight: .semibold))
+                                        .font(.system(size: 21, weight: .black))
                                         .foregroundColor(.white)
                                         .transition(.scale(scale: 0.4).combined(with: .opacity))
                                 }

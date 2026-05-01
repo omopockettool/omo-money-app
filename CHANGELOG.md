@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.13] - 2026-05-01
+
+### Changed
+- **Hero add buttons now use a bolder plus glyph for stronger visual weight** (`TotalSpentCardView`) — the circular add button in both dashboard and item-list hero cards keeps the same size and layout, but the `+` symbol is now rendered with a heavier weight so the primary add action reads more clearly at a glance.
+
+---
+
 ## [1.8.12] - 2026-05-01
 
 ### Changed
