@@ -35,8 +35,7 @@ struct DashboardBottomBarView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                 }
-                .buttonStyle(.plain)
-                .background(isFilterActive ? Color.accentColor.opacity(0.12) : Color.clear)
+                .buttonStyle(PressHapticButtonStyle())
 
                 Divider()
                     .frame(height: 16)

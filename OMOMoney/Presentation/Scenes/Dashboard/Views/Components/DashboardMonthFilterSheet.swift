@@ -33,24 +33,6 @@ struct DashboardMonthFilterSheet: View {
 
     var body: some View {
         VStack(spacing: AppConstants.UserInterface.padding) {
-            HStack {
-                Button(LocalizationKey.General.cancel.localized, action: onClose)
-                    .buttonStyle(.plain)
-
-                Spacer()
-
-                Text(LocalizationKey.Dashboard.filters.localized)
-                    .font(.headline)
-
-                Spacer()
-
-                Button(LocalizationKey.General.done.localized) {
-                    onApply(selectedDate)
-                }
-                .buttonStyle(.plain)
-                .fontWeight(.semibold)
-            }
-
             VStack(alignment: .leading, spacing: 8) {
                 Text(LocalizationKey.Dashboard.month.localized)
                     .font(.subheadline)
@@ -89,6 +71,22 @@ struct DashboardMonthFilterSheet: View {
         }
         .padding(AppConstants.UserInterface.padding)
         .background(Color(.systemGroupedBackground))
+        .navigationTitle(LocalizationKey.Dashboard.filters.localized)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    onApply(selectedDate)
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
     }
 
     private var monthSymbols: [String] {

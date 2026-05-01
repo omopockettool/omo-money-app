@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.11] - 2026-05-01
+
+### Changed
+- **Dashboard month filter sheet now matches the app’s standard sheet chrome and filter button feedback** (`DashboardMonthFilterSheet`, `DashboardBottomBarView`) — the filter sheet now uses the same navigation-bar `xmark` / `checkmark` toolbar pattern as the other modal forms, and the dashboard filter button now triggers the project’s press haptic while keeping the active state visually lightweight by tinting only the icon.
+
+---
+
 ## [1.8.10] - 2026-05-01
 
 ### Fixed
