@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.8] - 2026-05-01
+
+### Changed
+- **Zero-value amounts are now visually de-emphasized in dashboard and item rows** (`ExpenseRowView`, `ItemListDetailView`) — amounts that resolve to `0.00` now use a secondary tone and slightly lighter weight so real spending stands out faster while zero-value entries remain visible. This improves list scanning without hiding pending or informational rows.
+
+---
+
 ## [1.8.7] - 2026-05-01
 
 ### Fixed

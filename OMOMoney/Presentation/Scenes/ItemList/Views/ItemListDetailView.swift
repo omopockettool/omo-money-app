@@ -223,6 +223,7 @@ struct ItemRowView: View {
     let onTogglePaid: () -> Void
 
     private var showsBreakdown: Bool { item.quantity > 1 }
+    private var showsZeroAmountStyle: Bool { abs(item.totalAmount) < 0.000_001 }
     private var formattedUnitPrice: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -263,7 +264,8 @@ struct ItemRowView: View {
 
                 Text(formattedAmount)
                     .font(.subheadline)
-                    .fontWeight(.bold)
+                    .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
+                    .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
                     .lineLimit(1)
                     .layoutPriority(1)
             }

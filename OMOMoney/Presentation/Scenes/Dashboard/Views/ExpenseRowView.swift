@@ -14,6 +14,10 @@ struct ExpenseRowView: View {
     var isCompact: Bool = false
     var timelinePosition: TimelinePosition = .single
 
+    private var showsZeroAmountStyle: Bool {
+        abs(itemList.totalPaidAmount) < 0.000_001
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
@@ -51,7 +55,8 @@ struct ExpenseRowView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(formattedAmount)
                         .font(.subheadline)
-                        .fontWeight(.bold)
+                        .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
+                        .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
                         .lineLimit(1)
                     if let unpaid = formattedUnpaidAmount {
                         Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
