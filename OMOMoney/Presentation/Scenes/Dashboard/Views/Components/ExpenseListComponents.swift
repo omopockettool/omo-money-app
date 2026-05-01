@@ -14,7 +14,7 @@ struct ExpenseListRowContainer: View {
     let categoryName: String?
     let categoryColor: Color?
     let categoryIcon: String?
-    let paidStatus: ItemListPaidStatus
+    let rowStatus: ItemListRowStatus
     let isCompact: Bool
     let timelinePosition: TimelinePosition
     let onTap: () -> Void
@@ -30,7 +30,7 @@ struct ExpenseListRowContainer: View {
             categoryName: categoryName,
             categoryColor: categoryColor,
             categoryIcon: categoryIcon,
-            paidStatus: paidStatus,
+            rowStatus: rowStatus,
             onTap: onTap,
             onTogglePaid: onTogglePaid,
             isCompact: isCompact,

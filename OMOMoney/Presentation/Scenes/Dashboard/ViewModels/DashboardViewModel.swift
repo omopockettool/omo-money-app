@@ -7,18 +7,26 @@ enum ItemListPaidStatus {
     case all        // all items paid
 }
 
+enum ItemListRowStatus {
+    case neutral
+    case unpaid
+    case partial
+    case paid
+}
+
 
 @MainActor
 
 @Observable
 class DashboardViewModel {
-    private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus)
+    private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
 
     private struct CachedItemListData {
         let paidTotal: Double
         let unpaidTotal: Double
         let count: Int
         let paidStatus: ItemListPaidStatus
+        let rowStatus: ItemListRowStatus
     }
 
     // MARK: - Published Properties
@@ -35,6 +43,7 @@ class DashboardViewModel {
     var itemListUnpaidTotals: [UUID: Double] = [:]
     var itemListCounts: [UUID: Int] = [:]
     var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]
+    var itemListRowStatus: [UUID: ItemListRowStatus] = [:]
     var categories: [UUID: (name: String, color: String, icon: String)] = [:]
     var isLoading = false
     var isRefreshing = false
@@ -242,6 +251,7 @@ class DashboardViewModel {
             itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
             itemListCounts = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0) })
             itemListPaidStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListPaidStatus.none) })
+            itemListRowStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListRowStatus.neutral) })
             itemLists = fetchedItemLists
             categories = categoriesDict
 
@@ -354,6 +364,7 @@ class DashboardViewModel {
         itemListUnpaidTotals[itemList.id] = 0.0
         itemListCounts[itemList.id] = 0
         itemListPaidStatus[itemList.id] = .none
+        itemListRowStatus[itemList.id] = .neutral
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
             itemLists = sortedItemLists
@@ -383,6 +394,11 @@ class DashboardViewModel {
         itemList.lastModifiedAt = Date()
         itemListPaidStatus[itemList.id] = newValue ? .all : .none
         itemList.items.forEach { $0.isPaid = newValue }
+        itemListRowStatus[itemList.id] = makeRowStatus(
+            totalAmount: itemList.totalAmount,
+            itemCount: itemCount,
+            paidStatus: itemListPaidStatus[itemList.id] ?? .none
+        )
 
         if itemCount > 1 {
             toast = ToastMessage(
@@ -455,11 +471,13 @@ class DashboardViewModel {
         let unpaidTotals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.unpaidTotal) })
         let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
         let paidStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidStatus) })
+        let rowStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.rowStatus) })
 
         itemListTotals = totals
         itemListUnpaidTotals = unpaidTotals
         itemListCounts = counts
         itemListPaidStatus = paidStatuses
+        itemListRowStatus = rowStatuses
         todayTotal = todayItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
         currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
 
@@ -560,11 +578,11 @@ class DashboardViewModel {
         }
     }
     
-    private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus) {
+    private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus) {
         let cacheKey = itemListDataCacheKey(for: itemList)
 
         if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
-            return (itemList.id, cached.paidTotal, cached.unpaidTotal, cached.count, cached.paidStatus)
+            return (itemList.id, cached.paidTotal, cached.unpaidTotal, cached.count, cached.paidStatus, cached.rowStatus)
         }
 
         do {
@@ -588,16 +606,41 @@ class DashboardViewModel {
             } else {
                 paidStatus = .partial
             }
+            let rowStatus = makeRowStatus(
+                totalAmount: paidTotal + unpaidTotal,
+                itemCount: totalUnits,
+                paidStatus: paidStatus
+            )
             let result = CachedItemListData(
                 paidTotal: max(0, paidTotal.isFinite ? paidTotal : 0.0),
                 unpaidTotal: max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0),
                 count: totalUnits,
-                paidStatus: paidStatus
+                paidStatus: paidStatus,
+                rowStatus: rowStatus
             )
             cacheManager.cacheCalculation(result, for: cacheKey)
-            return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus)
+            return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus, result.rowStatus)
         } catch {
-            return (itemList.id, 0.0, 0.0, 0, .none)
+            return (itemList.id, 0.0, 0.0, 0, .none, .neutral)
+        }
+    }
+
+    private func makeRowStatus(
+        totalAmount: Double,
+        itemCount: Int,
+        paidStatus: ItemListPaidStatus
+    ) -> ItemListRowStatus {
+        if itemCount == 0 || abs(totalAmount) < 0.000_001 {
+            return .neutral
+        }
+
+        switch paidStatus {
+        case .none:
+            return .unpaid
+        case .partial:
+            return .partial
+        case .all:
+            return .paid
         }
     }
 

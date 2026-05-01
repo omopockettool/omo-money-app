@@ -13,7 +13,7 @@ struct ExpenseListView: View {
     let getFormattedUnpaidAmount: (SDItemList) -> String?
     let itemListCounts: [UUID: Int]
     let categories: [UUID: (name: String, color: String, icon: String)]
-    let itemListPaidStatus: [UUID: ItemListPaidStatus]
+    let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
@@ -31,7 +31,7 @@ struct ExpenseListView: View {
         getFormattedUnpaidAmount: @escaping (SDItemList) -> String?,
         itemListCounts: [UUID: Int],
         categories: [UUID: (name: String, color: String, icon: String)],
-        itemListPaidStatus: [UUID: ItemListPaidStatus],
+        itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
         onRefresh: @escaping () async -> Void,
@@ -49,7 +49,7 @@ struct ExpenseListView: View {
         self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
         self.itemListCounts = itemListCounts
         self.categories = categories
-        self.itemListPaidStatus = itemListPaidStatus
+        self.itemListRowStatus = itemListRowStatus
         self.onItemTap = onItemTap
         self.onTogglePaid = onTogglePaid
         self.onRefresh = onRefresh
@@ -122,7 +122,7 @@ struct ExpenseListView: View {
             categoryName: categoryName,
             categoryColor: categoryColor,
             categoryIcon: categoryIcon,
-            paidStatus: itemListPaidStatus[itemList.id] ?? .none,
+            rowStatus: itemListRowStatus[itemList.id] ?? .neutral,
             isCompact: isCompact,
             timelinePosition: timelinePosition,
             onTap: { onItemTap(itemList) },
@@ -202,7 +202,7 @@ struct ExpenseListView: View {
         getFormattedUnpaidAmount: { _ in nil },
         itemListCounts: [:],
         categories: [:],
-        itemListPaidStatus: [:],
+        itemListRowStatus: [:],
         onItemTap: { _ in },
         onTogglePaid: { _ in },
         onRefresh: { },

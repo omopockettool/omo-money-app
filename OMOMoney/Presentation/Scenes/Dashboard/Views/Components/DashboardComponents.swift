@@ -113,7 +113,7 @@ struct DashboardMainContent: View {
     let getFormattedUnpaidAmount: (SDItemList) -> String?
     let itemListCounts: [UUID: Int]
     let categories: [UUID: (name: String, color: String, icon: String)]
-    let itemListPaidStatus: [UUID: ItemListPaidStatus]
+    let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
@@ -143,7 +143,7 @@ struct DashboardMainContent: View {
                 getFormattedUnpaidAmount: getFormattedUnpaidAmount,
                 itemListCounts: itemListCounts,
                 categories: categories,
-                itemListPaidStatus: itemListPaidStatus,
+                itemListRowStatus: itemListRowStatus,
                 onItemTap: onItemTap,
                 onTogglePaid: onTogglePaid,
                 onRefresh: onRefresh,

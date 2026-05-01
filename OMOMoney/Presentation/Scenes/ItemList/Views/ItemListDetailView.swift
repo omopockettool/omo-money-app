@@ -171,7 +171,7 @@ struct ItemListDetailView: View {
             heroIsSuccess: heroIsSuccess,
             lastAddedDescription: lastAddedDescription,
             totalAmount: viewModel.getFormattedTotal(),
-            unpaidTotal: viewModel.getFormattedUnpaidTotal(),
+            heroStatus: viewModel.getHeroStatus(),
             showMetaLabels: showMetaLabels,
             onAddExpense: { sheetMode = .create }
         )

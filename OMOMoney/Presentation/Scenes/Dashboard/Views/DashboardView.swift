@@ -212,7 +212,7 @@ struct DashboardView: View {
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
             itemListCounts: viewModel.itemListCounts,
             categories: viewModel.categories,
-            itemListPaidStatus: viewModel.itemListPaidStatus,
+            itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { navigationPath.append($0) },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
@@ -299,7 +299,7 @@ struct DashboardView: View {
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
             itemListCounts: viewModel.itemListCounts,
             categories: viewModel.categories,
-            itemListPaidStatus: viewModel.itemListPaidStatus,
+            itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { item in
                 if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }
             },

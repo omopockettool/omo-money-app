@@ -5,7 +5,7 @@ struct ItemListDetailHeroCard: View {
     let heroIsSuccess: Bool
     let lastAddedDescription: String
     let totalAmount: String
-    let unpaidTotal: String?
+    let heroStatus: ItemListDetailHeroStatus
     let showMetaLabels: Bool
     let onAddExpense: () -> Void
 
@@ -18,7 +18,7 @@ struct ItemListDetailHeroCard: View {
         ) {
             ItemListDetailMetaRow(
                 itemList: itemList,
-                unpaidTotal: unpaidTotal,
+                heroStatus: heroStatus,
                 showMetaLabels: showMetaLabels
             )
         }
@@ -27,7 +27,7 @@ struct ItemListDetailHeroCard: View {
 
 struct ItemListDetailMetaRow: View {
     let itemList: SDItemList
-    let unpaidTotal: String?
+    let heroStatus: ItemListDetailHeroStatus
     let showMetaLabels: Bool
 
     var body: some View {
@@ -67,7 +67,8 @@ struct ItemListDetailMetaRow: View {
             }
 
             Group {
-                if let unpaidTotal {
+                switch heroStatus {
+                case .pending(let unpaidTotal):
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
                         if !showMetaLabels {
@@ -77,15 +78,28 @@ struct ItemListDetailMetaRow: View {
                         }
                     }
                     .foregroundStyle(.orange)
-                } else {
+                case .completed:
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
+                case .neutral:
+                    EmptyView()
                 }
             }
             .font(.caption)
-            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: unpaidTotal == nil)
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: heroStatusKey)
         }
         .padding(.top, 2)
+    }
+
+    private var heroStatusKey: String {
+        switch heroStatus {
+        case .neutral:
+            return "neutral"
+        case .pending:
+            return "pending"
+        case .completed:
+            return "completed"
+        }
     }
 
     private func paymentMethodColor(_ type: String) -> Color {

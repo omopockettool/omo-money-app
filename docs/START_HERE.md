@@ -41,6 +41,8 @@ Models  Models    Models      Models       (single source of truth)
 | **Domain** (UseCases, Protocols) | Pure Swift, Foundation, SD* types | SwiftData @Model directly, SwiftUI, Data layer |
 | **Data** (Repositories) | ModelContext, SD* models, Domain protocols | Presentation layer |
 
+- **Views render; ViewModels decide.** Keep derived UI state, display-state mapping, and business/presentation rules out of SwiftUI views. If a view needs conditions like "neutral vs paid vs partial", compute that in the ViewModel (or a dedicated presentation mapper) and pass the result in.
+
 ### 3. Dependency Injection (MANDATORY)
 ```swift
 // ✅ CORRECT - Always use AppDIContainer

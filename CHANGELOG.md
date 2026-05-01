@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.9] - 2026-05-01
+
+### Fixed
+- **Empty and zero-total item lists no longer appear completed in dashboard rows or detail hero cards** (`DashboardViewModel`, `ExpenseRowView`, `ItemListDetailViewModel`, `ItemListDetailComponents`) — item lists with no items, or whose real total is `0.00`, now render a neutral payment state instead of a green completed check. This keeps the dashboard timeline and the item-list hero aligned so only lists with actual paid value read as completed.
+
+### Changed
+- **Derived payment-display state is now centralized in ViewModels instead of SwiftUI views** (`DashboardViewModel`, `ItemListDetailViewModel`, `ExpenseListView`, `ItemListDetailView`, `docs/START_HERE.md`) — introduced explicit presentation states for dashboard rows and item-list hero cards so views only render precomputed display intent. The project quick-start guide now documents this rule directly: views render, ViewModels decide.
+
+---
+
 ## [1.8.8] - 2026-05-01
 
 ### Changed

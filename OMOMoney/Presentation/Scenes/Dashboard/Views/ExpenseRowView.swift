@@ -8,7 +8,7 @@ struct ExpenseRowView: View {
     let categoryName: String?
     let categoryColor: Color?
     let categoryIcon: String?
-    let paidStatus: ItemListPaidStatus
+    let rowStatus: ItemListRowStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
     var isCompact: Bool = false
@@ -23,10 +23,10 @@ struct ExpenseRowView: View {
             Button(action: onTogglePaid) {
                 TimelineRailView(
                     position: timelinePosition,
-                    color: paidStatus == .all ? .green : Color(.systemGray3),
-                    isActive: paidStatus != .none,
-                    iconName: paidStatusIcon,
-                    iconColor: paidStatusColor
+                    color: railColor,
+                    isActive: railIsActive,
+                    iconName: rowStatusIcon,
+                    iconColor: rowStatusColor
                 )
                 .frame(width: 44)
             }
@@ -81,20 +81,30 @@ struct ExpenseRowView: View {
         .onTapGesture { onTap() }
     }
 
-    private var paidStatusIcon: String {
-        switch paidStatus {
-        case .all:     return "checkmark.circle.fill"
+    private var rowStatusIcon: String? {
+        switch rowStatus {
+        case .neutral: return nil
+        case .unpaid:  return "circle"
         case .partial: return "circle.lefthalf.filled"
-        case .none:    return "circle"
+        case .paid:    return "checkmark.circle.fill"
         }
     }
 
-    private var paidStatusColor: Color {
-        switch paidStatus {
-        case .all:     return .green
+    private var rowStatusColor: Color {
+        switch rowStatus {
+        case .neutral: return Color(.systemGray3)
+        case .unpaid:  return Color(.systemGray3)
         case .partial: return .orange
-        case .none:    return Color(.systemGray3)
+        case .paid:    return .green
         }
+    }
+
+    private var railColor: Color {
+        rowStatus == .paid ? .green : Color(.systemGray3)
+    }
+
+    private var railIsActive: Bool {
+        rowStatus != .neutral && rowStatus != .unpaid
     }
 }
 
@@ -109,7 +119,7 @@ struct ExpenseRowView: View {
             categoryName: "Supermercado",
             categoryColor: .green,
             categoryIcon: "cart.fill",
-            paidStatus: .all,
+            rowStatus: .paid,
             onTap: {},
             onTogglePaid: {}
         )
@@ -121,7 +131,7 @@ struct ExpenseRowView: View {
             categoryName: nil,
             categoryColor: nil,
             categoryIcon: nil,
-            paidStatus: .partial,
+            rowStatus: .partial,
             onTap: {},
             onTogglePaid: {}
         )

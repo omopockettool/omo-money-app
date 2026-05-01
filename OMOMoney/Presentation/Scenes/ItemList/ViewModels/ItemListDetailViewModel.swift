@@ -6,6 +6,12 @@
 import Foundation
 import SwiftUI
 
+enum ItemListDetailHeroStatus {
+    case neutral
+    case pending(String)
+    case completed
+}
+
 @MainActor
 
 @Observable
@@ -166,6 +172,19 @@ class ItemListDetailViewModel {
         let unpaid = items.filter { !$0.isPaid }.reduce(0.0) { $0 + $1.totalAmount }
         guard unpaid > 0 else { return nil }
         return makeCurrencyFormatter().string(from: NSNumber(value: unpaid)) ?? "\(unpaid) \(currencyCode)"
+    }
+
+    func getHeroStatus() -> ItemListDetailHeroStatus {
+        let totalAmount = items.reduce(0.0) { $0 + $1.totalAmount }
+        guard !items.isEmpty, abs(totalAmount) >= 0.000_001 else {
+            return .neutral
+        }
+
+        if let unpaidTotal = getFormattedUnpaidTotal() {
+            return .pending(unpaidTotal)
+        }
+
+        return .completed
     }
 
     func getFormattedAmount(_ item: SDItem) -> String {
