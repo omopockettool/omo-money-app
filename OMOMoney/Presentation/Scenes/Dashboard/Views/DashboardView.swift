@@ -231,8 +231,6 @@ struct DashboardView: View {
             itemLists: viewModel.showingFullMonth ? viewModel.monthItemLists : viewModel.todayItemLists,
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-            itemListCounts: viewModel.itemListCounts,
-            categories: viewModel.categories,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { navigationPath.append($0) },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
@@ -321,8 +319,6 @@ struct DashboardView: View {
             itemLists: filtered,
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-            itemListCounts: viewModel.itemListCounts,
-            categories: viewModel.categories,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { item in
                 if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }

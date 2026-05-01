@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.12] - 2026-05-01
+
+### Changed
+- **Dashboard item-list rows were simplified and stabilized for faster scanning** (`ExpenseRowView`, `ExpenseListView`, `ExpenseListComponents`, `DashboardComponents`, `TimelineRailView`) — removed the low-value category/icon and item-count metadata from each dashboard row, keeping the focus on description, paid total, unpaid total, and status. The row layout now holds a stable height while unpaid values animate more smoothly, and the timeline connector lines were adjusted to stay visually continuous across rows within the same day.
+
+---
+
 ## [1.8.11] - 2026-05-01
 
 ### Changed

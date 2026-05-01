@@ -31,6 +31,7 @@ struct TimelineRailView: View {
     var isActive: Bool = true
     var iconName: String? = nil
     var iconColor: Color? = nil
+    var lineSegmentHeight: CGFloat = 22
 
     var body: some View {
         VStack(spacing: 0) {
@@ -65,6 +66,6 @@ struct TimelineRailView: View {
         Rectangle()
             .fill(color.opacity(visible ? 0.48 : 0))
             .frame(width: 1.5)
-            .frame(height: 22)
+            .frame(height: lineSegmentHeight)
     }
 }

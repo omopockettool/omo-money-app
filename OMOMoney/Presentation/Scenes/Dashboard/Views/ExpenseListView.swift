@@ -11,8 +11,6 @@ struct ExpenseListView: View {
     let itemLists: [SDItemList]
     let getFormattedAmount: (SDItemList) -> String
     let getFormattedUnpaidAmount: (SDItemList) -> String?
-    let itemListCounts: [UUID: Int]
-    let categories: [UUID: (name: String, color: String, icon: String)]
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -29,8 +27,6 @@ struct ExpenseListView: View {
         itemLists: [SDItemList],
         getFormattedAmount: @escaping (SDItemList) -> String,
         getFormattedUnpaidAmount: @escaping (SDItemList) -> String?,
-        itemListCounts: [UUID: Int],
-        categories: [UUID: (name: String, color: String, icon: String)],
         itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
@@ -47,8 +43,6 @@ struct ExpenseListView: View {
         self.itemLists = itemLists
         self.getFormattedAmount = getFormattedAmount
         self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
-        self.itemListCounts = itemListCounts
-        self.categories = categories
         self.itemListRowStatus = itemListRowStatus
         self.onItemTap = onItemTap
         self.onTogglePaid = onTogglePaid
@@ -111,17 +105,10 @@ struct ExpenseListView: View {
 
     @ViewBuilder
     private func itemListRow(_ itemList: SDItemList, timelinePosition: TimelinePosition) -> some View {
-        let categoryName = itemList.category.flatMap { categories[$0.id]?.name }
-        let categoryColor = itemList.category.flatMap { categories[$0.id]?.color }.flatMap { Color(hex: $0) }
-        let categoryIcon = itemList.category.flatMap { categories[$0.id]?.icon }
         ExpenseListRowContainer(
             itemList: itemList,
             formattedAmount: getFormattedAmount(itemList),
             formattedUnpaidAmount: getFormattedUnpaidAmount(itemList),
-            itemCount: itemListCounts[itemList.id] ?? 0,
-            categoryName: categoryName,
-            categoryColor: categoryColor,
-            categoryIcon: categoryIcon,
             rowStatus: itemListRowStatus[itemList.id] ?? .neutral,
             isCompact: isCompact,
             timelinePosition: timelinePosition,
@@ -200,8 +187,6 @@ struct ExpenseListView: View {
         itemLists: [],
         getFormattedAmount: { _ in "12,89 €" },
         getFormattedUnpaidAmount: { _ in nil },
-        itemListCounts: [:],
-        categories: [:],
         itemListRowStatus: [:],
         onItemTap: { _ in },
         onTogglePaid: { _ in },

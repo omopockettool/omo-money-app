@@ -4,10 +4,6 @@ struct ExpenseRowView: View {
     let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
-    let itemCount: Int
-    let categoryName: String?
-    let categoryColor: Color?
-    let categoryIcon: String?
     let rowStatus: ItemListRowStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
@@ -26,28 +22,19 @@ struct ExpenseRowView: View {
                     color: railColor,
                     isActive: railIsActive,
                     iconName: rowStatusIcon,
-                    iconColor: rowStatusColor
+                    iconColor: rowStatusColor,
+                    lineSegmentHeight: isCompact ? 24 : 29
                 )
                 .frame(width: 44)
             }
             .buttonStyle(PressHapticButtonStyle())
 
             HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(itemList.itemListDescription)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-
-                    HStack(spacing: 5) {
-                        Image(systemName: categoryIcon ?? "tag.fill")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(categoryColor ?? Color(.systemGray3))
-                        Text(itemCount == 1 ? LocalizationKey.Item.oneItem.localized : "\(itemCount) \(LocalizationKey.Item.items.localized)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
                 }
 
                 Spacer()
@@ -58,17 +45,22 @@ struct ExpenseRowView: View {
                         .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
                         .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
                         .lineLimit(1)
+                        .contentTransition(.numericText())
                     if let unpaid = formattedUnpaidAmount {
                         Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .contentTransition(.numericText())
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .layoutPriority(1)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedAmount)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedUnpaidAmount)
             }
-            .padding(.top, isCompact ? 12 : 14)
-            .padding(.bottom, isCompact ? 16 : 18)
+            .frame(minHeight: isCompact ? 52 : 58, alignment: .center)
+            .padding(.vertical, isCompact ? 10 : 12)
             .overlay(alignment: .bottom) {
                 Rectangle()
                     .fill(Color(.separator).opacity(0.15))
@@ -115,10 +107,6 @@ struct ExpenseRowView: View {
             itemList: SDItemList.mock(itemListDescription: "Compras del supermercado"),
             formattedAmount: "12,89 €",
             formattedUnpaidAmount: nil,
-            itemCount: 3,
-            categoryName: "Supermercado",
-            categoryColor: .green,
-            categoryIcon: "cart.fill",
             rowStatus: .paid,
             onTap: {},
             onTogglePaid: {}
@@ -127,10 +115,6 @@ struct ExpenseRowView: View {
             itemList: SDItemList.mock(itemListDescription: "Cena en restaurante"),
             formattedAmount: "8,00 €",
             formattedUnpaidAmount: "37,60 €",
-            itemCount: 1,
-            categoryName: nil,
-            categoryColor: nil,
-            categoryIcon: nil,
             rowStatus: .partial,
             onTap: {},
             onTogglePaid: {}

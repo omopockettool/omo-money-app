@@ -10,10 +10,6 @@ struct ExpenseListRowContainer: View {
     let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
-    let itemCount: Int
-    let categoryName: String?
-    let categoryColor: Color?
-    let categoryIcon: String?
     let rowStatus: ItemListRowStatus
     let isCompact: Bool
     let timelinePosition: TimelinePosition
@@ -26,10 +22,6 @@ struct ExpenseListRowContainer: View {
             itemList: itemList,
             formattedAmount: formattedAmount,
             formattedUnpaidAmount: formattedUnpaidAmount,
-            itemCount: itemCount,
-            categoryName: categoryName,
-            categoryColor: categoryColor,
-            categoryIcon: categoryIcon,
             rowStatus: rowStatus,
             onTap: onTap,
             onTogglePaid: onTogglePaid,
