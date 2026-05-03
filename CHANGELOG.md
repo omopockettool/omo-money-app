@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.21] - 2026-05-03
+
+### Changed
+- **Dashboard and item-list list containers now use softer internal edge treatment instead of hard cutoff lines** (`DashboardComponents`, `ExpenseListView`, `ExpenseListComponents`, `ExpenseRowView`, `ItemListDetailView`, `ItemListDetailComponents`) — the list viewport inside the rounded gray cards was refined so content no longer feels pinned to the component edges. Dashboard `Today` and item-list detail now use a subtle internal edge fade at the top and bottom, while month view keeps only the lower fade because date headers already resolve the upper edge. The dashboard bottom inset was also cleaned up by removing the hard `1pt` separator line, leaving a softer transition above the hero/bottom controls.
+
+---
+
 ## [1.8.20] - 2026-05-03
 
 ### Changed

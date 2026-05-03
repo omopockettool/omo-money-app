@@ -88,14 +88,10 @@ struct DashboardBottomInset: View {
                 Color(.systemBackground)
                     .ignoresSafeArea(edges: .bottom)
 
-                Rectangle()
-                    .fill(Color(.separator).opacity(0.22))
-                    .frame(height: 1)
-
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0.08),
-                        Color.black.opacity(0.03),
+                        Color.black.opacity(0.05),
+                        Color.black.opacity(0.02),
                         Color.clear
                     ],
                     startPoint: .top,
@@ -160,7 +156,12 @@ struct DashboardMainContent: View {
                 collapsedDays: showingFullMonth ? $collapsedMonthDays : .constant([]),
                 allowsDayCollapse: showingFullMonth
             )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .mask {
+                ScrollEdgeFadeMask(
+                    showsTopFade: !showingFullMonth,
+                    showsBottomFade: true
+                )
+            }
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.top, AppConstants.UserInterface.smallPadding)
         }
@@ -175,6 +176,40 @@ struct DashboardMainContent: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomInset
         }
+    }
+}
+
+struct ScrollEdgeFadeMask: View {
+    let showsTopFade: Bool
+    let showsBottomFade: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if showsTopFade {
+                LinearGradient(
+                    colors: [Color.black.opacity(0), Color.black],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 12)
+            } else {
+                Color.black.frame(height: 0)
+            }
+
+            Color.black
+
+            if showsBottomFade {
+                LinearGradient(
+                    colors: [Color.black, Color.black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 14)
+            } else {
+                Color.black.frame(height: 0)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 

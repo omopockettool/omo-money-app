@@ -156,7 +156,12 @@ struct ItemListDetailView: View {
                 .padding(.bottom, 2)
 
             itemsList
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .mask {
+                    ScrollEdgeFadeMask(
+                        showsTopFade: true,
+                        showsBottomFade: true
+                    )
+                }
                 .padding(.horizontal, AppConstants.UserInterface.padding)
                 .padding(.top, 4)
                 .padding(.bottom, 2)
@@ -233,6 +238,9 @@ struct ItemRowView: View {
     private var showsZeroAmountStyle: Bool { abs(item.totalAmount) < 0.000_001 }
     private var minimumRowHeight: CGFloat { showsBreakdown ? 64 : 58 }
     private var lineSegmentHeight: CGFloat { showsBreakdown ? 31 : 29 }
+    private var showsBottomSeparator: Bool {
+        timelinePosition != .last && timelinePosition != .single
+    }
     private var formattedUnitPrice: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -291,10 +299,12 @@ struct ItemRowView: View {
             .frame(minHeight: minimumRowHeight, alignment: .center)
             .padding(.vertical, 12)
             .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color(.separator).opacity(0.15))
-                    .frame(height: 2.0)
-                    .frame(maxWidth: 120)
+                if showsBottomSeparator {
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.15))
+                        .frame(height: 2.0)
+                        .frame(maxWidth: 120)
+                }
             }
         }
         .padding(.trailing, 2)

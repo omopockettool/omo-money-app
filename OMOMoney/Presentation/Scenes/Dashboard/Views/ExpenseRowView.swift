@@ -28,6 +28,10 @@ struct ExpenseRowView: View {
         searchMatchedSubtotal != nil
     }
 
+    private var showsBottomSeparator: Bool {
+        timelinePosition != .last && timelinePosition != .single
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
@@ -104,10 +108,12 @@ struct ExpenseRowView: View {
             .frame(minHeight: minimumRowHeight, alignment: .center)
             .padding(.vertical, isCompact ? 10 : 12)
             .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color(.separator).opacity(0.15))
-                    .frame(height: 2.0)
-                    .frame(maxWidth: 120)
+                if showsBottomSeparator {
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.15))
+                        .frame(height: 2.0)
+                        .frame(maxWidth: 120)
+                }
             }
         }
         .padding(.trailing, 2)
