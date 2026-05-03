@@ -71,7 +71,7 @@ struct ItemListDetailMetaRow: View {
                 case .pending(let unpaidTotal):
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
-                        if !showMetaLabels {
+                        if !showMetaLabels && !unpaidTotal.isEmpty {
                             Text(unpaidTotal)
                                 .fontWeight(.medium)
                                 .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .leading)))

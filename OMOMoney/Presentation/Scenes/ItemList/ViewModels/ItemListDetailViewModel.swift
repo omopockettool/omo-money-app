@@ -175,13 +175,13 @@ class ItemListDetailViewModel {
     }
 
     func getHeroStatus() -> ItemListDetailHeroStatus {
-        let totalAmount = items.reduce(0.0) { $0 + $1.totalAmount }
-        guard !items.isEmpty, abs(totalAmount) >= 0.000_001 else {
+        guard !items.isEmpty else {
             return .neutral
         }
 
-        if let unpaidTotal = getFormattedUnpaidTotal() {
-            return .pending(unpaidTotal)
+        let hasUnpaidItems = items.contains { !$0.isPaid }
+        if hasUnpaidItems {
+            return .pending(getFormattedUnpaidTotal() ?? "")
         }
 
         return .completed

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.17] - 2026-05-03
+
+### Fixed
+- **Zero-value checklists now show paid/pending completion state correctly in both dashboard rows and item-list hero cards** (`DashboardViewModel`, `ItemListDetailViewModel`, `ItemListDetailComponents`) — lists whose items all have `0.00` values are no longer treated as empty just because they have no monetary total. The dashboard status icon and the item-list hero now follow the real item completion state: empty lists stay neutral, lists with unpaid items stay pending, and lists with all items marked paid show the completed checkmark even when every item is value-free.
+
+---
+
 ## [1.8.16] - 2026-05-03
 
 ### Changed

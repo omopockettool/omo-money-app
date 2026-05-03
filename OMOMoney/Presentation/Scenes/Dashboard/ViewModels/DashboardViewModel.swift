@@ -723,11 +723,11 @@ class DashboardViewModel {
     }
 
     private func makeRowStatus(
-        totalAmount: Double,
+        totalAmount _: Double,
         itemCount: Int,
         paidStatus: ItemListPaidStatus
     ) -> ItemListRowStatus {
-        if itemCount == 0 || abs(totalAmount) < 0.000_001 {
+        if itemCount == 0 {
             return .neutral
         }
 
