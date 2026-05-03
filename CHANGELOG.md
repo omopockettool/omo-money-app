@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.18] - 2026-05-03
+
+### Changed
+- **Item-list detail rows now use the same cleaner spacing rhythm as dashboard item-list rows** (`ItemListDetailView`) — checklist rows inside item-list detail were updated from the older asymmetric top/bottom padding to a more balanced min-height and vertical-padding structure, improving scan rhythm and making the list feel more consistent with the dashboard’s refined row layout. The timeline connector line height was also adjusted to match the taller row spacing so the check rails remain visually continuous between items.
+
+### Fixed
+- **Zero-value item lists now behave like real checklists in detail and dashboard completion states** (`DashboardViewModel`, `ItemListDetailViewModel`, `ItemListDetailComponents`) — lists whose items total `0.00` are no longer treated as empty just because they have no money value. Completion state now follows the real item state: empty lists stay neutral, unpaid items keep pending state, and all-paid lists show the completed checkmark even when every item is value-free.
+
+---
+
 ## [1.8.17] - 2026-05-03
 
 ### Fixed

@@ -224,6 +224,8 @@ struct ItemRowView: View {
 
     private var showsBreakdown: Bool { item.quantity > 1 }
     private var showsZeroAmountStyle: Bool { abs(item.totalAmount) < 0.000_001 }
+    private var minimumRowHeight: CGFloat { showsBreakdown ? 64 : 58 }
+    private var lineSegmentHeight: CGFloat { showsBreakdown ? 31 : 29 }
     private var formattedUnitPrice: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -240,14 +242,15 @@ struct ItemRowView: View {
                     color: item.isPaid ? .green : Color(.systemGray3),
                     isActive: item.isPaid,
                     iconName: item.isPaid ? "checkmark.circle.fill" : "circle",
-                    iconColor: item.isPaid ? .green : Color(.systemGray3)
+                    iconColor: item.isPaid ? .green : Color(.systemGray3),
+                    lineSegmentHeight: lineSegmentHeight
                 )
                 .frame(width: 44)
             }
             .buttonStyle(PressHapticButtonStyle())
 
             HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(item.itemDescription)
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -257,6 +260,7 @@ struct ItemRowView: View {
                         Text("\(formattedUnitPrice) × \(item.quantity) \(LocalizationKey.Item.units.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .padding(.top, 2)
                     }
                 }
 
@@ -269,8 +273,8 @@ struct ItemRowView: View {
                     .lineLimit(1)
                     .layoutPriority(1)
             }
-            .padding(.top, 14)
-            .padding(.bottom, 18)
+            .frame(minHeight: minimumRowHeight, alignment: .center)
+            .padding(.vertical, 12)
             .overlay(alignment: .bottom) {
                 Rectangle()
                     .fill(Color(.separator).opacity(0.15))
