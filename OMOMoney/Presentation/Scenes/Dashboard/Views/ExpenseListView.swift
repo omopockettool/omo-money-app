@@ -111,7 +111,12 @@ struct ExpenseListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
-        .if(!isCompact) { $0.refreshable { await onRefresh() } }
+        .if(!isCompact) {
+            $0.refreshable {
+                await onRefresh()
+                try? await Task.sleep(for: .milliseconds(180))
+            }
+        }
         .overlay {
             if itemLists.isEmpty, let customEmptyState {
                 customEmptyState

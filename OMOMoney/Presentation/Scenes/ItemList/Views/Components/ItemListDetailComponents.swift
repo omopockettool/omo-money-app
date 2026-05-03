@@ -164,7 +164,10 @@ struct ItemListItemsSection: View {
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
         .animation(.easeInOut(duration: 0.2), value: items.count)
-        .refreshable { await onRefresh() }
+        .refreshable {
+            await onRefresh()
+            try? await Task.sleep(for: .milliseconds(180))
+        }
     }
 
     private func timelinePosition(index: Int, count: Int) -> TimelinePosition {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.22] - 2026-05-03
+
+### Changed
+- **Pull-to-refresh now ends more softly in dashboard and item-list detail lists** (`ExpenseListView`, `ItemListDetailComponents`) — both list surfaces now keep the native refresh cycle alive for a brief extra moment before completion, which makes the refresh indicator fade away less abruptly when the user releases the swipe-down gesture.
+
+---
+
 ## [1.8.21] - 2026-05-03
 
 ### Changed
