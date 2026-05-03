@@ -29,6 +29,17 @@ class DashboardViewModel {
         let rowStatus: ItemListRowStatus
     }
 
+    struct ItemListSearchSummary {
+        let listMatched: Bool
+        let matchedItemCount: Int
+        let matchedSubtotal: Double
+        let matchedUnpaidSubtotal: Double
+
+        var hasItemMatches: Bool {
+            matchedItemCount > 0
+        }
+    }
+
     // MARK: - Published Properties
     var itemLists: [SDItemList] = [] {
         didSet {
@@ -75,6 +86,10 @@ class DashboardViewModel {
 
     var filteredMonthItemLists: [SDItemList] {
         filteredItemLists(from: monthItemLists)
+    }
+
+    func filteredSearchResults(from source: [SDItemList]) -> [SDItemList] {
+        filteredItemLists(from: source)
     }
 
     var hasItemsOutsideToday: Bool {
@@ -578,6 +593,27 @@ class DashboardViewModel {
         return makeCurrencyFormatter().string(from: NSNumber(value: unpaid))
     }
 
+    func formattedSearchSummary(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+
+        let key = summary.matchedItemCount == 1
+            ? LocalizationKey.Dashboard.searchItemSummarySingle
+            : LocalizationKey.Dashboard.searchItemSummaryMultiple
+
+        return key.localized(with: summary.matchedItemCount)
+    }
+
+    func formattedSearchMatchedSubtotal(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+        return makeCurrencyFormatter().string(from: NSNumber(value: summary.matchedSubtotal)) ?? "€0.00"
+    }
+
+    func formattedSearchMatchedUnpaid(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+        guard summary.matchedUnpaidSubtotal > 0.000_001 else { return nil }
+        return makeCurrencyFormatter().string(from: NSNumber(value: summary.matchedUnpaidSubtotal))
+    }
+
     func formattedTotal(for date: Date) -> String {
         let cal = Calendar.current
         let dayTotal = itemLists
@@ -709,9 +745,42 @@ class DashboardViewModel {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return source }
 
-        return source.filter {
-            $0.itemListDescription.localizedCaseInsensitiveContains(query)
+        return source.filter { searchSummary(for: $0, query: query) != nil }
+    }
+
+    private func searchSummary(for itemList: SDItemList) -> ItemListSearchSummary? {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        return searchSummary(for: itemList, query: query)
+    }
+
+    private func searchSummary(for itemList: SDItemList, query: String) -> ItemListSearchSummary? {
+        guard !query.isEmpty else { return nil }
+
+        let listMatched = itemList.itemListDescription.localizedCaseInsensitiveContains(query)
+        let matchedItems = itemList.items.filter {
+            $0.itemDescription.localizedCaseInsensitiveContains(query)
         }
+
+        guard listMatched || !matchedItems.isEmpty else { return nil }
+
+        let matchedSubtotal = matchedItems.reduce(0.0) { partialResult, item in
+            let value = item.totalAmount
+            guard value.isFinite else { return partialResult }
+            return partialResult + value
+        }
+        let matchedUnpaidSubtotal = matchedItems.reduce(0.0) { partialResult, item in
+            guard !item.isPaid else { return partialResult }
+            let value = item.totalAmount
+            guard value.isFinite else { return partialResult }
+            return partialResult + value
+        }
+
+        return ItemListSearchSummary(
+            listMatched: listMatched,
+            matchedItemCount: matchedItems.count,
+            matchedSubtotal: matchedSubtotal.isFinite ? matchedSubtotal : 0.0,
+            matchedUnpaidSubtotal: matchedUnpaidSubtotal.isFinite ? matchedUnpaidSubtotal : 0.0
+        )
     }
 
     private func itemListDataCacheKey(for itemList: SDItemList) -> String {

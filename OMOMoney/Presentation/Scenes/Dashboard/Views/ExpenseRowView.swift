@@ -4,6 +4,9 @@ struct ExpenseRowView: View {
     let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
+    let searchSummary: String?
+    let searchMatchedSubtotal: String?
+    let searchMatchedUnpaid: String?
     let rowStatus: ItemListRowStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
@@ -12,6 +15,17 @@ struct ExpenseRowView: View {
 
     private var showsZeroAmountStyle: Bool {
         abs(itemList.totalPaidAmount) < 0.000_001
+    }
+
+    private var minimumRowHeight: CGFloat {
+        if searchSummary != nil {
+            return isCompact ? 64 : 72
+        }
+        return isCompact ? 52 : 58
+    }
+
+    private var isShowingSearchAmounts: Bool {
+        searchMatchedSubtotal != nil
     }
 
     var body: some View {
@@ -35,31 +49,59 @@ struct ExpenseRowView: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .lineLimit(1)
+
+                    if let searchSummary {
+                        Text(searchSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .padding(.top, 2)
+                    }
                 }
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(formattedAmount)
-                        .font(.subheadline)
-                        .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
-                        .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
-                        .lineLimit(1)
-                        .contentTransition(.numericText())
-                    if let unpaid = formattedUnpaidAmount {
-                        Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    if let searchMatchedSubtotal, isShowingSearchAmounts {
+                        Text(searchMatchedSubtotal)
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.primary)
                             .lineLimit(1)
                             .contentTransition(.numericText())
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+
+                        if let searchMatchedUnpaid {
+                            Text("\(searchMatchedUnpaid) \(LocalizationKey.Item.unpaid.localized)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .contentTransition(.numericText())
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    } else {
+                        Text(formattedAmount)
+                            .font(.subheadline)
+                            .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
+                            .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
+                            .lineLimit(1)
+                            .contentTransition(.numericText())
+                        if let unpaid = formattedUnpaidAmount {
+                            Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .contentTransition(.numericText())
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
                     }
                 }
                 .layoutPriority(1)
                 .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedAmount)
                 .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedUnpaidAmount)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: searchMatchedSubtotal)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: searchMatchedUnpaid)
             }
-            .frame(minHeight: isCompact ? 52 : 58, alignment: .center)
+            .frame(minHeight: minimumRowHeight, alignment: .center)
             .padding(.vertical, isCompact ? 10 : 12)
             .overlay(alignment: .bottom) {
                 Rectangle()
@@ -107,6 +149,9 @@ struct ExpenseRowView: View {
             itemList: SDItemList.mock(itemListDescription: "Compras del supermercado"),
             formattedAmount: "12,89 €",
             formattedUnpaidAmount: nil,
+            searchSummary: "3 matching items",
+            searchMatchedSubtotal: "€4.00",
+            searchMatchedUnpaid: "€1.50",
             rowStatus: .paid,
             onTap: {},
             onTogglePaid: {}
@@ -115,6 +160,9 @@ struct ExpenseRowView: View {
             itemList: SDItemList.mock(itemListDescription: "Cena en restaurante"),
             formattedAmount: "8,00 €",
             formattedUnpaidAmount: "37,60 €",
+            searchSummary: nil,
+            searchMatchedSubtotal: nil,
+            searchMatchedUnpaid: nil,
             rowStatus: .partial,
             onTap: {},
             onTogglePaid: {}

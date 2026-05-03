@@ -69,29 +69,28 @@ struct MyView: View {
 
 ## 📂 Quick File Location Guide
 
+> Source code lives under the `OMOMoney/` app folder inside the repo root. Example: `OMOMoney/Application/`, `OMOMoney/Presentation/`, `OMOMoney/Data/`.
+
 ```
-Application/
-├── ContentView.swift, OMOMoneyApp.swift
-└── DIContainer/
-    └── AppDIContainer.swift ← ALL dependencies created here (uses ModelContext)
-
-Domain/
-├── Entities/   ← EMPTY — Domain struct files deleted in Phase 4 Step 4.2
-├── Protocols/  ← Repository contracts only (Services layer DELETED)
-└── UseCases/   ← Business logic (one operation per UseCase, returns SD* types)
-
-Data/
-├── CoreData/   ← Legacy .xcdatamodeld + Persistence.swift (NOT USED by app)
-├── SwiftData/  ← SD*.swift @Model classes — THE persistence layer + source of truth
-└── Repositories/ ← ModelContext + FetchDescriptor, return SD* models directly
-
-Presentation/
-└── Scenes/
-    ├── Dashboard/, User/, Group/, ItemList/, etc.
-    └── Each has: Views/ and ViewModels/ (@Observable)
-
-Infrastructure/
-└── Cache/, Extensions/, Helpers/, Utils/
+OMOMoney/
+├── Application/
+│   ├── ContentView.swift, OMOMoneyApp.swift
+│   └── DIContainer/
+│       └── AppDIContainer.swift ← ALL dependencies created here (uses ModelContext)
+├── Domain/
+│   ├── Entities/   ← EMPTY — Domain struct files deleted in Phase 4 Step 4.2
+│   ├── Protocols/  ← Repository contracts only (Services layer DELETED)
+│   └── UseCases/   ← Business logic (one operation per UseCase, returns SD* types)
+├── Data/
+│   ├── CoreData/   ← Legacy .xcdatamodeld + Persistence.swift (NOT USED by app)
+│   ├── SwiftData/  ← SD*.swift @Model classes — THE persistence layer + source of truth
+│   └── Repositories/ ← ModelContext + FetchDescriptor, return SD* models directly
+├── Presentation/
+│   └── Scenes/
+│       ├── Dashboard/, User/, Group/, ItemList/, etc.
+│       └── Each has: Views/ and ViewModels/ (@Observable)
+└── Infrastructure/
+    └── Cache/, Extensions/, Helpers/, Utils/
 ```
 
 ---

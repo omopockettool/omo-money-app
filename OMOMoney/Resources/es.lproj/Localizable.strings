@@ -140,6 +140,8 @@
 "dashboard.month" = "Mes";
 "dashboard.year" = "Año";
 "dashboard.currentMonth" = "Volver al mes actual";
+"dashboard.searchItemSummary.single" = "%d artículo coincidente";
+"dashboard.searchItemSummary.multiple" = "%d artículos coincidentes";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "Nuevo Registro";

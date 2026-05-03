@@ -112,6 +112,9 @@ struct DashboardMainContent: View {
     let itemLists: [SDItemList]
     let getFormattedAmount: (SDItemList) -> String
     let getFormattedUnpaidAmount: (SDItemList) -> String?
+    let getSearchSummary: (SDItemList) -> String?
+    let getSearchMatchedSubtotal: (SDItemList) -> String?
+    let getSearchMatchedUnpaid: (SDItemList) -> String?
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -140,6 +143,9 @@ struct DashboardMainContent: View {
                 itemLists: itemLists,
                 getFormattedAmount: getFormattedAmount,
                 getFormattedUnpaidAmount: getFormattedUnpaidAmount,
+                getSearchSummary: getSearchSummary,
+                getSearchMatchedSubtotal: getSearchMatchedSubtotal,
+                getSearchMatchedUnpaid: getSearchMatchedUnpaid,
                 itemListRowStatus: itemListRowStatus,
                 onItemTap: onItemTap,
                 onTogglePaid: onTogglePaid,

@@ -212,6 +212,8 @@ enum LocalizationKey {
         static let month = "dashboard.month"
         static let year = "dashboard.year"
         static let currentMonth = "dashboard.currentMonth"
+        static let searchItemSummarySingle = "dashboard.searchItemSummary.single"
+        static let searchItemSummaryMultiple = "dashboard.searchItemSummary.multiple"
     }
     
     // MARK: - Settings

@@ -10,6 +10,9 @@ struct ExpenseListRowContainer: View {
     let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
+    let searchSummary: String?
+    let searchMatchedSubtotal: String?
+    let searchMatchedUnpaid: String?
     let rowStatus: ItemListRowStatus
     let isCompact: Bool
     let timelinePosition: TimelinePosition
@@ -22,6 +25,9 @@ struct ExpenseListRowContainer: View {
             itemList: itemList,
             formattedAmount: formattedAmount,
             formattedUnpaidAmount: formattedUnpaidAmount,
+            searchSummary: searchSummary,
+            searchMatchedSubtotal: searchMatchedSubtotal,
+            searchMatchedUnpaid: searchMatchedUnpaid,
             rowStatus: rowStatus,
             onTap: onTap,
             onTogglePaid: onTogglePaid,

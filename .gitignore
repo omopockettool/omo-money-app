@@ -13,6 +13,7 @@ xcuserdata/
 build/
 DerivedData/
 .derivedData/
+.derivedData-local/
 .swift-module-cache/
 *.moved-aside
 *.pbxuser

@@ -192,9 +192,6 @@ struct DashboardView: View {
                 .presentationDragIndicator(.visible)
             }
         }
-        .if(!isSearchActive) { view in
-            view.ignoresSafeArea(.keyboard)
-        }
         .toast($viewModel.toast)
         .onAppear {
             // Only load data on first appearance to avoid splash on navigation back
@@ -236,6 +233,9 @@ struct DashboardView: View {
             itemLists: viewModel.showingFullMonth ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists,
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
+            getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
+            getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { navigationPath.append($0) },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
@@ -326,14 +326,13 @@ struct DashboardView: View {
         let source = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
         }
-        let query = viewModel.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        let filtered = query.isEmpty ? source : source.filter {
-            $0.itemListDescription.localizedCaseInsensitiveContains(query)
-        }
         return ExpenseListView(
-            itemLists: filtered,
+            itemLists: viewModel.filteredSearchResults(from: source),
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
+            getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
+            getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { item in
                 if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }

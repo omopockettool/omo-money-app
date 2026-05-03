@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.16] - 2026-05-03
+
+### Changed
+- **Dashboard search now reaches both item-list titles and nested items with clearer result amounts** (`DashboardViewModel`, `DashboardView`, `ExpenseListView`, `ExpenseRowView`, dashboard components, localization files) — searching from the dashboard no longer stops at the item-list description. Results now remain visible when either the list title or one of its items matches the query, and matching rows show a more useful search presentation: a match-count subtitle on the left, matched subtotal on the main amount line, and matched unpaid subtotal below when relevant. This keeps the search result scope consistent and avoids mixing whole-list totals into item-level search feedback.
+- **Dashboard bottom search bar was stabilized with a pure SwiftUI layout path** (`DashboardBottomBarView`, `DashboardView`, `DashboardComponents`, `docs/START_HERE.md`) — the inline search bar now stays mounted in the layout and only changes visibility/focus state, which resolves the first-open keyboard positioning issues without relying on UIKit keyboard notifications. The quick-start doc was also updated to reflect the real `OMOMoney/` source-folder layout in the repository.
+
+---
+
 ## [1.8.15] - 2026-05-01
 
 ### Changed

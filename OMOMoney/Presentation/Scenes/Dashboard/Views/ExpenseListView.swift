@@ -11,6 +11,9 @@ struct ExpenseListView: View {
     let itemLists: [SDItemList]
     let getFormattedAmount: (SDItemList) -> String
     let getFormattedUnpaidAmount: (SDItemList) -> String?
+    let getSearchSummary: (SDItemList) -> String?
+    let getSearchMatchedSubtotal: (SDItemList) -> String?
+    let getSearchMatchedUnpaid: (SDItemList) -> String?
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -27,6 +30,9 @@ struct ExpenseListView: View {
         itemLists: [SDItemList],
         getFormattedAmount: @escaping (SDItemList) -> String,
         getFormattedUnpaidAmount: @escaping (SDItemList) -> String?,
+        getSearchSummary: @escaping (SDItemList) -> String? = { _ in nil },
+        getSearchMatchedSubtotal: @escaping (SDItemList) -> String? = { _ in nil },
+        getSearchMatchedUnpaid: @escaping (SDItemList) -> String? = { _ in nil },
         itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
@@ -43,6 +49,9 @@ struct ExpenseListView: View {
         self.itemLists = itemLists
         self.getFormattedAmount = getFormattedAmount
         self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
+        self.getSearchSummary = getSearchSummary
+        self.getSearchMatchedSubtotal = getSearchMatchedSubtotal
+        self.getSearchMatchedUnpaid = getSearchMatchedUnpaid
         self.itemListRowStatus = itemListRowStatus
         self.onItemTap = onItemTap
         self.onTogglePaid = onTogglePaid
@@ -109,6 +118,9 @@ struct ExpenseListView: View {
             itemList: itemList,
             formattedAmount: getFormattedAmount(itemList),
             formattedUnpaidAmount: getFormattedUnpaidAmount(itemList),
+            searchSummary: getSearchSummary(itemList),
+            searchMatchedSubtotal: getSearchMatchedSubtotal(itemList),
+            searchMatchedUnpaid: getSearchMatchedUnpaid(itemList),
             rowStatus: itemListRowStatus[itemList.id] ?? .neutral,
             isCompact: isCompact,
             timelinePosition: timelinePosition,

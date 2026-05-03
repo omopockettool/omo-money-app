@@ -140,6 +140,8 @@
 "dashboard.month" = "Month";
 "dashboard.year" = "Year";
 "dashboard.currentMonth" = "Back to current month";
+"dashboard.searchItemSummary.single" = "%d matching item";
+"dashboard.searchItemSummary.multiple" = "%d matching items";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "New Entry";
