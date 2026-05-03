@@ -108,7 +108,6 @@ struct ExpenseListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
-        .contentMargins(.top, 0, for: .scrollContent)
         .if(!isCompact) { $0.refreshable { await onRefresh() } }
     }
 
