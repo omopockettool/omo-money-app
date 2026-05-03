@@ -140,6 +140,8 @@
 "dashboard.month" = "Mes";
 "dashboard.year" = "Año";
 "dashboard.currentMonth" = "Volver al mes actual";
+"dashboard.noMatchesTitle" = "Sin coincidencias";
+"dashboard.noMatchesMessage" = "Prueba otra búsqueda o ajusta los filtros.";
 "dashboard.searchItemSummary.single" = "%d artículo coincidente";
 "dashboard.searchItemSummary.multiple" = "%d artículos coincidentes";
 

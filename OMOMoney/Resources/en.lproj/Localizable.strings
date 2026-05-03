@@ -140,6 +140,8 @@
 "dashboard.month" = "Month";
 "dashboard.year" = "Year";
 "dashboard.currentMonth" = "Back to current month";
+"dashboard.noMatchesTitle" = "No matches found";
+"dashboard.noMatchesMessage" = "Try a different search or adjust your filters.";
 "dashboard.searchItemSummary.single" = "%d matching item";
 "dashboard.searchItemSummary.multiple" = "%d matching items";
 

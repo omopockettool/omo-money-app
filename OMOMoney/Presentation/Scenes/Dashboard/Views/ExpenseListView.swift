@@ -19,6 +19,7 @@ struct ExpenseListView: View {
     let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
     let onDelete: (SDItemList) async -> Void
+    let customEmptyState: AnyView?
     var isCompact: Bool = false
     var getDayTotal: ((Date) -> String)? = nil
     var focusedDate: Date? = nil
@@ -38,6 +39,7 @@ struct ExpenseListView: View {
         onTogglePaid: @escaping (SDItemList) -> Void,
         onRefresh: @escaping () async -> Void,
         onDelete: @escaping (SDItemList) async -> Void,
+        customEmptyState: AnyView? = nil,
         isCompact: Bool = false,
         getDayTotal: ((Date) -> String)? = nil,
         focusedDate: Date? = nil,
@@ -57,6 +59,7 @@ struct ExpenseListView: View {
         self.onTogglePaid = onTogglePaid
         self.onRefresh = onRefresh
         self.onDelete = onDelete
+        self.customEmptyState = customEmptyState
         self.isCompact = isCompact
         self.getDayTotal = getDayTotal
         self.focusedDate = focusedDate
@@ -68,8 +71,8 @@ struct ExpenseListView: View {
     
     var body: some View {
         List {
-            if itemLists.isEmpty {
-                emptyStateView
+            if itemLists.isEmpty, customEmptyState == nil {
+                ExpenseListEmptyState()
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else if hideSectionHeaders {
@@ -109,6 +112,13 @@ struct ExpenseListView: View {
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
         .if(!isCompact) { $0.refreshable { await onRefresh() } }
+        .overlay {
+            if itemLists.isEmpty, let customEmptyState {
+                customEmptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     @ViewBuilder
@@ -132,10 +142,6 @@ struct ExpenseListView: View {
     }
     
     // MARK: - Private Views
-    
-    private var emptyStateView: some View {
-        ExpenseListEmptyState()
-    }
     
     @ViewBuilder
     private func sectionHeader(for date: Date) -> some View {

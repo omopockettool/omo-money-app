@@ -236,6 +236,9 @@ struct DashboardView: View {
             getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
+            customEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive
+                ? AnyView(DashboardNoResultsState())
+                : nil,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { navigationPath.append($0) },
             onTogglePaid: { viewModel.togglePaid(for: $0) },

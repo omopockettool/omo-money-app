@@ -115,6 +115,7 @@ struct DashboardMainContent: View {
     let getSearchSummary: (SDItemList) -> String?
     let getSearchMatchedSubtotal: (SDItemList) -> String?
     let getSearchMatchedUnpaid: (SDItemList) -> String?
+    let customEmptyState: AnyView?
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -151,6 +152,7 @@ struct DashboardMainContent: View {
                 onTogglePaid: onTogglePaid,
                 onRefresh: onRefresh,
                 onDelete: onDelete,
+                customEmptyState: customEmptyState,
                 getDayTotal: showingFullMonth ? getDayTotal : nil,
                 focusedDate: nil,
                 hideSectionHeaders: !showingFullMonth,

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.19] - 2026-05-03
+
+### Added
+- **Dashboard search and filter now use a dedicated no-results state instead of the generic add-entry empty message** (`DashboardNoResultsState`, `DashboardView`, `DashboardComponents`, `ExpenseListView`, localization files) — when a search query or month filter produces zero visible item lists, the dashboard now shows a friendlier “No matches found” empty state with search-specific copy instead of the generic “Tap + to add an entry” message. The no-results state is rendered as a centered overlay only for search/filter empties, while truly empty groups keep the original default empty-state behavior.
+
+---
+
 ## [1.8.18] - 2026-05-03
 
 ### Changed
