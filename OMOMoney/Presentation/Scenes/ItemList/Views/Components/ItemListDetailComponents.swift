@@ -124,6 +124,7 @@ struct ItemListItemsSection: View {
     let items: [SDItem]
     let currencyCode: String
     let formattedAmount: (SDItem) -> String
+    let isSearchMatch: (SDItem) -> Bool
     let onItemTap: (SDItem) -> Void
     let onTogglePaid: (SDItem) -> Void
     let onDelete: (SDItem, Int) -> Void
@@ -142,6 +143,7 @@ struct ItemListItemsSection: View {
                         formattedAmount: formattedAmount(item),
                         currencyCode: currencyCode,
                         timelinePosition: timelinePosition(index: index, count: items.count),
+                        isSearchMatch: isSearchMatch(item),
                         onTap: { onItemTap(item) },
                         onTogglePaid: { onTogglePaid(item) }
                     )

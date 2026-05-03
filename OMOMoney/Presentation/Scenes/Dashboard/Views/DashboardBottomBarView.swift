@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardBottomBarView: View {
     @Binding var searchText: String
     @Binding var isSearchActive: Bool
+    let dismissKeyboardToken: Int
 
     let currentGroup: SDGroup?
     let availableGroups: [SDGroup]
@@ -44,6 +45,10 @@ struct DashboardBottomBarView: View {
                 isSearchFieldFocused = false
                 searchText = ""
             }
+        }
+        .onChange(of: dismissKeyboardToken) { _, _ in
+            searchFocusTask?.cancel()
+            isSearchFieldFocused = false
         }
         .onDisappear {
             searchFocusTask?.cancel()

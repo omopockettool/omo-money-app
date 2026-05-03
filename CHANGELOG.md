@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.20] - 2026-05-03
+
+### Changed
+- **Dashboard search now keeps visual context when navigating into an item list** (`DashboardView`, `ItemListDetailView`, `ItemListDetailViewModel`, `ItemListDetailComponents`) — when a user opens an item list from active dashboard search results, the search query is now propagated into the detail screen so matching items are subtly marked with a magnifying-glass indicator. This makes it easier to understand why that list matched and quickly spot the relevant items without adding heavy row highlighting.
+
+---
+
 ## [1.8.19] - 2026-05-03
 
 ### Added

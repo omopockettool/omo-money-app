@@ -23,6 +23,7 @@ struct ItemListDetailNavigationWrapper: View {
     let itemList: SDItemList
     let currencyCode: String
     let group: SDGroup
+    let highlightedSearchQuery: String?
     let onItemListUpdated: (SDItemList) -> Void
     let onPaidStatusChanged: (() -> Void)?
 
@@ -31,6 +32,7 @@ struct ItemListDetailNavigationWrapper: View {
             itemList: itemList,
             currencyCode: currencyCode,
             group: group,
+            highlightedSearchQuery: highlightedSearchQuery,
             onItemListUpdated: onItemListUpdated,
             onPaidStatusChanged: onPaidStatusChanged
         )
@@ -55,6 +57,7 @@ struct DashboardView: View {
     @State private var collapsedMonthDays: Set<Date> = []
     @State private var showingFiltersSheet = false
     @State private var isSearchActive = false
+    @State private var dismissSearchKeyboardToken = 0
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
@@ -118,6 +121,7 @@ struct DashboardView: View {
                         itemList: itemList,
                         currencyCode: group.currency,
                         group: group,
+                        highlightedSearchQuery: viewModel.hasActiveSearch ? viewModel.searchQuery : nil,
                         onItemListUpdated: { updated in
                             Task { await viewModel.updateItemList(updated) }
                         },
@@ -240,7 +244,12 @@ struct DashboardView: View {
                 ? AnyView(DashboardNoResultsState())
                 : nil,
             itemListRowStatus: viewModel.itemListRowStatus,
-            onItemTap: { navigationPath.append($0) },
+            onItemTap: { itemList in
+                if isSearchActive {
+                    dismissSearchKeyboardToken += 1
+                }
+                navigationPath.append(itemList)
+            },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
             onDelete: { await viewModel.deleteItemList($0) },
@@ -282,6 +291,7 @@ struct DashboardView: View {
                 DashboardBottomBarView(
                     searchText: $viewModel.searchQuery,
                     isSearchActive: $isSearchActive,
+                    dismissKeyboardToken: dismissSearchKeyboardToken,
                     currentGroup: viewModel.currentGroup,
                     availableGroups: viewModel.availableGroups,
                     userId: viewModel.currentUser?.id,
@@ -338,7 +348,14 @@ struct DashboardView: View {
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { item in
-                if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }
+                if let customTap = onItemTap {
+                    customTap(item)
+                } else {
+                    if isSearchActive {
+                        dismissSearchKeyboardToken += 1
+                    }
+                    navigationPath.append(item)
+                }
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },

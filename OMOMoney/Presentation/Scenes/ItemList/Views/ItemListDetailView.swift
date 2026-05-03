@@ -4,6 +4,7 @@ struct ItemListDetailView: View {
     let itemList: SDItemList
     let currencyCode: String
     let group: SDGroup
+    let highlightedSearchQuery: String?
     let onItemListUpdated: ((SDItemList) -> Void)?
 
     @State private var viewModel: ItemListDetailViewModel
@@ -34,12 +35,14 @@ struct ItemListDetailView: View {
         itemList: SDItemList,
         currencyCode: String = "EUR",
         group: SDGroup,
+        highlightedSearchQuery: String? = nil,
         onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onPaidStatusChanged: (() -> Void)? = nil
     ) {
         self.itemList = itemList
         self.currencyCode = currencyCode
         self.group = group
+        self.highlightedSearchQuery = highlightedSearchQuery
         self.onItemListUpdated = onItemListUpdated
         self.onPaidStatusChanged = onPaidStatusChanged
 
@@ -184,6 +187,9 @@ struct ItemListDetailView: View {
             items: viewModel.items,
             currencyCode: currencyCode,
             formattedAmount: viewModel.getFormattedAmount,
+            isSearchMatch: { item in
+                viewModel.itemMatchesSearch(item, query: highlightedSearchQuery)
+            },
             onItemTap: { sheetMode = .edit($0) },
             onTogglePaid: { item in
                 Task {
@@ -219,6 +225,7 @@ struct ItemRowView: View {
     let formattedAmount: String
     let currencyCode: String
     let timelinePosition: TimelinePosition
+    let isSearchMatch: Bool
     let onTap: () -> Void
     let onTogglePaid: () -> Void
 
@@ -251,10 +258,18 @@ struct ItemRowView: View {
 
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(item.itemDescription)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(item.itemDescription)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+
+                        if isSearchMatch {
+                            Image(systemName: "magnifyingglass.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.tint)
+                        }
+                    }
 
                     if showsBreakdown {
                         Text("\(formattedUnitPrice) × \(item.quantity) \(LocalizationKey.Item.units.localized)")

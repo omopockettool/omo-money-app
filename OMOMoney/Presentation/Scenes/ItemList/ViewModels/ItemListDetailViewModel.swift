@@ -190,4 +190,18 @@ class ItemListDetailViewModel {
     func getFormattedAmount(_ item: SDItem) -> String {
         return makeCurrencyFormatter().string(from: NSNumber(value: item.totalAmount)) ?? "\(item.totalAmount) \(currencyCode)"
     }
+
+    func itemMatchesSearch(_ item: SDItem, query: String?) -> Bool {
+        guard let normalizedQuery = normalizedSearchQuery(from: query) else {
+            return false
+        }
+
+        return item.itemDescription.localizedCaseInsensitiveContains(normalizedQuery)
+    }
+
+    private func normalizedSearchQuery(from query: String?) -> String? {
+        guard let query else { return nil }
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedQuery.isEmpty ? nil : trimmedQuery
+    }
 }
