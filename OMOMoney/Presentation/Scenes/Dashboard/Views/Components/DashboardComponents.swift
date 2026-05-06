@@ -200,7 +200,7 @@ struct DashboardMainContent: View {
             }
             .mask {
                 ScrollEdgeFadeMask(
-                    showsTopFade: selectedFilterTitle != nil && !showingFullMonth,
+                    showsTopFade: selectedFilterTitle == nil || !showingFullMonth,
                     showsBottomFade: true
                 )
             }
@@ -273,6 +273,9 @@ struct ScrollEdgeFadeMask: View {
     let showsTopFade: Bool
     let showsBottomFade: Bool
 
+    private let topFadeHeight: CGFloat = 12
+    private let bottomFadeHeight: CGFloat = 12
+
     var body: some View {
         VStack(spacing: 0) {
             if showsTopFade {
@@ -281,7 +284,7 @@ struct ScrollEdgeFadeMask: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 12)
+                .frame(height: topFadeHeight)
             } else {
                 Color.black.frame(height: 0)
             }
@@ -294,7 +297,7 @@ struct ScrollEdgeFadeMask: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 14)
+                .frame(height: bottomFadeHeight)
             } else {
                 Color.black.frame(height: 0)
             }

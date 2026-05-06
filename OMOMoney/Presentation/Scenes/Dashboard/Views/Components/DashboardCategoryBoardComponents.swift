@@ -33,10 +33,11 @@ struct DashboardCategoryBoardView: View {
                 }
                 .padding(.horizontal, AppConstants.UserInterface.padding)
                 .padding(.top, AppConstants.UserInterface.padding)
-                .padding(.bottom, 24)
+                .padding(.bottom, 32)
             }
         }
         .scrollIndicators(.hidden)
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable {
             await onRefresh()
             try? await Task.sleep(for: .milliseconds(180))
