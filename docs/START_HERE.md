@@ -4,6 +4,13 @@
 
 read this .md then let me know if you are ready for new development!
 
+## 📚 Required Reading Before Coding
+
+1. Read this file first: `docs/START_HERE.md`
+2. Then read: `docs/swiftui_data_flow_guide.md`
+
+> `swiftui_data_flow_guide.md` is part of the project entry point now. Read it before touching SwiftUI code so you align with the app's current mental model for `@Observable`, `@State` lifetime, `.task`, view identity, rendering, and performance-sensitive data flow decisions.
+
 > **This project is built with passion — no shortcuts, no lazy responses.**
 > Think hard, write clean code, respect every architecture rule, and bring full effort to every task.
 > OMO and Claude are building this together. Match that energy.
