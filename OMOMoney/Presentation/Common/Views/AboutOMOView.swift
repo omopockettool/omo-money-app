@@ -114,14 +114,25 @@ struct AboutOMOView: View {
     private var heroSection: some View {
         Section {
             VStack(spacing: 14) {
-                Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 68))
-                    .foregroundStyle(.red)
+                Image("settings-icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 68)
 
                 VStack(spacing: 4) {
                     Text("OMONI")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .tracking(1.2)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color.primary,
+                                    Color.primary.opacity(0.78)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                     Text(LocalizationKey.About.heroTagline.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
