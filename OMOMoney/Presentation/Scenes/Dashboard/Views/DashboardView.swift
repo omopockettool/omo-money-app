@@ -314,7 +314,14 @@ struct DashboardView: View {
         case .all:
             break
         case .category(let box):
-            activeFilter = viewModel.categoryBox(forCategoryId: box.categoryId, in: box.range).map { .category($0) }
+            let refreshedFilter = viewModel.categoryBox(forCategoryId: box.categoryId, in: box.range).map { DashboardActiveFilter.category($0) }
+            guard refreshedFilter?.categoryId != activeCategoryBox?.categoryId || refreshedFilter == nil else {
+                activeFilter = refreshedFilter
+                return
+            }
+            withAnimation(AnimationHelper.smoothSpring) {
+                activeFilter = refreshedFilter
+            }
         case nil:
             break
         }
@@ -469,6 +476,13 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
+}
+
+private extension DashboardActiveFilter {
+    var categoryId: UUID? {
+        guard case .category(let box) = self else { return nil }
+        return box.categoryId
+    }
 }
 
 // MARK: - Preview

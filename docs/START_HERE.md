@@ -31,6 +31,20 @@ When work is complete, only output the suggested commit message so the team can 
 
 ---
 
+### 0.1. NEVER RUN BUILDS — Validation Happens on Physical Device
+**Claude NEVER runs `xcodebuild`, simulator builds, or any build/launch command.**
+Dennis validates changes manually on the physical iPhone and then shares feedback if something needs adjustment.
+
+```swift
+❌ xcodebuild -project OMOMoney.xcodeproj -scheme OMOMoney build
+❌ Run on Simulator / try local build validation
+✅ Make the code change, explain it clearly, and wait for device feedback
+```
+
+> Build verification is handled manually on the physical device. Do not attempt it from Codex.
+
+---
+
 ### 1. Architecture Layers (Post-SwiftData)
 ```
 View → ViewModel → UseCase → Repository → ModelContext (SwiftData)

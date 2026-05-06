@@ -84,12 +84,14 @@ struct ExpenseListSectionHeader: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.secondary)
                                 .textCase(.none)
+                                .contentTransition(.numericText())
                         }
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(!allowsDayCollapse)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: total)
             }
         }
     }

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-05-06
+
+### Changed
+- **Dashboard category filtering now uses directional horizontal content swaps instead of depth/blur effects** (`DashboardComponents`, `AnimationHelper`) — entering a category now moves the category board out to the left while the filtered item-list view enters from the right, and closing the filter performs the true inverse motion. The transition was simplified intentionally so it feels more like native content reorganization and less like a visual effect layered over the whole dashboard.
+- **Month-view day-header totals now animate like item-list row amounts when paid state changes** (`ExpenseListComponents`) — the total shown in each daily section header now uses the same numeric content transition and spring timing already used by dashboard row amounts, so toggling an item list between paid and unpaid updates the day aggregate more smoothly instead of snapping abruptly.
+- **The Xcode project is now explicitly iOS-only** (`OMOMoney.xcodeproj/project.pbxproj`) — unsupported `macosx` and visionOS platform declarations were removed from the app and test targets so Swift module resolution no longer tries to evaluate the project as a multi-platform target. This aligns the project settings with the real product scope and avoids `UIKit` resolution failures in the app entry point.
+
+---
+
 ## [1.9.5] - 2026-05-06
 
 ### Changed

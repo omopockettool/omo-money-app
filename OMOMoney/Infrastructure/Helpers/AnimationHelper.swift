@@ -36,6 +36,9 @@ struct AnimationHelper {
     
     /// Slide animation for navigation transitions
     static let slide = Animation.easeInOut(duration: 0.4)
+
+    /// Horizontal content reflow animation for dashboard transitions
+    static let dashboardDrill = Animation.spring(response: 0.34, dampingFraction: 0.86, blendDuration: 0.08)
     
     /// Scale animation for modal presentations
     static let scale = Animation.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.2)

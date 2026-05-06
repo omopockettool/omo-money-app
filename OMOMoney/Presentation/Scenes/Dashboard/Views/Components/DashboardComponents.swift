@@ -1,5 +1,21 @@
 import SwiftUI
 
+private extension AnyTransition {
+    static var dashboardFilteredViewSwap: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .trailing).combined(with: .opacity)
+        )
+    }
+
+    static var dashboardCategoryBoardSwap: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: .leading).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        )
+    }
+}
+
 struct DashboardLoadingState: View {
     var body: some View {
         Color(.systemBackground).ignoresSafeArea()
@@ -157,6 +173,10 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let onOpenSettings: () -> Void
     let bottomInset: BottomInset
 
+    private var isShowingFilteredList: Bool {
+        selectedFilterTitle != nil
+    }
+
     init(
         allFormattedAmount: String,
         allFormattedUnpaidAmount: String?,
@@ -232,7 +252,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                 .padding(.top, 4)
                 .padding(.bottom, 2)
 
-            Group {
+            ZStack(alignment: .top) {
                 if let selectedFilterTitle {
                     ExpenseListView(
                         itemLists: filteredItemLists,
@@ -253,6 +273,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                         collapsedDays: $collapsedDays,
                         allowsDayCollapse: showingFullMonth
                     )
+                    .zIndex(1)
                     .safeAreaInset(edge: .top, spacing: 0) {
                         DashboardSelectedFilterBar(
                             title: selectedFilterTitle,
@@ -263,6 +284,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                         .padding(.horizontal, AppConstants.UserInterface.smallPadding)
                         .padding(.bottom, 0)
                     }
+                    .transition(.dashboardFilteredViewSwap)
                 } else {
                     DashboardCategoryBoardView(
                         boxes: categoryBoxes,
@@ -276,6 +298,8 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                         onSelectAll: onAllTap,
                         onSelect: onCategoryTap
                     )
+                    .zIndex(0)
+                    .transition(.dashboardCategoryBoardSwap)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -287,6 +311,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.top, selectedFilterTitle == nil ? AppConstants.UserInterface.smallPadding : 2)
+            .animation(AnimationHelper.dashboardDrill, value: isShowingFilteredList)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .top, spacing: 0) {
