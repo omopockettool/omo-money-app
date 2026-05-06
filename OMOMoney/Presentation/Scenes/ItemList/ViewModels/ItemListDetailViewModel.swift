@@ -65,7 +65,6 @@ class ItemListDetailViewModel {
     // MARK: - Data Loading
 
     func loadItems() async {
-        print("🟡 [LOAD-ITEMS] Loading items for ItemList: '\(itemList.itemListDescription)'")
 
         let isInitialLoad = items.isEmpty
 
@@ -78,10 +77,8 @@ class ItemListDetailViewModel {
             let fetchedItems = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
 
             items = sortItems(fetchedItems)
-            print("✅ [LOAD-ITEMS] Loaded \(items.count) items")
             isLoading = false
         } catch {
-            print("❌ [LOAD-ITEMS] ERROR loading items: \(error.localizedDescription)")
             errorMessage = "No se pudieron cargar los artículos: \(error.localizedDescription)"
             isLoading = false
         }
@@ -90,18 +87,14 @@ class ItemListDetailViewModel {
     // MARK: - Item Operations
 
     func addItem(_ item: SDItem) async {
-        print("➕ [ADD] Adding new item: '\(item.itemDescription)'")
         items.append(item)
         items = sortItems(items)
-        print("📊 [ADD] New count: \(items.count)")
     }
 
     func updateItem(_ item: SDItem) async {
-        print("✏️ [EDIT] Updating item: '\(item.itemDescription)'")
         // SDItem is a reference type — the object is already updated in place.
         // Re-sort in case payment status or lastModifiedAt ordering changed.
         items = sortItems(items)
-        print("✅ [EDIT] Item updated")
     }
 
     func deleteItem(_ item: SDItem, at index: Int) async {

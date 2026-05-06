@@ -189,10 +189,8 @@ extension View {
             title: "¿Desea eliminar este grupo?",
             message: "Esta acción no se puede deshacer",
             primaryButton: AlertButton(title: "Eliminar", style: .destructive) {
-                print("Eliminado")
             },
             secondaryButton: AlertButton(title: "Cancelar", style: .cancel) {
-                print("Cancelado")
             },
             isPresented: .constant(true)
         )

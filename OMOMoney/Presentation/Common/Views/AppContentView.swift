@@ -56,7 +56,6 @@ struct AppContentView: View {
 
             Button(LocalizationKey.Settings.goToSettings.localized) {
                 // TODO: Navigate to settings or user management
-                print("Navigate to settings")
             }
             .buttonStyle(.borderedProminent)
         }

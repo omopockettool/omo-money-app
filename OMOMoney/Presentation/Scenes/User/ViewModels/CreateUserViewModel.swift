@@ -63,7 +63,6 @@ class CreateUserViewModel {
                 email: finalEmail
             )
             
-            print("✅ User created: \(userDomain.name)")
             
             // Use Case 2: Create Personal Group for user
             let groupName = "\(userDomain.name) - Personal"
@@ -72,7 +71,6 @@ class CreateUserViewModel {
                 currency: AppConstants.defaultCurrency
             )
             
-            print("✅ Personal group created: \(groupDomain.name)")
             
             // TODO: Link user to group when UserGroup Use Case is implemented
             

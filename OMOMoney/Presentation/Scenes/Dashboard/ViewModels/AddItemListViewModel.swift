@@ -344,7 +344,6 @@ final class AddItemListViewModel {
             return itemList
         } catch {
             errorMessage = "Error al crear gasto: \(error.localizedDescription)"
-            print("❌ AddItemListViewModel: Error creating ItemList/Item: \(error.localizedDescription)")
             isLoading = false
             return nil
         }

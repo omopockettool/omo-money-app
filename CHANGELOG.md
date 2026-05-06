@@ -5,11 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.3] - 2026-05-06
+## [1.9.4] - 2026-05-06
 
 ### Changed
 - **Currency and month-title formatters are now cached instead of allocated on every formatting call** (`DashboardViewModel`) — `NumberFormatter` (currency) was previously instantiated twice on every call to any formatting helper, and `DateFormatter` (month title) was re-created on every access to `selectedMonthTitle`. Both are now retained as stored properties and rebuilt only when the active group's currency code changes. With formatting called across ~12 helpers per render cycle, this eliminates repeated expensive object allocations on the main thread.
 - **Removed unreachable and duplicate methods from `DashboardViewModel`** — `getItemListTotal()`, `getFormattedItemListTotal()`, `getCurrentMonthItemLists()`, and `todayRawTotal` were dead code: none were called from outside the ViewModel, and `getCurrentMonthItemLists()` duplicated the already-maintained `currentMonthItemLists` stored property. All four were deleted.
+
+---
+
+## [1.9.3] - 2026-05-06
+
+### Changed
+- **All debug `print` statements removed from the Presentation and Data layers** (`DashboardViewModel`, `AddItemListViewModel`, `AddItemViewModel`, `ItemListDetailViewModel`, `CreateFirstUserViewModel`, `CreateUserViewModel`, `DashboardView`, `AppContentView`, `CustomAlertView`, `ModelContainer+Shared`) — 89 diagnostic `print` calls scattered across ViewModels and Views were stripped from production code. Infrastructure-level error prints in `ModelContainer+Shared` (save failures, fetch errors) were preserved as they surface genuine runtime faults. The dead `logAllEntities()` debug helper in `DashboardView` was also deleted.
 
 ---
 

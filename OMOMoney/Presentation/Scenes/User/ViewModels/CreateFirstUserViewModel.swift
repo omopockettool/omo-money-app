@@ -92,12 +92,10 @@ class CreateFirstUserViewModel {
             
         } catch let error as ValidationError {
             // Handle validation errors with localized messages
-            print("❌ Validation error: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             showError = true
         } catch {
             // Handle other errors
-            print("❌ Error creating user: \(error.localizedDescription)")
             errorMessage = LocalizationKey.RepositoryError.saveFailed.localized
             showError = true
         }

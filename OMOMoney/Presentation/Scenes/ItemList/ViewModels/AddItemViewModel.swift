@@ -88,7 +88,6 @@ final class AddItemViewModel {
                 existingItem.quantity = Int(quantityInt)
                 try await updateItemUseCase.execute(existingItem)
                 item = existingItem
-                print("✅ AddItemViewModel: Item updated successfully")
             } else {
                 // Items created from the detail view start unpaid by default.
                 // Quick-add from the dashboard uses a different flow.
@@ -99,14 +98,12 @@ final class AddItemViewModel {
                     itemListId: itemListId,
                     isPaid: false
                 )
-                print("✅ AddItemViewModel: Item created successfully")
             }
 
             isSaving = false
             return item
         } catch {
             errorMessage = "Error al guardar artículo: \(error.localizedDescription)"
-            print("❌ AddItemViewModel: Error saving item: \(error.localizedDescription)")
             isSaving = false
             return nil
         }
