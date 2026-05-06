@@ -49,6 +49,7 @@ struct DashboardCategoryBoardView: View {
                     .allowsHitTesting(false)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     @ViewBuilder

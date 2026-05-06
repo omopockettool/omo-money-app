@@ -166,6 +166,7 @@ struct ItemListDetailView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 2)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             heroCardInset
         }

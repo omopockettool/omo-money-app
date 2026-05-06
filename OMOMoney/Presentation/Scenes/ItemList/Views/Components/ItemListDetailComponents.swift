@@ -168,6 +168,7 @@ struct ItemListItemsSection: View {
             await onRefresh()
             try? await Task.sleep(for: .milliseconds(180))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private func timelinePosition(index: Int, count: Int) -> TimelinePosition {

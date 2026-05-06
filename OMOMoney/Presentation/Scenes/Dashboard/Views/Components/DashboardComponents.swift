@@ -203,6 +203,7 @@ struct DashboardMainContent: View {
                     )
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .mask {
                 ScrollEdgeFadeMask(
                     showsTopFade: selectedFilterTitle == nil || !showingFullMonth,
@@ -212,6 +213,7 @@ struct DashboardMainContent: View {
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.top, selectedFilterTitle == nil ? AppConstants.UserInterface.smallPadding : 2)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .top, spacing: 0) {
             DashboardTopBarView(
                 showingFullMonth: $showingFullMonth,

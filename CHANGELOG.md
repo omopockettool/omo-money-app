@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.1] - 2026-05-06
+
+### Fixed
+- **Bottom hero cards are now anchored by stable full-height parent layouts in both dashboard and item-list detail** (`DashboardComponents`, `DashboardCategoryBoardComponents`, `ExpenseListView`, `ItemListDetailView`, `ItemListDetailComponents`) — the long-standing issue where the shared `TotalSpentCardView` could float upward and leave an incorrect gap at the bottom after lock/unlock or other layout recalculations was fixed at the container level. The root cause was not the card itself, but parent scroll/content surfaces that were allowed to collapse below full viewport height, causing the bottom `safeAreaInset` anchor to be resolved against a shrunken layout until another strong relayout event such as keyboard presentation occurred.
+
+---
+
 ## [1.9.0] - 2026-05-06
 
 ### Changed
