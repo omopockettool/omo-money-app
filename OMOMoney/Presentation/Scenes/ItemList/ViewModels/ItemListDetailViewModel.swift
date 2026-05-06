@@ -75,8 +75,17 @@ class ItemListDetailViewModel {
 
         do {
             let fetchedItems = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
+            let sortedItems = sortItems(fetchedItems)
 
-            items = sortItems(fetchedItems)
+            if isInitialLoad {
+                items = sortedItems
+            } else {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    items = sortedItems
+                }
+            }
             isLoading = false
         } catch {
             errorMessage = "No se pudieron cargar los artículos: \(error.localizedDescription)"

@@ -1,22 +1,47 @@
 import SwiftUI
 
-struct DashboardCategoryBoardView: View {
+struct DashboardCategoryBoardView<EmptyState: View>: View {
     let boxes: [DashboardCategoryBoxData]
     let allFormattedAmount: String
     let allFormattedUnpaidAmount: String?
     let getFormattedAmount: (DashboardCategoryBoxData) -> String
     let getFormattedUnpaidAmount: (DashboardCategoryBoxData) -> String?
     let onRefresh: () async -> Void
-    let customEmptyState: AnyView?
+    let customEmptyState: EmptyState
+    let showCustomEmptyState: Bool
     let onSelectAll: () -> Void
     let onSelect: (DashboardCategoryBoxData) -> Void
+
+    init(
+        boxes: [DashboardCategoryBoxData],
+        allFormattedAmount: String,
+        allFormattedUnpaidAmount: String?,
+        getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
+        getFormattedUnpaidAmount: @escaping (DashboardCategoryBoxData) -> String?,
+        onRefresh: @escaping () async -> Void,
+        @ViewBuilder customEmptyState: () -> EmptyState,
+        showCustomEmptyState: Bool = true,
+        onSelectAll: @escaping () -> Void,
+        onSelect: @escaping (DashboardCategoryBoxData) -> Void
+    ) {
+        self.boxes = boxes
+        self.allFormattedAmount = allFormattedAmount
+        self.allFormattedUnpaidAmount = allFormattedUnpaidAmount
+        self.getFormattedAmount = getFormattedAmount
+        self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
+        self.onRefresh = onRefresh
+        self.customEmptyState = customEmptyState()
+        self.showCustomEmptyState = showCustomEmptyState
+        self.onSelectAll = onSelectAll
+        self.onSelect = onSelect
+    }
 
     private let rowSpacing: CGFloat = 12
     private let columnSpacing: CGFloat = 12
 
     var body: some View {
         ScrollView {
-            if boxes.isEmpty, customEmptyState == nil {
+            if boxes.isEmpty && !showCustomEmptyState {
                 DashboardCategoryBoardEmptyState()
                     .frame(maxWidth: .infinity)
                     .padding(.top, 72)
@@ -43,7 +68,7 @@ struct DashboardCategoryBoardView: View {
             try? await Task.sleep(for: .milliseconds(180))
         }
         .overlay {
-            if boxes.isEmpty, let customEmptyState {
+            if boxes.isEmpty && showCustomEmptyState {
                 customEmptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .allowsHitTesting(false)
@@ -83,6 +108,33 @@ struct DashboardCategoryBoardView: View {
 
     private var rows: [DashboardCategoryBoardRow] {
         DashboardCategoryBoxGridLayout.makeRows(from: boxes)
+    }
+}
+
+// MARK: - Convenience init (no custom empty state)
+extension DashboardCategoryBoardView where EmptyState == EmptyView {
+    init(
+        boxes: [DashboardCategoryBoxData],
+        allFormattedAmount: String,
+        allFormattedUnpaidAmount: String?,
+        getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
+        getFormattedUnpaidAmount: @escaping (DashboardCategoryBoxData) -> String?,
+        onRefresh: @escaping () async -> Void,
+        onSelectAll: @escaping () -> Void,
+        onSelect: @escaping (DashboardCategoryBoxData) -> Void
+    ) {
+        self.init(
+            boxes: boxes,
+            allFormattedAmount: allFormattedAmount,
+            allFormattedUnpaidAmount: allFormattedUnpaidAmount,
+            getFormattedAmount: getFormattedAmount,
+            getFormattedUnpaidAmount: getFormattedUnpaidAmount,
+            onRefresh: onRefresh,
+            customEmptyState: { EmptyView() },
+            showCustomEmptyState: false,
+            onSelectAll: onSelectAll,
+            onSelect: onSelect
+        )
     }
 }
 

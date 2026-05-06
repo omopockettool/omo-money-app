@@ -149,15 +149,17 @@ struct ItemListDetailView: View {
                 .padding(.bottom, 2)
 
             itemsList
-                .mask {
-                    ScrollEdgeFadeMask(
-                        showsTopFade: true,
-                        showsBottomFade: true
-                    )
-                }
                 .padding(.horizontal, AppConstants.UserInterface.padding)
-                .padding(.top, 4)
-                .padding(.bottom, 2)
+                // Match the dashboard refresh path: the pull gesture should resolve
+                // against inset space above the list instead of pushing a padded frame.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    Color.clear
+                        .frame(height: 4)
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear
+                        .frame(height: 2)
+                }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {

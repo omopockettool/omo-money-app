@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-struct ExpenseListView: View {
+struct ExpenseListView<EmptyState: View>: View {
     @Binding private var collapsedDays: Set<Date>
 
     let itemLists: [SDItemList]
@@ -19,7 +19,8 @@ struct ExpenseListView: View {
     let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
     let onDelete: (SDItemList) async -> Void
-    let customEmptyState: AnyView?
+    let customEmptyState: EmptyState
+    let showCustomEmptyState: Bool
     var isCompact: Bool = false
     var getDayTotal: ((Date) -> String)? = nil
     var focusedDate: Date? = nil
@@ -39,7 +40,8 @@ struct ExpenseListView: View {
         onTogglePaid: @escaping (SDItemList) -> Void,
         onRefresh: @escaping () async -> Void,
         onDelete: @escaping (SDItemList) async -> Void,
-        customEmptyState: AnyView? = nil,
+        @ViewBuilder customEmptyState: () -> EmptyState,
+        showCustomEmptyState: Bool = true,
         isCompact: Bool = false,
         getDayTotal: ((Date) -> String)? = nil,
         focusedDate: Date? = nil,
@@ -59,7 +61,8 @@ struct ExpenseListView: View {
         self.onTogglePaid = onTogglePaid
         self.onRefresh = onRefresh
         self.onDelete = onDelete
-        self.customEmptyState = customEmptyState
+        self.customEmptyState = customEmptyState()
+        self.showCustomEmptyState = showCustomEmptyState
         self.isCompact = isCompact
         self.getDayTotal = getDayTotal
         self.focusedDate = focusedDate
@@ -68,10 +71,10 @@ struct ExpenseListView: View {
         self._collapsedDays = collapsedDays
         self.allowsDayCollapse = allowsDayCollapse
     }
-    
+
     var body: some View {
         List {
-            if itemLists.isEmpty, customEmptyState == nil {
+            if itemLists.isEmpty && !showCustomEmptyState {
                 ExpenseListEmptyState()
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -119,7 +122,7 @@ struct ExpenseListView: View {
             }
         }
         .overlay {
-            if itemLists.isEmpty, let customEmptyState {
+            if itemLists.isEmpty && showCustomEmptyState {
                 customEmptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .allowsHitTesting(false)
@@ -203,6 +206,53 @@ struct ExpenseListView: View {
         return .middle
     }
     
+}
+
+// MARK: - Convenience init (no custom empty state)
+extension ExpenseListView where EmptyState == EmptyView {
+    init(
+        itemLists: [SDItemList],
+        getFormattedAmount: @escaping (SDItemList) -> String,
+        getFormattedUnpaidAmount: @escaping (SDItemList) -> String?,
+        getSearchSummary: @escaping (SDItemList) -> String? = { _ in nil },
+        getSearchMatchedSubtotal: @escaping (SDItemList) -> String? = { _ in nil },
+        getSearchMatchedUnpaid: @escaping (SDItemList) -> String? = { _ in nil },
+        itemListRowStatus: [UUID: ItemListRowStatus],
+        onItemTap: @escaping (SDItemList) -> Void,
+        onTogglePaid: @escaping (SDItemList) -> Void,
+        onRefresh: @escaping () async -> Void,
+        onDelete: @escaping (SDItemList) async -> Void,
+        isCompact: Bool = false,
+        getDayTotal: ((Date) -> String)? = nil,
+        focusedDate: Date? = nil,
+        hideSectionHeaders: Bool = false,
+        onAddForDate: ((Date) -> Void)? = nil,
+        collapsedDays: Binding<Set<Date>> = .constant([]),
+        allowsDayCollapse: Bool = false
+    ) {
+        self.init(
+            itemLists: itemLists,
+            getFormattedAmount: getFormattedAmount,
+            getFormattedUnpaidAmount: getFormattedUnpaidAmount,
+            getSearchSummary: getSearchSummary,
+            getSearchMatchedSubtotal: getSearchMatchedSubtotal,
+            getSearchMatchedUnpaid: getSearchMatchedUnpaid,
+            itemListRowStatus: itemListRowStatus,
+            onItemTap: onItemTap,
+            onTogglePaid: onTogglePaid,
+            onRefresh: onRefresh,
+            onDelete: onDelete,
+            customEmptyState: { EmptyView() },
+            showCustomEmptyState: false,
+            isCompact: isCompact,
+            getDayTotal: getDayTotal,
+            focusedDate: focusedDate,
+            hideSectionHeaders: hideSectionHeaders,
+            onAddForDate: onAddForDate,
+            collapsedDays: collapsedDays,
+            allowsDayCollapse: allowsDayCollapse
+        )
+    }
 }
 
 // MARK: - Preview

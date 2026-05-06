@@ -247,9 +247,8 @@ struct DashboardView: View {
             getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
-            customEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive
-                ? AnyView(DashboardNoResultsState())
-                : nil,
+            customEmptyState: { DashboardNoResultsState() },
+            showCustomEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive,
             onRefresh: { await viewModel.refreshData() },
             onAllTap: {
                 withAnimation(AnimationHelper.smoothSpring) {
@@ -282,7 +281,7 @@ struct DashboardView: View {
             showingFullMonth: $viewModel.showingFullMonth,
             hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
             onOpenSettings: { viewModel.openSettings() },
-            bottomInset: AnyView(bottomInset)
+            bottomInset: { bottomInset }
         )
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
@@ -370,7 +369,7 @@ struct DashboardView: View {
 
     private var bottomInset: some View {
         DashboardBottomInset(
-            heroSection: AnyView(
+            heroSection: {
                 Group {
                     if !isSearchActive {
                         DashboardHeroSection(
@@ -386,8 +385,8 @@ struct DashboardView: View {
                         )
                     }
                 }
-            ),
-            bottomBar: AnyView(
+            },
+            bottomBar: {
                 DashboardBottomBarView(
                     searchText: $viewModel.searchQuery,
                     isSearchActive: $isSearchActive,
@@ -402,7 +401,7 @@ struct DashboardView: View {
                     onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) },
                     onOpenFilters: { showingFiltersSheet = true }
                 )
-            )
+            }
         )
     }
 
@@ -417,13 +416,13 @@ struct DashboardView: View {
         DashboardDayPanel(
             selectedCalendarDay: selectedCalendarDay,
             listDragOffset: listDragOffset,
-            content: AnyView(
+            content: {
                 Group {
                     if let day = selectedCalendarDay {
                         dayExpenseList(for: day, isCompact: true)
                     }
                 }
-            ),
+            },
             onDragChanged: { listDragOffset = $0 },
             onDismiss: {
                 withAnimation(AnimationHelper.smoothSpring) {

@@ -27,6 +27,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.0] - 2026-05-06
+
+### Changed
+- **Dashboard category-board flow was refined across layout, interaction, and state handling** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`, `ExpenseListView`, `DashboardViewModel`) — the new category-first dashboard experience was polished substantially after its first rollout. Category cards were compacted for denser scanning, the “All” card was centered visually, selected-category spacing above the first day header was tightened, day-header totals and collapsible month sections were restored, and the category hero total now updates correctly when paid status changes inside a filtered category view.
+- **Dashboard list rendering was modernized to remove `AnyView`-based empty-state plumbing** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`, `ExpenseListView`) — the dashboard’s empty-state and bottom-inset composition now use typed SwiftUI builder paths instead of `AnyView` wrappers and brittle type checks. This keeps structural identity clearer, aligns better with current SwiftUI data-flow guidance, and preserves the custom no-results state without relying on erased view types.
+- **Group picker actions now use a native long-press interaction with first-time guidance** (`GroupPickerComponents`, `GroupSelectorChipView`, localization files) — group actions inside the dashboard picker were redesigned around SwiftUI’s `contextMenu` on each row, matching the native long-press feel users expect from system apps. The unstable ellipsis-driven menu path was removed, and the picker now shows a lightweight one-time hint explaining that users can press and hold a group to reveal more actions.
+- **About and dashboard branding were refreshed with the new OMO logo treatment** (`DashboardTopBarView`, `AboutOMOView`, settings icon asset) — the settings entrypoint now uses the cropped OMO logo at a more appropriate scale, and the About OMO hero was updated to use the same brand mark plus a stronger typographic treatment for the `OMONI` heading.
+
+### Fixed
+- **Bottom hero cards now stay anchored correctly in both dashboard and item-list detail layouts** (`DashboardComponents`, `DashboardCategoryBoardComponents`, `ExpenseListView`, `ItemListDetailView`, `ItemListDetailComponents`) — the long-standing issue where the shared `TotalSpentCardView` could float upward and leave a false gap at the bottom after lock/unlock, short-content layouts, or relayout events was fixed at the container level by stabilizing full-height parent surfaces.
+- **Group settings rows and dashboard bulk-status feedback were polished for usability and localization** (`GroupFormView`, `DashboardViewModel`, `ToastView`, localization files) — group settings rows are now fully tappable across the whole cell, dashboard bulk paid/pending messages are localized instead of hardcoded, and the shared toast display time was extended so users have enough time to read the message and tap undo.
+- **Item-list detail pull-to-refresh now follows the dashboard’s more stable trigger geometry** (`ItemListDetailView`, `ItemListDetailComponents`, `ItemListDetailViewModel`) — the detail screen’s refresh path was reworked so the `List` resolves pull distance against internal safe-area insets instead of against extra vertical padding around the scroll surface. Along the way, row-count animation noise was removed and refresh updates now apply without list animations. The result is that slow pull-to-refresh gestures no longer snap visibly right when the haptic fires, matching the steadier feel already present in the dashboard list.
+
+---
+
 ## [1.9.2] - 2026-05-06
 
 ### Fixed

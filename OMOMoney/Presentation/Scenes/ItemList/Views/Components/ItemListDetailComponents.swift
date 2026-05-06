@@ -163,10 +163,10 @@ struct ItemListItemsSection: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
-        .animation(.easeInOut(duration: 0.2), value: items.count)
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable {
             await onRefresh()
-            try? await Task.sleep(for: .milliseconds(180))
+            try? await Task.sleep(for: .milliseconds(420))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

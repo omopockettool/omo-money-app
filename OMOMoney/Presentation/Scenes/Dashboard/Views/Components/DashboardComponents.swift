@@ -87,9 +87,17 @@ struct DashboardHeroSection: View {
     }
 }
 
-struct DashboardBottomInset: View {
-    let heroSection: AnyView
-    let bottomBar: AnyView
+struct DashboardBottomInset<Hero: View, Bar: View>: View {
+    let heroSection: Hero
+    let bottomBar: Bar
+
+    init(
+        @ViewBuilder heroSection: () -> Hero,
+        @ViewBuilder bottomBar: () -> Bar
+    ) {
+        self.heroSection = heroSection()
+        self.bottomBar = bottomBar()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -117,7 +125,7 @@ struct DashboardBottomInset: View {
     }
 }
 
-struct DashboardMainContent: View {
+struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let allFormattedAmount: String
     let allFormattedUnpaidAmount: String?
     let categoryBoxes: [DashboardCategoryBoxData]
@@ -130,7 +138,8 @@ struct DashboardMainContent: View {
     let getSearchSummary: (SDItemList) -> String?
     let getSearchMatchedSubtotal: (SDItemList) -> String?
     let getSearchMatchedUnpaid: (SDItemList) -> String?
-    let customEmptyState: AnyView?
+    let customEmptyState: EmptyState
+    let showCustomEmptyState: Bool
     let onRefresh: () async -> Void
     let onAllTap: () -> Void
     let onCategoryTap: (DashboardCategoryBoxData) -> Void
@@ -146,7 +155,71 @@ struct DashboardMainContent: View {
     @Binding var showingFullMonth: Bool
     let hasItemsOutsideToday: Bool
     let onOpenSettings: () -> Void
-    let bottomInset: AnyView
+    let bottomInset: BottomInset
+
+    init(
+        allFormattedAmount: String,
+        allFormattedUnpaidAmount: String?,
+        categoryBoxes: [DashboardCategoryBoxData],
+        getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
+        getFormattedUnpaidAmount: @escaping (DashboardCategoryBoxData) -> String?,
+        filteredItemLists: [SDItemList],
+        getItemListAmount: @escaping (SDItemList) -> String,
+        getItemListUnpaidAmount: @escaping (SDItemList) -> String?,
+        getDayTotal: @escaping (Date) -> String,
+        getSearchSummary: @escaping (SDItemList) -> String?,
+        getSearchMatchedSubtotal: @escaping (SDItemList) -> String?,
+        getSearchMatchedUnpaid: @escaping (SDItemList) -> String?,
+        @ViewBuilder customEmptyState: () -> EmptyState,
+        showCustomEmptyState: Bool,
+        onRefresh: @escaping () async -> Void,
+        onAllTap: @escaping () -> Void,
+        onCategoryTap: @escaping (DashboardCategoryBoxData) -> Void,
+        selectedFilterTitle: String?,
+        selectedFilterIcon: String?,
+        selectedFilterColorHex: String?,
+        collapsedDays: Binding<Set<Date>>,
+        itemListRowStatus: [UUID: ItemListRowStatus],
+        onItemTap: @escaping (SDItemList) -> Void,
+        onTogglePaid: @escaping (SDItemList) -> Void,
+        onDelete: @escaping (SDItemList) async -> Void,
+        onClearCategoryFilter: @escaping () -> Void,
+        showingFullMonth: Binding<Bool>,
+        hasItemsOutsideToday: Bool,
+        onOpenSettings: @escaping () -> Void,
+        @ViewBuilder bottomInset: () -> BottomInset
+    ) {
+        self.allFormattedAmount = allFormattedAmount
+        self.allFormattedUnpaidAmount = allFormattedUnpaidAmount
+        self.categoryBoxes = categoryBoxes
+        self.getFormattedAmount = getFormattedAmount
+        self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
+        self.filteredItemLists = filteredItemLists
+        self.getItemListAmount = getItemListAmount
+        self.getItemListUnpaidAmount = getItemListUnpaidAmount
+        self.getDayTotal = getDayTotal
+        self.getSearchSummary = getSearchSummary
+        self.getSearchMatchedSubtotal = getSearchMatchedSubtotal
+        self.getSearchMatchedUnpaid = getSearchMatchedUnpaid
+        self.customEmptyState = customEmptyState()
+        self.showCustomEmptyState = showCustomEmptyState
+        self.onRefresh = onRefresh
+        self.onAllTap = onAllTap
+        self.onCategoryTap = onCategoryTap
+        self.selectedFilterTitle = selectedFilterTitle
+        self.selectedFilterIcon = selectedFilterIcon
+        self.selectedFilterColorHex = selectedFilterColorHex
+        self._collapsedDays = collapsedDays
+        self.itemListRowStatus = itemListRowStatus
+        self.onItemTap = onItemTap
+        self.onTogglePaid = onTogglePaid
+        self.onDelete = onDelete
+        self.onClearCategoryFilter = onClearCategoryFilter
+        self._showingFullMonth = showingFullMonth
+        self.hasItemsOutsideToday = hasItemsOutsideToday
+        self.onOpenSettings = onOpenSettings
+        self.bottomInset = bottomInset()
+    }
 
     var body: some View {
         ZStack {
@@ -173,7 +246,8 @@ struct DashboardMainContent: View {
                         onTogglePaid: onTogglePaid,
                         onRefresh: onRefresh,
                         onDelete: onDelete,
-                        customEmptyState: customEmptyState,
+                        customEmptyState: { customEmptyState },
+                        showCustomEmptyState: showCustomEmptyState,
                         getDayTotal: getDayTotal,
                         hideSectionHeaders: !showingFullMonth,
                         collapsedDays: $collapsedDays,
@@ -197,7 +271,8 @@ struct DashboardMainContent: View {
                         getFormattedAmount: getFormattedAmount,
                         getFormattedUnpaidAmount: getFormattedUnpaidAmount,
                         onRefresh: onRefresh,
-                        customEmptyState: customEmptyState,
+                        customEmptyState: { customEmptyState },
+                        showCustomEmptyState: showCustomEmptyState,
                         onSelectAll: onAllTap,
                         onSelect: onCategoryTap
                     )
@@ -313,13 +388,29 @@ struct ScrollEdgeFadeMask: View {
     }
 }
 
-struct DashboardDayPanel: View {
+struct DashboardDayPanel<Content: View>: View {
     let selectedCalendarDay: Date?
     let listDragOffset: CGFloat
-    let content: AnyView
+    let content: Content
     let onDragChanged: (CGFloat) -> Void
     let onDismiss: () -> Void
     let onResetDrag: () -> Void
+
+    init(
+        selectedCalendarDay: Date?,
+        listDragOffset: CGFloat,
+        @ViewBuilder content: () -> Content,
+        onDragChanged: @escaping (CGFloat) -> Void,
+        onDismiss: @escaping () -> Void,
+        onResetDrag: @escaping () -> Void
+    ) {
+        self.selectedCalendarDay = selectedCalendarDay
+        self.listDragOffset = listDragOffset
+        self.content = content()
+        self.onDragChanged = onDragChanged
+        self.onDismiss = onDismiss
+        self.onResetDrag = onResetDrag
+    }
 
     var body: some View {
         VStack(spacing: 0) {
