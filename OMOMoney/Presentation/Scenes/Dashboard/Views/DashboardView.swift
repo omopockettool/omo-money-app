@@ -249,6 +249,7 @@ struct DashboardView: View {
             filteredItemLists: activeFilteredItemLists,
             getItemListAmount: { viewModel.formattedPaid(for: $0) },
             getItemListUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            getDayTotal: { viewModel.formattedTotal(for: $0) },
             getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
@@ -269,6 +270,7 @@ struct DashboardView: View {
             selectedFilterTitle: activeFilterTitle,
             selectedFilterIcon: activeFilterIcon,
             selectedFilterColorHex: activeFilterColorHex,
+            collapsedDays: $collapsedMonthDays,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
                 if isSearchActive {

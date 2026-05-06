@@ -126,6 +126,7 @@ struct DashboardMainContent: View {
     let filteredItemLists: [SDItemList]
     let getItemListAmount: (SDItemList) -> String
     let getItemListUnpaidAmount: (SDItemList) -> String?
+    let getDayTotal: (Date) -> String
     let getSearchSummary: (SDItemList) -> String?
     let getSearchMatchedSubtotal: (SDItemList) -> String?
     let getSearchMatchedUnpaid: (SDItemList) -> String?
@@ -136,6 +137,7 @@ struct DashboardMainContent: View {
     let selectedFilterTitle: String?
     let selectedFilterIcon: String?
     let selectedFilterColorHex: String?
+    @Binding var collapsedDays: Set<Date>
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
@@ -172,7 +174,10 @@ struct DashboardMainContent: View {
                         onRefresh: onRefresh,
                         onDelete: onDelete,
                         customEmptyState: customEmptyState,
-                        hideSectionHeaders: !showingFullMonth
+                        getDayTotal: getDayTotal,
+                        hideSectionHeaders: !showingFullMonth,
+                        collapsedDays: $collapsedDays,
+                        allowsDayCollapse: showingFullMonth
                     )
                     .safeAreaInset(edge: .top, spacing: 0) {
                         DashboardSelectedFilterBar(
