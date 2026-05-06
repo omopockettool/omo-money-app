@@ -91,6 +91,8 @@ private struct DashboardAllCategoryBoxView: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
+                Spacer(minLength: 0)
+
                 Image(systemName: "square.grid.2x2.fill")
                     .font(.system(size: 12, weight: .semibold))
 
@@ -101,7 +103,7 @@ private struct DashboardAllCategoryBoxView: View {
                 Spacer(minLength: 0)
             }
             .foregroundStyle(Color.white.opacity(0.96))
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
             .background {
@@ -163,11 +165,11 @@ struct DashboardCategoryBoxView: View {
     private var minHeight: CGFloat {
         switch data.sizeTier {
         case .small:
-            84
+            72
         case .medium:
-            102
+            88
         case .large:
-            122
+            98
         }
     }
 
@@ -240,7 +242,7 @@ struct DashboardCategoryBoxView: View {
             }
             .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
             .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
             .background {
                 RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous)
                     .fill(accentColor.opacity(0.13))
