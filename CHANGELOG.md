@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-05-07
+
+### Changed
+- **Dashboard hero quick add now defaults to the active filtered category when launched from a category-focused list** (`DashboardView`, `AddItemListView`, `AddItemListViewModel`) — opening the hero add flow while browsing a filtered dashboard category now preselects that same category in the new-entry form, which matches the user’s current context and avoids falling back to unrelated usage history. The previous last-used-category behavior is still preserved when the user launches quick add from the general category board or from the aggregated `All` view.
+
+---
+
 ## [1.10.0] - 2026-05-06
 
 ### Changed

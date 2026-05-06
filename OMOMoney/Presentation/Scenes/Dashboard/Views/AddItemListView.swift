@@ -22,6 +22,7 @@ struct AddItemListView: View {
         group: SDGroup,
         itemListToEdit: SDItemList? = nil,
         initialDate: Date? = nil,
+        preferredCategoryId: UUID? = nil,
         onItemListCreated: @escaping (SDItemList) -> Void,
         onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onCancel: @escaping () -> Void
@@ -30,7 +31,13 @@ struct AddItemListView: View {
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = State(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
+        self._viewModel = State(
+            wrappedValue: AddItemListViewModel(
+                itemListToEdit: itemListToEdit,
+                initialDate: initialDate,
+                preferredCategoryId: preferredCategoryId
+            )
+        )
     }
 
     // MARK: - Computed

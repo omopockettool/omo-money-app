@@ -55,6 +55,7 @@ struct DashboardView: View {
     private struct AddItemListTrigger: Identifiable {
         let id = UUID()
         let initialDate: Date?
+        let preferredCategoryId: UUID?
     }
     @State private var listDragOffset: CGFloat = 0
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
@@ -159,6 +160,7 @@ struct DashboardView: View {
                         AddItemListView(
                             group: group,
                             initialDate: trigger.initialDate,
+                            preferredCategoryId: trigger.preferredCategoryId,
                             onItemListCreated: { createdItemList in
                                 guard !heroIsSuccess else {
                                     addItemListTrigger = nil
@@ -388,7 +390,12 @@ struct DashboardView: View {
                             todayTotal: viewModel.formattedTodayTotal,
                             overrideLabel: activeCategoryBox?.categoryName,
                             overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.paidAmount) },
-                            onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
+                            onAddExpense: {
+                                addItemListTrigger = AddItemListTrigger(
+                                    initialDate: selectedCalendarDay,
+                                    preferredCategoryId: activeCategoryBox?.categoryId
+                                )
+                            }
                         )
                     }
                 }

@@ -41,6 +41,7 @@ final class AddItemListViewModel {
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let itemListToEdit: SDItemList?
+    private let preferredCategoryId: UUID?
     private let cacheManager = CacheManager.shared
     private let categoryUsageLimit = 3
     private var usageMemorySnapshots: [UsageMemorySnapshot] = []
@@ -61,9 +62,11 @@ final class AddItemListViewModel {
         fetchCategoriesUseCase: FetchCategoriesUseCase,
         fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase,
         getCurrentUserUseCase: GetCurrentUserUseCase,
-        fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+        fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
+        preferredCategoryId: UUID? = nil
     ) {
         self.itemListToEdit = itemListToEdit
+        self.preferredCategoryId = preferredCategoryId
         self.createItemListUseCase = createItemListUseCase
         self.createItemUseCase = createItemUseCase
         self.updateItemListUseCase = updateItemListUseCase
@@ -80,7 +83,11 @@ final class AddItemListViewModel {
         }
     }
 
-    convenience init(itemListToEdit: SDItemList? = nil, initialDate: Date? = nil) {
+    convenience init(
+        itemListToEdit: SDItemList? = nil,
+        initialDate: Date? = nil,
+        preferredCategoryId: UUID? = nil
+    ) {
         let appContainer = AppDIContainer.shared
         self.init(
             itemListToEdit: itemListToEdit,
@@ -91,7 +98,8 @@ final class AddItemListViewModel {
             fetchCategoriesUseCase: appContainer.makeFetchCategoriesUseCase(),
             fetchPaymentMethodsUseCase: appContainer.makeFetchPaymentMethodsUseCase(),
             getCurrentUserUseCase: appContainer.makeGetCurrentUserUseCase(),
-            fetchGroupsForUserUseCase: appContainer.makeFetchGroupsForUserUseCase()
+            fetchGroupsForUserUseCase: appContainer.makeFetchGroupsForUserUseCase(),
+            preferredCategoryId: preferredCategoryId
         )
         if itemListToEdit == nil, let initialDate {
             self.date = initialDate
@@ -275,7 +283,9 @@ final class AddItemListViewModel {
             if isEditMode {
                 selectedCategory = categories.first { $0.id == itemListToEdit?.category?.id }
             } else {
-                selectedCategory = lastUsedCategoryId.flatMap { id in
+                selectedCategory = preferredCategoryId.flatMap { id in
+                    categories.first { $0.id == id }
+                } ?? lastUsedCategoryId.flatMap { id in
                     categories.first { $0.id == id }
                 }
             }
