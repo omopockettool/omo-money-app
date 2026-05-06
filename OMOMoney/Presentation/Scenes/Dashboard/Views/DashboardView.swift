@@ -387,7 +387,7 @@ struct DashboardView: View {
                             monthTotal: viewModel.formattedCachedMonthTotal(),
                             todayTotal: viewModel.formattedTodayTotal,
                             overrideLabel: activeCategoryBox?.categoryName,
-                            overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.totalAmount) },
+                            overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.paidAmount) },
                             onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
                         )
                     }
