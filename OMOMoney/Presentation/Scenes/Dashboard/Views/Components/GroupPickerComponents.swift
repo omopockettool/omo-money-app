@@ -62,55 +62,44 @@ struct GroupPickerRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: onSelect) {
-                HStack(spacing: 12) {
-                    GroupPickerSelectionIndicator(
-                        group: group,
-                        currentGroup: currentGroup,
-                        selectedGroupID: selectedGroupID,
-                        isChangingGroup: isChangingGroup
-                    )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(group.name)
-                            .font(.body.weight(.medium))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
+            GroupPickerSelectionIndicator(
+                group: group,
+                currentGroup: currentGroup,
+                selectedGroupID: selectedGroupID,
+                isChangingGroup: isChangingGroup
+            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
 
-                        Text(formattedTotalSpent(for: group))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(formattedTotalSpent(for: group))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            .buttonStyle(PressHapticButtonStyle())
-            .disabled(isChangingGroup || isDeletingGroup)
 
-            Menu {
-                if !isDeletingGroup {
-                    Button(action: onEdit) {
-                        Label(LocalizationKey.Group.details.localized, systemImage: "info.circle")
-                    }
-                }
-                if canDeleteGroups {
-                    Button(role: .destructive, action: onDelete) {
-                        Label(LocalizationKey.General.delete.localized, systemImage: "trash")
-                    }
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 36, height: 36)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(isChangingGroup || isDeletingGroup)
-            .accessibilityLabel(LocalizationKey.Group.optionsFor.localized(with: group.name))
+            Spacer(minLength: 0)
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !isChangingGroup && !isDeletingGroup else { return }
+            onSelect()
+        }
+        .contextMenu {
+            if !isDeletingGroup {
+                Button(action: onEdit) {
+                    Label(LocalizationKey.Group.details.localized, systemImage: "info.circle")
+                }
+            }
+            if canDeleteGroups {
+                Button(role: .destructive, action: onDelete) {
+                    Label(LocalizationKey.General.delete.localized, systemImage: "trash")
+                }
+            }
+        }
+        .disabled(isChangingGroup || isDeletingGroup)
+        .accessibilityLabel(LocalizationKey.Group.optionsFor.localized(with: group.name))
     }
 
     private func formattedTotalSpent(for group: SDGroup) -> String {

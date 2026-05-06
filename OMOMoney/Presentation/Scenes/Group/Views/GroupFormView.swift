@@ -49,7 +49,6 @@ struct GroupFormView: View {
                     title: group.name,
                     subtitle: group.currency
                 )
-                .padding(AppConstants.UserInterface.padding)
             }
             .buttonStyle(.plain)
         }
@@ -66,7 +65,6 @@ struct GroupFormView: View {
                     title: LocalizationKey.Category.title.localized,
                     titleColor: .white
                 )
-                .padding(AppConstants.UserInterface.padding)
             }
 
             Divider()
@@ -81,7 +79,6 @@ struct GroupFormView: View {
                     title: LocalizationKey.Payment.title.localized,
                     titleColor: .white
                 )
-                .padding(AppConstants.UserInterface.padding)
             }
         }
     }
@@ -139,5 +136,8 @@ private struct GroupSettingsRow: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color(.tertiaryLabel))
         }
+        .padding(AppConstants.UserInterface.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }

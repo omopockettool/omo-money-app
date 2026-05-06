@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.2] - 2026-05-06
+
+### Fixed
+- **Group picker actions now use a cleaner native long-press flow with first-time guidance** (`GroupPickerComponents`, `GroupSelectorChipView`, localization files) — group actions were simplified to a SwiftUI `contextMenu` on each row, removing the unstable ellipsis-menu path that could emit UIKit hierarchy warnings in logs. To keep the interaction discoverable, the group picker sheet now shows a lightweight one-time hint telling users they can press and hold a group to reveal more actions.
+- **Dashboard bulk paid/pending toasts are now fully localized and remain visible longer** (`DashboardViewModel`, `ToastView`, localization files) — the status messages shown when marking whole item lists as paid or pending no longer rely on hardcoded Spanish strings, and the shared toast duration was extended so users have more time to read the message and tap the undo action comfortably.
+
+---
+
 ## [1.9.1] - 2026-05-06
 
 ### Fixed

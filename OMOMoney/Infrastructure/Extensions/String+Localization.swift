@@ -108,6 +108,7 @@ enum LocalizationKey {
         static let currencyEuro = "group.currencyEuro"
         static let currencyDollar = "group.currencyDollar"
         static let optionsFor = "group.optionsFor"
+        static let holdForActions = "group.holdForActions"
     }
     
     // MARK: - Category
@@ -217,6 +218,11 @@ enum LocalizationKey {
         static let noMatchesMessage = "dashboard.noMatchesMessage"
         static let searchItemSummarySingle = "dashboard.searchItemSummary.single"
         static let searchItemSummaryMultiple = "dashboard.searchItemSummary.multiple"
+        static let emptyEntryToast = "dashboard.emptyEntryToast"
+        static let markedAllPaid = "dashboard.markedAllPaid"
+        static let markedAllPending = "dashboard.markedAllPending"
+        static let changeUndone = "dashboard.changeUndone"
+        static let undo = "dashboard.undo"
     }
     
     // MARK: - Settings

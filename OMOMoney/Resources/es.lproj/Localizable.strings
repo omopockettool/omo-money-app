@@ -145,6 +145,11 @@
 "dashboard.noMatchesMessage" = "Prueba otra búsqueda o ajusta los filtros.";
 "dashboard.searchItemSummary.single" = "%d artículo coincidente";
 "dashboard.searchItemSummary.multiple" = "%d artículos coincidentes";
+"dashboard.emptyEntryToast" = "Registro vacío";
+"dashboard.markedAllPaid" = "Todo marcado como pagado";
+"dashboard.markedAllPending" = "Todo marcado como pendiente";
+"dashboard.changeUndone" = "Cambio deshecho";
+"dashboard.undo" = "Deshacer";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "Nuevo Registro";
@@ -173,6 +178,7 @@
 "group.deleteWarning" = "Se eliminarán todos los datos asociados a este grupo.";
 "group.deleteConfirmTitle" = "¿Desea eliminar \"%@\"?";
 "group.details" = "Detalles";
+"group.holdForActions" = "Mantén pulsado un grupo para ver más acciones.";
 "group.info" = "Información del Grupo";
 "group.settings" = "Detalles del grupo";
 "group.content" = "Contenido";

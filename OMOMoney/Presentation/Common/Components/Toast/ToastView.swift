@@ -95,7 +95,7 @@ struct ToastView: View {
                 isVisible = true
             }
             dismissTask = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(2.5))
+                try? await Task.sleep(for: .seconds(4.0))
                 guard !Task.isCancelled else { return }
                 dismiss()
             }

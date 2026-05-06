@@ -145,6 +145,11 @@
 "dashboard.noMatchesMessage" = "Try a different search or adjust your filters.";
 "dashboard.searchItemSummary.single" = "%d matching item";
 "dashboard.searchItemSummary.multiple" = "%d matching items";
+"dashboard.emptyEntryToast" = "Empty entry";
+"dashboard.markedAllPaid" = "Everything marked as paid";
+"dashboard.markedAllPending" = "Everything marked as pending";
+"dashboard.changeUndone" = "Change undone";
+"dashboard.undo" = "Undo";
 
 // MARK: - Entry (extended)
 "entry.newEntry" = "New Entry";
@@ -173,6 +178,7 @@
 "group.deleteWarning" = "All data associated with this group will be deleted.";
 "group.deleteConfirmTitle" = "Delete \"%@\"?";
 "group.details" = "Details";
+"group.holdForActions" = "Press and hold a group for more actions.";
 "group.info" = "Group Information";
 "group.settings" = "Group Details";
 "group.content" = "Content";

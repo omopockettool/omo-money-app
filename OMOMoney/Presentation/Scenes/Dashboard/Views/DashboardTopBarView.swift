@@ -42,7 +42,7 @@ struct DashboardTopBarView: View {
                 Image("settings-icon")
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 24)
+                    .frame(height: 20)
                     .foregroundColor(.primary)
             }
             .buttonStyle(.plain)

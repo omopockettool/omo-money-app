@@ -500,7 +500,7 @@ class DashboardViewModel {
         let itemCount = itemListCounts[itemList.id] ?? 0
 
         guard itemCount > 0 else {
-            toast = ToastMessage("Registro vacío", type: .info)
+            toast = ToastMessage(LocalizationKey.Dashboard.emptyEntryToast.localized, type: .info)
             return
         }
 
@@ -518,9 +518,11 @@ class DashboardViewModel {
 
         if itemCount > 1 {
             toast = ToastMessage(
-                newValue ? "Todo marcado como pagado" : "Todo marcado como pendiente",
+                newValue
+                    ? LocalizationKey.Dashboard.markedAllPaid.localized
+                    : LocalizationKey.Dashboard.markedAllPending.localized,
                 type: .info,
-                actionTitle: "Deshacer"
+                actionTitle: LocalizationKey.Dashboard.undo.localized
             ) { [weak self] in
                 Task { @MainActor in
                     await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
@@ -551,7 +553,7 @@ class DashboardViewModel {
         }
         itemList.lastModifiedAt = Date()
         await calculateTotalSpent()
-        toast = ToastMessage("Cambio deshecho", type: .info)
+        toast = ToastMessage(LocalizationKey.Dashboard.changeUndone.localized, type: .info)
     }
 
     func forceRefresh() async {
