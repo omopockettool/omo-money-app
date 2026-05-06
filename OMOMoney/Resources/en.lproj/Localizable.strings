@@ -19,6 +19,7 @@
 "general.loading" = "Loading...";
 "general.search" = "Search";
 "general.close" = "Close";
+"general.all" = "All";
 
 // MARK: - Navigation
 "nav.dashboard" = "Dashboard";

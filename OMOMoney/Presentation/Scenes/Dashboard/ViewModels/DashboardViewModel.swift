@@ -14,12 +14,51 @@ enum ItemListRowStatus {
     case paid
 }
 
+enum DashboardCategoryRange: String, Hashable {
+    case today
+    case month
+
+    var title: String {
+        switch self {
+        case .today:
+            LocalizationKey.Dashboard.today.localized
+        case .month:
+            LocalizationKey.Dashboard.thisMonth.localized
+        }
+    }
+}
+
+enum DashboardCategoryBoxSize: Hashable {
+    case small
+    case medium
+    case large
+}
+
+struct DashboardCategoryBoxData: Identifiable, Hashable {
+    let categoryId: UUID
+    let categoryName: String
+    let categoryColorHex: String
+    let categoryIcon: String
+    let paidAmount: Double
+    let unpaidAmount: Double
+    let totalAmount: Double
+    let itemListCount: Int
+    let itemCount: Int
+    let sizeTier: DashboardCategoryBoxSize
+    let range: DashboardCategoryRange
+
+    var id: String {
+        "\(range.rawValue)-\(categoryId.uuidString)"
+    }
+}
+
 
 @MainActor
 
 @Observable
 class DashboardViewModel {
     private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
+    private typealias CategoryMetadata = (name: String, color: String, icon: String)
 
     private struct CachedItemListData {
         let paidTotal: Double
@@ -27,6 +66,17 @@ class DashboardViewModel {
         let count: Int
         let paidStatus: ItemListPaidStatus
         let rowStatus: ItemListRowStatus
+    }
+
+    private struct CategoryAggregate {
+        let categoryId: UUID
+        let categoryName: String
+        let categoryColorHex: String
+        let categoryIcon: String
+        var paidAmount: Double
+        var unpaidAmount: Double
+        var itemListCount: Int
+        var itemCount: Int
     }
 
     struct ItemListSearchSummary {
@@ -49,7 +99,9 @@ class DashboardViewModel {
     var currentMonthItemLists: [SDItemList] = []
     var totalSpent: Double = 0.0
     var todayTotal: Double = 0.0
+    var todayUnpaidTotal: Double = 0.0
     var currentMonthTotal: Double = 0.0
+    var currentMonthUnpaidTotal: Double = 0.0
     var itemListTotals: [UUID: Double] = [:]
     var itemListUnpaidTotals: [UUID: Double] = [:]
     var itemListCounts: [UUID: Int] = [:]
@@ -86,6 +138,18 @@ class DashboardViewModel {
 
     var filteredMonthItemLists: [SDItemList] {
         filteredItemLists(from: monthItemLists)
+    }
+
+    var todayCategoryBoxes: [DashboardCategoryBoxData] {
+        makeCategoryBoxes(from: filteredTodayItemLists, range: .today)
+    }
+
+    var monthCategoryBoxes: [DashboardCategoryBoxData] {
+        makeCategoryBoxes(from: filteredMonthItemLists, range: .month)
+    }
+
+    var visibleCategoryBoxes: [DashboardCategoryBoxData] {
+        showingFullMonth ? monthCategoryBoxes : todayCategoryBoxes
     }
 
     func filteredSearchResults(from source: [SDItemList]) -> [SDItemList] {
@@ -550,7 +614,9 @@ class DashboardViewModel {
         itemListPaidStatus = paidStatuses
         itemListRowStatus = rowStatuses
         todayTotal = todayItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
+        todayUnpaidTotal = todayItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
         currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
+        currentMonthUnpaidTotal = currentMonthItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
             guard itemListTotal.isFinite else { return total }
@@ -622,12 +688,35 @@ class DashboardViewModel {
         return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
     }
 
+    func formattedCurrency(_ amount: Double) -> String {
+        makeCurrencyFormatter().string(from: NSNumber(value: amount)) ?? "€0.00"
+    }
+
+    func formattedAmount(for box: DashboardCategoryBoxData) -> String {
+        formattedCurrency(box.paidAmount)
+    }
+
+    func formattedUnpaidAmount(for box: DashboardCategoryBoxData) -> String? {
+        guard box.unpaidAmount > 0.000_001 else { return nil }
+        return formattedCurrency(box.unpaidAmount)
+    }
+
     var formattedTodayTotal: String {
         makeCurrencyFormatter().string(from: NSNumber(value: todayTotal)) ?? "€0.00"
     }
 
     func formattedCachedMonthTotal() -> String {
         makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
+    }
+
+    func formattedVisibleRangePaidTotal(showingFullMonth: Bool) -> String {
+        formattedCurrency(showingFullMonth ? currentMonthTotal : todayTotal)
+    }
+
+    func formattedVisibleRangeUnpaidTotal(showingFullMonth: Bool) -> String? {
+        let amount = showingFullMonth ? currentMonthUnpaidTotal : todayUnpaidTotal
+        guard amount > 0.000_001 else { return nil }
+        return formattedCurrency(amount)
     }
 
     func formattedTotal(forMonth date: Date) -> String {
@@ -860,6 +949,158 @@ class DashboardViewModel {
         return itemLists.filter { itemList in
             calendar.isDate(itemList.date, equalTo: selectedMonthAnchor, toGranularity: .month)
         }
+    }
+
+    func filteredItemLists(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> [SDItemList] {
+        let source: [SDItemList] = switch range {
+        case .today:
+            filteredTodayItemLists
+        case .month:
+            filteredMonthItemLists
+        }
+
+        return source.filter { $0.category?.id == categoryId }
+    }
+
+    func categoryBox(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> DashboardCategoryBoxData? {
+        let source: [DashboardCategoryBoxData] = switch range {
+        case .today:
+            todayCategoryBoxes
+        case .month:
+            monthCategoryBoxes
+        }
+
+        return source.first { $0.categoryId == categoryId }
+    }
+
+    private func makeCategoryBoxes(from source: [SDItemList], range: DashboardCategoryRange) -> [DashboardCategoryBoxData] {
+        var grouped: [UUID: CategoryAggregate] = [:]
+
+        for itemList in source {
+            guard let category = itemList.category else { continue }
+
+            let metadata = categoryMetadata(for: category)
+            let paidAmount = itemListTotals[itemList.id] ?? 0.0
+            let unpaidAmount = itemListUnpaidTotals[itemList.id] ?? 0.0
+            let itemCount = itemListCounts[itemList.id] ?? itemList.itemCount
+
+            if var aggregate = grouped[category.id] {
+                aggregate.paidAmount += paidAmount
+                aggregate.unpaidAmount += unpaidAmount
+                aggregate.itemListCount += 1
+                aggregate.itemCount += itemCount
+                grouped[category.id] = aggregate
+            } else {
+                grouped[category.id] = CategoryAggregate(
+                    categoryId: category.id,
+                    categoryName: metadata.name,
+                    categoryColorHex: metadata.color,
+                    categoryIcon: metadata.icon,
+                    paidAmount: paidAmount,
+                    unpaidAmount: unpaidAmount,
+                    itemListCount: 1,
+                    itemCount: itemCount
+                )
+            }
+        }
+
+        let boxes = grouped.values.map { aggregate in
+            DashboardCategoryBoxData(
+                categoryId: aggregate.categoryId,
+                categoryName: aggregate.categoryName,
+                categoryColorHex: aggregate.categoryColorHex,
+                categoryIcon: aggregate.categoryIcon,
+                paidAmount: aggregate.paidAmount,
+                unpaidAmount: aggregate.unpaidAmount,
+                totalAmount: aggregate.paidAmount + aggregate.unpaidAmount,
+                itemListCount: aggregate.itemListCount,
+                itemCount: aggregate.itemCount,
+                sizeTier: .small,
+                range: range
+            )
+        }
+        .sorted {
+            if abs($0.paidAmount - $1.paidAmount) > 0.000_001 {
+                return $0.paidAmount > $1.paidAmount
+            }
+            return $0.categoryName.localizedCaseInsensitiveCompare($1.categoryName) == .orderedAscending
+        }
+
+        return applySizeTiers(to: boxes)
+    }
+
+    private func applySizeTiers(to boxes: [DashboardCategoryBoxData]) -> [DashboardCategoryBoxData] {
+        guard !boxes.isEmpty else { return [] }
+        guard boxes.count > 1 else {
+            return boxes.map { box in
+                DashboardCategoryBoxData(
+                    categoryId: box.categoryId,
+                    categoryName: box.categoryName,
+                    categoryColorHex: box.categoryColorHex,
+                    categoryIcon: box.categoryIcon,
+                    paidAmount: box.paidAmount,
+                    unpaidAmount: box.unpaidAmount,
+                    totalAmount: box.totalAmount,
+                    itemListCount: box.itemListCount,
+                    itemCount: box.itemCount,
+                    sizeTier: .large,
+                    range: box.range
+                )
+            }
+        }
+
+        let maxAmount = boxes.map(\.paidAmount).max() ?? 0.0
+        guard maxAmount > 0.000_001 else {
+            return boxes.enumerated().map { index, box in
+                DashboardCategoryBoxData(
+                    categoryId: box.categoryId,
+                    categoryName: box.categoryName,
+                    categoryColorHex: box.categoryColorHex,
+                    categoryIcon: box.categoryIcon,
+                    paidAmount: box.paidAmount,
+                    unpaidAmount: box.unpaidAmount,
+                    totalAmount: box.totalAmount,
+                    itemListCount: box.itemListCount,
+                    itemCount: box.itemCount,
+                    sizeTier: index == 0 ? .large : .small,
+                    range: box.range
+                )
+            }
+        }
+
+        return boxes.enumerated().map { index, box in
+            let ratio = box.paidAmount / maxAmount
+            let sizeTier: DashboardCategoryBoxSize
+            if index == 0 || ratio >= 0.70 {
+                sizeTier = .large
+            } else if ratio >= 0.35 {
+                sizeTier = .medium
+            } else {
+                sizeTier = .small
+            }
+
+            return DashboardCategoryBoxData(
+                categoryId: box.categoryId,
+                categoryName: box.categoryName,
+                categoryColorHex: box.categoryColorHex,
+                categoryIcon: box.categoryIcon,
+                paidAmount: box.paidAmount,
+                unpaidAmount: box.unpaidAmount,
+                totalAmount: box.totalAmount,
+                itemListCount: box.itemListCount,
+                itemCount: box.itemCount,
+                sizeTier: sizeTier,
+                range: box.range
+            )
+        }
+    }
+
+    private func categoryMetadata(for category: SDCategory) -> CategoryMetadata {
+        if let cached = categories[category.id] {
+            return cached
+        }
+
+        return (category.name, category.color, category.icon)
     }
 }
 

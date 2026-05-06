@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.0] - 2026-05-06
+
+### Changed
+- **Dashboard now opens into a category-board browsing experience before drilling into expense lists** (`DashboardViewModel`, `DashboardView`, `DashboardCategoryBoardComponents`, `DashboardComponents`, `DashboardTopBarView`, localization files, settings icon assets) — the main dashboard flow was redesigned so users first see tappable category boxes with per-category totals instead of landing directly in the day-grouped expense list. From there, they can open a category-focused list or the aggregated “All” view, making the dashboard feel more like a high-level spending overview with a clearer first decision point.
+- **Selected dashboard category filters were visually tightened as part of the new category-board flow** (`DashboardComponents`, `ExpenseListView`) — the selected category chip bar and the first visible day header now sit closer together, preserving more vertical room for the filtered expense list and making the transition from category selection into the detailed list feel denser and more intentional.
+
+---
+
 ## [1.8.22] - 2026-05-03
 
 ### Changed

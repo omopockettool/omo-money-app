@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+private enum DashboardActiveFilter {
+    case all(DashboardCategoryRange)
+    case category(DashboardCategoryBoxData)
+}
+
 enum DashboardViewMode {
     case calendar, list
 
@@ -58,6 +63,7 @@ struct DashboardView: View {
     @State private var showingFiltersSheet = false
     @State private var isSearchActive = false
     @State private var dismissSearchKeyboardToken = 0
+    @State private var activeFilter: DashboardActiveFilter? = nil
 
     // Hero success flash
     @State private var heroIsSuccess: Bool = false
@@ -107,6 +113,7 @@ struct DashboardView: View {
             .onChange(of: viewModel.isChangingGroup) { _, changing in
                 if !changing {
                     selectedCalendarDay = nil
+                    activeFilter = nil
                     listDragOffset = 0
                     displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
                     viewMode = .list
@@ -234,15 +241,34 @@ struct DashboardView: View {
     
     private var mainContentView: some View {
         DashboardMainContent(
-            itemLists: viewModel.showingFullMonth ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists,
-            getFormattedAmount: { viewModel.formattedPaid(for: $0) },
-            getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            allFormattedAmount: viewModel.formattedVisibleRangePaidTotal(showingFullMonth: viewModel.showingFullMonth),
+            allFormattedUnpaidAmount: viewModel.formattedVisibleRangeUnpaidTotal(showingFullMonth: viewModel.showingFullMonth),
+            categoryBoxes: viewModel.visibleCategoryBoxes,
+            getFormattedAmount: { viewModel.formattedAmount(for: $0) },
+            getFormattedUnpaidAmount: { viewModel.formattedUnpaidAmount(for: $0) },
+            filteredItemLists: activeFilteredItemLists,
+            getItemListAmount: { viewModel.formattedPaid(for: $0) },
+            getItemListUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
             getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
             customEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive
                 ? AnyView(DashboardNoResultsState())
                 : nil,
+            onRefresh: { await viewModel.refreshData() },
+            onAllTap: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = .all(viewModel.showingFullMonth ? .month : .today)
+                }
+            },
+            onCategoryTap: { box in
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = .category(box)
+                }
+            },
+            selectedFilterTitle: activeFilterTitle,
+            selectedFilterIcon: activeFilterIcon,
+            selectedFilterColorHex: activeFilterColorHex,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
                 if isSearchActive {
@@ -251,22 +277,98 @@ struct DashboardView: View {
                 navigationPath.append(itemList)
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
-            onRefresh: { await viewModel.refreshData() },
             onDelete: { await viewModel.deleteItemList($0) },
+            onClearCategoryFilter: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = nil
+                }
+            },
             showingFullMonth: $viewModel.showingFullMonth,
             hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
-            getDayTotal: { viewModel.formattedTotal(for: $0) },
             onOpenSettings: { viewModel.openSettings() },
-            onAddForDate: { date in
-                addItemListTrigger = AddItemListTrigger(initialDate: date)
-            },
-            collapsedMonthDays: $collapsedMonthDays,
             bottomInset: AnyView(bottomInset)
         )
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
         .onChange(of: viewModel.currentGroup?.id) { _, _ in
             collapsedMonthDays.removeAll()
+        }
+        .onChange(of: viewModel.showingFullMonth) { _, isShowingMonth in
+            let targetRange: DashboardCategoryRange = isShowingMonth ? .month : .today
+            withAnimation(AnimationHelper.quickEase) {
+                switch activeFilter {
+                case .all:
+                    activeFilter = .all(targetRange)
+                case .category(let selectedCategoryBox):
+                    activeFilter = viewModel.categoryBox(
+                        forCategoryId: selectedCategoryBox.categoryId,
+                        in: targetRange
+                    ).map { .category($0) }
+                case nil:
+                    break
+                }
+            }
+        }
+        .onChange(of: viewModel.itemListTotals) { _, _ in
+            refreshActiveFilter()
+        }
+    }
+
+    private func refreshActiveFilter() {
+        switch activeFilter {
+        case .all:
+            break
+        case .category(let box):
+            activeFilter = viewModel.categoryBox(forCategoryId: box.categoryId, in: box.range).map { .category($0) }
+        case nil:
+            break
+        }
+    }
+
+    private var activeFilteredItemLists: [SDItemList] {
+        switch activeFilter {
+        case .all(let range):
+            return range == .month ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists
+        case .category(let selectedCategoryBox):
+            return viewModel.filteredItemLists(
+                forCategoryId: selectedCategoryBox.categoryId,
+                in: selectedCategoryBox.range
+            )
+        case nil:
+            return []
+        }
+    }
+
+    private var activeFilterTitle: String? {
+        switch activeFilter {
+        case .all:
+            return LocalizationKey.General.all.localized
+        case .category(let box):
+            return box.categoryName
+        case nil:
+            return nil
+        }
+    }
+
+    private var activeFilterIcon: String? {
+        switch activeFilter {
+        case .all:
+            return "square.grid.2x2.fill"
+        case .category(let box):
+            return box.categoryIcon
+        case nil:
+            return nil
+        }
+    }
+
+    private var activeFilterColorHex: String? {
+        switch activeFilter {
+        case .all:
+            return nil
+        case .category(let box):
+            return box.categoryColorHex
+        case nil:
+            return nil
         }
     }
 
@@ -282,6 +384,8 @@ struct DashboardView: View {
                             monthLabel: viewModel.monthHeroLabel,
                             monthTotal: viewModel.formattedCachedMonthTotal(),
                             todayTotal: viewModel.formattedTodayTotal,
+                            overrideLabel: activeCategoryBox?.categoryName,
+                            overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.totalAmount) },
                             onAddExpense: { addItemListTrigger = AddItemListTrigger(initialDate: selectedCalendarDay) }
                         )
                     }
@@ -304,6 +408,11 @@ struct DashboardView: View {
                 )
             )
         )
+    }
+
+    private var activeCategoryBox: DashboardCategoryBoxData? {
+        guard case .category(let box) = activeFilter else { return nil }
+        return box
     }
 
     // View picker: filter pill on left, settings icon on right

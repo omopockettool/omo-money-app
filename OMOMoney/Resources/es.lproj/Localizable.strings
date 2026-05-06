@@ -19,6 +19,7 @@
 "general.loading" = "Cargando...";
 "general.search" = "Buscar";
 "general.close" = "Cerrar";
+"general.all" = "Todo";
 
 // MARK: - Navigation
 "nav.dashboard" = "Panel";

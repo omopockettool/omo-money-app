@@ -51,6 +51,7 @@ enum LocalizationKey {
         static let retry = "general.retry"
         static let empty = "general.empty"
         static let paste = "general.paste"
+        static let all = "general.all"
     }
     
     // MARK: - Navigation

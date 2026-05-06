@@ -39,8 +39,10 @@ struct DashboardTopBarView: View {
             Spacer()
 
             Button(action: onOpenSettings) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20, weight: .regular))
+                Image("settings-icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 64)
                     .foregroundColor(.primary)
             }
             .buttonStyle(.plain)

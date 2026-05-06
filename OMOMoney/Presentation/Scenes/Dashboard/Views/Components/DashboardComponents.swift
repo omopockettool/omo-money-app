@@ -58,12 +58,25 @@ struct DashboardHeroSection: View {
     let monthLabel: String
     let monthTotal: String
     let todayTotal: String
+    var overrideLabel: String? = nil
+    var overrideTotal: String? = nil
     let onAddExpense: () -> Void
+
+    private var displayLabel: String {
+        if heroIsSuccess { return lastAddedDescription }
+        if let overrideLabel { return LocalizationKey.Item.costOf.localized(with: overrideLabel) }
+        return showingFullMonth ? monthLabel : LocalizationKey.Dashboard.costToday.localized
+    }
+
+    private var displayTotal: String {
+        if let overrideTotal { return overrideTotal }
+        return showingFullMonth ? monthTotal : todayTotal
+    }
 
     var body: some View {
         TotalSpentCardView(
-            label: heroIsSuccess ? lastAddedDescription : (showingFullMonth ? monthLabel : LocalizationKey.Dashboard.costToday.localized),
-            totalAmount: showingFullMonth ? monthTotal : todayTotal,
+            label: displayLabel,
+            totalAmount: displayTotal,
             onAddExpense: onAddExpense,
             isSuccess: heroIsSuccess
         )
@@ -105,24 +118,32 @@ struct DashboardBottomInset: View {
 }
 
 struct DashboardMainContent: View {
-    let itemLists: [SDItemList]
-    let getFormattedAmount: (SDItemList) -> String
-    let getFormattedUnpaidAmount: (SDItemList) -> String?
+    let allFormattedAmount: String
+    let allFormattedUnpaidAmount: String?
+    let categoryBoxes: [DashboardCategoryBoxData]
+    let getFormattedAmount: (DashboardCategoryBoxData) -> String
+    let getFormattedUnpaidAmount: (DashboardCategoryBoxData) -> String?
+    let filteredItemLists: [SDItemList]
+    let getItemListAmount: (SDItemList) -> String
+    let getItemListUnpaidAmount: (SDItemList) -> String?
     let getSearchSummary: (SDItemList) -> String?
     let getSearchMatchedSubtotal: (SDItemList) -> String?
     let getSearchMatchedUnpaid: (SDItemList) -> String?
     let customEmptyState: AnyView?
+    let onRefresh: () async -> Void
+    let onAllTap: () -> Void
+    let onCategoryTap: (DashboardCategoryBoxData) -> Void
+    let selectedFilterTitle: String?
+    let selectedFilterIcon: String?
+    let selectedFilterColorHex: String?
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
-    let onRefresh: () async -> Void
     let onDelete: (SDItemList) async -> Void
+    let onClearCategoryFilter: () -> Void
     @Binding var showingFullMonth: Bool
     let hasItemsOutsideToday: Bool
-    let getDayTotal: (Date) -> String
     let onOpenSettings: () -> Void
-    let onAddForDate: (Date) -> Void
-    @Binding var collapsedMonthDays: Set<Date>
     let bottomInset: AnyView
 
     var body: some View {
@@ -136,34 +157,55 @@ struct DashboardMainContent: View {
                 .padding(.top, 4)
                 .padding(.bottom, 2)
 
-            ExpenseListView(
-                itemLists: itemLists,
-                getFormattedAmount: getFormattedAmount,
-                getFormattedUnpaidAmount: getFormattedUnpaidAmount,
-                getSearchSummary: getSearchSummary,
-                getSearchMatchedSubtotal: getSearchMatchedSubtotal,
-                getSearchMatchedUnpaid: getSearchMatchedUnpaid,
-                itemListRowStatus: itemListRowStatus,
-                onItemTap: onItemTap,
-                onTogglePaid: onTogglePaid,
-                onRefresh: onRefresh,
-                onDelete: onDelete,
-                customEmptyState: customEmptyState,
-                getDayTotal: showingFullMonth ? getDayTotal : nil,
-                focusedDate: nil,
-                hideSectionHeaders: !showingFullMonth,
-                onAddForDate: showingFullMonth ? onAddForDate : nil,
-                collapsedDays: showingFullMonth ? $collapsedMonthDays : .constant([]),
-                allowsDayCollapse: showingFullMonth
-            )
+            Group {
+                if let selectedFilterTitle {
+                    ExpenseListView(
+                        itemLists: filteredItemLists,
+                        getFormattedAmount: getItemListAmount,
+                        getFormattedUnpaidAmount: getItemListUnpaidAmount,
+                        getSearchSummary: getSearchSummary,
+                        getSearchMatchedSubtotal: getSearchMatchedSubtotal,
+                        getSearchMatchedUnpaid: getSearchMatchedUnpaid,
+                        itemListRowStatus: itemListRowStatus,
+                        onItemTap: onItemTap,
+                        onTogglePaid: onTogglePaid,
+                        onRefresh: onRefresh,
+                        onDelete: onDelete,
+                        customEmptyState: customEmptyState,
+                        hideSectionHeaders: !showingFullMonth
+                    )
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        DashboardSelectedFilterBar(
+                            title: selectedFilterTitle,
+                            iconName: selectedFilterIcon,
+                            colorHex: selectedFilterColorHex,
+                            onClear: onClearCategoryFilter
+                        )
+                        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
+                        .padding(.bottom, 0)
+                    }
+                } else {
+                    DashboardCategoryBoardView(
+                        boxes: categoryBoxes,
+                        allFormattedAmount: allFormattedAmount,
+                        allFormattedUnpaidAmount: allFormattedUnpaidAmount,
+                        getFormattedAmount: getFormattedAmount,
+                        getFormattedUnpaidAmount: getFormattedUnpaidAmount,
+                        onRefresh: onRefresh,
+                        customEmptyState: customEmptyState,
+                        onSelectAll: onAllTap,
+                        onSelect: onCategoryTap
+                    )
+                }
+            }
             .mask {
                 ScrollEdgeFadeMask(
-                    showsTopFade: !showingFullMonth,
+                    showsTopFade: selectedFilterTitle != nil && !showingFullMonth,
                     showsBottomFade: true
                 )
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.top, AppConstants.UserInterface.smallPadding)
+            .padding(.top, selectedFilterTitle == nil ? AppConstants.UserInterface.smallPadding : 2)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             DashboardTopBarView(
@@ -176,6 +218,54 @@ struct DashboardMainContent: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomInset
         }
+    }
+}
+
+private struct DashboardSelectedFilterBar: View {
+    let title: String
+    let iconName: String?
+    let colorHex: String?
+    let onClear: () -> Void
+
+    private var accentColor: Color {
+        guard let colorHex else { return .accentColor }
+        return Color(hex: colorHex) ?? .accentColor
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                if let iconName {
+                    Image(systemName: iconName)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(accentColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(accentColor.opacity(0.12))
+            .clipShape(Capsule())
+
+            Spacer()
+
+            Button(action: onClear) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color.primary)
+                .frame(width: 28, height: 28)
+                .padding(.vertical, 6)
+                .background(Color(.systemBackground))
+                .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
