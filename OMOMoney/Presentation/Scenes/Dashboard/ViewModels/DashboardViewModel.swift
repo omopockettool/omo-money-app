@@ -160,10 +160,6 @@ class DashboardViewModel {
         monthItemLists.count > todayItemLists.count || isCustomMonthFilterActive
     }
 
-    var todayRawTotal: Double {
-        todayTotal
-    }
-
     var isCustomMonthFilterActive: Bool {
         !Calendar.current.isDate(selectedMonthAnchor, equalTo: Date(), toGranularity: .month)
     }
@@ -173,10 +169,7 @@ class DashboardViewModel {
     }
 
     var selectedMonthTitle: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.dateFormat = "LLLL yyyy"
-        return formatter.string(from: selectedMonthAnchor).capitalized(with: Locale.current)
+        monthTitleFormatter.string(from: selectedMonthAnchor).capitalized(with: Locale.current)
     }
 
     var monthHeroLabel: String {
@@ -204,6 +197,14 @@ class DashboardViewModel {
     // MARK: - Cache
     private let cacheManager = CacheManager.shared
     private var paidToggleTasks: [UUID: Task<Void, Never>] = [:]
+    private var _currencyFormatter: NumberFormatter?
+    private var _currencyFormatterCode: String = ""
+    private let monthTitleFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "LLLL yyyy"
+        return f
+    }()
 
     // MARK: - Initialization
     init(
@@ -231,45 +232,32 @@ class DashboardViewModel {
     // MARK: - Public Methods
     
     func loadDashboardData() async {
-        print("🔄 DashboardViewModel: loadDashboardData() starting...")
         
-        print("🔄 DashboardViewModel: Setting isLoading = true")
         isLoading = true
         errorMessage = nil
         
         do {
-            print("🔄 DashboardViewModel: Getting current user...")
             guard let user = try await getCurrentUserUseCase.execute() else {
-                print("❌ DashboardViewModel: No user found")
                 errorMessage = "No user found. Please create a user first."
                 isLoading = false
                 return
             }
-            print("✅ DashboardViewModel: Found user: \(user.name)")
 
-            print("🔄 DashboardViewModel: Getting user groups...")
             let groups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
             guard let firstGroup = groups.first else {
-                print("❌ DashboardViewModel: No groups found")
                 errorMessage = "No groups found. Please create a group first."
                 isLoading = false
                 return
             }
-            print("✅ DashboardViewModel: Found \(groups.count) group(s), using: \(firstGroup.name)")
 
-            print("🔄 DashboardViewModel: Getting ItemLists for group...")
             let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: firstGroup.id)
-            print("✅ DashboardViewModel: Found \(fetchedItemLists.count) ItemLists")
 
-            print("🔄 DashboardViewModel: Loading categories...")
             let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: firstGroup.id)
             var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
             for cat in sdCategories {
                 categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
-            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
 
-            print("🔄 DashboardViewModel: Updating UI with new data...")
             currentUser = user
             currentGroup = firstGroup
             availableGroups = groups
@@ -288,13 +276,11 @@ class DashboardViewModel {
     }
     
     func refreshData() async {
-        print("🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH")
         
         isRefreshing = true
         
         do {
             guard let group = currentGroup else {
-                print("⚠️ DashboardViewModel: No current group, skipping refresh")
                 isRefreshing = false
                 return
             }
@@ -304,7 +290,6 @@ class DashboardViewModel {
 
             let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
             
-            print("🔍 DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemLists.count)")
             
             let cal = Calendar.current
             let sortedItemLists = fetchedItemLists.sorted {
@@ -321,29 +306,23 @@ class DashboardViewModel {
 
             await calculateTotalSpent()
 
-            print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
             isRefreshing = false
-            print("✅ DashboardViewModel: Refresh completed smoothly")
             
         } catch {
-            print("❌ DashboardViewModel: Error during refresh: \(error.localizedDescription)")
             isRefreshing = false
         }
     }
 
     func addExpense() {
-        print("Add expense tapped - navigating to AddItemListView")
     }
     
     // MARK: - Group Management
     
     func changeGroup(to newGroup: SDGroup) async {
         guard newGroup.id != currentGroup?.id else {
-            print("⚠️ DashboardViewModel: Grupo ya seleccionado, ignorando cambio")
             return
         }
 
-        print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name)")
 
         isChangingGroup = true
 
@@ -353,13 +332,11 @@ class DashboardViewModel {
             let groupId = newGroup.id
             let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
 
-            print("🔄 DashboardViewModel: Loading categories for new group...")
             let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
             var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
             for cat in sdCategories {
                 categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
-            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
 
             currentGroup = newGroup
             selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
@@ -374,45 +351,33 @@ class DashboardViewModel {
             await calculateTotalSpent()
 
             isChangingGroup = false
-            print("✅ DashboardViewModel: Grupo cambiado exitosamente")
-            print("📋 DashboardViewModel: Cargados \(fetchedItemLists.count) ItemLists")
         } catch {
             isChangingGroup = false
-            print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
         }
     }
     
     func refreshAvailableGroups() async {
         guard let user = currentUser else {
-            print("⚠️ DashboardViewModel: No hay usuario actual, no se pueden recargar grupos")
             return
         }
         
-        print("🔄 DashboardViewModel: Recargando grupos disponibles...")
 
         do {
             let userId = user.id
             let groups = try await fetchGroupsForUserUseCase.execute(userId: userId)
 
             availableGroups = groups
-            print("✅ DashboardViewModel: Grupos recargados. Total: \(groups.count)")
         } catch {
-            print("❌ DashboardViewModel: Error recargando grupos: \(error)")
         }
     }
     
     func addGroup(_ newGroup: SDGroup) {
-        print("➕ [DashboardVM] addGroup() llamado")
-        print("➕ [DashboardVM] Grupo nuevo: '\(newGroup.name)' (ID: \(newGroup.id.uuidString))")
-        print("➕ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
 
         guard !availableGroups.contains(where: { $0.id == newGroup.id }) else {
-            print("⚠️ [DashboardVM] Grupo ya existe en lista - SKIP")
             return
         }
 
         availableGroups.append(newGroup)
-        print("✅ [DashboardVM] addGroup() completado")
     }
     
     func removeGroup(_ group: SDGroup) {
@@ -450,22 +415,16 @@ class DashboardViewModel {
 
     func addItemList(_ itemList: SDItemList) async {
         let itemListDesc = itemList.itemListDescription
-        print("\n🟢 ============================================")
-        print("📋 [ADD] Adding ItemList: '\(itemListDesc)'")
-        print("🟢 ============================================")
 
         guard let currentGroupId = currentGroup?.id else {
-            print("⚠️ [ADD] No current group selected - skipping")
             return
         }
 
         if itemList.group?.id != currentGroupId {
-            print("⚠️ [ADD] ItemList belongs to different group")
             return
         }
 
         if itemLists.contains(where: { $0.id == itemList.id }) {
-            print("⚠️ [ADD] ItemList already exists in dashboard")
             return
         }
 
@@ -487,13 +446,11 @@ class DashboardViewModel {
         }
         await calculateTotalSpent()
 
-        print("✅ [ADD] ItemList added successfully to UI")
     }
 
     @MainActor
     func clearCache() async {
         cacheManager.clearAllCaches()
-        print("🗂️ DashboardViewModel: All caches cleared")
     }
     
     func togglePaid(for itemList: SDItemList) {
@@ -559,7 +516,6 @@ class DashboardViewModel {
     func forceRefresh() async {
         await clearCache()
         await loadDashboardData()
-        print("🔄 DashboardViewModel: Force refresh completed")
     }
     
     // MARK: - Private Methods
@@ -634,8 +590,11 @@ class DashboardViewModel {
     
     // MARK: - Helper Methods
 
-    private func makeCurrencyFormatter() -> NumberFormatter {
+    private var currencyFormatter: NumberFormatter {
         let code = currentGroup?.currency ?? "EUR"
+        if let cached = _currencyFormatter, _currencyFormatterCode == code {
+            return cached
+        }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = code
@@ -645,12 +604,14 @@ class DashboardViewModel {
         sym.currencyCode = code
         sym.locale = Locale(identifier: "en_US")
         formatter.currencySymbol = sym.currencySymbol
+        _currencyFormatter = formatter
+        _currencyFormatterCode = code
         return formatter
     }
 
     func formattedPaid(for itemList: SDItemList) -> String {
         guard let total = itemListTotals[itemList.id] else { return "€0.00" }
-        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: total)) ?? "€0.00"
     }
 
     func formattedUnpaid(for itemList: SDItemList) -> String? {
@@ -658,7 +619,7 @@ class DashboardViewModel {
               status != .all,
               let unpaid = itemListUnpaidTotals[itemList.id],
               unpaid > 0 else { return nil }
-        return makeCurrencyFormatter().string(from: NSNumber(value: unpaid))
+        return currencyFormatter.string(from: NSNumber(value: unpaid))
     }
 
     func formattedSearchSummary(for itemList: SDItemList) -> String? {
@@ -673,13 +634,13 @@ class DashboardViewModel {
 
     func formattedSearchMatchedSubtotal(for itemList: SDItemList) -> String? {
         guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
-        return makeCurrencyFormatter().string(from: NSNumber(value: summary.matchedSubtotal)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: summary.matchedSubtotal)) ?? "€0.00"
     }
 
     func formattedSearchMatchedUnpaid(for itemList: SDItemList) -> String? {
         guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
         guard summary.matchedUnpaidSubtotal > 0.000_001 else { return nil }
-        return makeCurrencyFormatter().string(from: NSNumber(value: summary.matchedUnpaidSubtotal))
+        return currencyFormatter.string(from: NSNumber(value: summary.matchedUnpaidSubtotal))
     }
 
     func formattedTotal(for date: Date) -> String {
@@ -687,11 +648,11 @@ class DashboardViewModel {
         let dayTotal = itemLists
             .filter { cal.isDate($0.date, inSameDayAs: date) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-        return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: dayTotal)) ?? "€0.00"
     }
 
     func formattedCurrency(_ amount: Double) -> String {
-        makeCurrencyFormatter().string(from: NSNumber(value: amount)) ?? "€0.00"
+        currencyFormatter.string(from: NSNumber(value: amount)) ?? "€0.00"
     }
 
     func formattedAmount(for box: DashboardCategoryBoxData) -> String {
@@ -704,11 +665,11 @@ class DashboardViewModel {
     }
 
     var formattedTodayTotal: String {
-        makeCurrencyFormatter().string(from: NSNumber(value: todayTotal)) ?? "€0.00"
+        currencyFormatter.string(from: NSNumber(value: todayTotal)) ?? "€0.00"
     }
 
     func formattedCachedMonthTotal() -> String {
-        makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
+        currencyFormatter.string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
     }
 
     func formattedVisibleRangePaidTotal(showingFullMonth: Bool) -> String {
@@ -726,16 +687,12 @@ class DashboardViewModel {
         let monthTotal = itemLists
             .filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-        return makeCurrencyFormatter().string(from: NSNumber(value: monthTotal)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: monthTotal)) ?? "€0.00"
     }
 
     var formattedTotalSpent: String {
-        guard totalSpent.isFinite else {
-            print("❌ DashboardViewModel: formattedTotalSpent called with NaN/Infinite value!")
-            return "€0.00"
-        }
-        let formatter = makeCurrencyFormatter()
-        return formatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
+        guard totalSpent.isFinite else { return "€0.00" }
+        return currencyFormatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
     }
     
     var recentItemLists: [SDItemList] {
@@ -753,9 +710,6 @@ class DashboardViewModel {
         let filteredIds = Set(filtered.map { $0.id })
 
         if currentIds != filteredIds {
-            print("🗓️ DashboardViewModel: Updating current month cache")
-            print("   - Total ItemLists: \(itemLists.count)")
-            print("   - Filtered month ItemLists: \(filtered.count)")
             currentMonthItemLists = filtered
         }
     }
@@ -879,27 +833,6 @@ class DashboardViewModel {
         return "dashboard_item_list_data_\(itemList.id.uuidString)_\(versionDate.timeIntervalSince1970)"
     }
 
-    func getItemListTotal(_ itemList: SDItemList) async -> Double {
-        do {
-            let items = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
-            let total = items.reduce(0.0) { total, item in
-                let value = item.totalAmount
-                guard value.isFinite else { return total }
-                return total + value
-            }
-            guard total.isFinite else { return 0.0 }
-            return total
-        } catch {
-            return 0.0
-        }
-    }
-
-    func getFormattedItemListTotal(_ itemList: SDItemList) async -> String {
-        let total = await getItemListTotal(itemList)
-        guard total.isFinite else { return "€0.00" }
-        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
-    }
-
     func deleteItemList(_ itemList: SDItemList) async {
         await removeItemList(itemList)
         do {
@@ -913,7 +846,6 @@ class DashboardViewModel {
         let currentItemLists = itemLists
 
         guard let index = currentItemLists.firstIndex(where: { $0.id == itemList.id }) else {
-            print("⚠️ DashboardViewModel: ItemList not found in current list")
             return
         }
 
@@ -928,7 +860,6 @@ class DashboardViewModel {
     }
 
     func updateItemList(_ itemList: SDItemList) async {
-        print("✏️ DashboardViewModel: Updating ItemList in UI cache")
 
         // Re-sort since date may have changed (SD* reference type, object is already mutated)
         let cal = Calendar.current
@@ -944,13 +875,6 @@ class DashboardViewModel {
     private func isItemListInCurrentContext(_ itemList: SDItemList) -> Bool {
         guard let currentGroup = currentGroup else { return false }
         return currentGroup.id == itemList.group?.id
-    }
-
-    func getCurrentMonthItemLists() -> [SDItemList] {
-        let calendar = Calendar.current
-        return itemLists.filter { itemList in
-            calendar.isDate(itemList.date, equalTo: selectedMonthAnchor, toGranularity: .month)
-        }
     }
 
     func filteredItemLists(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> [SDItemList] {
