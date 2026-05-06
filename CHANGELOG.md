@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.5] - 2026-05-06
+
+### Changed
+- **Dashboard and item-list detail now use structured `.task` lifecycle instead of `onAppear + Task { }`** (`DashboardView`, `ItemListDetailView`) — both screens migrated their data-loading calls to the `.task` modifier, which automatically cancels the async work if the view disappears mid-flight. The redundant `hasLoadedInitialData` guard in `ItemListDetailView` was removed: because `NavigationStack` destroys the view node on pop, the flag always reset on re-entry and served no purpose.
+
+---
+
 ## [1.9.4] - 2026-05-06
 
 ### Changed

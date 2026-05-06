@@ -50,8 +50,12 @@ struct DashboardBottomBarView: View {
             searchFocusTask?.cancel()
             isSearchFieldFocused = false
         }
+        .onAppear {
+            isSearchFieldFocused = false
+        }
         .onDisappear {
             searchFocusTask?.cancel()
+            isSearchFieldFocused = false
         }
     }
 

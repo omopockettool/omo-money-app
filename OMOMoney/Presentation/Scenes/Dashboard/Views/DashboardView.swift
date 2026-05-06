@@ -108,7 +108,10 @@ struct DashboardView: View {
             }
             .background(Color(.systemBackground))
             .onChange(of: navigationPath) { _, path in
-                if !path.isEmpty { viewModel.toast = nil }
+                viewModel.toast = nil
+                if path.isEmpty {
+                    dismissSearchKeyboardToken += 1
+                }
             }
             .onChange(of: viewModel.isChangingGroup) { _, changing in
                 if !changing {
@@ -204,25 +207,16 @@ struct DashboardView: View {
             }
         }
         .toast($viewModel.toast)
-        .onAppear {
-            // Only load data on first appearance to avoid splash on navigation back
+        .task {
             guard !hasLoadedInitialData else {
-                print("📍 DashboardView: Navigated back, refreshing data...")
-                // 🔄 Refresh data to get updated totals
-                Task {
-                    await viewModel.refreshData()
-                }
+                await viewModel.refreshData()
                 return
             }
-
             hasLoadedInitialData = true
-            Task {
-                await viewModel.loadDashboardData()
-                // Fade in suave del contenido después de cargar - SOLO UNA VEZ
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seg para asegurar render
-                withAnimation(.easeIn(duration: 0.5)) {
-                    contentOpacity = 1.0
-                }
+            await viewModel.loadDashboardData()
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.easeIn(duration: 0.5)) {
+                contentOpacity = 1.0
             }
         }
     }
@@ -476,47 +470,6 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
-    // MARK: - Debug Helper
-    
-    /// Debug function to log all entities in the database (moved from AppContentView)
-    @MainActor
-    private func logAllEntities() async {
-        print("\n🔍 =========================")
-        print("🔍 DEBUG: Logging all entities")
-        print("🔍 =========================")
-        
-        if let currentUser = viewModel.currentUser {
-                print("\n👤 USUARIO:")
-                print("   ID: \(currentUser.id.uuidString)")  // ✅ id is NOT optional
-                print("   Nombre: \(currentUser.name)")
-                print("   Email: \(currentUser.email)")
-                print("   Creado: \(currentUser.createdAt)")
-
-                if let currentGroup = viewModel.currentGroup {
-                    print("\n🏢 GRUPO ACTUAL:")
-                    print("   ID: \(currentGroup.id.uuidString)")  // ✅ id is NOT optional
-                    print("   Nombre: \(currentGroup.name)")
-                    print("   Moneda: \(currentGroup.currency)")
-                    print("   Creado: \(currentGroup.createdAt)")
-                }
-                
-                print("\n📋 ITEM LISTS (\(viewModel.itemLists.count)):")
-                for (index, itemList) in viewModel.itemLists.enumerated() {
-                    print("   \(index + 1). ID: \(itemList.id.uuidString)")
-                    print("      Descripción: \(itemList.itemListDescription)")
-                    print("      Fecha: \(itemList.date)")
-                    // TODO: getFormattedItemListTotal is async - need to calculate totals separately
-                    print("      Total: (async calculation needed)")
-                }
-                
-                print("\n💰 TOTAL GASTADO: \(viewModel.formattedTotalSpent)")
-                
-        } else {
-            print("\n❌ No se encontró usuario actual")
-        }
-        
-        print("🔍 =========================\n")
-    }
 }
 
 // MARK: - Preview

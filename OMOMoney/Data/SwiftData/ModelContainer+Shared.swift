@@ -22,9 +22,7 @@ extension ModelContainer {
         )
         
         do {
-            let container = try ModelContainer(for: schema, configurations: configuration)
-            print("✅ ModelContainer initialized successfully")
-            return container
+            return try ModelContainer(for: schema, configurations: configuration)
         } catch {
             fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
         }
@@ -108,9 +106,6 @@ extension ModelContainer {
             context.insert(item2)
             
             try context.save()
-            
-            print("✅ Preview ModelContainer initialized with sample data")
-            
             return container
         } catch {
             fatalError("Failed to create preview ModelContainer: \(error)")
@@ -135,9 +130,7 @@ extension ModelContainer {
         )
         
         do {
-            let container = try ModelContainer(for: schema, configurations: configuration)
-            print("✅ Test ModelContainer initialized (empty)")
-            return container
+            return try ModelContainer(for: schema, configurations: configuration)
         } catch {
             fatalError("Failed to create test ModelContainer: \(error)")
         }
@@ -151,7 +144,6 @@ extension ModelContext {
         
         do {
             try save()
-            print("✅ ModelContext saved successfully")
         } catch {
             print("❌ ModelContext save failed: \(error.localizedDescription)")
             throw error
@@ -160,12 +152,10 @@ extension ModelContext {
     
     func safeRollback() {
         rollback()
-        print("⚠️ ModelContext rolled back")
     }
-    
+
     func deleteWithCascade<T: PersistentModel>(_ model: T) {
         delete(model)
-        print("🗑️ Deleted \(type(of: model))")
     }
 }
 

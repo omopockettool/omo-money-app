@@ -9,8 +9,6 @@ struct ItemListDetailView: View {
 
     @State private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?
-    @State private var hasLoadedInitialData = false
-
     @State private var heroIsSuccess: Bool = false
     @State private var showMetaLabels: Bool = true
     @State private var lastAddedDescription: String = ""
@@ -82,17 +80,12 @@ struct ItemListDetailView: View {
                 }
             }
         }
-        .onAppear {
-            guard !hasLoadedInitialData else {
-                Task { await viewModel.loadItems() }
-                return
-            }
-            hasLoadedInitialData = true
-            Task { await viewModel.loadItems() }
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                withAnimation(.easeInOut(duration: 0.5)) { showMetaLabels = false }
-            }
+        .task {
+            await viewModel.loadItems()
+        }
+        .task {
+            try? await Task.sleep(for: .seconds(3))
+            withAnimation(.easeInOut(duration: 0.5)) { showMetaLabels = false }
         }
         .sheet(item: $sheetMode) { mode in
             let container = AppDIContainer.shared
