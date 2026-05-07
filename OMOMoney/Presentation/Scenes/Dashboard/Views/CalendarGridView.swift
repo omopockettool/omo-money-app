@@ -143,7 +143,6 @@ struct CalendarGridView: View {
         let isToday    = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
         let hasItemLists = dailyTotals[dayKey] != nil
-        let hasSpend     = hasItemLists && dayTotal > 0
 
         let hasUnpaid = dailyHasUnpaid[dayKey] ?? false
 

@@ -286,7 +286,6 @@ class DashboardViewModel {
             }
             
             let groupId = group.id
-            let currentItemLists = itemLists
 
             let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
             
@@ -414,8 +413,6 @@ class DashboardViewModel {
     }
 
     func addItemList(_ itemList: SDItemList) async {
-        let itemListDesc = itemList.itemListDescription
-
         guard let currentGroupId = currentGroup?.id else {
             return
         }
@@ -438,7 +435,7 @@ class DashboardViewModel {
         itemListTotals[itemList.id] = 0.0
         itemListUnpaidTotals[itemList.id] = 0.0
         itemListCounts[itemList.id] = 0
-        itemListPaidStatus[itemList.id] = .none
+        itemListPaidStatus[itemList.id] = ItemListPaidStatus.none
         itemListRowStatus[itemList.id] = .neutral
 
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
@@ -465,7 +462,7 @@ class DashboardViewModel {
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
         itemList.lastModifiedAt = Date()
-        itemListPaidStatus[itemList.id] = newValue ? .all : .none
+        itemListPaidStatus[itemList.id] = newValue ? .all : ItemListPaidStatus.none
         itemList.items.forEach { $0.isPaid = newValue }
         itemListRowStatus[itemList.id] = makeRowStatus(
             totalAmount: itemList.totalAmount,

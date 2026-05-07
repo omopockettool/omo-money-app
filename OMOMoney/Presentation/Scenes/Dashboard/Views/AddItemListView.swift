@@ -161,9 +161,12 @@ struct AddItemListView: View {
         .task {
             await viewModel.loadGroups()
             if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
-            await viewModel.loadUsageMemory(forGroupId: activeGroup.id)
-            async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: viewModel.lastUsedCategoryIds.first)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: viewModel.lastUsedPaymentMethodId)
+            let activeGroupID = activeGroup.id
+            let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
+            let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
+            await viewModel.loadUsageMemory(forGroupId: activeGroupID)
+            async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
             _ = await (categories, paymentMethods)
             orderedCategories = viewModel.orderedCategoriesByUsage()
             orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
@@ -182,9 +185,12 @@ struct AddItemListView: View {
             viewModel.selectedCategory = nil
             viewModel.selectedPaymentMethod = nil
             Task {
-                await viewModel.loadUsageMemory(forGroupId: activeGroup.id)
-                async let categories: () = viewModel.loadCategories(forGroupId: activeGroup.id, lastUsedCategoryId: viewModel.lastUsedCategoryIds.first)
-                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroup.id, lastUsedPaymentMethodId: viewModel.lastUsedPaymentMethodId)
+                let activeGroupID = activeGroup.id
+                let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
+                let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
+                await viewModel.loadUsageMemory(forGroupId: activeGroupID)
+                async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
+                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
                 _ = await (categories, paymentMethods)
                 orderedCategories = viewModel.orderedCategoriesByUsage()
                 orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()

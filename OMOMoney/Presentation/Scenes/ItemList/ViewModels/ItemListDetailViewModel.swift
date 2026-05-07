@@ -107,7 +107,7 @@ class ItemListDetailViewModel {
     }
 
     func deleteItem(_ item: SDItem, at index: Int) async {
-        withAnimation { items.remove(at: index) }
+        withAnimation { _ = items.remove(at: index) }
         do {
             try await deleteItemUseCase.execute(id: item.id)
         } catch {
