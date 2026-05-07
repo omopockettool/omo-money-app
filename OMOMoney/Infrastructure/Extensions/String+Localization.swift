@@ -84,6 +84,10 @@ enum LocalizationKey {
         enum Welcome {
             static let title = "user.welcome.title"
             static let subtitle = "user.welcome.subtitle"
+            static let legalIntro = "user.welcome.legalIntro"
+            static let terms = "user.welcome.terms"
+            static let privacy = "user.welcome.privacy"
+            static let consent = "user.welcome.consent"
         }
     }
     

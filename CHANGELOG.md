@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **The first-user onboarding screen can now be reopened safely in debug builds without touching persisted data** (`SettingsSheetView`, `CreateFirstUserView`, `CreateFirstUserViewModel`) — added a debug-only `Onboarding Preview` entry under Settings that pushes the same first-user registration UI in a simulated submission mode. The simulated path validates the form and walks through the loading states, but it does not create a user, group, or user-group record in SwiftData. This makes it possible to regression-test the empty-sandbox onboarding experience on a device that already has a real user installed, without polluting the database or confusing the app’s single-current-user assumption.
+- **The first-user onboarding presentation was refined to feel more branded and legally complete** (`CreateFirstUserView`, localization files) — the onboarding hero now uses the branded `settings-icon` asset on a black badge instead of the old wallet SF Symbol, the welcome heading was simplified into a cleaner `OMONI` brand lockup, the subtitle was tightened into shorter slogan-style copy, and the legal area now includes inline Terms and Privacy links plus a required consent checkbox before account creation can proceed. The consent row was tuned so the links remain tappable, the checkbox has a larger finger-friendly tap target, and the copy wraps naturally when space is tight.
+
+### TODO
+- **Replace the temporary landing-page legal links with real website policy pages** (`CreateFirstUserView`) — both onboarding legal links currently point to `https://omopockettool.com` as a fallback until dedicated Terms and Privacy pages are published on the website.
 
 ---
 

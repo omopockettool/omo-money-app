@@ -219,8 +219,12 @@
 "settings.goToSettings" = "Go to Settings";
 
 // MARK: - User (extended)
-"user.welcome.title" = "Welcome to OMONI!";
-"user.welcome.subtitle" = "How much\ndid I cost today?";
+"user.welcome.title" = "OMONI";
+"user.welcome.subtitle" = "How much did I cost today?";
+"user.welcome.legalIntro" = "I agree to the";
+"user.welcome.terms" = "Terms";
+"user.welcome.privacy" = "Privacy Policy";
+"user.welcome.consent" = "and";
 "user.name.placeholder" = "Your name";
 "user.email.placeholder" = "your@email.com";
 "user.noEmail" = "No email";

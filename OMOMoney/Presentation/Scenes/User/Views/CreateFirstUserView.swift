@@ -2,10 +2,13 @@ import SwiftUI
 
 struct CreateFirstUserView: View {
     @State private var viewModel: CreateFirstUserViewModel
+    @State private var acceptedLegal = false
     @FocusState private var focusedField: Field?
     
     var onUserCreated: (() async -> Void)?
     private let showsSimulationBadge: Bool
+    // TODO: Replace the landing-page fallback with dedicated Terms and Privacy URLs once the website pages exist.
+    private let legalURL = URL(string: "https://omopockettool.com")!
     
     enum Field: Hashable { 
         case name, email 
@@ -73,7 +76,18 @@ struct CreateFirstUserView: View {
             
             VStack(spacing: 8) {
                 Text(LocalizationKey.User.Welcome.title.localized)
-                    .font(.title.weight(.bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .tracking(1.2)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color.primary,
+                                Color.primary.opacity(0.78)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .multilineTextAlignment(.center)
 
                 Text(LocalizationKey.User.Welcome.subtitle.localized)
@@ -108,10 +122,51 @@ struct CreateFirstUserView: View {
                 keyboardType: .emailAddress,
                 capitalization: .never
             )
+
+            legalDisclosure
             
             createButton
                 .padding(.top, 8)
         }
+    }
+
+    private var legalDisclosure: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                withAnimation(AnimationHelper.quickSpring) {
+                    acceptedLegal.toggle()
+                }
+            } label: {
+                Image(systemName: acceptedLegal ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(acceptedLegal ? Color.accentColor : Color.secondary)
+                    .frame(width: 34, height: 34)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Text(legalConsentMarkdown)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .tint(Color.accentColor)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 2)
+    }
+
+    private var legalConsentMarkdown: AttributedString {
+        let intro = LocalizationKey.User.Welcome.legalIntro.localized
+        let terms = LocalizationKey.User.Welcome.terms.localized
+        let connector = LocalizationKey.User.Welcome.consent.localized
+        let privacy = LocalizationKey.User.Welcome.privacy.localized
+
+        return (try? AttributedString(
+            markdown: "\(intro) [\(terms)](\(legalURL.absoluteString)) \(connector) [\(privacy)](\(legalURL.absoluteString))"
+        )) ?? AttributedString("\(intro) \(terms) \(connector) \(privacy)")
     }
     
     private func inputField(
@@ -214,8 +269,9 @@ struct CreateFirstUserView: View {
             )
         }
         .buttonStyle(PressHapticButtonStyle())
-        .disabled(!viewModel.isFormValid || viewModel.isLoading)
+        .disabled(!viewModel.isFormValid || !acceptedLegal || viewModel.isLoading)
         .animation(.smooth(duration: 0.3), value: viewModel.isFormValid)
+        .animation(.smooth(duration: 0.3), value: acceptedLegal)
     }
 }
 
