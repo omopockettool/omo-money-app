@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import OSLog
 
 @MainActor
 
@@ -20,6 +21,7 @@ class UserListViewModel {
     // MARK: - Use Cases
     private let createUserUseCase: CreateUserUseCase
     private let deleteUserUseCase: DeleteUserUseCase
+    private let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.UserListViewModel")
 
     // MARK: - Initialization
     init(
@@ -41,6 +43,7 @@ class UserListViewModel {
     // MARK: - Public Methods
 
     func loadUsers() async {
+        logger.debug("loadUsers started")
         isLoading = true
         errorMessage = nil
 
@@ -50,10 +53,16 @@ class UserListViewModel {
         errorMessage = "Users should be loaded through UserGroupService based on current user's groups"
 
         isLoading = false
+        logger.debug("loadUsers finished count=\(self.users.count) hasMore=\(self.hasMoreUsers) stubErrorPresent=\(self.errorMessage != nil)")
     }
 
     func loadMoreUsers() async {
-        guard hasMoreUsers && !isLoading else { return }
+        guard hasMoreUsers && !isLoading else {
+            logger.debug("loadMoreUsers skipped hasMore=\(self.hasMoreUsers) isLoading=\(self.isLoading)")
+            return
+        }
+
+        logger.debug("loadMoreUsers started currentPage=\(self.currentPage) totalUsers=\(self.allUsers.count)")
 
         isLoading = true
 
@@ -69,6 +78,7 @@ class UserListViewModel {
         }
 
         isLoading = false
+        logger.debug("loadMoreUsers finished currentPage=\(self.currentPage) visibleCount=\(self.users.count) hasMore=\(self.hasMoreUsers)")
     }
 
     func resetPagination() async {

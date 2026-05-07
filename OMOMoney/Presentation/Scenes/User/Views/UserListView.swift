@@ -1,13 +1,17 @@
 import SwiftUI
 import SwiftData
+import OSLog
 
 struct UserListView: View {
     @State private var viewModel: UserListViewModel
     @State private var showingAddUser = false
     @State private var navigationPath = NavigationPath()
 
+    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.UserListView")
+
     init() {
         self._viewModel = State(wrappedValue: UserListViewModel())
+        Self.logger.debug("init")
     }
     
     var body: some View {
@@ -44,7 +48,9 @@ struct UserListView: View {
                     .animation(AnimationHelper.slide, value: user.id)
             }
             .task {
+                Self.logger.debug("root task loading users")
                 await viewModel.loadUsers()
+                Self.logger.debug("root task finished loading users count=\(viewModel.users.count) hasMore=\(viewModel.hasMoreUsers)")
             }
             .refreshable {
                 await viewModel.loadUsers()
@@ -90,13 +96,12 @@ struct UserListView: View {
                 }
             }
         }
-        .onAppear {
-            // Load more users when approaching the end
-            if user == viewModel.users.last && viewModel.hasMoreUsers {
-                Task {
-                    await viewModel.loadMoreUsers()
-                }
-            }
+        .task(id: user.id) {
+            // Load more users when the trailing row becomes visible.
+            guard user == viewModel.users.last, viewModel.hasMoreUsers else { return }
+            Self.logger.debug("row task triggering pagination for trailing user")
+            await viewModel.loadMoreUsers()
+            Self.logger.debug("row task finished pagination count=\(viewModel.users.count) currentPage=\(viewModel.currentPage) hasMore=\(viewModel.hasMoreUsers)")
         }
         .transition(.asymmetric(
             insertion: .scale.combined(with: .opacity),

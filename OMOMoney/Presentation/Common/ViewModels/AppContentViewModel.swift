@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @MainActor
 @Observable
@@ -9,6 +10,7 @@ final class AppContentViewModel {
 
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+    private let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.AppContentViewModel")
 
     init(
         getCurrentUserUseCase: GetCurrentUserUseCase,
@@ -27,6 +29,7 @@ final class AppContentViewModel {
     }
 
     func loadInitialData() async {
+        logger.debug("loadInitialData started")
         isLoading = true
         errorMessage = nil
 
@@ -34,16 +37,19 @@ final class AppContentViewModel {
             guard let currentUser = try await getCurrentUserUseCase.execute() else {
                 isSetupComplete = false
                 isLoading = false
+                logger.debug("loadInitialData finished without current user")
                 return
             }
 
             let groups = try await fetchGroupsForUserUseCase.execute(userId: currentUser.id)
             isSetupComplete = !groups.isEmpty
             isLoading = false
+            logger.debug("loadInitialData succeeded groupsCount=\(groups.count) setupComplete=\(self.isSetupComplete)")
         } catch {
             errorMessage = error.localizedDescription
             isSetupComplete = false
             isLoading = false
+            logger.error("loadInitialData failed: \(error.localizedDescription)")
         }
     }
 }

@@ -6,13 +6,18 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct AppContentView: View {
     @State private var navigationPath = NavigationPath()
     @State private var viewModel: AppContentViewModel
+    @State private var hasLoadedInitialData = false
+
+    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.AppContentView")
 
     init() {
         _viewModel = State(wrappedValue: AppContentViewModel())
+        Self.logger.debug("init")
     }
     
     var body: some View {
@@ -29,8 +34,16 @@ struct AppContentView: View {
         .navigationTitle("OMOMoney")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark) // Apply dark mode for prototype design
-        .onAppear {
-            Task { await viewModel.loadInitialData() }
+        .task {
+            guard !hasLoadedInitialData else {
+                Self.logger.debug("task skipped because initial content load already ran")
+                return
+            }
+
+            hasLoadedInitialData = true
+            Self.logger.debug("task starting initial content load")
+            await viewModel.loadInitialData()
+            Self.logger.debug("task finished initial content load setupComplete=\(viewModel.isSetupComplete) errorPresent=\(viewModel.errorMessage != nil)")
         }
     }
     

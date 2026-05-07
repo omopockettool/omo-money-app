@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-05-07
+
+### Changed
+- **SwiftUI lifecycle and state-wrapper usage were aligned with the project data-flow guide** (`MainView`, `AppContentView`, `CategoryFormView`, `PaymentMethodFormView`, `GroupInfoEditSheet`, `UserListView`) — initial async loads in the app entry flow now use `.task` instead of `onAppear + Task`, with one-shot guards so visibility changes do not restart root loading work unnecessarily. The category, payment-method, and group edit forms now seed their editable `@State` values in `init` instead of mutating them from `onAppear`, which keeps draft input tied to view-node lifetime rather than visibility callbacks. User-list pagination also moved from row `onAppear` to a task-based visibility trigger so async loading follows SwiftUI’s cancellable lifecycle model more closely.
+- **Temporary lifecycle diagnostics were added to verify SwiftUI node lifetime and draft-state behavior on device** (`MainView`, `AppContentView`, `MainViewModel`, `AppContentViewModel`, `CategoryFormView`, `PaymentMethodFormView`, `GroupInfoEditSheet`, `UserListView`, `UserListViewModel`) — targeted `OSLog` tracing now records init, task start/finish, node appearance/disappearance, draft edits, and save events around the views touched by the lifecycle refactor. These logs are intended to confirm that root loads do not over-refresh and that edit-form state survives visibility changes while still resetting correctly after a true dismiss/reopen cycle.
+
+---
+
 ## [1.11.0] - 2026-05-07
 
 ### Changed

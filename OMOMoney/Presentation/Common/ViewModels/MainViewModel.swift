@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @MainActor
 @Observable
@@ -8,6 +9,7 @@ final class MainViewModel {
 
     private let getCurrentUserUseCase: GetCurrentUserUseCase
     private let minimumSplashDisplayTime: TimeInterval
+    private let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.MainViewModel")
 
     init(
         getCurrentUserUseCase: GetCurrentUserUseCase,
@@ -23,6 +25,7 @@ final class MainViewModel {
     }
 
     func checkForUsers() async {
+        logger.debug("checkForUsers started")
         isLoading = true
         let startTime = Date()
 
@@ -30,12 +33,15 @@ final class MainViewModel {
             let currentUser = try await getCurrentUserUseCase.execute()
             await keepSplashVisible(from: startTime)
             hasUsers = currentUser != nil
+            logger.debug("checkForUsers succeeded hasUsers=\(self.hasUsers)")
         } catch {
             await keepSplashVisible(from: startTime)
             hasUsers = false
+            logger.error("checkForUsers failed: \(error.localizedDescription)")
         }
 
         isLoading = false
+        logger.debug("checkForUsers finished isLoading=\(self.isLoading)")
     }
 
     private func keepSplashVisible(from startTime: Date) async {
