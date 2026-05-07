@@ -24,6 +24,23 @@ struct SettingsSheetView: View {
                         settingsRow(icon: "info.circle.fill", color: .blue, title: LocalizationKey.Settings.aboutOMO.localized)
                     }
                 }
+
+#if DEBUG
+                Section("Debug") {
+                    NavigationLink {
+                        CreateFirstUserView(
+                            onUserCreated: {},
+                            submissionMode: .simulate
+                        )
+                    } label: {
+                        settingsRow(
+                            icon: "person.badge.plus",
+                            color: .orange,
+                            title: "Onboarding Preview"
+                        )
+                    }
+                }
+#endif
             }
             .listStyle(.insetGrouped)
             .navigationTitle(LocalizationKey.Settings.title.localized)

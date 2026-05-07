@@ -5,14 +5,19 @@ struct CreateFirstUserView: View {
     @FocusState private var focusedField: Field?
     
     var onUserCreated: (() async -> Void)?
+    private let showsSimulationBadge: Bool
     
     enum Field: Hashable { 
         case name, email 
     }
     
-    init(onUserCreated: (() async -> Void)? = nil) {
-        self._viewModel = State(wrappedValue: CreateFirstUserViewModel())
+    init(
+        onUserCreated: (() async -> Void)? = nil,
+        submissionMode: CreateFirstUserViewModel.SubmissionMode = .persist
+    ) {
+        self._viewModel = State(wrappedValue: CreateFirstUserViewModel(submissionMode: submissionMode))
         self.onUserCreated = onUserCreated
+        self.showsSimulationBadge = submissionMode == .simulate
     }
     
     var body: some View {
@@ -42,32 +47,27 @@ struct CreateFirstUserView: View {
     
     private var header: some View {
         VStack(spacing: 20) {
+            if showsSimulationBadge {
+                Text("DEBUG PREVIEW - No persistence")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
             // Icon with modern gradient
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.accentColor.opacity(0.2),
-                                Color.accentColor.opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Color.black)
                     .frame(width: 100, height: 100)
-                    .shadow(color: Color.accentColor.opacity(0.2), radius: 12, y: 6)
-                
-                Image(systemName: "wallet.bifold.fill")
-                    .font(.system(size: 42, weight: .medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .symbolEffect(.pulse, options: .repeating)
+                    .shadow(color: Color.black.opacity(0.18), radius: 12, y: 6)
+
+                Image("settings-icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 68, height: 68)
             }
             .padding(.bottom, 8)
             
@@ -228,4 +228,11 @@ struct CreateFirstUserView: View {
 #Preview("Dark Mode") {
     CreateFirstUserView(onUserCreated: {})
         .preferredColorScheme(.dark)
+}
+
+#Preview("Simulated Submission") {
+    CreateFirstUserView(
+        onUserCreated: {},
+        submissionMode: .simulate
+    )
 }

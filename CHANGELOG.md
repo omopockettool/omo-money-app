@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2026-05-07
+
+### Changed
+- **The first-user onboarding screen can now be reopened safely in debug builds without touching persisted data** (`SettingsSheetView`, `CreateFirstUserView`, `CreateFirstUserViewModel`) — added a debug-only `Onboarding Preview` entry under Settings that pushes the same first-user registration UI in a simulated submission mode. The simulated path validates the form and walks through the loading states, but it does not create a user, group, or user-group record in SwiftData. This makes it possible to regression-test the empty-sandbox onboarding experience on a device that already has a real user installed, without polluting the database or confusing the app’s single-current-user assumption.
+
+---
+
+## [1.11.2] - 2026-05-07
+
+### Removed
+- **Deleted the unused legacy multi-user management flow** (`UserListView`, `UserListViewModel`, `AddUserView`, `EditUserView`, `CreateUserViewModel`, `EditUserViewModel`, `UserDetailViewModel`) — these files were no longer referenced by any real app navigation path and only survived through previews or the old list-based user-management flow. The current product direction is one active user per device, with first-user creation handled by `CreateFirstUserView` and ongoing account edits handled through `SettingsSheetView` → `UserProfileView`, so removing the dead flow reduces maintenance noise without affecting the live settings/profile path.
+
+---
+
 ## [1.11.1] - 2026-05-07
 
 ### Changed

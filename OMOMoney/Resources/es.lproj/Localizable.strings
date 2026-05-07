@@ -220,7 +220,7 @@
 
 // MARK: - User (extended)
 "user.welcome.title" = "¡Bienvenido a OMONI!";
-"user.welcome.subtitle" = "Crea tu perfil para empezar\na gestionar tus recursos";
+"user.welcome.subtitle" = "¿Cuánto costé\nhoy?";
 "user.name.placeholder" = "Tu nombre";
 "user.email.placeholder" = "tu@email.com";
 "user.noEmail" = "Sin email";

@@ -7,6 +7,10 @@ import SwiftUI
 
 @Observable
 class CreateFirstUserViewModel {
+    enum SubmissionMode {
+        case persist
+        case simulate
+    }
     
     // MARK: - Published Properties
     
@@ -23,6 +27,7 @@ class CreateFirstUserViewModel {
     private let createUserUseCase: CreateUserUseCase
     private let createGroupUseCase: CreateGroupUseCase
     private let createUserGroupUseCase: CreateUserGroupUseCase
+    private let submissionMode: SubmissionMode
     
     // MARK: - Initialization
     
@@ -30,21 +35,24 @@ class CreateFirstUserViewModel {
     init(
         createUserUseCase: CreateUserUseCase,
         createGroupUseCase: CreateGroupUseCase,
-        createUserGroupUseCase: CreateUserGroupUseCase
+        createUserGroupUseCase: CreateUserGroupUseCase,
+        submissionMode: SubmissionMode = .persist
     ) {
         self.createUserUseCase = createUserUseCase
         self.createGroupUseCase = createGroupUseCase
         self.createUserGroupUseCase = createUserGroupUseCase
+        self.submissionMode = submissionMode
     }
     
     /// Convenience initializer using DI Container
-    convenience init() {
+    convenience init(submissionMode: SubmissionMode = .persist) {
         let appContainer = AppDIContainer.shared
 
         self.init(
             createUserUseCase: appContainer.makeCreateUserUseCase(),
             createGroupUseCase: appContainer.makeCreateGroupUseCase(),
-            createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase()
+            createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase(),
+            submissionMode: submissionMode
         )
     }
     
@@ -69,6 +77,14 @@ class CreateFirstUserViewModel {
         showError = false
 
         do {
+            if submissionMode == .simulate {
+                try await runSimulation()
+                loadingMessage = "¡Listo!"
+                isSuccess = true
+                isLoading = false
+                return
+            }
+
             let userDomain = try await createUserUseCase.execute(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -110,5 +126,19 @@ class CreateFirstUserViewModel {
         errorMessage = nil
         showError = false
     }
-}
 
+    private func runSimulation() async throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedName.isEmpty else { throw ValidationError.emptyName }
+        guard !trimmedEmail.isEmpty else { throw ValidationError.emptyEmail }
+        guard trimmedEmail.contains("@") else { throw ValidationError.invalidEmail }
+
+        loadingMessage = "Simulando grupo personal..."
+        try? await Task.sleep(for: .milliseconds(250))
+
+        loadingMessage = "Simulando configuración inicial..."
+        try? await Task.sleep(for: .milliseconds(250))
+    }
+}
