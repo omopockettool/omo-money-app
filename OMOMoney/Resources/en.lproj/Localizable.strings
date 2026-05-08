@@ -217,6 +217,16 @@
 "settings.requiredConfig" = "Required configuration";
 "settings.requiredConfigMsg" = "Please create a user and group to continue";
 "settings.goToSettings" = "Go to Settings";
+"settings.backup" = "Backup";
+"settings.backupDescription" = "Export a full backup to Files or restore your app data from a previous backup.";
+"settings.exportBackup" = "Export Backup to Files";
+"settings.importBackup" = "Import Backup";
+"settings.rescueBackupTitle" = "Save a rescue backup first";
+"settings.rescueBackupMessage" = "Before replacing your data, save a copy of what is currently on this device. This lets you restore everything if something goes wrong.";
+"settings.rescueBackupConfirm" = "Save Rescue Backup";
+"settings.replaceDataTitle" = "Replace current data?";
+"settings.replaceDataMessage" = "Importing this backup will replace all current app data. Continue only if you're sure.";
+"settings.replaceDataConfirm" = "Replace Data";
 
 // MARK: - User (extended)
 "user.welcome.title" = "OMONI";

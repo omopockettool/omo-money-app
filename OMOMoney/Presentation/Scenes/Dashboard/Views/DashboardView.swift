@@ -150,6 +150,10 @@ struct DashboardView: View {
                         user: user,
                         onUserUpdated: { updated in
                             viewModel.updateCurrentUser(updated)
+                        },
+                        onBackupImported: {
+                            await viewModel.loadDashboardData()
+                            viewModel.toast = ToastMessage("Backup imported successfully.", type: .info)
                         }
                     )
                 }

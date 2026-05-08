@@ -23,6 +23,7 @@ final class AppDIContainer {
     let itemListRepository: ItemListRepository
     let itemRepository: ItemRepository
     let userGroupRepository: UserGroupRepository
+    let backupRepository: BackupRepository
 
     // MARK: - Init
 
@@ -35,6 +36,7 @@ final class AppDIContainer {
         itemListRepository = DefaultItemListRepository(context: context)
         itemRepository = DefaultItemRepository(context: context)
         userGroupRepository = DefaultUserGroupRepository(context: context)
+        backupRepository = DefaultBackupRepository(context: context)
     }
 
     // MARK: - ItemList Use Cases
@@ -137,5 +139,27 @@ final class AppDIContainer {
 
     func makeCreateUserGroupUseCase() -> CreateUserGroupUseCase {
         DefaultCreateUserGroupUseCase(userGroupRepository: userGroupRepository)
+    }
+
+    // MARK: - Backup Use Cases
+
+    func makeCreateBackupUseCase() -> CreateBackupUseCase {
+        DefaultCreateBackupUseCase(backupRepository: backupRepository)
+    }
+
+    func makeImportBackupUseCase() -> ImportBackupUseCase {
+        DefaultImportBackupUseCase(backupRepository: backupRepository)
+    }
+
+    func makeGetBackupStatisticsUseCase() -> GetBackupStatisticsUseCase {
+        DefaultGetBackupStatisticsUseCase(backupRepository: backupRepository)
+    }
+
+    func makeSettingsBackupViewModel() -> SettingsBackupViewModel {
+        SettingsBackupViewModel(
+            createBackupUseCase: makeCreateBackupUseCase(),
+            importBackupUseCase: makeImportBackupUseCase(),
+            getBackupStatisticsUseCase: makeGetBackupStatisticsUseCase()
+        )
     }
 }
