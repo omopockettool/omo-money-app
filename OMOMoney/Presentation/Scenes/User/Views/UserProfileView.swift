@@ -1,16 +1,18 @@
 import SwiftUI
 
 struct UserProfileView: View {
-    let user: UserDomain
-    let onUserUpdated: (UserDomain) -> Void
+    let user: SDUser
+    let onUserUpdated: (SDUser) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var viewModel: UserProfileViewModel
     @FocusState private var nameFocused: Bool?
 
-    private let updateUserUseCase = AppDIContainer.shared.makeUpdateUserUseCase()
+    init(user: SDUser, onUserUpdated: @escaping (SDUser) -> Void) {
+        self.user = user
+        self.onUserUpdated = onUserUpdated
+        _viewModel = State(wrappedValue: UserProfileViewModel(user: user))
+    }
 
     var body: some View {
         ScrollView {
@@ -20,17 +22,17 @@ struct UserProfileView: View {
                     Circle()
                         .fill(Color.accentColor.opacity(0.15))
                         .frame(width: 72, height: 72)
-                    Text(String(name.prefix(1)).uppercased())
+                    Text(String(viewModel.name.prefix(1)).uppercased())
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
                 }
-                .animation(AnimationHelper.quickSpring, value: name)
+                .animation(AnimationHelper.quickSpring, value: viewModel.name)
 
                 // Name field
                 LimitedTextField(
                     icon: "person.fill",
-                    placeholder: "Nombre",
-                    text: $name,
+                    placeholder: LocalizationKey.User.name.localized,
+                    text: $viewModel.name,
                     maxLength: 40,
                     focusedField: $nameFocused,
                     fieldValue: true
@@ -50,7 +52,7 @@ struct UserProfileView: View {
                 .background(Color(.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
 
-                if let error = errorMessage {
+                if let error = viewModel.errorMessage {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
@@ -59,33 +61,22 @@ struct UserProfileView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Perfil")
+        .navigationTitle(LocalizationKey.User.profile.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button(LocalizationKey.General.save.localized) {
                     Task { await save() }
                 }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                .disabled(!viewModel.canSave)
             }
         }
-        .onAppear { name = user.name; nameFocused = true }
     }
 
     private func save() async {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        isLoading = true
-        errorMessage = nil
-
-        let updated = UserDomain(id: user.id, name: trimmed, email: user.email, createdAt: user.createdAt, lastModifiedAt: Date())
-        do {
-            try await updateUserUseCase.execute(user: updated)
-            onUserUpdated(updated)
+        if let updatedUser = await viewModel.save() {
+            onUserUpdated(updatedUser)
             dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
         }
-        isLoading = false
     }
 }

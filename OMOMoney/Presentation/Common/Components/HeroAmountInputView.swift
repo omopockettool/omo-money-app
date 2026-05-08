@@ -8,6 +8,8 @@ struct HeroAmountInputView<F: Hashable>: View {
     let onValidate: () -> Void
     var focusedField: FocusState<F?>.Binding
     let fieldValue: F
+    var embedded: Bool = false
+    var onPaste: (() -> Void)? = nil
 
     private var isFocused: Bool { focusedField.wrappedValue == fieldValue }
 
@@ -46,18 +48,31 @@ struct HeroAmountInputView<F: Hashable>: View {
                     .onChange(of: text) { _, _ in onValidate() }
             )
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: fontSize)
         .animation(.easeInOut(duration: 0.2), value: text.isEmpty)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
+        .padding(.vertical, embedded ? 12 : 18)
         .padding(.horizontal, AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(isFocused ? Color(.systemGray3) : Color.clear, lineWidth: 2.5)
-                .animation(AnimationHelper.formFocus, value: isFocused)
-        )
+        .background(embedded ? Color.clear : Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: embedded ? 0 : AppConstants.UserInterface.cornerRadius))
+        .overlay {
+            if !embedded {
+                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
+                    .stroke(isFocused ? Color(.systemGray3) : Color.clear, lineWidth: 2.5)
+                    .animation(AnimationHelper.formFocus, value: isFocused)
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture { focusedField.wrappedValue = fieldValue }
+        .contextMenu {
+            if let onPaste {
+                Button {
+                    focusedField.wrappedValue = fieldValue
+                    onPaste()
+                } label: {
+                    Label(LocalizationKey.General.paste.localized, systemImage: "doc.on.clipboard")
+                }
+            }
+        }
     }
 }

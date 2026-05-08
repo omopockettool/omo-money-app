@@ -1,54 +1,48 @@
 import SwiftUI
-import CoreData
+import SwiftData
 
-/// ✅ REFACTORED: Uses PaymentMethodDomain
 struct PaymentMethodPickerView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var viewContext
 
-    @Binding var selectedPaymentMethod: PaymentMethodDomain?
-    let group: Group
+    @Binding var selectedPaymentMethod: SDPaymentMethod?
+    let groupId: UUID
 
-    @StateObject private var viewModel: PaymentMethodPickerViewModel
+    @Query private var availablePaymentMethods: [SDPaymentMethod]
 
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(selectedPaymentMethod: Binding<PaymentMethodDomain?>, group: Group, context: NSManagedObjectContext) {
+    private var groupedPaymentMethods: [String: [SDPaymentMethod]] {
+        Dictionary(grouping: availablePaymentMethods) { $0.type }
+    }
+
+    init(selectedPaymentMethod: Binding<SDPaymentMethod?>, groupId: UUID) {
         self._selectedPaymentMethod = selectedPaymentMethod
-        self.group = group
-
-        // Use convenience initializer that gets Use Cases from DI Container
-        self._viewModel = StateObject(wrappedValue: PaymentMethodPickerViewModel())
+        self.groupId = groupId
+        let id = groupId
+        self._availablePaymentMethods = Query(
+            filter: #Predicate<SDPaymentMethod> { $0.group?.id == id && $0.isActive },
+            sort: \SDPaymentMethod.name
+        )
     }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                if viewModel.isLoading {
-                    VStack {
-                        ProgressView()
-                        Text("Cargando métodos de pago...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.availablePaymentMethods.isEmpty {
+                if availablePaymentMethods.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "creditcard.slash")
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
-                        
-                        Text("No hay métodos de pago")
+
+                        Text(LocalizationKey.Payment.emptyMessage.localized)
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
-                        Text("Crea un método de pago en la configuración del grupo")
+
+                        Text(LocalizationKey.Payment.emptyHint.localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Payment Methods List
                     List {
                         ForEach(groupedPaymentMethods.keys.sorted(), id: \.self) { type in
                             Section(header: Text(paymentMethodTypeDisplayName(type))) {
@@ -67,75 +61,45 @@ struct PaymentMethodPickerView: View {
                     .listStyle(InsetGroupedListStyle())
                 }
             }
-            .navigationTitle("Seleccionar Método de Pago")
+            .navigationTitle(LocalizationKey.Payment.selectPayment.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
+                    Button(LocalizationKey.General.cancel.localized) {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Ninguno") {
+                    Button(LocalizationKey.Payment.none.localized) {
                         selectedPaymentMethod = nil
                         dismiss()
                     }
                 }
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.clearError()
-            }
-        } message: {
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-            }
-        }
-        .task {
-            guard let groupId = group.id else { return }
-            await viewModel.loadAvailablePaymentMethods(forGroupId: groupId)
-        }
     }
 
-    // MARK: - Computed Properties
-
-    private var groupedPaymentMethods: [String: [PaymentMethodDomain]] {
-        Dictionary(grouping: viewModel.availablePaymentMethods) { paymentMethod in
-            paymentMethod.type
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
-        case "card":
-            return "Tarjetas"
-        case "cash":
-            return "Efectivo"
-        case "transfer":
-            return "Transferencias"
-        case "digital":
-            return "Billeteras Digitales"
-        default:
-            return "Otros"
+        case "card":     return LocalizationKey.Payment.cards.localized
+        case "cash":     return LocalizationKey.Payment.cash.localized
+        case "transfer": return LocalizationKey.Payment.transfers.localized
+        case "digital":  return LocalizationKey.Payment.digitalWallets.localized
+        default:         return LocalizationKey.Payment.others.localized
         }
     }
 }
 
 // MARK: - PaymentMethodRow
 
-/// ✅ REFACTORED: Uses PaymentMethodDomain
 struct PaymentMethodRow: View {
-    let paymentMethod: PaymentMethodDomain
+    let paymentMethod: SDPaymentMethod
     let isSelected: Bool
     let onTap: () -> Void
 
     var body: some View {
         HStack {
-            // Payment Method Icon
             Image(systemName: paymentMethodIcon(for: paymentMethod.type))
                 .font(.title2)
                 .foregroundColor(paymentMethodColor(for: paymentMethod.type))
@@ -150,9 +114,9 @@ struct PaymentMethodRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.blue)
@@ -164,7 +128,7 @@ struct PaymentMethodRow: View {
             onTap()
         }
     }
-    
+
     private func paymentMethodIcon(for type: String) -> String {
         switch type.lowercased() {
         case "card":
@@ -179,7 +143,7 @@ struct PaymentMethodRow: View {
             return "questionmark.circle.fill"
         }
     }
-    
+
     private func paymentMethodColor(for type: String) -> Color {
         switch type.lowercased() {
         case "card":
@@ -194,19 +158,14 @@ struct PaymentMethodRow: View {
             return .gray
         }
     }
-    
+
     private func paymentMethodTypeDisplayName(_ type: String) -> String {
         switch type.lowercased() {
-        case "card":
-            return "Tarjeta"
-        case "cash":
-            return "Efectivo"
-        case "transfer":
-            return "Transferencia"
-        case "digital":
-            return "Digital"
-        default:
-            return "Otro"
+        case "card":     return LocalizationKey.Payment.card.localized
+        case "cash":     return LocalizationKey.Payment.cash.localized
+        case "transfer": return LocalizationKey.Payment.transfer.localized
+        case "digital":  return LocalizationKey.Payment.digital.localized
+        default:         return LocalizationKey.Payment.other.localized
         }
     }
 }
@@ -214,30 +173,9 @@ struct PaymentMethodRow: View {
 // MARK: - Preview
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    
-    let group = Group(context: context)
-    group.id = UUID()
-    group.name = "Test Group"
-    group.currency = "USD"
-    
-    let paymentMethod1 = PaymentMethod(context: context)
-    paymentMethod1.id = UUID()
-    paymentMethod1.name = "Tarjeta Visa"
-    paymentMethod1.type = "card"
-    paymentMethod1.isActive = true
-    paymentMethod1.group = group
-    
-    let paymentMethod2 = PaymentMethod(context: context)
-    paymentMethod2.id = UUID()
-    paymentMethod2.name = "Efectivo"
-    paymentMethod2.type = "cash"
-    paymentMethod2.isActive = true
-    paymentMethod2.group = group
-    
-    return PaymentMethodPickerView(
+    PaymentMethodPickerView(
         selectedPaymentMethod: .constant(nil),
-        group: group,
-        context: context
+        groupId: UUID()
     )
+    .modelContainer(ModelContainer.preview)
 }

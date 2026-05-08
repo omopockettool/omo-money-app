@@ -7,47 +7,101 @@
 
 import SwiftUI
 
-struct TotalSpentCardView: View {
+struct TotalSpentCardView<BottomContent: View>: View {
     let label: String
     let totalAmount: String
     let onAddExpense: () -> Void
+    var isSuccess: Bool = false
+    @ViewBuilder let bottomContent: () -> BottomContent
 
     @State private var displayedAmount: String = ""
     @State private var isDecreasing: Bool = false
     @State private var flashColor: Color = .clear
     @State private var cardScale: CGFloat = 1.0
+    @State private var isAddPressed = false
+
+    init(
+        label: String,
+        totalAmount: String,
+        onAddExpense: @escaping () -> Void,
+        isSuccess: Bool = false,
+        @ViewBuilder bottomContent: @escaping () -> BottomContent
+    ) {
+        self.label = label
+        self.totalAmount = totalAmount
+        self.onAddExpense = onAddExpense
+        self.isSuccess = isSuccess
+        self.bottomContent = bottomContent
+    }
 
     var body: some View {
-        Button(action: onAddExpense) {
+        Button(action: isSuccess ? {} : onAddExpense) {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                         .animation(.easeInOut(duration: 0.2), value: label)
 
-                    Text(displayedAmount)
-                        .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                        .contentTransition(.numericText(countsDown: isDecreasing))
-                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                    if isSuccess {
+                        Text(LocalizationKey.Dashboard.added.localized)
+                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .transition(.push(from: .top).combined(with: .opacity))
+                    } else {
+                        Text(displayedAmount)
+                            .font(.system(size: dynamicFontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .contentTransition(.numericText(countsDown: isDecreasing))
+                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedAmount)
+                            .transition(.push(from: .bottom).combined(with: .opacity))
+                    }
+
+                    bottomContent()
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(AnimationHelper.smoothSpring, value: isSuccess)
 
                 Spacer(minLength: 8)
 
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 48, height: 48)
-                    .background(Color.accentColor)
-                    .clipShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(isSuccess ? Color.green.opacity(0.45) : Color.accentColor.opacity(0.45))
+                        .frame(width: 48, height: 48)
+                        .offset(y: 4)
+
+                    Circle()
+                        .fill(isSuccess ? Color.green : Color.accentColor)
+                        .frame(width: 48, height: 48)
+                        .overlay {
+                            ZStack {
+                                if isSuccess {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                                } else {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 21, weight: .black))
+                                        .foregroundColor(.white)
+                                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                                }
+                            }
+                        }
+                        .offset(y: isSuccess || isAddPressed ? 4 : 0)
+                }
+                .frame(width: 48, height: 52)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isSuccess)
+                .animation(.spring(response: 0.18, dampingFraction: 0.6), value: isAddPressed)
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
             .padding(.vertical, 16)
-            .background(Color(.systemGray5))
+            .background(.regularMaterial)
             .overlay(
                 RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
                     .fill(flashColor)
@@ -55,9 +109,13 @@ struct TotalSpentCardView: View {
             )
             .cornerRadius(AppConstants.UserInterface.cornerRadius)
             .scaleEffect(cardScale)
-            .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PressHapticButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in if !isSuccess { isAddPressed = true } }
+                .onEnded   { _ in isAddPressed = false }
+        )
         .onAppear {
             displayedAmount = totalAmount
         }
@@ -68,6 +126,7 @@ struct TotalSpentCardView: View {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
                 displayedAmount = newValue
             }
+            guard !isSuccess else { return }
             let targetColor: Color = isDecreasing ? .red.opacity(0.12) : .green.opacity(0.12)
             withAnimation(.easeIn(duration: 0.12)) { flashColor = targetColor }
             withAnimation(.easeOut(duration: 0.45).delay(0.15)) { flashColor = .clear }
@@ -91,11 +150,37 @@ struct TotalSpentCardView: View {
     }
 }
 
+extension TotalSpentCardView where BottomContent == EmptyView {
+    init(
+        label: String,
+        totalAmount: String,
+        onAddExpense: @escaping () -> Void,
+        isSuccess: Bool = false
+    ) {
+        self.init(
+            label: label,
+            totalAmount: totalAmount,
+            onAddExpense: onAddExpense,
+            isSuccess: isSuccess,
+            bottomContent: { EmptyView() }
+        )
+    }
+}
+
 // MARK: - Preview
 #Preview {
     VStack(spacing: 20) {
-        TotalSpentCardView(label: "Coste de vida este mes", totalAmount: "1,229.89 €", onAddExpense: {})
-        TotalSpentCardView(label: "Coste de hoy", totalAmount: "52,340.50 USD", onAddExpense: {})
+        TotalSpentCardView(
+            label: "Coste de hoy",
+            totalAmount: "50,45 €",
+            onAddExpense: {}
+        )
+        TotalSpentCardView(
+            label: "Coste de hoy",
+            totalAmount: "50,45 €",
+            onAddExpense: {},
+            isSuccess: true
+        )
     }
     .padding()
     .background(Color.black)

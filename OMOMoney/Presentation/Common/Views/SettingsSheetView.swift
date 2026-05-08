@@ -1,43 +1,55 @@
 import SwiftUI
 
 struct SettingsSheetView: View {
-    let group: GroupDomain
-    let user: UserDomain
-    let onUserUpdated: (UserDomain) -> Void
+    let user: SDUser
+    let onUserUpdated: (SDUser) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Grupo") {
-                    NavigationLink {
-                        CategoryManagementView(group: group)
-                    } label: {
-                        settingsRow(icon: "tag.fill", color: .orange, title: "Categorías")
-                    }
-
-                    NavigationLink {
-                        PaymentMethodManagementView(group: group)
-                    } label: {
-                        settingsRow(icon: "creditcard.fill", color: .blue, title: "Métodos de pago")
-                    }
-                }
-
-                Section("Cuenta") {
+                Section(LocalizationKey.Settings.account.localized) {
                     NavigationLink {
                         UserProfileView(user: user, onUserUpdated: onUserUpdated)
                     } label: {
                         settingsRow(icon: "person.fill", color: .purple, title: user.name)
                     }
                 }
+
+                Section("OMO") {
+                    NavigationLink {
+                        AboutOMOView()
+                    } label: {
+                        settingsRow(icon: "info.circle.fill", color: .blue, title: LocalizationKey.Settings.aboutOMO.localized)
+                    }
+                }
+
+#if DEBUG
+                Section("Debug") {
+                    NavigationLink {
+                        CreateFirstUserView(
+                            onUserCreated: {},
+                            submissionMode: .simulate
+                        )
+                    } label: {
+                        settingsRow(
+                            icon: "person.badge.plus",
+                            color: .orange,
+                            title: "Onboarding Preview"
+                        )
+                    }
+                }
+#endif
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Ajustes")
+            .navigationTitle(LocalizationKey.Settings.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
             }
         }

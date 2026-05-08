@@ -2,24 +2,24 @@
 //  AddItemViewModel.swift
 //  OMOMoney
 //
-//  Created on 12/2/24.
-//
 
 import Foundation
 
 @MainActor
-final class AddItemViewModel: ObservableObject {
+
+@Observable
+final class AddItemViewModel {
 
     // MARK: - Published Properties
-    @Published var description = ""
-    @Published var amount = ""
-    @Published var quantity = "1"
-    @Published var isSaving = false
-    @Published var errorMessage: String?
+    var description = ""
+    var amount = ""
+    var quantity = "1"
+    var isSaving = false
+    var errorMessage: String?
 
     // MARK: - Dependencies
     private let itemListId: UUID
-    private let itemToEdit: ItemDomain?
+    private let itemToEdit: SDItem?
     private let itemListDescription: String
     private let createItemUseCase: CreateItemUseCase
     private let updateItemUseCase: UpdateItemUseCase
@@ -43,7 +43,7 @@ final class AddItemViewModel: ObservableObject {
     // MARK: - Initialization
     init(
         itemListId: UUID,
-        itemToEdit: ItemDomain? = nil,
+        itemToEdit: SDItem? = nil,
         itemListDescription: String,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase
@@ -54,24 +54,19 @@ final class AddItemViewModel: ObservableObject {
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
 
-        // Pre-populate fields if editing
         if let item = itemToEdit {
             self.description = item.itemDescription
-            self.amount = item.amount == 0 ? "" : item.amount.description
+            self.amount = item.amount == 0 ? "" : String(format: "%.2f", item.amount).replacingOccurrences(of: "\\.?0+$", with: "", options: .regularExpression)
             self.quantity = String(item.quantity)
         }
     }
 
     // MARK: - Public Methods
 
-    /// Save the item (create or update)
-    /// Returns ItemDomain for incremental cache update (following ItemList pattern)
-    func saveItem() async -> ItemDomain? {
-        // Resolve description: fall back to itemList name if user left it blank
+    func saveItem() async -> SDItem? {
         let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalDescription = trimmed.isEmpty ? itemListDescription : trimmed
 
-        // Normalize: replace comma with period for decimal parsing
         let normalizedAmount = amount.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: normalizedAmount) ?? Decimal(0))
 
@@ -84,105 +79,73 @@ final class AddItemViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            let itemDomain: ItemDomain
+            let item: SDItem
 
             if let existingItem = itemToEdit {
-                // Edit mode - use Update Use Case
-                let updatedItemDomain = ItemDomain(
-                    id: existingItem.id,
-                    itemDescription: finalDescription,
-                    amount: amountDecimal,
-                    quantity: quantityInt,
-                    itemListId: itemListId,
-                    createdAt: existingItem.createdAt,
-                    lastModifiedAt: Date()
-                )
-                try await updateItemUseCase.execute(updatedItemDomain)
-
-                // Return the domain model (Service already saved to Core Data)
-                itemDomain = updatedItemDomain
-                print("✅ AddItemViewModel: Item updated successfully")
+                // Edit mode — mutate SD* reference type directly
+                existingItem.itemDescription = finalDescription
+                existingItem.amount = Double(truncating: NSDecimalNumber(decimal: amountDecimal))
+                existingItem.quantity = Int(quantityInt)
+                try await updateItemUseCase.execute(existingItem)
+                item = existingItem
             } else {
-                // Create mode - use Create Use Case
-                itemDomain = try await createItemUseCase.execute(
+                // Items created from the detail view start unpaid by default.
+                // Quick-add from the dashboard uses a different flow.
+                item = try await createItemUseCase.execute(
                     description: finalDescription,
                     amount: amountDecimal,
                     quantity: quantityInt,
                     itemListId: itemListId,
                     isPaid: false
                 )
-                print("✅ AddItemViewModel: Item created successfully")
             }
 
-            print("💡 AddItemViewModel: Returning ItemDomain for incremental cache update")
             isSaving = false
-            return itemDomain
+            return item
         } catch {
-            errorMessage = "Error al guardar item: \(error.localizedDescription)"
-            print("❌ AddItemViewModel: Error saving item: \(error.localizedDescription)")
+            errorMessage = "Error al guardar artículo: \(error.localizedDescription)"
             isSaving = false
             return nil
         }
     }
 
-    /// Clear any error messages
     func clearError() {
         errorMessage = nil
     }
 
-    // MARK: - Public Methods (Input Validation)
-
-    /// Validate and correct amount input
-    /// - Maximum 10 digits before decimal
-    /// - Maximum 2 decimal places
-    /// - Allows both comma and period as decimal separator
     func validateAndCorrectAmount() {
         amount = correctAmountInput(amount)
     }
 
     // MARK: - Private Methods
 
-    /// Correct amount input to meet constraints
-    /// - Maximum 10 digits before decimal
-    /// - Maximum 2 decimal places
-    /// - Allows both comma and period as decimal separator
     private func correctAmountInput(_ input: String) -> String {
-        // Allow empty string
-        if input.isEmpty {
-            return input
-        }
+        if input.isEmpty { return input }
 
-        // Filter: only allow digits, comma, and period
         let allowedCharacters = CharacterSet(charactersIn: "0123456789.,")
         var filtered = input.filter { char in
             return char.unicodeScalars.allSatisfy { allowedCharacters.contains($0) }
         }
 
-        // Normalize: replace comma with period for consistent handling
         filtered = filtered.replacingOccurrences(of: ",", with: ".")
 
-        // Handle multiple decimal separators - keep only the first one
         let components = filtered.components(separatedBy: ".")
         if components.count > 2 {
             filtered = components[0] + "." + components[1...].joined()
         }
 
-        // Split into integer and decimal parts
         let parts = filtered.components(separatedBy: ".")
         var integerPart = parts[0]
         var decimalPart = parts.count > 1 ? parts[1] : ""
 
-        // Limit integer part to 10 digits
         if integerPart.count > 10 {
             integerPart = String(integerPart.prefix(10))
         }
 
-        // Limit decimal part to 2 digits
         if decimalPart.count > 2 {
             decimalPart = String(decimalPart.prefix(2))
         }
 
-        // Reconstruct the string
         if parts.count > 1 {
             return integerPart + "." + decimalPart
         } else {
@@ -190,4 +153,3 @@ final class AddItemViewModel: ObservableObject {
         }
     }
 }
-

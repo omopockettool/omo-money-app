@@ -6,29 +6,25 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct AppContentView: View {
     @State private var navigationPath = NavigationPath()
-    @State private var selectedUser: UserDomain?
-    @State private var selectedGroup: GroupDomain?
-    @State private var isLoading = true
+    @State private var viewModel: AppContentViewModel
+    @State private var hasLoadedInitialData = false
 
-    // ✅ Clean Architecture: Use DI Container for dependencies
-    private let getCurrentUserUseCase: GetCurrentUserUseCase
-    private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
+    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.AppContentView")
 
     init() {
-        let container = AppDIContainer.shared
-        self.getCurrentUserUseCase = container.makeGetCurrentUserUseCase()
-        self.fetchGroupsForUserUseCase = container.makeFetchGroupsForUserUseCase()
+        _viewModel = State(wrappedValue: AppContentViewModel())
+        Self.logger.debug("init")
     }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            if isLoading {
+            if viewModel.isLoading {
                 loadingView
-            } else if let _ = selectedUser, let _ = selectedGroup {
-                // ✅ Clean Architecture: No context passed to DashboardView
+            } else if viewModel.isSetupComplete {
                 DashboardView()
                     .navigationBarHidden(true)
             } else {
@@ -38,8 +34,16 @@ struct AppContentView: View {
         .navigationTitle("OMOMoney")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark) // Apply dark mode for prototype design
-        .onAppear {
-            loadInitialData()
+        .task {
+            guard !hasLoadedInitialData else {
+                Self.logger.debug("task skipped because initial content load already ran")
+                return
+            }
+
+            hasLoadedInitialData = true
+            Self.logger.debug("task starting initial content load")
+            await viewModel.loadInitialData()
+            Self.logger.debug("task finished initial content load setupComplete=\(viewModel.isSetupComplete) errorPresent=\(viewModel.errorMessage != nil)")
         }
     }
     
@@ -55,17 +59,16 @@ struct AppContentView: View {
                 .font(.largeTitle)
                 .foregroundColor(.orange)
             
-            Text("Configuración requerida")
+            Text(LocalizationKey.Settings.requiredConfig.localized)
                 .font(.title)
-            
-            Text("Por favor crea un usuario y grupo para continuar")
+
+            Text(LocalizationKey.Settings.requiredConfigMsg.localized)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
-            Button("Ir a Configuración") {
+
+            Button(LocalizationKey.Settings.goToSettings.localized) {
                 // TODO: Navigate to settings or user management
-                print("Navigate to settings")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -77,42 +80,6 @@ struct AppContentView: View {
     
     // MARK: - Legacy Views (Moved to DashboardView)
     // Header and Quick Actions have been moved to DashboardView components
-}
-
-// MARK: - Helper Functions
-extension AppContentView {
-    @MainActor
-    private func loadInitialData() {
-        Task {
-            isLoading = true
-
-            do {
-                // ✅ Clean Architecture: Use Use Case instead of Service
-                guard let currentUser = try await getCurrentUserUseCase.execute() else {
-                    print("❌ AppContentView: No users found")
-                    isLoading = false
-                    return
-                }
-
-                // ✅ Clean Architecture: Use Use Case to get groups
-                let groups = try await fetchGroupsForUserUseCase.execute(userId: currentUser.id)
-
-                await MainActor.run {
-                    selectedUser = currentUser
-                    selectedGroup = groups.first
-                    isLoading = false
-                }
-
-                print("✅ AppContentView: Loaded user: \(currentUser.name), groups: \(groups.count)")
-
-            } catch {
-                print("❌ AppContentView: Error loading data: \(error)")
-                await MainActor.run {
-                    isLoading = false
-                }
-            }
-        }
-    }
 }
 
 #Preview {

@@ -1,38 +1,28 @@
-//
-//  ItemListDetailView.swift
-//  OMOMoney
-//
-//  Created by System on 29/11/25.
-//
-
 import SwiftUI
 
-/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailView: View {
-    let itemListDomain: ItemListDomain
+    let itemList: SDItemList
     let currencyCode: String
-    let group: GroupDomain
-    let onItemListUpdated: ((ItemListDomain) -> Void)?
+    let group: SDGroup
+    let highlightedSearchQuery: String?
+    let onItemListUpdated: ((SDItemList) -> Void)?
 
-    @StateObject private var viewModel: ItemListDetailViewModel
+    @State private var viewModel: ItemListDetailViewModel
     @State private var sheetMode: ItemSheetMode?
-    @State private var hasLoadedInitialData = false
-    @State private var currentItemList: ItemListDomain  // reactive source of truth for title/metadata
+    @State private var heroIsSuccess: Bool = false
+    @State private var showMetaLabels: Bool = true
+    @State private var lastAddedDescription: String = ""
 
-    // MARK: - Sheet Mode (UI State)
     enum ItemSheetMode: Identifiable {
         case create
-        case edit(ItemDomain)
+        case edit(SDItem)
         case editRegistry
 
         var id: String {
             switch self {
-            case .create:
-                return "create"
-            case .edit(let item):
-                return "edit-\(item.id)"
-            case .editRegistry:
-                return "editRegistry"
+            case .create:       return "create"
+            case .edit(let i):  return "edit-\(i.id)"
+            case .editRegistry: return "editRegistry"
             }
         }
     }
@@ -40,24 +30,23 @@ struct ItemListDetailView: View {
     let onPaidStatusChanged: (() -> Void)?
 
     init(
-        itemListDomain: ItemListDomain,
+        itemList: SDItemList,
         currencyCode: String = "EUR",
-        group: GroupDomain,
-        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        group: SDGroup,
+        highlightedSearchQuery: String? = nil,
+        onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onPaidStatusChanged: (() -> Void)? = nil
     ) {
-        self.itemListDomain = itemListDomain
+        self.itemList = itemList
         self.currencyCode = currencyCode
         self.group = group
+        self.highlightedSearchQuery = highlightedSearchQuery
         self.onItemListUpdated = onItemListUpdated
         self.onPaidStatusChanged = onPaidStatusChanged
-        self._currentItemList = State(initialValue: itemListDomain)
 
-        // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
-
-        self._viewModel = StateObject(wrappedValue: ItemListDetailViewModel(
-            itemListDomain: itemListDomain,
+        self._viewModel = State(wrappedValue: ItemListDetailViewModel(
+            itemList: itemList,
             currencyCode: currencyCode,
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             createItemUseCase: container.makeCreateItemUseCase(),
@@ -70,7 +59,7 @@ struct ItemListDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if viewModel.isLoading {
-                ProgressView("Cargando items...")
+                ProgressView(LocalizationKey.Item.loading.localized)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = viewModel.errorMessage {
                 errorView(errorMessage)
@@ -78,12 +67,12 @@ struct ItemListDetailView: View {
                 mainContentView
             }
         }
-        .navigationTitle(currentItemList.itemListDescription)
+        .navigationTitle(itemList.itemListDescription)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Editar Registro", systemImage: "pencil") {
+                    Button(LocalizationKey.Entry.edit.localized, systemImage: "pencil") {
                         sheetMode = .editRegistry
                     }
                 } label: {
@@ -91,36 +80,29 @@ struct ItemListDetailView: View {
                 }
             }
         }
-        .onAppear {
-            // Only load data on first appearance to avoid DB query on sheet dismiss
-            guard !hasLoadedInitialData else {
-                print("📍 ItemListDetailView: Sheet dismissed, reloading items...")
-                // ✅ Reload items to get updated values
-                Task {
-                    await viewModel.loadItems()
-                }
-                return
-            }
-
-            hasLoadedInitialData = true
-            Task {
-                await viewModel.loadItems()
-            }
+        .task {
+            await viewModel.loadItems()
+        }
+        .task {
+            try? await Task.sleep(for: .seconds(3))
+            withAnimation(.easeInOut(duration: 0.5)) { showMetaLabels = false }
         }
         .sheet(item: $sheetMode) { mode in
-            // ✅ Clean Architecture: Use DI Container for Use Cases
             let container = AppDIContainer.shared
-
             switch mode {
             case .create:
                 AddItemView(
-                    itemListId: currentItemList.id,
+                    itemListId: itemList.id,
                     itemToEdit: nil,
-                    itemListDescription: currentItemList.itemListDescription,
+                    itemListDescription: itemList.itemListDescription,
                     currencyCode: currencyCode,
-                    onItemSaved: { itemDomain in
+                    onItemSaved: { item in
+                        Task { await viewModel.addItem(item) }
+                        lastAddedDescription = item.itemDescription
+                        withAnimation(AnimationHelper.smoothSpring) { heroIsSuccess = true }
                         Task {
-                            await viewModel.addItemFromDomain(itemDomain)
+                            try? await Task.sleep(for: .milliseconds(900))
+                            withAnimation(AnimationHelper.smoothSpring) { heroIsSuccess = false }
                         }
                     },
                     createItemUseCase: container.makeCreateItemUseCase(),
@@ -128,15 +110,11 @@ struct ItemListDetailView: View {
                 )
             case .edit(let item):
                 AddItemView(
-                    itemListId: currentItemList.id,
+                    itemListId: itemList.id,
                     itemToEdit: item,
-                    itemListDescription: currentItemList.itemListDescription,
+                    itemListDescription: itemList.itemListDescription,
                     currencyCode: currencyCode,
-                    onItemSaved: { itemDomain in
-                        Task {
-                            await viewModel.updateItemFromDomain(itemDomain)
-                        }
-                    },
+                    onItemSaved: { item in Task { await viewModel.updateItem(item) } },
                     createItemUseCase: container.makeCreateItemUseCase(),
                     updateItemUseCase: container.makeUpdateItemUseCase()
                 )
@@ -144,10 +122,9 @@ struct ItemListDetailView: View {
                 NavigationStack {
                     AddItemListView(
                         group: group,
-                        itemListToEdit: currentItemList,
+                        itemListToEdit: itemList,
                         onItemListCreated: { _ in },
                         onItemListUpdated: { updated in
-                            currentItemList = updated
                             onItemListUpdated?(updated)
                             sheetMode = nil
                         },
@@ -158,161 +135,151 @@ struct ItemListDetailView: View {
         }
     }
 
-    // MARK: - UI Components
+    // MARK: - Main Content
 
     private var mainContentView: some View {
-        VStack(spacing: 0) {
-            if viewModel.items.isEmpty {
-                emptyStateView
-            } else {
-                itemsListView
-            }
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
 
-            // Total card at bottom
-            VStack(spacing: AppConstants.UserInterface.padding) {
-                TotalSpentCardView(
-                    label: "Coste de \(currentItemList.itemListDescription)",
-                    totalAmount: viewModel.getFormattedTotal(),
-                    onAddExpense: {
-                        sheetMode = .create
-                    }
-                )
-            }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.systemBackground))
-        }
-        .ignoresSafeArea(.keyboard)
-    }
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
 
-    private var itemsListView: some View {
-        List {
-            ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
-                ItemRowView(
-                    item: item,
-                    formattedAmount: viewModel.getFormattedAmount(item),
-                    currencyCode: currencyCode,
-                    onTap: { sheetMode = .edit(item) },
-                    onTogglePaid: {
-                        Task {
-                            await viewModel.toggleItemPaid(item)
-                            onPaidStatusChanged?()
-                        }
-                    }
-                )
-                .listRowInsets(EdgeInsets(
-                    top: 4,
-                    leading: AppConstants.UserInterface.padding,
-                    bottom: 4,
-                    trailing: AppConstants.UserInterface.padding
-                ))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task {
-                            await viewModel.deleteItem(item, at: index)
-                        }
-                    } label: {
-                        Label("Eliminar", systemImage: "trash")
-                    }
+            itemsList
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                // Match the dashboard refresh path: the pull gesture should resolve
+                // against inset space above the list instead of pushing a padded frame.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    Color.clear
+                        .frame(height: 4)
                 }
-            }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear
+                        .frame(height: 2)
+                }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.items.count)
-        .refreshable {
-            await viewModel.loadItems()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            heroCardInset
         }
     }
 
-    private var emptyStateView: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "tray")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+    // MARK: - Hero Card
 
-            Text("No hay items")
-                .font(.title3)
-                .fontWeight(.semibold)
+    private var heroCard: some View {
+        ItemListDetailHeroCard(
+            itemList: itemList,
+            heroIsSuccess: heroIsSuccess,
+            lastAddedDescription: lastAddedDescription,
+            totalAmount: viewModel.getFormattedTotal(),
+            heroStatus: viewModel.getHeroStatus(),
+            showMetaLabels: showMetaLabels,
+            onAddExpense: { sheetMode = .create }
+        )
+    }
 
-            Text("Agrega tu primer item con el botón +")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(AppConstants.UserInterface.largePadding)
+    // MARK: - Items List (scrollable)
+
+    private var itemsList: some View {
+        ItemListItemsSection(
+            items: viewModel.items,
+            currencyCode: currencyCode,
+            formattedAmount: viewModel.getFormattedAmount,
+            isSearchMatch: { item in
+                viewModel.itemMatchesSearch(item, query: highlightedSearchQuery)
+            },
+            onItemTap: { sheetMode = .edit($0) },
+            onTogglePaid: { item in
+                Task {
+                    await viewModel.toggleItemPaid(item)
+                    onPaidStatusChanged?()
+                }
+            },
+            onDelete: { item, index in
+                Task { await viewModel.deleteItem(item, at: index) }
+            },
+            onRefresh: { await viewModel.loadItems() }
+        )
+    }
+
+    private var heroCardInset: some View {
+        heroCard
+            .padding(.horizontal, AppConstants.UserInterface.padding)
+            .padding(.vertical, 12)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea(edges: .bottom))
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.orange)
-
-            Text("Error")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text(message)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button("Reintentar") {
-                Task {
-                    await viewModel.loadItems()
-                }
-            }
-            .buttonStyle(.borderedProminent)
+        ItemListErrorState(message: message) {
+            Task { await viewModel.loadItems() }
         }
-        .padding(AppConstants.UserInterface.largePadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - Item Row View Component
+// MARK: - Item Row View
 
 struct ItemRowView: View {
-    let item: ItemDomain
-    let formattedAmount: String  // total = unit × qty
+    let item: SDItem
+    let formattedAmount: String
     let currencyCode: String
+    let timelinePosition: TimelinePosition
+    let isSearchMatch: Bool
     let onTap: () -> Void
     let onTogglePaid: () -> Void
 
     private var showsBreakdown: Bool { item.quantity > 1 }
-    private var isPending: Bool { !item.isPaid }
-
+    private var showsZeroAmountStyle: Bool { abs(item.totalAmount) < 0.000_001 }
+    private var minimumRowHeight: CGFloat { showsBreakdown ? 64 : 58 }
+    private var lineSegmentHeight: CGFloat { showsBreakdown ? 31 : 29 }
+    private var showsBottomSeparator: Bool {
+        timelinePosition != .last && timelinePosition != .single
+    }
     private var formattedUnitPrice: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: item.amount as NSDecimalNumber) ?? "\(item.amount)"
+        return formatter.string(from: NSNumber(value: item.amount)) ?? "\(item.amount)"
     }
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(alignment: .center, spacing: 12) {
-                Button(action: onTogglePaid) {
-                    Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
-                        .font(.title2)
-                        .foregroundStyle(item.isPaid ? Color.green : Color(.systemGray3))
-                }
-                .buttonStyle(PressHapticButtonStyle())
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: onTogglePaid) {
+                TimelineRailView(
+                    position: timelinePosition,
+                    color: item.isPaid ? .green : Color(.systemGray3),
+                    isActive: item.isPaid,
+                    iconName: item.isPaid ? "checkmark.circle.fill" : "circle",
+                    iconColor: item.isPaid ? .green : Color(.systemGray3),
+                    lineSegmentHeight: lineSegmentHeight
+                )
+                .frame(width: 44)
+            }
+            .buttonStyle(PressHapticButtonStyle())
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.itemDescription)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(isPending ? .secondary : .primary)
-                        .lineLimit(1)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 6) {
+                        Text(item.itemDescription)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+
+                        if isSearchMatch {
+                            Image(systemName: "magnifyingglass.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.tint)
+                        }
+                    }
 
                     if showsBreakdown {
-                        Text("\(formattedUnitPrice) × \(item.quantity) uds.")
+                        Text("\(formattedUnitPrice) × \(item.quantity) \(LocalizationKey.Item.units.localized)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .padding(.top, 2)
                     }
                 }
 
@@ -320,251 +287,33 @@ struct ItemRowView: View {
 
                 Text(formattedAmount)
                     .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(isPending ? .secondary : .primary)
+                    .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
+                    .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
                     .lineLimit(1)
                     .layoutPriority(1)
             }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+            .frame(minHeight: minimumRowHeight, alignment: .center)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) {
+                if showsBottomSeparator {
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.15))
+                        .frame(height: 2.0)
+                        .frame(maxWidth: 120)
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.trailing, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 }
-
-// MARK: - Add/Edit Item View
-
-struct AddItemView: View {
-    let onItemSaved: (ItemDomain) -> Void
-    let currencyCode: String
-    let itemListDescription: String
-
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel: AddItemViewModel
-    @FocusState private var focusedField: Field?
-    @State private var displayedSubtotal: String = ""
-    @State private var subtotalIsDecreasing: Bool = false
-    private enum Field { case description, amount, quantity }
-
-    init(
-        itemListId: UUID,
-        itemToEdit: ItemDomain? = nil,
-        itemListDescription: String,
-        currencyCode: String = "EUR",
-        onItemSaved: @escaping (ItemDomain) -> Void,
-        createItemUseCase: CreateItemUseCase,
-        updateItemUseCase: UpdateItemUseCase
-    ) {
-        self.onItemSaved = onItemSaved
-        self.currencyCode = currencyCode
-        self.itemListDescription = itemListDescription
-        self._viewModel = StateObject(wrappedValue: AddItemViewModel(
-            itemListId: itemListId,
-            itemToEdit: itemToEdit,
-            itemListDescription: itemListDescription,
-            createItemUseCase: createItemUseCase,
-            updateItemUseCase: updateItemUseCase
-        ))
-    }
-
-    // MARK: - Computed
-
-    private var currencySymbol: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        formatter.locale = Locale(identifier: "en_US")
-        return formatter.currencySymbol
-    }
-
-    private var quantityValue: Int {
-        Int(viewModel.quantity) ?? 1
-    }
-
-    private var subtotalAmount: String {
-        let normalized = viewModel.amount.replacingOccurrences(of: ",", with: ".")
-        guard let price = Decimal(string: normalized), price > 0, quantityValue > 1 else { return "" }
-        let total = price * Decimal(quantityValue)
-        return String(format: "%.2f", NSDecimalNumber(decimal: total).doubleValue) + " " + currencySymbol
-    }
-
-    private var subtotalFormula: String {
-        guard quantityValue > 1 else { return "" }
-        return "\(viewModel.amount) \(currencySymbol) × \(quantityValue) uds."
-    }
-
-    // MARK: - Body
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    heroAmountInput
-                    descriptionCard
-                    quantityStepper
-                    if viewModel.showsTotalPreview { subtotalCard }
-                }
-                .padding(AppConstants.UserInterface.padding)
-                .padding(.bottom, 8)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(viewModel.isEditMode ? "Editar Item" : "Nuevo Item")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") {
-                        Task {
-                            if let itemDomain = await viewModel.saveItem() {
-                                onItemSaved(itemDomain)
-                                dismiss()
-                            }
-                        }
-                    }
-                    .disabled(!viewModel.canSave)
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Listo") { focusedField = nil }
-                }
-            }
-        }
-    }
-
-    // MARK: - Hero Amount Input
-
-    private var heroAmountInput: some View {
-        HeroAmountInputView(
-            text: $viewModel.amount,
-            currencySymbol: currencySymbol,
-            onValidate: viewModel.validateAndCorrectAmount,
-            focusedField: $focusedField,
-            fieldValue: .amount
-        )
-    }
-
-    // MARK: - Description Card
-
-    private var descriptionCard: some View {
-        LimitedTextField(
-            icon: "text.alignleft",
-            placeholder: itemListDescription,
-            text: $viewModel.description,
-            focusedField: $focusedField,
-            fieldValue: .description
-        )
-    }
-
-    // MARK: - Quantity Stepper
-
-    private var quantityBinding: Binding<Int> {
-        Binding(
-            get: { max(1, Int(viewModel.quantity) ?? 1) },
-            set: { viewModel.quantity = String($0) }
-        )
-    }
-
-    private var quantityStepper: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Cantidad")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            HStack(spacing: 12) {
-                Image(systemName: "number")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-
-                TextField("1", text: $viewModel.quantity)
-                    .keyboardType(.numberPad)
-                    .font(.subheadline.weight(.semibold))
-                    .focused($focusedField, equals: .quantity)
-                    .onChange(of: viewModel.quantity) { _, newValue in
-                        let digits = newValue.filter { $0.isNumber }
-                        if let n = Int(digits) {
-                            viewModel.quantity = String(min(n, 999999))
-                        } else {
-                            viewModel.quantity = digits
-                        }
-                    }
-
-                Stepper("", value: quantityBinding, in: 1...999999)
-                    .labelsHidden()
-                    .fixedSize()
-            }
-            .padding(AppConstants.UserInterface.padding)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        }
-    }
-
-    // MARK: - Subtotal Card
-
-    private var subtotalCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Subtotal")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(subtotalFormula)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text(displayedSubtotal.isEmpty ? subtotalAmount : displayedSubtotal)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
-                .contentTransition(.numericText(countsDown: subtotalIsDecreasing))
-                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: displayedSubtotal)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
-        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-        .onAppear {
-            displayedSubtotal = subtotalAmount
-        }
-        .onChange(of: subtotalAmount) { _, newValue in
-            let oldDigits = Int(displayedSubtotal.filter(\.isNumber)) ?? 0
-            let newDigits = Int(newValue.filter(\.isNumber)) ?? 0
-            subtotalIsDecreasing = newDigits < oldDigits
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                displayedSubtotal = newValue
-            }
-        }
-    }
-}
-
 
 // MARK: - Preview
 #Preview {
-    let itemListDomain = ItemListDomain(
-        id: UUID(),
-        itemListDescription: "Compras del supermercado",
-        date: Date(),
-        categoryId: nil,
-        paymentMethodId: nil,
-        groupId: UUID(),
-        createdAt: Date(),
-        lastModifiedAt: nil
-    )
-    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
-
+    let itemList = SDItemList.mock(itemListDescription: "Compras del supermercado")
+    let group = SDGroup.mock(name: "Casa", currency: "EUR")
     return NavigationStack {
-        ItemListDetailView(
-            itemListDomain: itemListDomain,
-            currencyCode: "EUR",
-            group: group
-        )
+        ItemListDetailView(itemList: itemList, currencyCode: "EUR", group: group)
     }
 }

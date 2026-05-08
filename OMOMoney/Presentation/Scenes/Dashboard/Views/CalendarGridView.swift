@@ -5,8 +5,9 @@
 
 import SwiftUI
 
+@available(iOS 26.0, *)
 struct CalendarGridView: View {
-    let itemLists: [ItemListDomain]
+    let itemLists: [SDItemList]
     let itemListTotals: [UUID: Double]
     let itemListPaidStatus: [UUID: ItemListPaidStatus]
     let currencyCode: String
@@ -125,40 +126,15 @@ struct CalendarGridView: View {
     // MARK: - Subviews
 
     private var monthHeader: some View {
-        HStack {
-            Button { changeMonth(by: -1) } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
-            }
-            Spacer()
-            Text(monthTitle)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
-            Spacer()
-            Button { changeMonth(by: 1) } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
-            }
-        }
-        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-        .padding(.vertical, AppConstants.UserInterface.smallPadding)
+        CalendarMonthHeader(
+            title: monthTitle,
+            onPrevious: { changeMonth(by: -1) },
+            onNext: { changeMonth(by: 1) }
+        )
     }
 
     private var weekdayHeaders: some View {
-        LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(weekdaySymbols, id: \.self) { symbol in
-                Text(symbol)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-            }
-        }
-        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
+        CalendarWeekdayHeaderRow(columns: columns, weekdaySymbols: weekdaySymbols)
     }
 
     private func dayCell(for date: Date, rowHeight: CGFloat) -> some View {
@@ -167,35 +143,21 @@ struct CalendarGridView: View {
         let isToday    = calendar.isDateInToday(date)
         let isSelected = selectedDay.map { calendar.isDate($0, inSameDayAs: date) } ?? false
         let hasItemLists = dailyTotals[dayKey] != nil
-        let hasSpend     = hasItemLists && dayTotal > 0
 
         let hasUnpaid = dailyHasUnpaid[dayKey] ?? false
-        let dateColor: Color = isToday ? .accentColor : .primary
-        let amountColor: Color = hasSpend ? (hasUnpaid ? .orange : .accentColor) : .secondary
 
-        return Button { onDayTap(date) } label: {
-            VStack(spacing: 4) {
-                Text("\(calendar.component(.day, from: date))")
-                    .font(.system(size: 20, weight: isSelected ? .bold : .regular, design: .rounded))
-                    .foregroundColor(isSelected ? .accentColor : dateColor)
-
-                if hasItemLists {
-                    Text(formattedAmount(dayTotal))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(amountColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                } else {
-                    Text("·")
-                        .font(.system(size: 13))
-                        .foregroundColor(.clear)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: rowHeight)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        return CalendarDayCell(
+            date: date,
+            rowHeight: rowHeight,
+            calendar: calendar,
+            dayTotal: dayTotal,
+            isToday: isToday,
+            isSelected: isSelected,
+            hasItemLists: hasItemLists,
+            hasUnpaid: hasUnpaid,
+            onTap: { onDayTap(date) },
+            formattedAmount: formattedAmount
+        )
     }
 
     // MARK: - Helpers

@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct PaymentMethodManagementView: View {
-    let group: GroupDomain
+    let group: SDGroup
 
-    @StateObject private var viewModel = PaymentMethodListViewModel()
+    @State private var viewModel = PaymentMethodListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {
         case add
-        case edit(PaymentMethodDomain)
+        case edit(SDPaymentMethod)
         var id: String {
             switch self { case .add: return "add"; case .edit(let pm): return pm.id.uuidString }
         }
@@ -22,12 +22,10 @@ struct PaymentMethodManagementView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !pm.isDefault {
-                            Button(role: .destructive) {
-                                Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
-                            } label: {
-                                Label("Eliminar", systemImage: "trash")
-                            }
+                        Button(role: .destructive) {
+                            Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
+                        } label: {
+                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
                         }
                     }
             }
@@ -35,7 +33,7 @@ struct PaymentMethodManagementView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Métodos de pago")
+        .navigationTitle(LocalizationKey.Payment.title.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -61,8 +59,8 @@ struct PaymentMethodManagementView: View {
         .task { await viewModel.loadPaymentMethods(forGroupId: group.id) }
     }
 
-    private func paymentMethodRow(_ pm: PaymentMethodDomain) -> some View {
-        Button { if !pm.isDefault { sheetMode = .edit(pm) } } label: {
+    private func paymentMethodRow(_ pm: SDPaymentMethod) -> some View {
+        Button { sheetMode = .edit(pm) } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -81,15 +79,9 @@ struct PaymentMethodManagementView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if pm.isDefault {
-                    Text("Predeterminado")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.secondarySystemGroupedBackground))
@@ -100,29 +92,29 @@ struct PaymentMethodManagementView: View {
 
     private func typeIcon(_ type: String) -> String {
         switch type {
-        case "cash":         return "banknote.fill"
+        case "cash":          return "banknote.fill"
         case "bank_transfer": return "arrow.left.arrow.right"
-        case "card_credit":  return "creditcard.fill"
-        default:             return "creditcard.fill"  // card_debit
+        case "card_credit":   return "creditcard.fill"
+        default:              return "creditcard.fill"
         }
     }
 
     private func typeColor(_ type: String) -> Color {
         switch type {
-        case "cash":         return .green
+        case "cash":          return .green
         case "bank_transfer": return .orange
-        case "card_credit":  return .purple
-        default:             return .blue  // card_debit
+        case "card_credit":   return .purple
+        default:              return .blue
         }
     }
 
     private func typeName(_ type: String) -> String {
         switch type {
-        case "cash":         return "Efectivo"
-        case "card_debit":   return "Débito"
-        case "card_credit":  return "Crédito"
-        case "bank_transfer": return "Transfer..."
-        default:             return type
+        case "cash":          return LocalizationKey.Payment.cash.localized
+        case "card_debit":    return LocalizationKey.Payment.debit.localized
+        case "card_credit":   return LocalizationKey.Payment.credit.localized
+        case "bank_transfer": return LocalizationKey.Payment.transfer.localized
+        default:              return type
         }
     }
 }

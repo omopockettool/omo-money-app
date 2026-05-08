@@ -1,112 +1,100 @@
 import SwiftUI
 
-/// ✅ Clean Architecture: Works with Domain models only, no Core Data dependencies
 struct AddItemListView: View {
-    let group: GroupDomain
-    let onItemListCreated: (ItemListDomain) -> Void
-    let onItemListUpdated: ((ItemListDomain) -> Void)?
+    let group: SDGroup
+    let onItemListCreated: (SDItemList) -> Void
+    let onItemListUpdated: ((SDItemList) -> Void)?
     let onCancel: () -> Void
 
-    @StateObject private var viewModel: AddItemListViewModel
-    @FocusState private var focusedField: Field?
+    @State private var viewModel: AddItemListViewModel
+    @FocusState private var focusedField: AddItemListField?
     @State private var showDatePicker = false
+    @State private var calendarExpanded = false
+    @State private var suppressCalendarExpand = false
     @State private var showDetails = false
     @State private var showCategoryOverflow = false
-    @State private var orderedCategories: [CategoryDomain] = []
-    @State private var orderedPaymentMethods: [PaymentMethodDomain] = []
-
-    private enum Field { case description, price }
+    @State private var showPaymentMethodOverflow = false
+    @State private var scrollToPaymentMethods = false
+    @State private var orderedCategories: [SDCategory] = []
+    @State private var orderedPaymentMethods: [SDPaymentMethod] = []
 
     init(
-        group: GroupDomain,
-        itemListToEdit: ItemListDomain? = nil,
+        group: SDGroup,
+        itemListToEdit: SDItemList? = nil,
         initialDate: Date? = nil,
-        onItemListCreated: @escaping (ItemListDomain) -> Void,
-        onItemListUpdated: ((ItemListDomain) -> Void)? = nil,
+        preferredCategoryId: UUID? = nil,
+        onItemListCreated: @escaping (SDItemList) -> Void,
+        onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onCancel: @escaping () -> Void
     ) {
         self.group = group
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = StateObject(wrappedValue: AddItemListViewModel(itemListToEdit: itemListToEdit, initialDate: initialDate))
+        self._viewModel = State(
+            wrappedValue: AddItemListViewModel(
+                itemListToEdit: itemListToEdit,
+                initialDate: initialDate,
+                preferredCategoryId: preferredCategoryId
+            )
+        )
     }
 
     // MARK: - Computed
 
-    private var lastUsedCategoryIds: [UUID] {
-        UserDefaults.standard
-            .string(forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
-            .map { $0.components(separatedBy: ",").compactMap { UUID(uuidString: $0) } }
-            ?? []
+    private var activeGroup: SDGroup { viewModel.selectedGroup ?? group }
+
+    private static let gridCategoryLimit = 3
+    private static let gridPaymentMethodLimit = 3
+
+    private var gridCategories: [SDCategory] {
+        orderedCategories.prefix(Self.gridCategoryLimit).map { $0 }
     }
 
-    private var lastUsedNonDefaultPaymentMethodId: UUID? {
-        UserDefaults.standard
-            .string(forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
-            .flatMap { UUID(uuidString: $0) }
+    private var overflowCategories: [SDCategory] {
+        Array(orderedCategories.dropFirst(Self.gridCategoryLimit))
     }
 
-    private func sortedCategories() -> [CategoryDomain] {
-        viewModel.categories.sorted {
-            chipRank($0.id, lastUsed: lastUsedCategoryIds) <
-            chipRank($1.id, lastUsed: lastUsedCategoryIds)
-        }
+    private var displayedCategories: [SDCategory] {
+        showCategoryOverflow ? orderedCategories : gridCategories
     }
 
-    private func sortedPaymentMethods() -> [PaymentMethodDomain] {
-        viewModel.paymentMethods.sorted {
-            chipRank($0.id, lastUsed: lastUsedNonDefaultPaymentMethodId) <
-            chipRank($1.id, lastUsed: lastUsedNonDefaultPaymentMethodId)
-        }
+    private var gridPaymentMethods: [SDPaymentMethod] {
+        orderedPaymentMethods.prefix(Self.gridPaymentMethodLimit).map { $0 }
     }
 
-    private func chipRank(_ id: UUID, lastUsed: [UUID]) -> Int {
-        lastUsed.firstIndex(of: id) ?? lastUsed.count
+    private var overflowPaymentMethods: [SDPaymentMethod] {
+        Array(orderedPaymentMethods.dropFirst(Self.gridPaymentMethodLimit))
     }
 
-    private func chipRank(_ id: UUID, lastUsed: UUID?) -> Int {
-        id == lastUsed ? 0 : 1
-    }
-
-    private static let gridCategoryLimit = 5
-
-    private var gridCategories: [CategoryDomain] {
-        orderedCategories.filter { !$0.isDefault }.prefix(Self.gridCategoryLimit).map { $0 }
-    }
-
-    private var overflowCategories: [CategoryDomain] {
-        let extra = orderedCategories.filter { !$0.isDefault }.dropFirst(Self.gridCategoryLimit)
-        let defaults = orderedCategories.filter { $0.isDefault }
-        return Array(extra) + defaults
-    }
-
-    private func recordCategoryUsage(_ category: CategoryDomain) {
-        var ids = lastUsedCategoryIds
-        ids.removeAll { $0 == category.id }
-        ids.insert(category.id, at: 0)
-        let stored = ids.prefix(Self.gridCategoryLimit).map { $0.uuidString }.joined(separator: ",")
-        UserDefaults.standard.set(stored, forKey: "lastUsedCategoryIds_\(group.id.uuidString)")
+    private var displayedPaymentMethods: [SDPaymentMethod] {
+        showPaymentMethodOverflow ? orderedPaymentMethods : gridPaymentMethods
     }
 
     private var categoryChipMinHeight: CGFloat {
-        showDetails ? 44 : 88
+        (showDetails || showCategoryOverflow) ? 44 : 88
     }
 
     private var categoryChipCornerRadius: CGFloat {
-        showDetails ? 12 : 16
+        (showDetails || showCategoryOverflow) ? 12 : 16
     }
 
     private var currencySymbol: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = group.currency
+        formatter.currencyCode = activeGroup.currency
         formatter.locale = Locale(identifier: "en_US")
         return formatter.currencySymbol
     }
 
     private var descriptionPlaceholder: String {
-        viewModel.selectedCategory?.name ?? "Descripción"
+        if let concept = viewModel.lastUsedConcept {
+            return concept
+        }
+        if let category = viewModel.selectedCategory {
+            return "\(LocalizationKey.Entry.concept.localized) (ej. \(category.name))"
+        }
+        return LocalizationKey.Entry.concept.localized
     }
 
     // MARK: - Body
@@ -115,9 +103,7 @@ struct AddItemListView: View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 20) {
-                if !viewModel.isEditMode {
-                    heroAmountInput
-                }
+                topCard
                 if !orderedCategories.isEmpty {
                     categoryGridSection
                 }
@@ -126,49 +112,44 @@ struct AddItemListView: View {
             .padding(AppConstants.UserInterface.padding)
             .padding(.bottom, 8)
         }
-        .task(id: showDetails) {
-            guard showDetails, !viewModel.isEditMode else { return }
-            try? await Task.sleep(for: .milliseconds(300))
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                proxy.scrollTo("moreDetailsAnchor", anchor: .bottom)
+
+        .onChange(of: scrollToPaymentMethods) { _, fire in
+            guard fire else { return }
+            scrollToPaymentMethods = false
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    proxy.scrollTo("paymentMethodAnchor", anchor: .top)
+                }
             }
         }
-        .task(id: showDatePicker) {
-            guard showDatePicker else { return }
-            try? await Task.sleep(for: .milliseconds(400))
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) {
-                proxy.scrollTo("datePickerAnchor", anchor: .bottom)
-            }
-        }
+
         } // ScrollViewReader
-        .scrollDisabled(!showDetails && !viewModel.isEditMode)
+        .scrollDisabled(!showDetails && !viewModel.isEditMode && !showCategoryOverflow && !showPaymentMethodOverflow)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(viewModel.isEditMode ? "Editar Registro" : "Nuevo Registro")
+        .navigationTitle(viewModel.isEditMode ? LocalizationKey.Entry.edit.localized : LocalizationKey.Entry.newEntry.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") { onCancel() }
+                Button { onCancel() } label: {
+                    Image(systemName: "xmark")
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button {
                     if viewModel.canSave {
                         Task { await saveItemList() }
                     } else {
                         viewModel.showValidationToast()
                     }
+                } label: {
+                    Image(systemName: "checkmark")
                 }
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Listo") { focusedField = nil }
+                Button(LocalizationKey.General.done.localized) { focusedField = nil }
             }
-        }
-        .sheet(isPresented: $showCategoryOverflow) {
-            categoryOverflowSheet
-                .presentationDetents([.height(CGFloat(ceil(Double(overflowCategories.count) / 2)) * 56 + 80)])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(24)
-                .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
@@ -178,395 +159,185 @@ struct AddItemListView: View {
             }
         }
         .task {
-            async let categories: () = viewModel.loadCategories(forGroupId: group.id, lastUsedCategoryId: lastUsedCategoryIds.first)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: group.id, lastUsedPaymentMethodId: lastUsedNonDefaultPaymentMethodId)
+            await viewModel.loadGroups()
+            if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
+            let activeGroupID = activeGroup.id
+            let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
+            let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
+            await viewModel.loadUsageMemory(forGroupId: activeGroupID)
+            async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
+            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
             _ = await (categories, paymentMethods)
-            orderedCategories = sortedCategories()
-            orderedPaymentMethods = sortedPaymentMethods()
+            orderedCategories = viewModel.orderedCategoriesByUsage()
+            orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
             if viewModel.isEditMode {
                 showDetails = true
+                if !Calendar.current.isDateInToday(viewModel.date) {
+                    suppressCalendarExpand = true
+                    showDatePicker = true
+                }
+            }
+        }
+        .onChange(of: viewModel.selectedGroup?.id) { oldValue, _ in
+            guard oldValue != nil else { return }
+            let previousCategoryName = viewModel.selectedCategory?.name
+            let previousPaymentMethodName = viewModel.selectedPaymentMethod?.name
+            viewModel.selectedCategory = nil
+            viewModel.selectedPaymentMethod = nil
+            Task {
+                let activeGroupID = activeGroup.id
+                let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
+                let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
+                await viewModel.loadUsageMemory(forGroupId: activeGroupID)
+                async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
+                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
+                _ = await (categories, paymentMethods)
+                orderedCategories = viewModel.orderedCategoriesByUsage()
+                orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
+                if let name = previousCategoryName {
+                    viewModel.selectedCategory = viewModel.categories.first {
+                        $0.name.lowercased() == name.lowercased()
+                    } ?? viewModel.selectedCategory
+                }
+                if let name = previousPaymentMethodName {
+                    viewModel.selectedPaymentMethod = viewModel.paymentMethods.first {
+                        $0.name.lowercased() == name.lowercased()
+                    } ?? viewModel.selectedPaymentMethod
+                }
             }
         }
         .toast($viewModel.toast)
+        .onChange(of: viewModel.description) { viewModel.updateConceptAssists() }
+        .onChange(of: viewModel.price) { viewModel.updateSuggestions() }
+        .onChange(of: viewModel.selectedCategory) { viewModel.updateConceptAssists() }
+        .onChange(of: focusedField) { _, _ in viewModel.updateSuggestions() }
+        .animation(AnimationHelper.quickEase, value: focusedField == .description)
     }
 
-    // MARK: - Hero Amount Input
+    // MARK: - Top Card (Concept + Amount)
 
-    private var heroAmountInput: some View {
-        HeroAmountInputView(
-            text: $viewModel.price,
+    private var topCard: some View {
+        AddItemListTopCard(
+            isEditMode: viewModel.isEditMode,
+            price: $viewModel.price,
             currencySymbol: currencySymbol,
-            onValidate: viewModel.validateAndCorrectPrice,
+            descriptionPlaceholder: descriptionPlaceholder,
+            description: $viewModel.description,
+            suggestions: viewModel.suggestions,
             focusedField: $focusedField,
-            fieldValue: .price
+            onValidate: viewModel.validateAndCorrectPrice,
+            onPaste: viewModel.pastePrice,
+            onSuggestionSelected: { viewModel.applySuggestion($0, forGroupId: activeGroup.id) },
+            onClearDescription: { viewModel.description = "" }
         )
     }
 
     // MARK: - Category Grid
 
     private var categoryGridSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Categoría")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(gridCategories) { category in
-                    categoryChip(category)
-                }
-
-                if !overflowCategories.isEmpty {
-                    overflowChip
-                }
-            }
-
-        }
-    }
-
-    @ViewBuilder
-    private func categoryChip(_ category: CategoryDomain) -> some View {
-        let isSelected = viewModel.selectedCategory?.id == category.id
-        let chipColor = Color(hex: category.color) ?? Color.accentColor
-        Button {
+        AddItemListCategorySection(
+            displayedCategories: displayedCategories,
+            overflowCategories: overflowCategories,
+            showOverflow: $showCategoryOverflow,
+            compact: showDetails || showCategoryOverflow,
+            selectedCategoryID: viewModel.selectedCategory?.id,
+            chipMinHeight: categoryChipMinHeight,
+            chipCornerRadius: categoryChipCornerRadius
+        ) { category in
             withAnimation(AnimationHelper.quickSpring) {
                 viewModel.selectedCategory = category
-                recordCategoryUsage(category)
+                viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
                 showCategoryOverflow = false
             }
-        } label: {
-            ZStack {
-                HStack(spacing: 8) {
-                    Image(systemName: category.icon)
-                        .font(.subheadline)
-                        .foregroundStyle(isSelected ? .white : chipColor)
-                    Text(category.name)
-                        .font(.subheadline)
-                        .fontWeight(isSelected ? .semibold : .regular)
-                        .foregroundStyle(isSelected ? .white : .primary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .opacity(showDetails ? 1 : 0)
-                .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
-
-                VStack(spacing: 6) {
-                    Image(systemName: category.icon)
-                        .font(.title2)
-                        .foregroundStyle(isSelected ? .white : chipColor)
-                    Text(category.name)
-                        .font(.subheadline)
-                        .fontWeight(isSelected ? .semibold : .regular)
-                        .foregroundStyle(isSelected ? .white : .primary)
-                        .lineLimit(1)
-                        .multilineTextAlignment(.center)
-                }
-                .opacity(showDetails ? 0 : 1)
-                .scaleEffect(showDetails ? 0.85 : 1, anchor: .center)
-                .frame(maxHeight: showDetails ? 0 : .infinity)
-                .clipped()
-            }
-            .frame(maxWidth: .infinity, minHeight: categoryChipMinHeight)
-            .padding(.horizontal, showDetails ? 14 : 12)
-            .padding(.vertical, showDetails ? 12 : 10)
-            .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: categoryChipCornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: categoryChipCornerRadius)
-                    .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
-            )
-            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
         }
-        .buttonStyle(.plain)
-    }
-
-    private var categoryOverflowSheet: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Más categorías")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(overflowCategories) { category in
-                    let isSelected = viewModel.selectedCategory?.id == category.id
-                    let chipColor = Color(hex: category.color) ?? Color.accentColor
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) {
-                            viewModel.selectedCategory = category
-                            recordCategoryUsage(category)
-                            showCategoryOverflow = false
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: category.icon)
-                                .font(.subheadline)
-                                .foregroundStyle(isSelected ? .white : chipColor)
-                            Text(category.name)
-                                .font(.subheadline)
-                                .fontWeight(isSelected ? .semibold : .regular)
-                                .foregroundStyle(isSelected ? .white : .primary)
-                                .lineLimit(1)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .padding(AppConstants.UserInterface.padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var overflowChip: some View {
-        let overflowSelected = overflowCategories.first { $0.id == viewModel.selectedCategory?.id }
-        let chipColor = overflowSelected.flatMap { Color(hex: $0.color) } ?? Color(.systemGray3)
-        let icon = overflowSelected?.icon ?? "ellipsis.circle.fill"
-        let label = overflowSelected?.name ?? "Más"
-        let isActive = overflowSelected != nil
-
-        return Button {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                showCategoryOverflow.toggle()
-            }
-        } label: {
-            ZStack {
-                // Compacto
-                HStack(spacing: 8) {
-                    Image(systemName: icon)
-                        .font(.subheadline)
-                        .foregroundStyle(isActive ? .white : chipColor)
-                    Text(label)
-                        .font(.subheadline)
-                        .fontWeight(isActive ? .semibold : .regular)
-                        .foregroundStyle(isActive ? .white : .primary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(isActive ? .white.opacity(0.8) : Color(.tertiaryLabel))
-                        .rotationEffect(.degrees(showCategoryOverflow ? 180 : 0))
-                }
-                .opacity(showDetails ? 1 : 0)
-                .scaleEffect(showDetails ? 1 : 0.85, anchor: .leading)
-
-                // Grande
-                VStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundStyle(isActive ? .white : chipColor)
-                    HStack(spacing: 4) {
-                        Text(label)
-                            .font(.subheadline)
-                            .fontWeight(isActive ? .semibold : .regular)
-                            .foregroundStyle(isActive ? .white : .primary)
-                            .lineLimit(1)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(isActive ? .white.opacity(0.8) : Color(.tertiaryLabel))
-                            .rotationEffect(.degrees(showCategoryOverflow ? 180 : 0))
-                    }
-                }
-                .opacity(showDetails ? 0 : 1)
-                .scaleEffect(showDetails ? 0.85 : 1, anchor: .center)
-                .frame(maxHeight: showDetails ? 0 : .infinity)
-                .clipped()
-            }
-            .frame(maxWidth: .infinity, minHeight: categoryChipMinHeight)
-            .padding(.horizontal, showDetails ? 14 : 12)
-            .padding(.vertical, showDetails ? 12 : 10)
-            .background(isActive ? chipColor : Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: categoryChipCornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: categoryChipCornerRadius)
-                    .stroke(chipColor.opacity(isActive ? 0 : 0.3), lineWidth: 1)
-            )
-            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
-            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showCategoryOverflow)
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - More Details Section
 
     private var moreDetailsSection: some View {
-        VStack(spacing: 16) {
-            if !viewModel.isEditMode {
-                Button {
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                        showDetails.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text("Más detalles")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Image(systemName: showDetails ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 4)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+        AddItemListMoreDetailsSection(
+            isEditMode: viewModel.isEditMode,
+            showDetails: $showDetails,
+            onCollapse: {
+                showDatePicker = false
+                calendarExpanded = false
+            }
+        ) {
+            dateCard
+            groupCard
+
+            if !orderedPaymentMethods.isEmpty {
+                paymentMethodGridSection
             }
 
-            if viewModel.isEditMode || showDetails {
-                VStack(spacing: 16) {
-                    descriptionCard
-
-                    if !orderedPaymentMethods.isEmpty {
-                        paymentMethodGridSection
-                    }
-
-                    dateGroupCard
-
-                    Color.clear
-                        .frame(height: 1)
-                        .id("moreDetailsAnchor")
-                }
-                .transition(viewModel.isEditMode ? .identity : .opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
-                .animation(viewModel.isEditMode ? nil : .spring(response: 0.45, dampingFraction: 0.82), value: showDetails)
-            }
+            Color.clear
+                .frame(height: 1)
+                .id("moreDetailsAnchor")
         }
-    }
-
-    // MARK: - Description Card
-
-    private var descriptionCard: some View {
-        LimitedTextField(
-            icon: "text.alignleft",
-            placeholder: descriptionPlaceholder,
-            text: $viewModel.description,
-            focusedField: $focusedField,
-            fieldValue: .description
-        )
     }
 
     // MARK: - Payment Method Grid
 
     private var paymentMethodGridSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Método de pago")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(orderedPaymentMethods) { method in
-                    let isSelected = viewModel.selectedPaymentMethod?.id == method.id
-                    let chipColor = paymentMethodColor(method.type)
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) {
-                            viewModel.selectedPaymentMethod = method
-                            if !method.isDefault {
-                                UserDefaults.standard.set(method.id.uuidString, forKey: "lastUsedNonDefaultPaymentMethodId_\(group.id.uuidString)")
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: paymentMethodIcon(method))
-                                .font(.subheadline)
-                                .foregroundStyle(isSelected ? .white : chipColor)
-                            Text(method.name)
-                                .font(.subheadline)
-                                .fontWeight(isSelected ? .semibold : .regular)
-                                .foregroundStyle(isSelected ? .white : .primary)
-                                .lineLimit(1)
-                            Spacer(minLength: 0)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(isSelected ? chipColor : Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(chipColor.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
+        AddItemListPaymentMethodSection(
+            displayedPaymentMethods: displayedPaymentMethods,
+            overflowPaymentMethods: overflowPaymentMethods,
+            showOverflow: $showPaymentMethodOverflow,
+            selectedPaymentMethodID: viewModel.selectedPaymentMethod?.id,
+            colorForType: paymentMethodColor,
+            iconForMethod: paymentMethodIcon,
+            onSelect: { method in
+                withAnimation(AnimationHelper.quickSpring) {
+                    viewModel.selectedPaymentMethod = method
+                    viewModel.recordPaymentMethodUsage(method, forGroupId: activeGroup.id)
+                    showPaymentMethodOverflow = false
+                    scrollToPaymentMethods = true
                 }
+            },
+            onToggleOffSelected: {
+                withAnimation(AnimationHelper.quickSpring) {
+                    viewModel.deselectPaymentMethodManually()
+                    showPaymentMethodOverflow = false
+                    scrollToPaymentMethods = true
+                }
+            },
+            onCollapseOverflow: { scrollToPaymentMethods = true }
+        )
+    }
+
+    // MARK: - Date Card
+
+    private var dateCard: some View {
+        AddItemListDateCard(
+            showDatePicker: $showDatePicker,
+            calendarExpanded: $calendarExpanded,
+            date: $viewModel.date,
+            formattedDate: viewModel.formattedDate,
+            focusedField: $focusedField
+        ) { on in
+            if on {
+                if suppressCalendarExpand {
+                    suppressCalendarExpand = false
+                } else {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        calendarExpanded = true
+                    }
+                }
+            } else {
+                viewModel.date = Date()
+                calendarExpanded = false
             }
         }
     }
 
-    // MARK: - Date + Group Card
+    // MARK: - Group Card
 
-    private var dateGroupCard: some View {
-        VStack(spacing: 0) {
-            // Date row
-            Button {
-                focusedField = nil
-                withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) {
-                    showDatePicker.toggle()
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 20)
-                    Text("Fecha")
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                    Spacer()
-                    Text(viewModel.formattedDate)
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                    Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(AppConstants.UserInterface.padding)
-            }
-            .buttonStyle(.plain)
-
-            if showDatePicker {
-                Divider()
-                    .padding(.horizontal, AppConstants.UserInterface.padding)
-                DatePicker("", selection: $viewModel.date, displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, AppConstants.UserInterface.smallPadding)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .id("datePickerAnchor")
-            }
-
-            Divider()
-                .padding(.horizontal, AppConstants.UserInterface.padding)
-
-            // Group row
-            HStack(spacing: 12) {
-                Image(systemName: "person.2.fill")
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 20)
-                Text("Grupo")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(group.name)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .padding(AppConstants.UserInterface.padding)
-        }
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+    private var groupCard: some View {
+        AddItemListGroupCard(
+            activeGroup: activeGroup,
+            availableGroups: viewModel.availableGroups,
+            onSelect: { viewModel.selectedGroup = $0 }
+        )
     }
 
     // MARK: - Payment Method Helpers
@@ -580,7 +351,7 @@ struct AddItemListView: View {
         }
     }
 
-    private func paymentMethodIcon(_ method: PaymentMethodDomain) -> String {
+    private func paymentMethodIcon(_ method: SDPaymentMethod) -> String {
         method.icon.isEmpty ? defaultIcon(for: method.type) : method.icon
     }
 
@@ -596,26 +367,26 @@ struct AddItemListView: View {
     // MARK: - Actions
 
     private func saveItemList() async {
-        guard let category = viewModel.selectedCategory else { return }
-        let finalDescription = viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? category.name
-            : viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalDescription = viewModel.resolvedDescriptionForSave()
 
         if viewModel.isEditMode {
-            if viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                viewModel.description = finalDescription
-            }
-            if let updated = await viewModel.updateItemList(groupId: group.id) {
+            if let updated = await viewModel.updateItemList(groupId: activeGroup.id) {
                 onItemListUpdated?(updated)
             }
         } else {
             if let created = await viewModel.createItemList(
                 description: finalDescription,
                 date: viewModel.date,
-                categoryId: category.id,
-                groupId: group.id,
+                categoryId: viewModel.selectedCategory?.id ?? UUID(),
+                groupId: activeGroup.id,
                 paymentMethodId: viewModel.selectedPaymentMethod?.id
             ) {
+                if let category = viewModel.selectedCategory {
+                    viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
+                }
+                if let paymentMethod = viewModel.selectedPaymentMethod {
+                    viewModel.recordPaymentMethodUsage(paymentMethod, forGroupId: activeGroup.id)
+                }
                 onItemListCreated(created)
             }
         }
@@ -624,7 +395,7 @@ struct AddItemListView: View {
 
 
 #Preview {
-    let group = GroupDomain(id: UUID(), name: "Casa", currency: "EUR")
+    let group = SDGroup.mock(name: "Casa", currency: "EUR")
     NavigationStack {
         AddItemListView(
             group: group,

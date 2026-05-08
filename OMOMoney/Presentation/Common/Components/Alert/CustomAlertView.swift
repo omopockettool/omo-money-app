@@ -109,7 +109,8 @@ struct CustomAlertView: View {
         withAnimation(.easeOut(duration: 0.25)) {
             showContent = false
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
             isPresented = false
             completion?()
         }
@@ -188,10 +189,8 @@ extension View {
             title: "¿Desea eliminar este grupo?",
             message: "Esta acción no se puede deshacer",
             primaryButton: AlertButton(title: "Eliminar", style: .destructive) {
-                print("Eliminado")
             },
             secondaryButton: AlertButton(title: "Cancelar", style: .cancel) {
-                print("Cancelado")
             },
             isPresented: .constant(true)
         )

@@ -19,6 +19,7 @@
 "general.loading" = "Cargando...";
 "general.search" = "Buscar";
 "general.close" = "Cerrar";
+"general.all" = "Todo";
 
 // MARK: - Navigation
 "nav.dashboard" = "Panel";
@@ -123,3 +124,134 @@
 "success.updated" = "Actualizado exitosamente";
 "success.deleted" = "Eliminado exitosamente";
 "success.saved" = "Guardado exitosamente";
+
+// MARK: - General (extended)
+"general.retry" = "Reintentar";
+"general.empty" = "Nada por aquí...";
+"general.paste" = "Pegar";
+
+// MARK: - Dashboard (extended)
+"dashboard.changingGroup" = "Cambiando grupo...";
+"dashboard.today" = "Hoy";
+"dashboard.yesterday" = "Ayer";
+"dashboard.costThisMonth" = "Coste de este mes";
+"dashboard.costToday" = "Coste de hoy";
+"dashboard.added" = "¡Listo!";
+"dashboard.filters" = "Filtros";
+"dashboard.month" = "Mes";
+"dashboard.year" = "Año";
+"dashboard.currentMonth" = "Volver al mes actual";
+"dashboard.noMatchesTitle" = "Sin coincidencias";
+"dashboard.noMatchesMessage" = "Prueba otra búsqueda o ajusta los filtros.";
+"dashboard.searchItemSummary.single" = "%d artículo coincidente";
+"dashboard.searchItemSummary.multiple" = "%d artículos coincidentes";
+"dashboard.emptyEntryToast" = "Registro vacío";
+"dashboard.markedAllPaid" = "Todo marcado como pagado";
+"dashboard.markedAllPending" = "Todo marcado como pendiente";
+"dashboard.changeUndone" = "Cambio deshecho";
+"dashboard.undo" = "Deshacer";
+
+// MARK: - Entry (extended)
+"entry.newEntry" = "Nuevo Registro";
+"entry.concept" = "Concepto";
+"entry.viewLess" = "Ver menos";
+"entry.moreDetails" = "Más detalles";
+"entry.tapToAdd" = "Pulsa el + para agregar un registro";
+"entry.addByDate" = "Añadir en esta fecha";
+"entry.more" = "Más";
+
+// MARK: - Item (extended)
+"item.newItem" = "Nuevo Artículo";
+"item.editItem" = "Editar Artículo";
+"item.subtotal" = "Subtotal";
+"item.units" = "uds.";
+"item.loading" = "Cargando artículos...";
+"item.tapToAdd" = "Pulsa el + para agregar un artículo";
+"item.costOf" = "Coste de %@";
+"item.oneItem" = "1 artículo";
+"item.items" = "artículos";
+"item.unpaid" = "por pagar";
+
+// MARK: - Group (extended)
+"group.selectGroup" = "Seleccionar Grupo";
+"group.deleting" = "Eliminando grupo...";
+"group.deleteWarning" = "Se eliminarán todos los datos asociados a este grupo.";
+"group.deleteConfirmTitle" = "¿Desea eliminar \"%@\"?";
+"group.details" = "Detalles";
+"group.holdForActions" = "Mantén pulsado un grupo para ver más acciones.";
+"group.info" = "Información del Grupo";
+"group.settings" = "Detalles del grupo";
+"group.content" = "Contenido";
+"group.currencyEuro" = "Euro (EUR)";
+"group.currencyDollar" = "Dólar (USD)";
+"group.optionsFor" = "Opciones de %@";
+
+// MARK: - Category (extended)
+"category.selectCategory" = "Seleccionar Categoría";
+"category.emptyHint" = "Las categorías se crean automáticamente cuando se crea un grupo";
+"category.icon" = "Icono";
+"category.new" = "Nueva categoría";
+
+// MARK: - Payment (extended)
+"payment.selectPayment" = "Seleccionar Método de Pago";
+"payment.emptyHint" = "Crea un método de pago en la configuración del grupo";
+"payment.none" = "Ninguno";
+"payment.cards" = "Tarjetas";
+"payment.cash" = "Efectivo";
+"payment.transfers" = "Transferencias";
+"payment.digitalWallets" = "Billeteras Digitales";
+"payment.digital" = "Digital";
+"payment.others" = "Otros";
+"payment.card" = "Tarjeta";
+"payment.other" = "Otro";
+"payment.debit" = "Débito";
+"payment.credit" = "Crédito";
+"payment.transfer" = "Transferencia";
+"payment.icon" = "Icono";
+"payment.newMethod" = "Nuevo método";
+"payment.editMethod" = "Editar método";
+
+// MARK: - Settings (extended)
+"settings.account" = "Cuenta";
+"settings.aboutOMO" = "Sobre OMO";
+"settings.requiredConfig" = "Configuración requerida";
+"settings.requiredConfigMsg" = "Por favor crea un usuario y grupo para continuar";
+"settings.goToSettings" = "Ir a Configuración";
+
+// MARK: - User (extended)
+"user.welcome.title" = "OMONI";
+"user.welcome.subtitle" = "¿Cuánto costé hoy?";
+"user.welcome.legalIntro" = "Acepto los";
+"user.welcome.terms" = "Términos";
+"user.welcome.privacy" = "Política de Privacidad";
+"user.welcome.consent" = "y la";
+"user.name.placeholder" = "Tu nombre";
+"user.email.placeholder" = "tu@email.com";
+"user.noEmail" = "Sin email";
+"user.profile" = "Perfil";
+"user.info" = "Información del usuario";
+"user.details" = "Detalles del usuario";
+"user.createdAt" = "Fecha de creación";
+"user.updatedAt" = "Última modificación";
+
+// MARK: - About
+"about.application" = "Aplicación";
+"about.currentVersion" = "Versión actual";
+"about.whatsNew" = "Novedades y cambios";
+"about.viewHistory" = "Ver historial";
+"about.title" = "Sobre OMO";
+"about.descriptionLabel" = "Descripción";
+"about.tagline" = "Pocket tool. Consciencia financiera en tu bolsillo. Sin fricción.";
+"about.heroTagline" = "¿Cuánto te costó vivir hoy?";
+"about.officialWeb" = "Web oficial";
+"about.contact" = "Contacto";
+"about.support" = "Apoyar OMO";
+"about.supportQuestion" = "¿Te está ayudando OMO Money?";
+"about.supportDescription" = "Si la app te aporta valor, puedes apoyar su desarrollo con una donación y ayudar a que siga creciendo.";
+"about.donate" = "Apoyar con una donación";
+"about.developedBy" = "Desarrollado por";
+"about.team" = "Equipo OMO";
+"about.motto" = "Hacia una vida mejor 🌿";
+"about.installed" = "Instalada";
+"about.changelog" = "Historial de cambios";
+"about.news" = "Novedades";

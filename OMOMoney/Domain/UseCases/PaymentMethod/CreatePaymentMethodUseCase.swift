@@ -1,24 +1,14 @@
-//
-//  CreatePaymentMethodUseCase.swift
-//  OMOMoney
-//
-//  Created on 12/23/25.
-//
-
 import Foundation
 
-/// Use case protocol for creating a payment method
 protocol CreatePaymentMethodUseCase {
-    /// Create a new payment method with the specified details
     func execute(
         name: String,
         type: String,
         icon: String,
         color: String,
         isActive: Bool,
-        isDefault: Bool,
         groupId: UUID
-    ) async throws -> PaymentMethodDomain
+    ) async throws -> SDPaymentMethod
 }
 
 final class DefaultCreatePaymentMethodUseCase: CreatePaymentMethodUseCase {
@@ -34,16 +24,14 @@ final class DefaultCreatePaymentMethodUseCase: CreatePaymentMethodUseCase {
         icon: String = "creditcard.fill",
         color: String = "#8E8E93",
         isActive: Bool,
-        isDefault: Bool = false,
         groupId: UUID
-    ) async throws -> PaymentMethodDomain {
+    ) async throws -> SDPaymentMethod {
         return try await paymentMethodRepository.createPaymentMethod(
             name: name,
             type: type,
             icon: icon,
             color: color,
             isActive: isActive,
-            isDefault: isDefault,
             groupId: groupId
         )
     }

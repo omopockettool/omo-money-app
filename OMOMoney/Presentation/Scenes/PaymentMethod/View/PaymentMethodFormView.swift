@@ -1,13 +1,15 @@
 import SwiftUI
+import OSLog
 
 struct PaymentMethodFormView: View {
-    let group: GroupDomain
-    let methodToEdit: PaymentMethodDomain?
+    let group: SDGroup
+    let methodToEdit: SDPaymentMethod?
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = PaymentMethodListViewModel()
+    @State private var viewModel = PaymentMethodFormViewModel()
 
+    @State private var debugNodeID = UUID()
     @State private var name = ""
     @State private var selectedType = "card_debit"
     @State private var selectedIcon = "creditcard.fill"
@@ -20,6 +22,24 @@ struct PaymentMethodFormView: View {
         "building.columns.fill", "qrcode", "wallet.pass.fill", "checkmark.seal.fill"
     ]
     private var isEditMode: Bool { methodToEdit != nil }
+
+    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.PaymentMethodFormView")
+
+    init(group: SDGroup, methodToEdit: SDPaymentMethod?, onSaved: @escaping () -> Void) {
+        self.group = group
+        self.methodToEdit = methodToEdit
+        self.onSaved = onSaved
+
+        _name = State(wrappedValue: methodToEdit?.name ?? "")
+        _selectedType = State(wrappedValue: methodToEdit?.type ?? "card_debit")
+        _selectedIcon = State(
+            wrappedValue: {
+                guard let methodToEdit else { return "creditcard.fill" }
+                return methodToEdit.icon.isEmpty ? Self.defaultTypeIcon(for: methodToEdit.type) : methodToEdit.icon
+            }()
+        )
+        Self.logger.debug("init editMode=\(methodToEdit != nil) initialName=\(methodToEdit?.name ?? "") initialType=\(methodToEdit?.type ?? "card_debit")")
+    }
 
     var body: some View {
         ScrollView {
@@ -39,7 +59,7 @@ struct PaymentMethodFormView: View {
                 // Name
                 LimitedTextField(
                     icon: "textformat",
-                    placeholder: "Nombre",
+                    placeholder: LocalizationKey.Payment.name.localized,
                     text: $name,
                     maxLength: 30,
                     focusedField: $nameFocused,
@@ -48,7 +68,7 @@ struct PaymentMethodFormView: View {
 
                 // Type picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Tipo")
+                    Text(LocalizationKey.Payment.type.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -80,7 +100,7 @@ struct PaymentMethodFormView: View {
 
                 // Icon picker
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Icono")
+                    Text(LocalizationKey.Payment.icon.localized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
@@ -108,26 +128,37 @@ struct PaymentMethodFormView: View {
             .padding(AppConstants.UserInterface.padding)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(isEditMode ? "Editar método" : "Nuevo método")
+        .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            Self.logger.debug("node appeared nodeID=\(self.debugNodeID.uuidString) editMode=\(self.methodToEdit != nil) draftName=\(self.name) type=\(self.selectedType) icon=\(self.selectedIcon)")
+        }
+        .onDisappear {
+            Self.logger.debug("node disappeared nodeID=\(self.debugNodeID.uuidString) draftName=\(self.name) type=\(self.selectedType) icon=\(self.selectedIcon)")
+        }
+        .onChange(of: name) { _, newValue in
+            Self.logger.debug("draft name changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
+        }
+        .onChange(of: selectedType) { _, newValue in
+            Self.logger.debug("draft type changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
+        }
+        .onChange(of: selectedIcon) { _, newValue in
+            Self.logger.debug("draft icon changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancelar") { dismiss() }
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Guardar") {
+                Button {
                     Task { await save() }
+                } label: {
+                    Image(systemName: "checkmark")
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }
-        }
-        .onAppear {
-            if let pm = methodToEdit {
-                name = pm.name
-                selectedType = pm.type
-                selectedIcon = pm.icon.isEmpty ? typeIcon(pm.type) : pm.icon
-            }
-            nameFocused = true
         }
     }
 
@@ -135,16 +166,21 @@ struct PaymentMethodFormView: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        if let pm = methodToEdit {
-            let success = await viewModel.updatePaymentMethod(pm, name: trimmed, type: selectedType, icon: selectedIcon)
-            if success { onSaved(); dismiss() }
+        Self.logger.debug("save tapped editMode=\(methodToEdit != nil) trimmedName=\(trimmed) selectedType=\(selectedType)")
+        if await viewModel.save(name: trimmed, type: selectedType, icon: selectedIcon, groupId: group.id, methodToEdit: methodToEdit) {
+            Self.logger.debug("save succeeded editMode=\(methodToEdit != nil)")
+            onSaved()
+            dismiss()
         } else {
-            let success = await viewModel.createPaymentMethod(name: trimmed, type: selectedType, icon: selectedIcon, groupId: group.id)
-            if success { onSaved(); dismiss() }
+            Self.logger.debug("save failed editMode=\(methodToEdit != nil)")
         }
     }
 
     private func typeIcon(_ type: String) -> String {
+        Self.defaultTypeIcon(for: type)
+    }
+
+    private static func defaultTypeIcon(for type: String) -> String {
         switch type {
         case "cash":          return "banknote.fill"
         case "bank_transfer": return "arrow.left.arrow.right"
@@ -164,10 +200,10 @@ struct PaymentMethodFormView: View {
 
     private func typeName(_ type: String) -> String {
         switch type {
-        case "cash":          return "Efectivo"
-        case "card_debit":    return "Débito"
-        case "card_credit":   return "Crédito"
-        case "bank_transfer": return "Transferencia"
+        case "cash":          return LocalizationKey.Payment.cash.localized
+        case "card_debit":    return LocalizationKey.Payment.debit.localized
+        case "card_credit":   return LocalizationKey.Payment.credit.localized
+        case "bank_transfer": return LocalizationKey.Payment.transfer.localized
         default:              return type
         }
     }

@@ -48,6 +48,10 @@ enum LocalizationKey {
         static let loading = "general.loading"
         static let search = "general.search"
         static let close = "general.close"
+        static let retry = "general.retry"
+        static let empty = "general.empty"
+        static let paste = "general.paste"
+        static let all = "general.all"
     }
     
     // MARK: - Navigation
@@ -69,6 +73,22 @@ enum LocalizationKey {
         static let edit = "user.edit"
         static let deleteConfirm = "user.delete.confirm"
         static let emptyMessage = "user.empty.message"
+        static let namePlaceholder = "user.name.placeholder"
+        static let emailPlaceholder = "user.email.placeholder"
+        static let noEmail = "user.noEmail"
+        static let profile = "user.profile"
+        static let info = "user.info"
+        static let details = "user.details"
+        static let createdAt = "user.createdAt"
+        static let updatedAt = "user.updatedAt"
+        enum Welcome {
+            static let title = "user.welcome.title"
+            static let subtitle = "user.welcome.subtitle"
+            static let legalIntro = "user.welcome.legalIntro"
+            static let terms = "user.welcome.terms"
+            static let privacy = "user.welcome.privacy"
+            static let consent = "user.welcome.consent"
+        }
     }
     
     // MARK: - Group
@@ -81,6 +101,18 @@ enum LocalizationKey {
         static let deleteConfirm = "group.delete.confirm"
         static let emptyMessage = "group.empty.message"
         static let members = "group.members"
+        static let selectGroup = "group.selectGroup"
+        static let deleting = "group.deleting"
+        static let deleteWarning = "group.deleteWarning"
+        static let deleteConfirmTitle = "group.deleteConfirmTitle"
+        static let details = "group.details"
+        static let info = "group.info"
+        static let settings = "group.settings"
+        static let content = "group.content"
+        static let currencyEuro = "group.currencyEuro"
+        static let currencyDollar = "group.currencyDollar"
+        static let optionsFor = "group.optionsFor"
+        static let holdForActions = "group.holdForActions"
     }
     
     // MARK: - Category
@@ -93,6 +125,10 @@ enum LocalizationKey {
         static let edit = "category.edit"
         static let deleteConfirm = "category.delete.confirm"
         static let emptyMessage = "category.empty.message"
+        static let selectCategory = "category.selectCategory"
+        static let emptyHint = "category.emptyHint"
+        static let icon = "category.icon"
+        static let new = "category.new"
     }
     
     // MARK: - Entry
@@ -107,6 +143,13 @@ enum LocalizationKey {
         static let edit = "entry.edit"
         static let deleteConfirm = "entry.delete.confirm"
         static let emptyMessage = "entry.empty.message"
+        static let newEntry = "entry.newEntry"
+        static let concept = "entry.concept"
+        static let viewLess = "entry.viewLess"
+        static let moreDetails = "entry.moreDetails"
+        static let tapToAdd = "entry.tapToAdd"
+        static let addByDate = "entry.addByDate"
+        static let more = "entry.more"
     }
     
     // MARK: - Item
@@ -116,6 +159,16 @@ enum LocalizationKey {
         static let amount = "item.amount"
         static let total = "item.total"
         static let add = "item.add"
+        static let newItem = "item.newItem"
+        static let editItem = "item.editItem"
+        static let subtotal = "item.subtotal"
+        static let units = "item.units"
+        static let loading = "item.loading"
+        static let tapToAdd = "item.tapToAdd"
+        static let costOf = "item.costOf"
+        static let oneItem = "item.oneItem"
+        static let items = "item.items"
+        static let unpaid = "item.unpaid"
     }
     
     // MARK: - Payment Method
@@ -128,6 +181,23 @@ enum LocalizationKey {
         static let edit = "payment.edit"
         static let deleteConfirm = "payment.delete.confirm"
         static let emptyMessage = "payment.empty.message"
+        static let selectPayment = "payment.selectPayment"
+        static let emptyHint = "payment.emptyHint"
+        static let none = "payment.none"
+        static let cards = "payment.cards"
+        static let cash = "payment.cash"
+        static let transfers = "payment.transfers"
+        static let digitalWallets = "payment.digitalWallets"
+        static let digital = "payment.digital"
+        static let others = "payment.others"
+        static let card = "payment.card"
+        static let other = "payment.other"
+        static let debit = "payment.debit"
+        static let credit = "payment.credit"
+        static let transfer = "payment.transfer"
+        static let icon = "payment.icon"
+        static let newMethod = "payment.newMethod"
+        static let editMethod = "payment.editMethod"
     }
     
     // MARK: - Dashboard
@@ -138,6 +208,25 @@ enum LocalizationKey {
         static let balance = "dashboard.balance"
         static let thisMonth = "dashboard.thisMonth"
         static let recentEntries = "dashboard.recentEntries"
+        static let changingGroup = "dashboard.changingGroup"
+        static let today = "dashboard.today"
+        static let yesterday = "dashboard.yesterday"
+        static let costThisMonth = "dashboard.costThisMonth"
+        static let costToday = "dashboard.costToday"
+        static let added = "dashboard.added"
+        static let filters = "dashboard.filters"
+        static let month = "dashboard.month"
+        static let year = "dashboard.year"
+        static let currentMonth = "dashboard.currentMonth"
+        static let noMatchesTitle = "dashboard.noMatchesTitle"
+        static let noMatchesMessage = "dashboard.noMatchesMessage"
+        static let searchItemSummarySingle = "dashboard.searchItemSummary.single"
+        static let searchItemSummaryMultiple = "dashboard.searchItemSummary.multiple"
+        static let emptyEntryToast = "dashboard.emptyEntryToast"
+        static let markedAllPaid = "dashboard.markedAllPaid"
+        static let markedAllPending = "dashboard.markedAllPending"
+        static let changeUndone = "dashboard.changeUndone"
+        static let undo = "dashboard.undo"
     }
     
     // MARK: - Settings
@@ -148,6 +237,11 @@ enum LocalizationKey {
         static let theme = "settings.theme"
         static let notifications = "settings.notifications"
         static let about = "settings.about"
+        static let account = "settings.account"
+        static let aboutOMO = "settings.aboutOMO"
+        static let requiredConfig = "settings.requiredConfig"
+        static let requiredConfigMsg = "settings.requiredConfigMsg"
+        static let goToSettings = "settings.goToSettings"
     }
     
     // MARK: - Validation Errors
@@ -176,6 +270,30 @@ enum LocalizationKey {
         static let updated = "success.updated"
         static let deleted = "success.deleted"
         static let saved = "success.saved"
+    }
+
+    // MARK: - About
+    enum About {
+        static let application = "about.application"
+        static let currentVersion = "about.currentVersion"
+        static let whatsNew = "about.whatsNew"
+        static let viewHistory = "about.viewHistory"
+        static let title = "about.title"
+        static let descriptionLabel = "about.descriptionLabel"
+        static let tagline = "about.tagline"
+        static let heroTagline = "about.heroTagline"
+        static let officialWeb = "about.officialWeb"
+        static let contact = "about.contact"
+        static let support = "about.support"
+        static let supportQuestion = "about.supportQuestion"
+        static let supportDescription = "about.supportDescription"
+        static let donate = "about.donate"
+        static let developedBy = "about.developedBy"
+        static let team = "about.team"
+        static let motto = "about.motto"
+        static let installed = "about.installed"
+        static let changelog = "about.changelog"
+        static let news = "about.news"
     }
 }
 

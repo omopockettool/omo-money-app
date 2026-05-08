@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+private enum DashboardActiveFilter {
+    case all(DashboardCategoryRange)
+    case category(DashboardCategoryBoxData)
+}
+
 enum DashboardViewMode {
     case calendar, list
 
@@ -19,19 +24,20 @@ enum DashboardViewMode {
 }
 
 /// Wrapper view to navigate to ItemListDetailView with proper currency
-/// ✅ Clean Architecture: Works with Domain models only
 struct ItemListDetailNavigationWrapper: View {
-    let itemListDomain: ItemListDomain
+    let itemList: SDItemList
     let currencyCode: String
-    let group: GroupDomain
-    let onItemListUpdated: (ItemListDomain) -> Void
+    let group: SDGroup
+    let highlightedSearchQuery: String?
+    let onItemListUpdated: (SDItemList) -> Void
     let onPaidStatusChanged: (() -> Void)?
 
     var body: some View {
         ItemListDetailView(
-            itemListDomain: itemListDomain,
+            itemList: itemList,
             currencyCode: currencyCode,
             group: group,
+            highlightedSearchQuery: highlightedSearchQuery,
             onItemListUpdated: onItemListUpdated,
             onPaidStatusChanged: onPaidStatusChanged
         )
@@ -39,28 +45,45 @@ struct ItemListDetailNavigationWrapper: View {
 }
 
 struct DashboardView: View {
-    @StateObject private var viewModel: DashboardViewModel
+    @State private var viewModel: DashboardViewModel
     @State private var navigationPath = NavigationPath()
     @State private var contentOpacity: Double = 0.0
     @State private var hasLoadedInitialData = false
-    @State private var showingAddItemList = false
     @State private var selectedCalendarDay: Date? = nil
+    @State private var addItemListTrigger: AddItemListTrigger? = nil
+
+    private struct AddItemListTrigger: Identifiable {
+        let id = UUID()
+        let initialDate: Date?
+        let preferredCategoryId: UUID?
+    }
     @State private var listDragOffset: CGFloat = 0
     @State private var displayedCalendarMonth: Date = Calendar.current.startOfMonth(for: Date())
-    @State private var viewMode: DashboardViewMode = .calendar
+    @State private var viewMode: DashboardViewMode = .list
+    @State private var collapsedMonthDays: Set<Date> = []
+    @State private var showingFiltersSheet = false
+    @State private var isSearchActive = false
+    @State private var dismissSearchKeyboardToken = 0
+    @State private var activeFilter: DashboardActiveFilter? = nil
+
+    // Hero success flash
+    @State private var heroIsSuccess: Bool = false
+    @State private var lastAddedDescription: String = ""
 
     init() {
         // ✅ Clean Architecture: Use DI Container for all dependencies
         let container = AppDIContainer.shared
 
-        self._viewModel = StateObject(wrappedValue: DashboardViewModel(
+        self._viewModel = State(wrappedValue: DashboardViewModel(
             fetchItemListsUseCase: container.makeFetchItemListsUseCase(),
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             deleteItemListUseCase: container.makeDeleteItemListUseCase(),
             getCurrentUserUseCase: container.makeGetCurrentUserUseCase(),
             fetchGroupsForUserUseCase: container.makeFetchGroupsForUserUseCase(),
             fetchCategoriesUseCase: container.makeFetchCategoriesUseCase(),
-            toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase()
+            toggleAllItemsPaidInListUseCase: container.makeToggleAllItemsPaidInListUseCase(),
+            toggleItemPaidUseCase: container.makeToggleItemPaidUseCase(),
+            deleteGroupUseCase: container.makeDeleteGroupUseCase()
         ))
     }
     
@@ -78,46 +101,40 @@ struct DashboardView: View {
                 }
                 .opacity(viewModel.isLoading ? 1.0 : contentOpacity)
 
-                // Overlay sutil para cambio de grupo (NO splash completo)
                 if viewModel.isChangingGroup {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .overlay {
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                    .tint(.white)
-
-                                Text("Cambiando grupo...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                            }
-                        }
+                    DashboardChangingGroupOverlay()
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.isChangingGroup)
                 }
             }
             .background(Color(.systemBackground))
             .onChange(of: navigationPath) { _, path in
-                if !path.isEmpty { viewModel.toast = nil }
+                viewModel.toast = nil
+                if path.isEmpty {
+                    dismissSearchKeyboardToken += 1
+                }
             }
             .onChange(of: viewModel.isChangingGroup) { _, changing in
                 if !changing {
                     selectedCalendarDay = nil
+                    activeFilter = nil
                     listDragOffset = 0
                     displayedCalendarMonth = Calendar.current.startOfMonth(for: Date())
-                    viewMode = .calendar
+                    viewMode = .list
+                    viewModel.showingFullMonth = false
+                    isSearchActive = false
+                    viewModel.clearSearch()
                 }
             }
-            .navigationDestination(for: ItemListDomain.self) { itemListDomain in
-                // ✅ Clean Architecture: Navigate with Domain model and currency
+            .navigationDestination(for: SDItemList.self) { itemList in
                 if let group = viewModel.currentGroup {
                     ItemListDetailNavigationWrapper(
-                        itemListDomain: itemListDomain,
+                        itemList: itemList,
                         currencyCode: group.currency,
                         group: group,
+                        highlightedSearchQuery: viewModel.hasActiveSearch ? viewModel.searchQuery : nil,
                         onItemListUpdated: { updated in
-                            Task { await viewModel.updateItemListDomain(updated) }
+                            Task { await viewModel.updateItemList(updated) }
                         },
                         onPaidStatusChanged: {
                             Task { await viewModel.refreshTotals() }
@@ -128,9 +145,8 @@ struct DashboardView: View {
             .sheet(isPresented: $viewModel.showingSettings) {
                 Task { await viewModel.refreshCategories() }
             } content: {
-                if let group = viewModel.currentGroup, let user = viewModel.currentUser {
+                if let user = viewModel.currentUser {
                     SettingsSheetView(
-                        group: group,
                         user: user,
                         onUserUpdated: { updated in
                             viewModel.updateCurrentUser(updated)
@@ -138,51 +154,71 @@ struct DashboardView: View {
                     )
                 }
             }
-            .sheet(isPresented: $showingAddItemList) {
+            .sheet(item: $addItemListTrigger) { trigger in
                 if let group = viewModel.currentGroup {
                     NavigationStack {
                         AddItemListView(
-                            group: group,  // ✅ Already a Domain model
-                            initialDate: selectedCalendarDay,
+                            group: group,
+                            initialDate: trigger.initialDate,
+                            preferredCategoryId: trigger.preferredCategoryId,
                             onItemListCreated: { createdItemList in
-                                print("🔄 DashboardView: onItemListCreated callback triggered")
-                                print("✅ DashboardView: Received new ItemList: '\(createdItemList.itemListDescription)'")
-                                Task {
-                                    print("⚡️ DashboardView: Using INCREMENTAL cache update")
-                                    await viewModel.addItemListFromDomain(createdItemList)
-                                    print("✅ DashboardView: Incremental update completed - UI updated instantly!")
+                                guard !heroIsSuccess else {
+                                    addItemListTrigger = nil
+                                    Task { await viewModel.addItemList(createdItemList) }
+                                    return
                                 }
-                                showingAddItemList = false
+                                lastAddedDescription = createdItemList.itemListDescription
+                                withAnimation(AnimationHelper.smoothSpring) {
+                                    heroIsSuccess = true
+                                }
+                                addItemListTrigger = nil
+                                Task {
+                                    await viewModel.addItemList(createdItemList)
+                                    try? await Task.sleep(for: .milliseconds(900))
+                                    withAnimation(AnimationHelper.smoothSpring) {
+                                        heroIsSuccess = false
+                                    }
+                                }
                             },
                             onCancel: {
-                                showingAddItemList = false
+                                addItemListTrigger = nil
                             }
                         )
                     }
                 }
             }
-        }
-        .ignoresSafeArea(.keyboard)
-        .toast($viewModel.toast)
-        .onAppear {
-            // Only load data on first appearance to avoid splash on navigation back
-            guard !hasLoadedInitialData else {
-                print("📍 DashboardView: Navigated back, refreshing data...")
-                // 🔄 Refresh data to get updated totals
-                Task {
-                    await viewModel.refreshData()
+            .sheet(isPresented: $showingFiltersSheet) {
+                NavigationStack {
+                    DashboardMonthFilterSheet(
+                        selectedMonth: viewModel.selectedMonthAnchor,
+                        availableYears: viewModel.availableFilterYears,
+                        isCustomFilterActive: viewModel.isCustomMonthFilterActive,
+                        onApply: { month in
+                            viewModel.applyMonthFilter(month)
+                            showingFiltersSheet = false
+                        },
+                        onReset: {
+                            viewModel.resetMonthFilterToCurrentMonth()
+                            showingFiltersSheet = false
+                        },
+                        onClose: { showingFiltersSheet = false }
+                    )
                 }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .toast($viewModel.toast)
+        .task {
+            guard !hasLoadedInitialData else {
+                await viewModel.refreshData()
                 return
             }
-
             hasLoadedInitialData = true
-            Task {
-                await viewModel.loadDashboardData()
-                // Fade in suave del contenido después de cargar - SOLO UNA VEZ
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seg para asegurar render
-                withAnimation(.easeIn(duration: 0.5)) {
-                    contentOpacity = 1.0
-                }
+            await viewModel.loadDashboardData()
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.easeIn(duration: 0.5)) {
+                contentOpacity = 1.0
             }
         }
     }
@@ -190,364 +226,269 @@ struct DashboardView: View {
     // MARK: - Private Views
     
     private var loadingView: some View {
-        Color(.systemBackground).ignoresSafeArea()
+        DashboardLoadingState()
     }
     
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.orange)
-            
-            Text("Error")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Text(message)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            
-            Button("Reintentar") {
-                Task {
-                    await viewModel.loadDashboardData()
-                }
-            }
-            .buttonStyle(.borderedProminent)
+        DashboardErrorState(message: message) {
+            Task { await viewModel.loadDashboardData() }
         }
-        .padding(AppConstants.UserInterface.largePadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var mainContentView: some View {
-        VStack(spacing: 0) {
-            // iOS 26-style view picker dropdown
-            viewPickerBar
-
-            // Content switches based on selected view mode
-            switch viewMode {
-            case .calendar:
-                CalendarGridView(
-                    itemLists: viewModel.itemLists,
-                    itemListTotals: viewModel.itemListTotals,
-                    itemListPaidStatus: viewModel.itemListPaidStatus,
-                    currencyCode: viewModel.currentGroup?.currency ?? "EUR",
-                    selectedDay: selectedCalendarDay,
-                    onDayTap: { date in
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            if let current = selectedCalendarDay,
-                               Calendar.current.isDate(current, inSameDayAs: date) {
-                                selectedCalendarDay = nil
-                            } else {
-                                selectedCalendarDay = date
-                                listDragOffset = 0
-                            }
-                        }
-                    },
-                    onMonthChange: { month in
-                        displayedCalendarMonth = month
-                        selectedCalendarDay = nil
-                        listDragOffset = 0
-                    }
-                )
-                .frame(maxHeight: selectedCalendarDay == nil ? .infinity : nil)
-
-                if selectedCalendarDay != nil {
-                    dayListPanel
-                        .padding(.horizontal, AppConstants.UserInterface.padding)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+        DashboardMainContent(
+            allFormattedAmount: viewModel.formattedVisibleRangePaidTotal(showingFullMonth: viewModel.showingFullMonth),
+            allFormattedUnpaidAmount: viewModel.formattedVisibleRangeUnpaidTotal(showingFullMonth: viewModel.showingFullMonth),
+            categoryBoxes: viewModel.visibleCategoryBoxes,
+            getFormattedAmount: { viewModel.formattedAmount(for: $0) },
+            getFormattedUnpaidAmount: { viewModel.formattedUnpaidAmount(for: $0) },
+            filteredItemLists: activeFilteredItemLists,
+            getItemListAmount: { viewModel.formattedPaid(for: $0) },
+            getItemListUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
+            getDayTotal: { viewModel.formattedTotal(for: $0) },
+            getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
+            getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
+            getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
+            customEmptyState: { DashboardNoResultsState() },
+            showCustomEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive,
+            onRefresh: { await viewModel.refreshData() },
+            onAllTap: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = .all(viewModel.showingFullMonth ? .month : .today)
                 }
-
-            case .list:
-                ExpenseListView(
-                    itemLists: viewModel.itemLists.filter {
-                        Calendar.current.isDate($0.date, equalTo: displayedCalendarMonth, toGranularity: .month)
-                    },
-                    getFormattedAmount: { viewModel.formattedPaid(for: $0) },
-                    getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-                    itemListCounts: viewModel.itemListCounts,
-                    categories: viewModel.categories,
-                    itemListPaidStatus: viewModel.itemListPaidStatus,
-                    onItemTap: { navigationPath.append($0) },
-                    onTogglePaid: { viewModel.togglePaid(for: $0) },
-                    onRefresh: { await viewModel.refreshData() },
-                    onDelete: { await viewModel.deleteItemListDomain($0) },
-                    getDayTotal: { viewModel.formattedTotal(for: $0) }
-                )
-                .contentMargins(.top, 0, for: .scrollContent)
-                .transition(.opacity)
-
-            }
-
-            // Bottom controls — always visible in all modes
-            bottomControls
-        }
+            },
+            onCategoryTap: { box in
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = .category(box)
+                }
+            },
+            selectedFilterTitle: activeFilterTitle,
+            selectedFilterIcon: activeFilterIcon,
+            selectedFilterColorHex: activeFilterColorHex,
+            collapsedDays: $collapsedMonthDays,
+            itemListRowStatus: viewModel.itemListRowStatus,
+            onItemTap: { itemList in
+                if isSearchActive {
+                    dismissSearchKeyboardToken += 1
+                }
+                navigationPath.append(itemList)
+            },
+            onTogglePaid: { viewModel.togglePaid(for: $0) },
+            onDelete: { await viewModel.deleteItemList($0) },
+            onClearCategoryFilter: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    activeFilter = nil
+                }
+            },
+            showingFullMonth: $viewModel.showingFullMonth,
+            hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
+            onOpenSettings: { viewModel.openSettings() },
+            bottomInset: { bottomInset }
+        )
         .animation(AnimationHelper.smoothSpring, value: selectedCalendarDay == nil)
         .animation(AnimationHelper.quickEase, value: viewMode == .calendar)
-    }
-
-    // View picker: "Calendario ⌄" dropdown on left, search icon on right
-    private var viewPickerBar: some View {
-        HStack {
-            Menu {
-                Button {
-                    withAnimation(AnimationHelper.quickEase) {
-                        viewMode = .calendar
-                        selectedCalendarDay = nil
-                    }
-                } label: {
-                    Label("Calendario", systemImage: viewMode == .calendar ? "checkmark" : "calendar")
-                }
-
-                Button {
-                    withAnimation(AnimationHelper.quickEase) {
-                        viewMode = .list
-                        selectedCalendarDay = nil
-                    }
-                } label: {
-                    Label("Lista", systemImage: viewMode == .list ? "checkmark" : "list.bullet")
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(viewMode.title)
-                        .font(.subheadline.weight(.semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundColor(.accentColor)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.accentColor.opacity(0.1))
-                .clipShape(Capsule())
-            }
-
-            Spacer()
-
-            Button { viewModel.openSettings() } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundColor(.primary)
-            }
-            .buttonStyle(.plain)
+        .onChange(of: viewModel.currentGroup?.id) { _, _ in
+            collapsedMonthDays.removeAll()
         }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, AppConstants.UserInterface.smallPadding)
+        .onChange(of: viewModel.showingFullMonth) { _, isShowingMonth in
+            let targetRange: DashboardCategoryRange = isShowingMonth ? .month : .today
+            withAnimation(AnimationHelper.quickEase) {
+                switch activeFilter {
+                case .all:
+                    activeFilter = .all(targetRange)
+                case .category(let selectedCategoryBox):
+                    activeFilter = viewModel.categoryBox(
+                        forCategoryId: selectedCategoryBox.categoryId,
+                        in: targetRange
+                    ).map { .category($0) }
+                case nil:
+                    break
+                }
+            }
+        }
+        .onChange(of: viewModel.itemListTotals) { _, _ in
+            refreshActiveFilter()
+        }
     }
 
+    private func refreshActiveFilter() {
+        switch activeFilter {
+        case .all:
+            break
+        case .category(let box):
+            let refreshedFilter = viewModel.categoryBox(forCategoryId: box.categoryId, in: box.range).map { DashboardActiveFilter.category($0) }
+            guard refreshedFilter?.categoryId != activeCategoryBox?.categoryId || refreshedFilter == nil else {
+                activeFilter = refreshedFilter
+                return
+            }
+            withAnimation(AnimationHelper.smoothSpring) {
+                activeFilter = refreshedFilter
+            }
+        case nil:
+            break
+        }
+    }
+
+    private var activeFilteredItemLists: [SDItemList] {
+        switch activeFilter {
+        case .all(let range):
+            return range == .month ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists
+        case .category(let selectedCategoryBox):
+            return viewModel.filteredItemLists(
+                forCategoryId: selectedCategoryBox.categoryId,
+                in: selectedCategoryBox.range
+            )
+        case nil:
+            return []
+        }
+    }
+
+    private var activeFilterTitle: String? {
+        switch activeFilter {
+        case .all:
+            return LocalizationKey.General.all.localized
+        case .category(let box):
+            return box.categoryName
+        case nil:
+            return nil
+        }
+    }
+
+    private var activeFilterIcon: String? {
+        switch activeFilter {
+        case .all:
+            return "square.grid.2x2.fill"
+        case .category(let box):
+            return box.categoryIcon
+        case nil:
+            return nil
+        }
+    }
+
+    private var activeFilterColorHex: String? {
+        switch activeFilter {
+        case .all:
+            return nil
+        case .category(let box):
+            return box.categoryColorHex
+        case nil:
+            return nil
+        }
+    }
+
+    private var bottomInset: some View {
+        DashboardBottomInset(
+            heroSection: {
+                Group {
+                    if !isSearchActive {
+                        DashboardHeroSection(
+                            heroIsSuccess: heroIsSuccess,
+                            lastAddedDescription: lastAddedDescription,
+                            showingFullMonth: viewModel.showingFullMonth,
+                            monthLabel: viewModel.monthHeroLabel,
+                            monthTotal: viewModel.formattedCachedMonthTotal(),
+                            todayTotal: viewModel.formattedTodayTotal,
+                            overrideLabel: activeCategoryBox?.categoryName,
+                            overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.paidAmount) },
+                            onAddExpense: {
+                                addItemListTrigger = AddItemListTrigger(
+                                    initialDate: selectedCalendarDay,
+                                    preferredCategoryId: activeCategoryBox?.categoryId
+                                )
+                            }
+                        )
+                    }
+                }
+            },
+            bottomBar: {
+                DashboardBottomBarView(
+                    searchText: $viewModel.searchQuery,
+                    isSearchActive: $isSearchActive,
+                    dismissKeyboardToken: dismissSearchKeyboardToken,
+                    currentGroup: viewModel.currentGroup,
+                    availableGroups: viewModel.availableGroups,
+                    userId: viewModel.currentUser?.id,
+                    isChangingGroup: viewModel.isChangingGroup,
+                    isFilterActive: viewModel.isCustomMonthFilterActive,
+                    onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
+                    onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
+                    onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) },
+                    onOpenFilters: { showingFiltersSheet = true }
+                )
+            }
+        )
+    }
+
+    private var activeCategoryBox: DashboardCategoryBoxData? {
+        guard case .category(let box) = activeFilter else { return nil }
+        return box
+    }
+
+    // View picker: filter pill on left, settings icon on right
 
     private var dayListPanel: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(Color(.systemGray4))
-                .frame(width: 36, height: 5)
-                .padding(.top, 6)
-                .padding(.bottom, 2)
-                .frame(maxWidth: .infinity)
-
-            if let day = selectedCalendarDay {
-                ZStack(alignment: .bottom) {
-                    dayExpenseList(for: day, isCompact: true)
-                        .contentMargins(.top, 0, for: .scrollContent)
-
-                    LinearGradient(
-                        colors: [Color(.systemGray5).opacity(0), Color(.systemGray5)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 10)
-                    .allowsHitTesting(false)
-                }
-            }
-        }
-        .background(Color(.systemGray5))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: -4)
-        .offset(y: listDragOffset)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    listDragOffset = max(0, value.translation.height)
-                }
-                .onEnded { value in
-                    if value.translation.height > 80 {
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            selectedCalendarDay = nil
-                        }
-                        listDragOffset = 0
-                    } else {
-                        withAnimation(AnimationHelper.smoothSpring) {
-                            listDragOffset = 0
-                        }
+        DashboardDayPanel(
+            selectedCalendarDay: selectedCalendarDay,
+            listDragOffset: listDragOffset,
+            content: {
+                Group {
+                    if let day = selectedCalendarDay {
+                        dayExpenseList(for: day, isCompact: true)
                     }
                 }
+            },
+            onDragChanged: { listDragOffset = $0 },
+            onDismiss: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    selectedCalendarDay = nil
+                }
+                listDragOffset = 0
+            },
+            onResetDrag: {
+                withAnimation(AnimationHelper.smoothSpring) {
+                    listDragOffset = 0
+                }
+            }
         )
-        .frame(maxHeight: .infinity)
     }
 
-    private func dayExpenseList(for date: Date, onItemTap: ((ItemListDomain) -> Void)? = nil, isCompact: Bool = false) -> some View {
+    private func dayExpenseList(for date: Date, onItemTap: ((SDItemList) -> Void)? = nil, isCompact: Bool = false) -> some View {
         let cal = Calendar.current
-        let filtered = viewModel.itemLists.filter {
+        let source = viewModel.itemLists.filter {
             cal.isDate($0.date, inSameDayAs: date)
         }
         return ExpenseListView(
-            itemLists: filtered,
+            itemLists: viewModel.filteredSearchResults(from: source),
             getFormattedAmount: { viewModel.formattedPaid(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-            itemListCounts: viewModel.itemListCounts,
-            categories: viewModel.categories,
-            itemListPaidStatus: viewModel.itemListPaidStatus,
+            getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
+            getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
+            getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
+            itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { item in
-                if let customTap = onItemTap { customTap(item) } else { navigationPath.append(item) }
+                if let customTap = onItemTap {
+                    customTap(item)
+                } else {
+                    if isSearchActive {
+                        dismissSearchKeyboardToken += 1
+                    }
+                    navigationPath.append(item)
+                }
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
-            onDelete: { await viewModel.deleteItemListDomain($0) },
+            onDelete: { await viewModel.deleteItemList($0) },
             isCompact: isCompact
         )
         .frame(maxHeight: .infinity)
     }
 
-    private func sheetTitle(for date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Gastos de hoy" }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        formatter.dateFormat = "d 'de' MMMM"
-        let s = formatter.string(from: date)
-        return s.prefix(1).uppercased() + s.dropFirst()
-    }
+}
 
-    private var displayedTotal: String {
-        guard let day = selectedCalendarDay else {
-            // Use cached month total when showing current month, avoid inline filter
-            if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
-                return viewModel.formattedCachedMonthTotal()
-            }
-            return viewModel.formattedTotal(forMonth: displayedCalendarMonth)
-        }
-        return viewModel.formattedTotal(for: day)
-    }
-
-    private var totalCardLabel: String {
-        if let day = selectedCalendarDay {
-            if Calendar.current.isDateInToday(day) { return "Coste de vida hoy" }
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "es_ES")
-            formatter.dateFormat = "d MMM"
-            return "Coste del \(formatter.string(from: day))"
-        }
-        if Calendar.current.isDate(displayedCalendarMonth, equalTo: Date(), toGranularity: .month) {
-            return "Coste de vida este mes"
-        }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        formatter.dateFormat = "MMMM yyyy"
-        let s = formatter.string(from: displayedCalendarMonth)
-        return "Coste en \(s.prefix(1).uppercased() + s.dropFirst())"
-    }
-
-    private var bottomControls: some View {
-        VStack(alignment: .leading, spacing: AppConstants.UserInterface.smallPadding) {
-            TotalSpentCardView(
-                label: totalCardLabel,
-                totalAmount: displayedTotal,
-                onAddExpense: { showingAddItemList = true }
-            )
-
-            // Group chips + Filters + Search in same row
-            HStack(spacing: AppConstants.UserInterface.smallPadding) {
-                if let currentGroup = viewModel.currentGroup,
-                   let userId = viewModel.currentUser?.id {
-                    GroupSelectorChipView(
-                        currentGroup: currentGroup,
-                        availableGroups: viewModel.availableGroups,
-                        userId: userId,
-                        isChangingGroup: viewModel.isChangingGroup,
-                        onGroupChange: { newGroup in
-                            Task { await viewModel.changeGroup(to: newGroup) }
-                        },
-                        onGroupCreated: { newGroup in
-                            viewModel.addGroup(newGroup)
-                        },
-                        onGroupDeleted: { deletedGroup in
-                            viewModel.removeGroup(deletedGroup)
-                        }
-                    )
-                }
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 0) {
-                    Button { } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .frame(height: 16)
-
-                    Button { } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .background(Color(.systemGray5))
-                .clipShape(Capsule())
-            }
-        }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.top, AppConstants.UserInterface.smallPadding)
-        .padding(.bottom, AppConstants.UserInterface.smallPadding)
-        .background(Color(.systemBackground).ignoresSafeArea(edges: .bottom))
-    }
-
-    // MARK: - Debug Helper
-    
-    /// Debug function to log all entities in the database (moved from AppContentView)
-    @MainActor
-    private func logAllEntities() async {
-        print("\n🔍 =========================")
-        print("🔍 DEBUG: Logging all entities")
-        print("🔍 =========================")
-        
-        if let currentUser = viewModel.currentUser {
-                print("\n👤 USUARIO:")
-                print("   ID: \(currentUser.id.uuidString)")  // ✅ id is NOT optional
-                print("   Nombre: \(currentUser.name)")
-                print("   Email: \(currentUser.email)")
-                print("   Creado: \(currentUser.createdAt)")
-
-                if let currentGroup = viewModel.currentGroup {
-                    print("\n🏢 GRUPO ACTUAL:")
-                    print("   ID: \(currentGroup.id.uuidString)")  // ✅ id is NOT optional
-                    print("   Nombre: \(currentGroup.name)")
-                    print("   Moneda: \(currentGroup.currency)")
-                    print("   Creado: \(currentGroup.createdAt)")
-                }
-                
-                print("\n📋 ITEM LISTS (\(viewModel.itemLists.count)):")
-                for (index, itemList) in viewModel.itemLists.enumerated() {
-                    print("   \(index + 1). ID: \(itemList.id.uuidString)")
-                    print("      Descripción: \(itemList.itemListDescription)")
-                    print("      Fecha: \(itemList.date)")
-                    // TODO: getFormattedItemListTotal is async - need to calculate totals separately
-                    print("      Total: (async calculation needed)")
-                }
-                
-                print("\n💰 TOTAL GASTADO: \(viewModel.formattedTotalSpent)")
-                
-        } else {
-            print("\n❌ No se encontró usuario actual")
-        }
-        
-        print("🔍 =========================\n")
+private extension DashboardActiveFilter {
+    var categoryId: UUID? {
+        guard case .category(let box) = self else { return nil }
+        return box.categoryId
     }
 }
 

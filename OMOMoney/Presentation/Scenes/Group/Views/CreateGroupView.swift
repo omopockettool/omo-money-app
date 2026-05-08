@@ -1,138 +1,84 @@
-//
-//  CreateGroupView.swift
-//  OMOMoney
-//
-//  Created by System on 15/11/25.
-//
-
 import SwiftUI
-import CoreData
 
-/// Vista para crear un nuevo grupo
-/// ✅ Clean Architecture: Uses Use Cases, no direct Core Data access
 struct CreateGroupView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // ✅ Clean Architecture: Use Cases instead of Core Data context
-    let createGroupUseCase: CreateGroupUseCase
-    let createUserGroupUseCase: CreateUserGroupUseCase
     let userId: UUID
-    let onGroupCreated: (GroupDomain) -> Void  // ✅ Clean Architecture: Domain callback
-    
-    @State private var groupName: String = ""
-    @State private var selectedCurrency: String = "EUR"
-    @State private var isCreating: Bool = false
-    @State private var errorMessage: String?
-    
-    // Lista de monedas disponibles
-    private let availableCurrencies = [
-        ("EUR", "Euro (EUR)"),
-        ("USD", "Dólar (USD)")
-    ]
-    
+    let onGroupCreated: (SDGroup) -> Void
+
+    @State private var viewModel = GroupFormViewModel()
+    @State private var groupName = ""
+    @State private var selectedCurrency = "EUR"
+
+    private var availableCurrencies: [(String, String)] {
+        [
+            ("EUR", LocalizationKey.Group.currencyEuro.localized),
+            ("USD", LocalizationKey.Group.currencyDollar.localized)
+        ]
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Nombre del grupo", text: $groupName)
+                    TextField(LocalizationKey.Group.name.localized, text: $groupName)
                         .textInputAutocapitalization(.words)
                 } header: {
-                    Text("Información del Grupo")
+                    Text(LocalizationKey.Group.info.localized)
                 }
-                
+
                 Section {
-                    Picker("Moneda", selection: $selectedCurrency) {
+                    Picker(LocalizationKey.Group.currency.localized, selection: $selectedCurrency) {
                         ForEach(availableCurrencies, id: \.0) { currency in
                             Text(currency.1).tag(currency.0)
                         }
                     }
                     .pickerStyle(.menu)
                 } header: {
-                    Text("Configuración")
+                    Text(LocalizationKey.Group.settings.localized)
                 }
-                
-                if let errorMessage = errorMessage {
+
+                if let error = viewModel.errorMessage {
                     Section {
-                        Text(errorMessage)
+                        Text(error)
                             .foregroundColor(.red)
                             .font(.caption)
                     }
                 }
             }
-            .navigationTitle("Crear Grupo")
+            .navigationTitle(LocalizationKey.Group.create.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") {
-                        dismiss()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
                     }
-                    .disabled(isCreating)
+                    .disabled(viewModel.isLoading)
                 }
-                
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Crear") {
-                        Task {
-                            await createGroup()
-                        }
+                    Button {
+                        Task { await createGroup() }
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
-                    .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isCreating)
+                    .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
                 }
             }
-            .disabled(isCreating)
+            .disabled(viewModel.isLoading)
         }
     }
-    
-    // MARK: - Private Methods
-    
-    @MainActor
+
     private func createGroup() async {
-        guard !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "El nombre del grupo no puede estar vacío"
-            return
-        }
-
-        isCreating = true
-        errorMessage = nil
-
-        do {
-            // ✅ Clean Architecture: Use CreateGroupUseCase
-            // This will create the group with default categories and payment methods
-            let groupDomain = try await createGroupUseCase.execute(
-                name: groupName.trimmingCharacters(in: .whitespacesAndNewlines),
-                currency: selectedCurrency
-            )
-
-            print("✅ CreateGroupView: Group created via Use Case: '\(groupDomain.name)'")
-
-            // ✅ Clean Architecture: Use CreateUserGroupUseCase to associate user with group
-            let _ = try await createUserGroupUseCase.execute(
-                userId: userId,
-                groupId: groupDomain.id,
-                role: "owner"
-            )
-
-            print("✅ CreateGroupView: User-Group association created via Use Case")
-
-            // ✅ Notify parent with Domain model (already in Domain form from Use Case)
-            onGroupCreated(groupDomain)
-
-            // Cerrar sheet
+        let trimmed = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let group = await viewModel.create(name: trimmed, currency: selectedCurrency, userId: userId) {
+            onGroupCreated(group)
             dismiss()
-
-        } catch {
-            errorMessage = "Error al crear grupo: \(error.localizedDescription)"
-            isCreating = false
         }
     }
 }
 
 // MARK: - Preview
 #Preview {
-    let appContainer = AppDIContainer.shared
-    return CreateGroupView(
-        createGroupUseCase: appContainer.makeCreateGroupUseCase(),
-        createUserGroupUseCase: appContainer.makeCreateUserGroupUseCase(),
-        userId: UUID(),
-        onGroupCreated: { _ in }
-    )
+    CreateGroupView(userId: UUID(), onGroupCreated: { _ in })
 }

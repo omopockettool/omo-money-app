@@ -1,86 +1,150 @@
 import SwiftUI
 
 struct ExpenseRowView: View {
-    let itemList: ItemListDomain
+    let itemList: SDItemList
     let formattedAmount: String
     let formattedUnpaidAmount: String?
-    let itemCount: Int
-    let categoryName: String?
-    let categoryColor: Color?
-    let paidStatus: ItemListPaidStatus
+    let searchSummary: String?
+    let searchMatchedSubtotal: String?
+    let searchMatchedUnpaid: String?
+    let rowStatus: ItemListRowStatus
     let onTap: () -> Void
     let onTogglePaid: () -> Void
     var isCompact: Bool = false
+    var timelinePosition: TimelinePosition = .single
 
-    private var isPending: Bool { paidStatus == .none }
+    private var showsZeroAmountStyle: Bool {
+        abs(itemList.totalPaidAmount) < 0.000_001
+    }
+
+    private var minimumRowHeight: CGFloat {
+        if searchSummary != nil {
+            return isCompact ? 64 : 72
+        }
+        return isCompact ? 52 : 58
+    }
+
+    private var isShowingSearchAmounts: Bool {
+        searchMatchedSubtotal != nil
+    }
+
+    private var showsBottomSeparator: Bool {
+        timelinePosition != .last && timelinePosition != .single
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Button(action: onTogglePaid) {
-                Image(systemName: paidStatusIcon)
-                    .font(.title2)
-                    .foregroundStyle(paidStatusColor)
+                TimelineRailView(
+                    position: timelinePosition,
+                    color: railColor,
+                    isActive: railIsActive,
+                    iconName: rowStatusIcon,
+                    iconColor: rowStatusColor,
+                    lineSegmentHeight: isCompact ? 24 : 29
+                )
+                .frame(width: 44)
             }
             .buttonStyle(PressHapticButtonStyle())
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(itemList.itemListDescription)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isPending ? .secondary : .primary)
-                    .lineLimit(1)
-
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(categoryColor ?? Color(.systemGray3))
-                        .frame(width: 7, height: 7)
-                        .opacity(isPending ? 0.5 : 1)
-                    Text(itemCount == 1 ? "1 ítem" : "\(itemCount) ítems")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(itemList.itemListDescription)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                         .lineLimit(1)
+
+                    if let searchSummary {
+                        Text(searchSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .padding(.top, 2)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    if let searchMatchedSubtotal, isShowingSearchAmounts {
+                        Text(searchMatchedSubtotal)
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .contentTransition(.numericText())
+
+                        if let searchMatchedUnpaid {
+                            Text("\(searchMatchedUnpaid) \(LocalizationKey.Item.unpaid.localized)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .contentTransition(.numericText())
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    } else {
+                        Text(formattedAmount)
+                            .font(.subheadline)
+                            .fontWeight(showsZeroAmountStyle ? .semibold : .bold)
+                            .foregroundStyle(showsZeroAmountStyle ? Color.secondary : Color.primary)
+                            .lineLimit(1)
+                            .contentTransition(.numericText())
+                        if let unpaid = formattedUnpaidAmount {
+                            Text("\(unpaid) \(LocalizationKey.Item.unpaid.localized)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .contentTransition(.numericText())
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                }
+                .layoutPriority(1)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedAmount)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: formattedUnpaidAmount)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: searchMatchedSubtotal)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: searchMatchedUnpaid)
+            }
+            .frame(minHeight: minimumRowHeight, alignment: .center)
+            .padding(.vertical, isCompact ? 10 : 12)
+            .overlay(alignment: .bottom) {
+                if showsBottomSeparator {
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.15))
+                        .frame(height: 2.0)
+                        .frame(maxWidth: 120)
                 }
             }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(formattedAmount)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(isPending ? .secondary : .primary)
-                    .lineLimit(1)
-                if let unpaid = formattedUnpaidAmount {
-                    Text("\(unpaid) por pagar")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .layoutPriority(1)
         }
-        .padding(.horizontal, AppConstants.UserInterface.padding)
-        .padding(.vertical, isCompact ? 12 : AppConstants.UserInterface.padding)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+        .padding(.trailing, 2)
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
     }
 
-    private var paidStatusIcon: String {
-        switch paidStatus {
-        case .all:     return "checkmark.circle.fill"
+    private var rowStatusIcon: String? {
+        switch rowStatus {
+        case .neutral: return nil
+        case .unpaid:  return "circle"
         case .partial: return "circle.lefthalf.filled"
-        case .none:    return "circle"
+        case .paid:    return "checkmark.circle.fill"
         }
     }
 
-    private var paidStatusColor: Color {
-        switch paidStatus {
-        case .all:     return .green
+    private var rowStatusColor: Color {
+        switch rowStatus {
+        case .neutral: return Color(.systemGray3)
+        case .unpaid:  return Color(.systemGray3)
         case .partial: return .orange
-        case .none:    return Color(.systemGray3)
+        case .paid:    return .green
         }
+    }
+
+    private var railColor: Color {
+        rowStatus == .paid ? .green : Color(.systemGray3)
+    }
+
+    private var railIsActive: Bool {
+        rowStatus != .neutral && rowStatus != .unpaid
     }
 }
 
@@ -88,42 +152,24 @@ struct ExpenseRowView: View {
 #Preview {
     VStack(spacing: 10) {
         ExpenseRowView(
-            itemList: ItemListDomain(
-                id: UUID(),
-                itemListDescription: "Compras del supermercado",
-                date: Date(),
-                categoryId: UUID(),
-                paymentMethodId: UUID(),
-                groupId: UUID(),
-                createdAt: Date(),
-                lastModifiedAt: nil
-            ),
+            itemList: SDItemList.mock(itemListDescription: "Compras del supermercado"),
             formattedAmount: "12,89 €",
             formattedUnpaidAmount: nil,
-            itemCount: 3,
-            categoryName: "Supermercado",
-            categoryColor: .green,
-            paidStatus: .all,
+            searchSummary: "3 matching items",
+            searchMatchedSubtotal: "€4.00",
+            searchMatchedUnpaid: "€1.50",
+            rowStatus: .paid,
             onTap: {},
             onTogglePaid: {}
         )
         ExpenseRowView(
-            itemList: ItemListDomain(
-                id: UUID(),
-                itemListDescription: "Cena en restaurante",
-                date: Date(),
-                categoryId: UUID(),
-                paymentMethodId: UUID(),
-                groupId: UUID(),
-                createdAt: Date(),
-                lastModifiedAt: nil
-            ),
+            itemList: SDItemList.mock(itemListDescription: "Cena en restaurante"),
             formattedAmount: "8,00 €",
             formattedUnpaidAmount: "37,60 €",
-            itemCount: 1,
-            categoryName: nil,
-            categoryColor: nil,
-            paidStatus: .partial,
+            searchSummary: nil,
+            searchMatchedSubtotal: nil,
+            searchMatchedUnpaid: nil,
+            rowStatus: .partial,
             onTap: {},
             onTogglePaid: {}
         )

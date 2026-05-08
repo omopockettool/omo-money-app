@@ -7,18 +7,21 @@ struct LimitedTextField<F: Hashable>: View {
     let placeholder: String
     @Binding var text: String
     var maxLength: Int = 30
+    var axis: Axis = .horizontal
     var focusedField: FocusState<F?>.Binding
     let fieldValue: F
 
     private var isFocused: Bool { focusedField.wrappedValue == fieldValue }
+    private var isMultiline: Bool { axis == .vertical }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: isMultiline ? .top : .center, spacing: 12) {
             Image(systemName: icon)
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
+                .padding(.top, isMultiline ? 1 : 0)
 
-            TextField(placeholder, text: $text)
+            TextField(placeholder, text: $text, axis: axis)
                 .foregroundStyle(.secondary)
                 .font(.subheadline)
                 .fontWeight(.semibold)
@@ -36,6 +39,7 @@ struct LimitedTextField<F: Hashable>: View {
                         .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
+                .padding(.top, isMultiline ? 1 : 0)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 .animation(AnimationHelper.quickEase, value: text.isEmpty)
             }
@@ -45,7 +49,7 @@ struct LimitedTextField<F: Hashable>: View {
         .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
-                .stroke(isFocused ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                .stroke(isFocused ? Color(.systemGray3) : Color.clear, lineWidth: 1.5)
                 .animation(AnimationHelper.formFocus, value: isFocused)
         )
     }

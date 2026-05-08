@@ -6,108 +6,43 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct MainView: View {
-    @State private var showingCreateFirstUser = false
-    @State private var hasUsers = false
-    @State private var isLoading = true
+    @State private var viewModel: MainViewModel
+    @State private var hasCheckedForUsers = false
 
-    // ✅ Clean Architecture: Use DI Container for dependencies
-    private let getCurrentUserUseCase: GetCurrentUserUseCase
+    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.MainView")
 
     init() {
-        let container = AppDIContainer.shared
-        self.getCurrentUserUseCase = container.makeGetCurrentUserUseCase()
+        _viewModel = State(wrappedValue: MainViewModel())
+        Self.logger.debug("init")
     }
-    
+
     var body: some View {
         ZStack {
-            if isLoading {
-                // Splash screen unificado con logo OMOMoney
+            if viewModel.isLoading {
                 SplashView()
-            } else if hasUsers {
-                // ✅ Clean Architecture: No context passed
+            } else if viewModel.hasUsers {
                 AppContentView()
             } else {
-                // Empty state - show some placeholder content
-                VStack {
-                    Image(systemName: "plus.circle")
-                        .font(.largeTitle)
-                        .foregroundColor(.accentColor)
-                    Text("Bienvenido a OMOMoney")
-                        .font(.title)
-                    Text("Crea tu primer usuario para comenzar")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-        .sheet(isPresented: $showingCreateFirstUser) {
-            CreateFirstUserView(
-                isPresented: $showingCreateFirstUser,
-                onUserCreated: {
-                    print("🔄 Usuario creado, recargando estado...")
-                    await checkForUsers()
-                    
-                    // Pequeño delay para asegurar que la UI se actualice
-                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-                    
-                    // Cerrar el sheet después de recargar
-                    await MainActor.run {
-                        showingCreateFirstUser = false
-                        print("✅ Sheet cerrado, redirigiendo a AppContentView")
+                CreateFirstUserView(
+                    onUserCreated: {
+                        await viewModel.checkForUsers()
                     }
-                }
-            )
-        }
-        .onAppear {
-            Task {
-                await checkForUsers()
+                )
             }
         }
-    }
-}
-
-// MARK: - Helper Functions
-extension MainView {
-    private func checkForUsers() async {
-        await MainActor.run {
-            isLoading = true
-        }
-
-        // Delay mínimo para mostrar el splash screen (mejor UX para branding)
-        let startTime = Date()
-
-        do {
-            // ✅ Clean Architecture: Use Use Case instead of Service
-            let currentUser = try await getCurrentUserUseCase.execute()
-
-            // Calcular tiempo transcurrido y esperar si fue muy rápido
-            let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 1.2
-
-            if elapsed < minimumDisplayTime {
-                try? await Task.sleep(nanoseconds: UInt64((minimumDisplayTime - elapsed) * 1_000_000_000))
+        .task {
+            guard !hasCheckedForUsers else {
+                Self.logger.debug("task skipped because initial user check already ran")
+                return
             }
 
-            await MainActor.run {
-                hasUsers = currentUser != nil
-                isLoading = false
-
-                // Si no hay usuarios, mostrar el sheet para crear el primero
-                if !hasUsers {
-                    showingCreateFirstUser = true
-                }
-            }
-
-            print("🔍 MainView: Usuario encontrado: \(currentUser?.name ?? "ninguno"), hasUsers: \(hasUsers)")
-        } catch {
-            print("❌ MainView: Error verificando usuarios: \(error)")
-            await MainActor.run {
-                hasUsers = false
-                isLoading = false
-                showingCreateFirstUser = true
-            }
+            hasCheckedForUsers = true
+            Self.logger.debug("task starting initial user check")
+            await viewModel.checkForUsers()
+            Self.logger.debug("task finished initial user check hasUsers=\(viewModel.hasUsers)")
         }
     }
 }

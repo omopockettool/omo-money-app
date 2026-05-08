@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct CategoryManagementView: View {
-    let group: GroupDomain
+    let group: SDGroup
 
-    @StateObject private var viewModel = CategoryListViewModel()
+    @State private var viewModel = CategoryListViewModel()
     @State private var sheetMode: SheetMode?
 
     enum SheetMode: Identifiable {
         case add
-        case edit(CategoryDomain)
+        case edit(SDCategory)
         var id: String {
             switch self { case .add: return "add"; case .edit(let c): return c.id.uuidString }
         }
@@ -22,12 +22,10 @@ struct CategoryManagementView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !category.isDefault {
-                            Button(role: .destructive) {
-                                Task { await viewModel.deleteCategory(category) }
-                            } label: {
-                                Label("Eliminar", systemImage: "trash")
-                            }
+                        Button(role: .destructive) {
+                            Task { await viewModel.deleteCategory(category) }
+                        } label: {
+                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
                         }
                     }
             }
@@ -35,7 +33,7 @@ struct CategoryManagementView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Categorías")
+        .navigationTitle(LocalizationKey.Category.title.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -61,8 +59,8 @@ struct CategoryManagementView: View {
         .task { await viewModel.loadCategories(forGroupId: group.id) }
     }
 
-    private func categoryRow(_ category: CategoryDomain) -> some View {
-        Button { if !category.isDefault { sheetMode = .edit(category) } } label: {
+    private func categoryRow(_ category: SDCategory) -> some View {
+        Button { sheetMode = .edit(category) } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -76,15 +74,9 @@ struct CategoryManagementView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                 Spacer()
-                if category.isDefault {
-                    Text("Predeterminada")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .padding(AppConstants.UserInterface.padding)
             .background(Color(.secondarySystemGroupedBackground))
@@ -93,4 +85,3 @@ struct CategoryManagementView: View {
         .buttonStyle(.plain)
     }
 }
-

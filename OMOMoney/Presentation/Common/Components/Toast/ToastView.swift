@@ -12,11 +12,19 @@ struct ToastMessage: Equatable {
     let id: UUID
     let message: String
     let type: ToastType
+    let actionTitle: String?
+    let action: (() -> Void)?
 
-    init(_ message: String, type: ToastType) {
+    init(_ message: String, type: ToastType, actionTitle: String? = nil, action: (() -> Void)? = nil) {
         self.id = UUID()
         self.message = message
         self.type = type
+        self.actionTitle = actionTitle
+        self.action = action
+    }
+
+    static func == (lhs: ToastMessage, rhs: ToastMessage) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
@@ -42,6 +50,19 @@ struct ToastView: View {
                 .multilineTextAlignment(.leading)
 
             Spacer(minLength: 0)
+
+            if let actionTitle = toast.actionTitle, let action = toast.action {
+                Button {
+                    dismissTask?.cancel()
+                    onDismiss()
+                    action()
+                } label: {
+                    Text(actionTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.accent)
+                }
+                .buttonStyle(PressHapticButtonStyle())
+            }
 
             Button {
                 dismiss()
@@ -74,7 +95,7 @@ struct ToastView: View {
                 isVisible = true
             }
             dismissTask = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(2.5))
+                try? await Task.sleep(for: .seconds(4.0))
                 guard !Task.isCancelled else { return }
                 dismiss()
             }

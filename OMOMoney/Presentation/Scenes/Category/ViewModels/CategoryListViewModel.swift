@@ -1,15 +1,15 @@
 import Foundation
+import SwiftUI
 
-/// ViewModel for Category list functionality
-/// Handles category list display and management
-/// ✅ CLEAN ARCHITECTURE: Uses Use Cases
 @MainActor
-class CategoryListViewModel: ObservableObject {
+
+@Observable
+class CategoryListViewModel {
 
     // MARK: - Published Properties
-    @Published var categories: [CategoryDomain] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var categories: [SDCategory] = []
+    var isLoading = false
+    var errorMessage: String?
 
     // MARK: - Use Cases
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
@@ -30,7 +30,6 @@ class CategoryListViewModel: ObservableObject {
         self.deleteCategoryUseCase = deleteCategoryUseCase
     }
 
-    /// Convenience initializer using DI Container
     convenience init() {
         let appContainer = AppDIContainer.shared
         self.init(
@@ -43,8 +42,6 @@ class CategoryListViewModel: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// Load categories for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
@@ -58,8 +55,6 @@ class CategoryListViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Create a new category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
     func createCategory(name: String, color: String? = nil, icon: String = "tag.fill", groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -69,7 +64,6 @@ class CategoryListViewModel: ObservableObject {
                 name: name,
                 color: color,
                 icon: icon,
-                isDefault: false,
                 groupId: groupId,
                 limit: nil,
                 limitFrequency: nil
@@ -85,9 +79,7 @@ class CategoryListViewModel: ObservableObject {
         }
     }
 
-    /// Update an existing category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func updateCategory(_ category: CategoryDomain, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
+    func updateCategory(_ category: SDCategory, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
 
@@ -109,40 +101,26 @@ class CategoryListViewModel: ObservableObject {
         }
     }
 
-    /// Delete a category
-    /// ✅ CLEAN ARCHITECTURE: Uses Use Case
-    func deleteCategory(_ category: CategoryDomain) async -> Bool {
-        isLoading = true
-        errorMessage = nil
-
+    func deleteCategory(_ category: SDCategory) async -> Bool {
+        withAnimation { categories.removeAll { $0.id == category.id } }
         do {
             try await deleteCategoryUseCase.execute(categoryId: category.id)
-            categories.removeAll { $0.id == category.id }
-            isLoading = false
             return true
         } catch {
+            withAnimation { categories.append(category) }
             errorMessage = "Error deleting category: \(error.localizedDescription)"
-            isLoading = false
             return false
         }
     }
 
-    /// Check if category name exists
-    /// ⚠️ TODO: Create CategoryExistsUseCase to avoid direct Service access
     func categoryExists(withName name: String, inGroupId groupId: UUID? = nil, excluding categoryId: UUID? = nil) async -> Bool {
-        // NOTE: This method still needs a Use Case implementation
-        // For now, returning false to avoid breaking existing code
         return false
     }
 
-    /// Get categories count for a specific group
-    /// ✅ CLEAN ARCHITECTURE: Uses loaded categories array
     func getCategoriesCount(forGroupId groupId: UUID) async -> Int {
-        // Simple count from current categories array
         return categories.count
     }
 
-    /// Clear error message
     func clearError() {
         errorMessage = nil
     }

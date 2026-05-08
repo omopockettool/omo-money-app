@@ -1,5 +1,5 @@
 import SwiftUI
-import CoreData
+import SwiftData
 
 struct CategoryPickerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -7,30 +7,28 @@ struct CategoryPickerView: View {
     @Binding var selectedCategoryId: UUID?
     let groupId: UUID
 
-    @StateObject private var viewModel: CategoryPickerViewModel
+    @Query private var categories: [SDCategory]
 
-    /// ✅ CLEAN ARCHITECTURE: Uses convenience initializer with DI Container
-    init(selectedCategoryId: Binding<UUID?>, groupId: UUID, context: NSManagedObjectContext) {
+    init(selectedCategoryId: Binding<UUID?>, groupId: UUID) {
         self._selectedCategoryId = selectedCategoryId
         self.groupId = groupId
-
-        // Use convenience initializer that gets Use Cases from DI Container
-        self._viewModel = StateObject(wrappedValue: CategoryPickerViewModel())
+        let id = groupId
+        self._categories = Query(
+            filter: #Predicate<SDCategory> { $0.group?.id == id },
+            sort: \SDCategory.name
+        )
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if viewModel.isLoading {
-                    LoadingView(message: "Cargando categorías...")
-                        .padding()
-                } else if viewModel.categories.isEmpty {
+                if categories.isEmpty {
                     VStack(spacing: 16) {
-                        Text("No hay categorías disponibles")
+                        Text(LocalizationKey.Category.emptyMessage.localized)
                             .font(.headline)
                             .foregroundColor(.secondary)
 
-                        Text("Las categorías se crean automáticamente cuando se crea un grupo")
+                        Text(LocalizationKey.Category.emptyHint.localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -38,24 +36,21 @@ struct CategoryPickerView: View {
                     .padding()
                 } else {
                     List {
-                        ForEach(viewModel.categories, id: \.id) { category in
+                        ForEach(categories, id: \.id) { category in
                             Button(action: {
                                 selectedCategoryId = category.id
                                 dismiss()
                             }) {
                                 HStack {
-                                    // Category color indicator
                                     Circle()
                                         .fill(Color(hex: category.color) ?? Color.gray)
                                         .frame(width: 20, height: 20)
 
-                                    // Category name
                                     Text(category.name)
                                         .foregroundColor(.primary)
 
                                     Spacer()
 
-                                    // Selection indicator
                                     if selectedCategoryId == category.id {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
@@ -68,28 +63,22 @@ struct CategoryPickerView: View {
                     .listStyle(PlainListStyle())
                 }
             }
-            .navigationTitle("Seleccionar Categoría")
+            .navigationTitle(LocalizationKey.Category.selectCategory.localized)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
+                    Button(LocalizationKey.General.cancel.localized) {
                         dismiss()
                     }
                 }
             }
         }
-        .task {
-            await viewModel.loadCategories(forGroupId: groupId)
-        }
     }
 }
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let groupId = UUID()
-
     CategoryPickerView(
         selectedCategoryId: .constant(nil),
-        groupId: groupId,
-        context: context
+        groupId: UUID()
     )
+    .modelContainer(ModelContainer.preview)
 }

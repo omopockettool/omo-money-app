@@ -1,10 +1,3 @@
-//
-//  DashboardViewModel.swift
-//  OMOMoney
-//
-//  Created by System on 3/11/25.
-//
-
 import Foundation
 import SwiftUI
 
@@ -14,35 +7,181 @@ enum ItemListPaidStatus {
     case all        // all items paid
 }
 
+enum ItemListRowStatus {
+    case neutral
+    case unpaid
+    case partial
+    case paid
+}
+
+enum DashboardCategoryRange: String, Hashable {
+    case today
+    case month
+
+    var title: String {
+        switch self {
+        case .today:
+            LocalizationKey.Dashboard.today.localized
+        case .month:
+            LocalizationKey.Dashboard.thisMonth.localized
+        }
+    }
+}
+
+enum DashboardCategoryBoxSize: Hashable {
+    case small
+    case medium
+    case large
+}
+
+struct DashboardCategoryBoxData: Identifiable, Hashable {
+    let categoryId: UUID
+    let categoryName: String
+    let categoryColorHex: String
+    let categoryIcon: String
+    let paidAmount: Double
+    let unpaidAmount: Double
+    let totalAmount: Double
+    let itemListCount: Int
+    let itemCount: Int
+    let sizeTier: DashboardCategoryBoxSize
+    let range: DashboardCategoryRange
+
+    var id: String {
+        "\(range.rawValue)-\(categoryId.uuidString)"
+    }
+}
+
 
 @MainActor
-class DashboardViewModel: ObservableObject {
+
+@Observable
+class DashboardViewModel {
+    private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
+    private typealias CategoryMetadata = (name: String, color: String, icon: String)
+
+    private struct CachedItemListData {
+        let paidTotal: Double
+        let unpaidTotal: Double
+        let count: Int
+        let paidStatus: ItemListPaidStatus
+        let rowStatus: ItemListRowStatus
+    }
+
+    private struct CategoryAggregate {
+        let categoryId: UUID
+        let categoryName: String
+        let categoryColorHex: String
+        let categoryIcon: String
+        var paidAmount: Double
+        var unpaidAmount: Double
+        var itemListCount: Int
+        var itemCount: Int
+    }
+
+    struct ItemListSearchSummary {
+        let listMatched: Bool
+        let matchedItemCount: Int
+        let matchedSubtotal: Double
+        let matchedUnpaidSubtotal: Double
+
+        var hasItemMatches: Bool {
+            matchedItemCount > 0
+        }
+    }
 
     // MARK: - Published Properties
-    // ✅ Clean Architecture: Store Domain models, not Core Data entities
-    @Published var itemLists: [ItemListDomain] = [] {
+    var itemLists: [SDItemList] = [] {
         didSet {
-            // Update cached current month items whenever itemLists changes
             updateCurrentMonthCache()
         }
     }
-    @Published var currentMonthItemLists: [ItemListDomain] = []  // ✅ Cached version
-    @Published var totalSpent: Double = 0.0
-    @Published var currentMonthTotal: Double = 0.0              // Cached month total (avoids inline filter during animation)
-    @Published var itemListTotals: [UUID: Double] = [:]           // Paid total per ItemList
-    @Published var itemListUnpaidTotals: [UUID: Double] = [:]     // Unpaid total per ItemList
-    @Published var itemListCounts: [UUID: Int] = [:]              // Item count per ItemList
-    @Published var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]  // Derived paid state per ItemList
-    @Published var categories: [UUID: (name: String, color: String)] = [:]  // Category lookup for display
-    @Published var isLoading = false
-    @Published var isRefreshing = false  // ✅ Separate state for pull-to-refresh (doesn't affect other components)
-    @Published var isChangingGroup = false  // ✅ Separate state for group switching (subtle loading)
-    @Published var errorMessage: String?
-    @Published var toast: ToastMessage?
-    @Published var currentGroup: GroupDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
-    @Published var currentUser: UserDomain?  // ✅ Clean Architecture: Domain model, not Core Data entity
-    @Published var availableGroups: [GroupDomain] = []  // ✅ Clean Architecture: Domain models, not Core Data entities
-    @Published var showingSettings = false
+    var currentMonthItemLists: [SDItemList] = []
+    var totalSpent: Double = 0.0
+    var todayTotal: Double = 0.0
+    var todayUnpaidTotal: Double = 0.0
+    var currentMonthTotal: Double = 0.0
+    var currentMonthUnpaidTotal: Double = 0.0
+    var itemListTotals: [UUID: Double] = [:]
+    var itemListUnpaidTotals: [UUID: Double] = [:]
+    var itemListCounts: [UUID: Int] = [:]
+    var itemListPaidStatus: [UUID: ItemListPaidStatus] = [:]
+    var itemListRowStatus: [UUID: ItemListRowStatus] = [:]
+    var categories: [UUID: (name: String, color: String, icon: String)] = [:]
+    var isLoading = false
+    var isRefreshing = false
+    var isChangingGroup = false
+    var isDeletingGroup = false
+    var errorMessage: String?
+    var toast: ToastMessage?
+    var currentGroup: SDGroup?
+    var currentUser: SDUser?
+    var availableGroups: [SDGroup] = []
+    var showingSettings = false
+    var showingFullMonth = false
+    var selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+    var searchQuery = ""
+
+    // MARK: - Filtered Lists
+
+    var todayItemLists: [SDItemList] {
+        itemLists.filter { Calendar.current.isDateInToday($0.date) }
+    }
+
+    var monthItemLists: [SDItemList] {
+        itemLists.filter { Calendar.current.isDate($0.date, equalTo: selectedMonthAnchor, toGranularity: .month) }
+    }
+
+    var filteredTodayItemLists: [SDItemList] {
+        filteredItemLists(from: todayItemLists)
+    }
+
+    var filteredMonthItemLists: [SDItemList] {
+        filteredItemLists(from: monthItemLists)
+    }
+
+    var todayCategoryBoxes: [DashboardCategoryBoxData] {
+        makeCategoryBoxes(from: filteredTodayItemLists, range: .today)
+    }
+
+    var monthCategoryBoxes: [DashboardCategoryBoxData] {
+        makeCategoryBoxes(from: filteredMonthItemLists, range: .month)
+    }
+
+    var visibleCategoryBoxes: [DashboardCategoryBoxData] {
+        showingFullMonth ? monthCategoryBoxes : todayCategoryBoxes
+    }
+
+    func filteredSearchResults(from source: [SDItemList]) -> [SDItemList] {
+        filteredItemLists(from: source)
+    }
+
+    var hasItemsOutsideToday: Bool {
+        monthItemLists.count > todayItemLists.count || isCustomMonthFilterActive
+    }
+
+    var isCustomMonthFilterActive: Bool {
+        !Calendar.current.isDate(selectedMonthAnchor, equalTo: Date(), toGranularity: .month)
+    }
+
+    var hasActiveSearch: Bool {
+        !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var selectedMonthTitle: String {
+        monthTitleFormatter.string(from: selectedMonthAnchor).capitalized(with: Locale.current)
+    }
+
+    var monthHeroLabel: String {
+        isCustomMonthFilterActive ? selectedMonthTitle : LocalizationKey.Dashboard.costThisMonth.localized
+    }
+
+    var availableFilterYears: [Int] {
+        let years = Set(itemLists.map { Calendar.current.component(.year, from: $0.date) })
+            .union([Calendar.current.component(.year, from: Date())])
+        return years.sorted(by: >)
+    }
+
 
     // MARK: - Use Cases
     private let fetchItemListsUseCase: FetchItemListsUseCase
@@ -52,11 +191,20 @@ class DashboardViewModel: ObservableObject {
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
     private let toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
+    private let toggleItemPaidUseCase: ToggleItemPaidUseCase
+    private let deleteGroupUseCase: DeleteGroupUseCase
 
     // MARK: - Cache
-    // Note: Cache is managed by Service layer (ItemListService)
-    // ViewModel only updates service cache for incremental changes
     private let cacheManager = CacheManager.shared
+    private var paidToggleTasks: [UUID: Task<Void, Never>] = [:]
+    private var _currencyFormatter: NumberFormatter?
+    private var _currencyFormatterCode: String = ""
+    private let monthTitleFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "LLLL yyyy"
+        return f
+    }()
 
     // MARK: - Initialization
     init(
@@ -66,7 +214,9 @@ class DashboardViewModel: ObservableObject {
         getCurrentUserUseCase: GetCurrentUserUseCase,
         fetchGroupsForUserUseCase: FetchGroupsForUserUseCase,
         fetchCategoriesUseCase: FetchCategoriesUseCase,
-        toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
+        toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase,
+        toggleItemPaidUseCase: ToggleItemPaidUseCase,
+        deleteGroupUseCase: DeleteGroupUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
@@ -75,519 +225,328 @@ class DashboardViewModel: ObservableObject {
         self.fetchGroupsForUserUseCase = fetchGroupsForUserUseCase
         self.fetchCategoriesUseCase = fetchCategoriesUseCase
         self.toggleAllItemsPaidInListUseCase = toggleAllItemsPaidInListUseCase
+        self.toggleItemPaidUseCase = toggleItemPaidUseCase
+        self.deleteGroupUseCase = deleteGroupUseCase
     }
     
     // MARK: - Public Methods
     
-    /// Load initial dashboard data
     func loadDashboardData() async {
-        print("🔄 DashboardViewModel: loadDashboardData() starting...")
         
-        // Update UI on main thread
-        await MainActor.run {
-            print("🔄 DashboardViewModel: Setting isLoading = true")
-            isLoading = true
-            errorMessage = nil
-        }
+        isLoading = true
+        errorMessage = nil
         
         do {
-            // 1. Get current user using Use Case
-            print("🔄 DashboardViewModel: Getting current user...")
-            guard let userDomain = try await getCurrentUserUseCase.execute() else {
-                print("❌ DashboardViewModel: No user found")
-                await MainActor.run {
-                    errorMessage = "No user found. Please create a user first."
-                    isLoading = false
-                }
+            guard let user = try await getCurrentUserUseCase.execute() else {
+                errorMessage = "No user found. Please create a user first."
+                isLoading = false
                 return
             }
-            print("✅ DashboardViewModel: Found user: \(userDomain.name)")
 
-            // 2. Get user's groups using Use Case (✅ Domain models only!)
-            print("🔄 DashboardViewModel: Getting user groups...")
-            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userDomain.id)
-            guard let firstGroupDomain = groupDomains.first else {
-                print("❌ DashboardViewModel: No groups found")
-                await MainActor.run {
-                    errorMessage = "No groups found. Please create a group first."
-                    isLoading = false
-                }
+            let groups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
+            guard let firstGroup = groups.first else {
+                errorMessage = "No groups found. Please create a group first."
+                isLoading = false
                 return
             }
-            print("✅ DashboardViewModel: Found \(groupDomains.count) group(s), using: \(firstGroupDomain.name)")
 
-            // 3. Load ItemLists for the group using Use Case
-            print("🔄 DashboardViewModel: Getting ItemLists for group...")
-            let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: firstGroupDomain.id)
-            print("✅ DashboardViewModel: Found \(itemListDomains.count) ItemLists")
-            print("📋 DashboardViewModel: ItemList descriptions: \(itemListDomains.map { $0.itemListDescription })")
+            let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: firstGroup.id)
 
-            // 4. ✅ Load categories for display using Use Case (Clean Architecture)
-            print("🔄 DashboardViewModel: Loading categories...")
-            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: firstGroupDomain.id)
-            var categoriesDict: [UUID: (name: String, color: String)] = [:]
-            for categoryDomain in categoryDomains {
-                categoriesDict[categoryDomain.id] = (name: categoryDomain.name, color: categoryDomain.color)
-            }
-            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories")
-
-            // 🔍 DEBUG: Verify categoryId mapping
-            print("🔍 DashboardViewModel: Verifying ItemList → Category mapping:")
-            for itemList in itemListDomains.prefix(3) {
-                if let categoryId = itemList.categoryId {
-                    let categoryName = categoriesDict[categoryId]?.name ?? "NOT FOUND"
-                    print("   ✅ ItemList '\(itemList.itemListDescription)' → CategoryId: \(categoryId.uuidString.prefix(8)) → '\(categoryName)'")
-                } else {
-                    print("   ⚠️ ItemList '\(itemList.itemListDescription)' → NO CATEGORY ID!")
-                }
+            let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: firstGroup.id)
+            var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
+            for cat in sdCategories {
+                categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
 
-            // 5. Update UI on main thread (✅ Domain models only!)
-            await MainActor.run {
-                print("🔄 DashboardViewModel: Updating UI with new data...")
-                print("   - Current itemLists count before: \(itemLists.count)")
-                print("   - New itemLists count: \(itemListDomains.count)")
+            currentUser = user
+            currentGroup = firstGroup
+            availableGroups = groups
+            selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+            itemLists = fetchedItemLists
+            categories = categoriesDict
 
-                currentUser = userDomain  // ✅ Domain model
-                currentGroup = firstGroupDomain  // ✅ Domain model
-                availableGroups = groupDomains  // ✅ Domain models array
-                itemLists = itemListDomains  // ✅ Domain models
-                categories = categoriesDict  // ✅ Category lookup
-
-                print("   - itemLists count after assignment: \(itemLists.count)")
-                print("   - itemLists descriptions after: \(itemLists.map { $0.itemListDescription })")
-            }
-
-            // Calculate total spent (async, must be outside MainActor.run)
             await calculateTotalSpent()
 
-            await MainActor.run {
-                isLoading = false
-            }
+            isLoading = false
             
         } catch {
-            await MainActor.run {
-                errorMessage = "Error loading dashboard data: \(error.localizedDescription)"
-                isLoading = false
-            }
+            errorMessage = "Error loading dashboard data: \(error.localizedDescription)"
+            isLoading = false
         }
     }
     
-    /// Refresh dashboard data with smooth, native iOS behavior
-    /// ✅ Only affects the list, not other components
-    /// ✅ Uses incremental update - only changes data if different
-    /// ✅ Smooth animation - no black flicker
     func refreshData() async {
-        print("🔄 DashboardViewModel: refreshData() - SMOOTH NATIVE REFRESH")
         
-        // Use separate isRefreshing state (won't trigger view rebuild)
-        await MainActor.run {
-            isRefreshing = true
-        }
+        isRefreshing = true
         
         do {
             guard let group = currentGroup else {
-                print("⚠️ DashboardViewModel: No current group, skipping refresh")
-                await MainActor.run { isRefreshing = false }
+                isRefreshing = false
                 return
             }
             
-            // Fetch latest data using Use Case
-            print("🔍 DashboardViewModel: Fetching latest ItemLists...")
-            let groupId = group.id  // ✅ GroupDomain.id is NOT optional
-            // Get current state on main actor first (before async call)
-            let currentItemLists = await MainActor.run { itemLists }
+            let groupId = group.id
 
-            // Execute use case to get Domain models
-            let fetchedItemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
             
-            print("� DashboardViewModel: Current count: \(currentItemLists.count), Fetched count: \(fetchedItemListDomains.count)")
             
-            // 🔥 BACKGROUND THREAD: Sort items (HEAVY)
-            let sortedItemLists = fetchedItemListDomains.sorted {
-                $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
+            let cal = Calendar.current
+            let sortedItemLists = fetchedItemLists.sorted {
+                let d0 = cal.startOfDay(for: $0.date)
+                let d1 = cal.startOfDay(for: $1.date)
+                return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
             }
 
-            // ℹ️ NO CACHE UPDATE: Service layer already cached the fetched data
-            print("💡 DashboardViewModel: Service layer manages cache (single source of truth)")
-
-            // ⚡️ MAIN THREAD: ONLY UI update with animation
-            await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    itemLists = sortedItemLists
-                }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                itemLists = sortedItemLists
             }
 
-            // ✅ ALWAYS recalculate totals on refresh - items inside ItemLists may have changed!
-            // This fixes the bug where editing an item doesn't update the dashboard total
-            print("🔄 DashboardViewModel: Recalculating all ItemList totals...")
             await calculateTotalSpent()
 
-            await MainActor.run {
-                print("✅ DashboardViewModel: UI updated with \(sortedItemLists.count) items, totals recalculated")
-            }
-            
-            // Small delay for smooth animation completion
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
-            
-            await MainActor.run {
-                isRefreshing = false
-                print("✅ DashboardViewModel: Refresh completed smoothly")
-            }
+            isRefreshing = false
             
         } catch {
-            print("❌ DashboardViewModel: Error during refresh: \(error.localizedDescription)")
-            await MainActor.run {
-                isRefreshing = false
-            }
+            isRefreshing = false
         }
     }
 
-    /// Refresh ItemList objects' Core Data relationships
-    /// ⚠️ DEPRECATED: Use refreshData() instead for Domain models
-    /// Call this when navigating back to dashboard to get updated item totals
-    @available(*, deprecated, message: "Use refreshData() instead for Domain models")
-    func refreshItemListContexts() async {
-        print("⚠️ DashboardViewModel: refreshItemListContexts() is deprecated, calling refreshData()...")
-        await refreshData()
-    }
-
-    /// Add a new expense - triggers navigation to AddItemListView
     func addExpense() {
-        // Navigation will be handled by the view using navigationPath
-        print("Add expense tapped - navigating to AddItemListView")
     }
     
     // MARK: - Group Management
     
-    /// Cambiar el grupo activo y recargar los ItemLists (✅ Clean Architecture: Domain model)
-    func changeGroup(to newGroup: GroupDomain) async {
+    func changeGroup(to newGroup: SDGroup) async {
         guard newGroup.id != currentGroup?.id else {
-            print("⚠️ DashboardViewModel: Grupo ya seleccionado, ignorando cambio")
             return
         }
 
-        print("🔄 DashboardViewModel: Cambiando a grupo: \(newGroup.name)")
 
-        await MainActor.run {
-            isChangingGroup = true  // ✅ Usa loading sutil, no el splash
-        }
+        isChangingGroup = true
 
         do {
-            // ✅ Delay de 0.3 segundos para mostrar el spinner en acción
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 segundos
+            try? await Task.sleep(nanoseconds: 300_000_000)
 
-            // Load ItemLists using Use Case (Domain models)
-            let groupId = newGroup.id  // ✅ GroupDomain.id is NOT optional
-            let itemListDomains = try await fetchItemListsUseCase.execute(forGroupId: groupId)
+            let groupId = newGroup.id
+            let fetchedItemLists = try await fetchItemListsUseCase.execute(forGroupId: groupId)
 
-            // ✅ CRITICAL FIX: Load categories for the new group using Use Case (Clean Architecture)
-            print("🔄 DashboardViewModel: Loading categories for new group...")
-            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
-            var categoriesDict: [UUID: (name: String, color: String)] = [:]
-            for categoryDomain in categoryDomains {
-                categoriesDict[categoryDomain.id] = (name: categoryDomain.name, color: categoryDomain.color)
-            }
-            print("✅ DashboardViewModel: Loaded \(categoriesDict.count) categories for new group")
-
-            await MainActor.run {
-                currentGroup = newGroup  // ✅ Domain model
-                // Pre-populate totals with zeros so the view never hits a missing key before calculateTotalSpent() runs
-                itemListTotals = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0.0) })
-                itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0.0) })
-                itemListCounts = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, 0) })
-                itemListPaidStatus = Dictionary(uniqueKeysWithValues: itemListDomains.map { ($0.id, ItemListPaidStatus.none) })
-                itemLists = itemListDomains
-                categories = categoriesDict  // ✅ FIX: Update categories when changing groups
+            let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
+            var categoriesDict: [UUID: (name: String, color: String, icon: String)] = [:]
+            for cat in sdCategories {
+                categoriesDict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon)
             }
 
-            // Calculate total spent (async, must be outside MainActor.run)
+            currentGroup = newGroup
+            selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+            itemListTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
+            itemListUnpaidTotals = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0.0) })
+            itemListCounts = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, 0) })
+            itemListPaidStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListPaidStatus.none) })
+            itemListRowStatus = Dictionary(uniqueKeysWithValues: fetchedItemLists.map { ($0.id, ItemListRowStatus.neutral) })
+            itemLists = fetchedItemLists
+            categories = categoriesDict
+
             await calculateTotalSpent()
 
-            await MainActor.run {
-                isChangingGroup = false
-                print("✅ DashboardViewModel: Grupo cambiado exitosamente")
-                print("📋 DashboardViewModel: Cargados \(itemListDomains.count) ItemLists")
-            }
+            isChangingGroup = false
         } catch {
-            await MainActor.run {
-                errorMessage = "Error al cambiar de grupo: \(error.localizedDescription)"
-                isChangingGroup = false
-            }
-            print("❌ DashboardViewModel: Error cambiando grupo: \(error)")
+            isChangingGroup = false
         }
     }
     
-    /// Recargar la lista de grupos disponibles (después de crear uno nuevo)
     func refreshAvailableGroups() async {
         guard let user = currentUser else {
-            print("⚠️ DashboardViewModel: No hay usuario actual, no se pueden recargar grupos")
             return
         }
         
-        print("🔄 DashboardViewModel: Recargando grupos disponibles...")
 
         do {
-            let userId = user.id  // ✅ UserDomain.id is NOT optional
+            let userId = user.id
+            let groups = try await fetchGroupsForUserUseCase.execute(userId: userId)
 
-            let groupDomains = try await fetchGroupsForUserUseCase.execute(userId: userId)
-
-            await MainActor.run {
-                availableGroups = groupDomains  // ✅ Use Domain models
-                print("✅ DashboardViewModel: Grupos recargados. Total: \(groupDomains.count)")
-            }
+            availableGroups = groups
         } catch {
-            print("❌ DashboardViewModel: Error recargando grupos: \(error)")
         }
     }
     
-    /// Agregar un grupo nuevo incrementalmente (sin query a BD) (✅ Clean Architecture: Domain model)
-    func addGroup(_ newGroup: GroupDomain) {
-        print("➕ [DashboardVM] addGroup() llamado")
-        print("➕ [DashboardVM] Grupo nuevo: '\(newGroup.name)' (ID: \(newGroup.id.uuidString))")
-        print("➕ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
+    func addGroup(_ newGroup: SDGroup) {
 
         guard !availableGroups.contains(where: { $0.id == newGroup.id }) else {
-            print("⚠️ [DashboardVM] Grupo ya existe en lista - SKIP")
             return
         }
 
         availableGroups.append(newGroup)
-        print("✅ [DashboardVM] addGroup() completado")
     }
     
-    /// Eliminar un grupo incrementalmente (✅ Clean Architecture: Domain model)
-    func removeGroup(_ group: GroupDomain) {
-        print("🗑️ [DashboardVM] removeGroup() llamado")
-        print("🗑️ [DashboardVM] Grupo a eliminar: '\(group.name)' (ID: \(group.id.uuidString))")
-        print("🗑️ [DashboardVM] availableGroups.count ANTES: \(availableGroups.count)")
-        print("🗑️ [DashboardVM] availableGroups ANTES: \(availableGroups.map { ($0.name, $0.id.uuidString) })")
-        print("🗑️ [DashboardVM] currentGroup: '\(currentGroup?.name ?? "nil")' (ID: \(currentGroup?.id.uuidString ?? "nil"))")
-        print("🗑️ [DashboardVM] currentUser: '\(currentUser?.name ?? "nil")' (ID: \(currentUser?.id.uuidString ?? "nil"))")
+    func removeGroup(_ group: SDGroup) {
+        availableGroups.removeAll { $0.id == group.id }
+    }
 
-        availableGroups.removeAll { $0.id == group.id }  // ✅ Compare by UUID, not objectID
-        print("✅ [DashboardVM] removeGroup() completado")
+    func deleteGroup(_ group: SDGroup) async throws {
+        withAnimation { availableGroups.removeAll { $0.id == group.id } }
+        do {
+            try await deleteGroupUseCase.execute(groupId: group.id)
+        } catch {
+            availableGroups.append(group)
+            availableGroups.sort { $0.name < $1.name }
+            throw error
+        }
     }
     
     func openSettings() {
         showingSettings = true
     }
 
-    func updateCurrentUser(_ user: UserDomain) {
+    func updateCurrentUser(_ user: SDUser) {
         currentUser = user
     }
 
     func refreshCategories() async {
         guard let groupId = currentGroup?.id else { return }
         do {
-            let categoryDomains = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
-            var dict: [UUID: (name: String, color: String)] = [:]
-            for cat in categoryDomains { dict[cat.id] = (name: cat.name, color: cat.color) }
+            let sdCategories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
+            var dict: [UUID: (name: String, color: String, icon: String)] = [:]
+            for cat in sdCategories { dict[cat.id] = (name: cat.name, color: cat.color, icon: cat.icon) }
             categories = dict
         } catch {}
     }
 
-    /// Generate seed data for testing — creates 20 item lists with random items in current group
-    func generateSeedDataDebug() {
-        Task {
-            await generateSeedData()
-        }
-    }
-
-    private func generateSeedData() async {
-        guard let group = currentGroup else {
-            print("⚠️ [SEED] No current group selected")
-            return
-        }
-
-        let container = AppDIContainer.shared
-        let createItemListUseCase = container.makeCreateItemListUseCase()
-        let createItemUseCase = container.makeCreateItemUseCase()
-        let fetchPaymentMethodsUseCase = container.makeFetchPaymentMethodsUseCase()
-
-        do {
-            let categoryIds = Array(categories.keys)
-            guard !categoryIds.isEmpty else {
-                print("⚠️ [SEED] No categories available")
-                return
-            }
-
-            let paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: group.id)
-            guard !paymentMethods.isEmpty else {
-                print("⚠️ [SEED] No payment methods available")
-                return
-            }
-
-            let descriptions = ["Supermercado", "Gasolina", "Restaurante", "Netflix", "Gym",
-                                 "Farmacia", "Amazon", "Electricidad", "Agua", "Internet",
-                                 "Ropa", "Café", "Taxi", "Cine", "Libro",
-                                 "Dentista", "Peluquería", "Comida rápida", "Seguro", "Parking"]
-
-            let calendar = Calendar.current
-            let now = Date()
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-            let daysPassed = calendar.dateComponents([.day], from: startOfMonth, to: now).day ?? 0
-
-            print("🌱 [SEED] Generating 20 ItemLists in group '\(group.name)'...")
-
-            for i in 0..<20 {
-                let dayOffset = Int.random(in: 0...max(0, daysPassed))
-                let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonth) ?? now
-                let description = descriptions[i % descriptions.count]
-                let categoryId = categoryIds[Int.random(in: 0..<categoryIds.count)]
-                let paymentMethodId = paymentMethods[Int.random(in: 0..<paymentMethods.count)].id
-                let rawAmount = Double.random(in: 1.0...200.0)
-                let amount = Decimal((rawAmount * 100).rounded() / 100)
-
-                let itemList = try await createItemListUseCase.execute(
-                    description: description,
-                    date: date,
-                    categoryId: categoryId,
-                    paymentMethodId: paymentMethodId,
-                    groupId: group.id
-                )
-
-                let itemSubDescriptions = ["Leche", "Huevos", "Pan", "Agua", "Refresco", "Yogur", "Mantequilla", "Queso", "Jamón", "Fruta"]
-                let itemsToCreate = Int.random(in: 1...10)
-                for j in 0..<itemsToCreate {
-                    let itemAmount = Decimal((Double.random(in: 0.5...50.0) * 100).rounded() / 100)
-                    let _ = try await createItemUseCase.execute(
-                        description: itemSubDescriptions[j % itemSubDescriptions.count],
-                        amount: itemAmount,
-                        quantity: 1,
-                        itemListId: itemList.id,
-                        isPaid: true
-                    )
-                }
-            }
-
-            print("✅ [SEED] 20 ItemLists created. Refreshing dashboard...")
-            await loadDashboardData()
-
-        } catch {
-            print("❌ [SEED] Error generating seed data: \(error)")
-        }
-    }
-    
-    /// Add ItemList from Domain model using Clean Architecture
-    /// ✅ Works with Domain models only - no Core Data conversion needed!
-    func addItemListFromDomain(_ itemListDomain: ItemListDomain) async {
-        let itemListDesc = itemListDomain.itemListDescription
-        print("\n🟢 ============================================")
-        print("📋 [ADD-DOMAIN] Adding ItemList: '\(itemListDesc)'")
-        print("🟢 ============================================")
-
-        print("🔙 [CALLBACK] DashboardViewModel.addItemListFromDomain()")
-        print("   📋 Received from: AddItemListView → DashboardView → DashboardViewModel")
-        print("   📋 ItemListDomain Details:")
-        print("      - ID: \(itemListDomain.id)")
-        print("      - Description: \(itemListDomain.itemListDescription)")
-        print("      - Category ID: \(itemListDomain.categoryId?.uuidString ?? "nil")")
-        print("      - Group ID: \(itemListDomain.groupId?.uuidString ?? "nil")")
-
-        // ✅ FIX: Check if ItemList belongs to the current dashboard group
+    func addItemList(_ itemList: SDItemList) async {
         guard let currentGroupId = currentGroup?.id else {
-            print("⚠️ [ADD-DOMAIN] No current group selected - skipping")
             return
         }
 
-        if itemListDomain.groupId != currentGroupId {
-            print("⚠️ [ADD-DOMAIN] ItemList belongs to different group")
-            print("   - ItemList group: \(itemListDomain.groupId?.uuidString ?? "nil")")
-            print("   - Current dashboard group: \(currentGroupId.uuidString)")
-            print("   - Action: Skipping incremental update (ItemList saved to DB but not shown in current view)")
+        if itemList.group?.id != currentGroupId {
             return
         }
 
-        print("   ✅ ItemList belongs to current group - proceeding with incremental update")
-        print("   🔄 Performing incremental cache update (no DB query)")
-
-        // Check if already exists (compare by ID)
-        if itemLists.contains(where: { $0.id == itemListDomain.id }) {
-            print("⚠️ [ADD-DOMAIN] ItemList already exists in dashboard")
+        if itemLists.contains(where: { $0.id == itemList.id }) {
             return
         }
 
-        // Calculate insert position (sorted by date) - works with Domain models!
-        let sortedItemLists = (itemLists + [itemListDomain]).sorted {
-            $0.date == $1.date ? $0.createdAt > $1.createdAt : $0.date > $1.date
+        let cal = Calendar.current
+        let sortedItemLists = (itemLists + [itemList]).sorted {
+            let d0 = cal.startOfDay(for: $0.date)
+            let d1 = cal.startOfDay(for: $1.date)
+            return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
         }
 
-        print("📊 [ADD-DOMAIN] New count: \(sortedItemLists.count)")
+        itemListTotals[itemList.id] = 0.0
+        itemListUnpaidTotals[itemList.id] = 0.0
+        itemListCounts[itemList.id] = 0
+        itemListPaidStatus[itemList.id] = ItemListPaidStatus.none
+        itemListRowStatus[itemList.id] = .neutral
 
-        // Pre-populate with zeros so the view never hits a missing key before calculateTotalSpent() runs
-        itemListTotals[itemListDomain.id] = 0.0
-        itemListUnpaidTotals[itemListDomain.id] = 0.0
-        itemListCounts[itemListDomain.id] = 0
-        itemListPaidStatus[itemListDomain.id] = .none
-
-        // Update UI (ViewModel is @MainActor)
-        itemLists = sortedItemLists
-        print("   ✅ ItemList added to local itemLists array")
-        print("   🔄 Triggering didSet → updateCurrentMonthCache()")
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            itemLists = sortedItemLists
+        }
         await calculateTotalSpent()
 
-        print("✅ [ADD-DOMAIN] ItemList added successfully to UI")
-        print("[TOTAL] [ADD-DOMAIN] New total spent: \(formattedTotalSpent)")
-        print("🟢 [ADD-DOMAIN] Operation complete\n")
     }
 
-    /// Add new ItemList to the dashboard using cache optimization
-    /// Clear cache for current group
     @MainActor
     func clearCache() async {
-        guard let group = currentGroup else { return }  // ✅ Direct access on MainActor
-        let groupId = group.id.uuidString  // ✅ GroupDomain.id is NOT optional
-        let cacheKey = "dashboard_items_\(groupId)"
-        cacheManager.clearDataCache(for: cacheKey)
-        print("🗂️ DashboardViewModel: Cache cleared for group \(groupId)")
+        cacheManager.clearAllCaches()
     }
     
-    /// Toggle paid status for all items in an ItemList (Option A: if all paid → unpay all; else → pay all)
-    func togglePaid(for itemList: ItemListDomain) {
-        guard (itemListCounts[itemList.id] ?? 0) > 0 else {
-            toast = ToastMessage("Lista vacía", type: .info)
+    func togglePaid(for itemList: SDItemList) {
+        let itemCount = itemListCounts[itemList.id] ?? 0
+
+        guard itemCount > 0 else {
+            toast = ToastMessage(LocalizationKey.Dashboard.emptyEntryToast.localized, type: .info)
             return
         }
+
+        let previousStates = itemList.items.map { (id: $0.id, isPaid: $0.isPaid) }
         let currentStatus = itemListPaidStatus[itemList.id] ?? .none
         let newValue = currentStatus == .all ? false : true
-        // Optimistic UI update for the icon
-        itemListPaidStatus[itemList.id] = newValue ? .all : .none
-        Task {
-            // Persist first — calculateTotalSpent reads from CoreData, so it must run after the write
+        itemList.lastModifiedAt = Date()
+        itemListPaidStatus[itemList.id] = newValue ? .all : ItemListPaidStatus.none
+        itemList.items.forEach { $0.isPaid = newValue }
+        itemListRowStatus[itemList.id] = makeRowStatus(
+            totalAmount: itemList.totalAmount,
+            itemCount: itemCount,
+            paidStatus: itemListPaidStatus[itemList.id] ?? .none
+        )
+
+        if itemCount > 1 {
+            toast = ToastMessage(
+                newValue
+                    ? LocalizationKey.Dashboard.markedAllPaid.localized
+                    : LocalizationKey.Dashboard.markedAllPending.localized,
+                type: .info,
+                actionTitle: LocalizationKey.Dashboard.undo.localized
+            ) { [weak self] in
+                Task { @MainActor in
+                    await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
+                }
+            }
+        } else {
+            toast = nil
+        }
+
+        paidToggleTasks[itemList.id] = Task {
             try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
             await calculateTotalSpent()
+            paidToggleTasks[itemList.id] = nil
         }
     }
 
-    /// Force refresh by clearing cache and reloading
+    private func undoTogglePaid(
+        for itemList: SDItemList,
+        previousStates: [(id: UUID, isPaid: Bool)]
+    ) async {
+        if let pendingTask = paidToggleTasks[itemList.id] {
+            await pendingTask.value
+        }
+
+        for state in previousStates {
+            itemList.items.first { $0.id == state.id }?.isPaid = state.isPaid
+            try? await toggleItemPaidUseCase.execute(itemId: state.id, isPaid: state.isPaid)
+        }
+        itemList.lastModifiedAt = Date()
+        await calculateTotalSpent()
+        toast = ToastMessage(LocalizationKey.Dashboard.changeUndone.localized, type: .info)
+    }
+
     func forceRefresh() async {
         await clearCache()
         await loadDashboardData()
-        print("🔄 DashboardViewModel: Force refresh completed")
     }
     
     // MARK: - Private Methods
 
-    /// Refresh paid/unpaid totals — called when per-item paid status changes in ItemListDetailView
     func refreshTotals() async {
         await calculateTotalSpent()
     }
 
+    func applyMonthFilter(_ month: Date) {
+        selectedMonthAnchor = Calendar.current.startOfMonth(for: month)
+        updateCurrentMonthCache()
+        refreshSelectedMonthTotal()
+        withAnimation(AnimationHelper.quickSpring) {
+            showingFullMonth = true
+        }
+    }
 
-    /// Update total spent for a specific ItemList (incremental calculation)
+    func resetMonthFilterToCurrentMonth() {
+        selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
+        updateCurrentMonthCache()
+        refreshSelectedMonthTotal()
+    }
 
-    /// Calculate total spent across all ItemLists (async, uses Domain models)
-    /// ✅ Clean Architecture: Uses async getItemListTotal for Domain models
-    /// ✅ Also populates itemListTotals cache for UI display
+    func clearSearch() {
+        searchQuery = ""
+    }
+
     private func calculateTotalSpent() async {
-        typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus)
         let results = await withTaskGroup(of: ItemListData.self) { group in
             var items: [ItemListData] = []
 
-            for itemListDomain in itemLists {
+            for itemList in itemLists {
                 group.addTask {
-                    return await self.getItemListData(itemListDomain)
+                    return await self.getItemListData(itemList)
                 }
             }
 
@@ -602,14 +561,17 @@ class DashboardViewModel: ObservableObject {
         let unpaidTotals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.unpaidTotal) })
         let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
         let paidStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidStatus) })
+        let rowStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.rowStatus) })
 
-        await MainActor.run {
-            itemListTotals = totals
-            itemListUnpaidTotals = unpaidTotals
-            itemListCounts = counts
-            itemListPaidStatus = paidStatuses
-            currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
-        }
+        itemListTotals = totals
+        itemListUnpaidTotals = unpaidTotals
+        itemListCounts = counts
+        itemListPaidStatus = paidStatuses
+        itemListRowStatus = rowStatuses
+        todayTotal = todayItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
+        todayUnpaidTotal = todayItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
+        currentMonthUnpaidTotal = currentMonthItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
 
         let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
             guard itemListTotal.isFinite else { return total }
@@ -625,10 +587,11 @@ class DashboardViewModel: ObservableObject {
     
     // MARK: - Helper Methods
 
-    /// Returns a NumberFormatter using es_ES number formatting but with the native
-    /// currency symbol (e.g. "$" for USD instead of "US$" from the Spanish locale).
-    private func makeCurrencyFormatter() -> NumberFormatter {
+    private var currencyFormatter: NumberFormatter {
         let code = currentGroup?.currency ?? "EUR"
+        if let cached = _currencyFormatter, _currencyFormatterCode == code {
+            return cached
+        }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = code
@@ -638,20 +601,43 @@ class DashboardViewModel: ObservableObject {
         sym.currencyCode = code
         sym.locale = Locale(identifier: "en_US")
         formatter.currencySymbol = sym.currencySymbol
+        _currencyFormatter = formatter
+        _currencyFormatterCode = code
         return formatter
     }
 
-    func formattedPaid(for itemList: ItemListDomain) -> String {
+    func formattedPaid(for itemList: SDItemList) -> String {
         guard let total = itemListTotals[itemList.id] else { return "€0.00" }
-        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: total)) ?? "€0.00"
     }
 
-    func formattedUnpaid(for itemList: ItemListDomain) -> String? {
+    func formattedUnpaid(for itemList: SDItemList) -> String? {
         guard let status = itemListPaidStatus[itemList.id],
               status != .all,
               let unpaid = itemListUnpaidTotals[itemList.id],
               unpaid > 0 else { return nil }
-        return makeCurrencyFormatter().string(from: NSNumber(value: unpaid))
+        return currencyFormatter.string(from: NSNumber(value: unpaid))
+    }
+
+    func formattedSearchSummary(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+
+        let key = summary.matchedItemCount == 1
+            ? LocalizationKey.Dashboard.searchItemSummarySingle
+            : LocalizationKey.Dashboard.searchItemSummaryMultiple
+
+        return key.localized(with: summary.matchedItemCount)
+    }
+
+    func formattedSearchMatchedSubtotal(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+        return currencyFormatter.string(from: NSNumber(value: summary.matchedSubtotal)) ?? "€0.00"
+    }
+
+    func formattedSearchMatchedUnpaid(for itemList: SDItemList) -> String? {
+        guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
+        guard summary.matchedUnpaidSubtotal > 0.000_001 else { return nil }
+        return currencyFormatter.string(from: NSNumber(value: summary.matchedUnpaidSubtotal))
     }
 
     func formattedTotal(for date: Date) -> String {
@@ -659,11 +645,38 @@ class DashboardViewModel: ObservableObject {
         let dayTotal = itemLists
             .filter { cal.isDate($0.date, inSameDayAs: date) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-        return makeCurrencyFormatter().string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: dayTotal)) ?? "€0.00"
+    }
+
+    func formattedCurrency(_ amount: Double) -> String {
+        currencyFormatter.string(from: NSNumber(value: amount)) ?? "€0.00"
+    }
+
+    func formattedAmount(for box: DashboardCategoryBoxData) -> String {
+        formattedCurrency(box.paidAmount)
+    }
+
+    func formattedUnpaidAmount(for box: DashboardCategoryBoxData) -> String? {
+        guard box.unpaidAmount > 0.000_001 else { return nil }
+        return formattedCurrency(box.unpaidAmount)
+    }
+
+    var formattedTodayTotal: String {
+        currencyFormatter.string(from: NSNumber(value: todayTotal)) ?? "€0.00"
     }
 
     func formattedCachedMonthTotal() -> String {
-        makeCurrencyFormatter().string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
+        currencyFormatter.string(from: NSNumber(value: currentMonthTotal)) ?? "€0.00"
+    }
+
+    func formattedVisibleRangePaidTotal(showingFullMonth: Bool) -> String {
+        formattedCurrency(showingFullMonth ? currentMonthTotal : todayTotal)
+    }
+
+    func formattedVisibleRangeUnpaidTotal(showingFullMonth: Bool) -> String? {
+        let amount = showingFullMonth ? currentMonthUnpaidTotal : todayUnpaidTotal
+        guard amount > 0.000_001 else { return nil }
+        return formattedCurrency(amount)
     }
 
     func formattedTotal(forMonth date: Date) -> String {
@@ -671,91 +684,59 @@ class DashboardViewModel: ObservableObject {
         let monthTotal = itemLists
             .filter { cal.isDate($0.date, equalTo: date, toGranularity: .month) }
             .reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
-        return makeCurrencyFormatter().string(from: NSNumber(value: monthTotal)) ?? "€0.00"
+        return currencyFormatter.string(from: NSNumber(value: monthTotal)) ?? "€0.00"
     }
 
-    /// Get formatted total spent string
     var formattedTotalSpent: String {
-        // Protect against NaN before formatting
-        guard totalSpent.isFinite else {
-            print("❌ DashboardViewModel: formattedTotalSpent called with NaN/Infinite value!")
-            return "€0.00"
-        }
-        
-        let formatter = makeCurrencyFormatter()
-        let formattedValue = formatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
-        
-        // Debug: Verify the formatted string is valid
-        if formattedValue.contains("�") || formattedValue.contains("NaN") {
-            print("⚠️ DashboardViewModel: Formatted value contains invalid characters: \(formattedValue)")
-        }
-        
-        return formattedValue
+        guard totalSpent.isFinite else { return "€0.00" }
+        return currencyFormatter.string(from: NSNumber(value: totalSpent)) ?? "€0.00"
     }
     
-    /// Get recent ItemLists (last 10)
-    var recentItemLists: [ItemListDomain] {
+    var recentItemLists: [SDItemList] {
         return Array(itemLists.prefix(10))
     }
     
-    /// Update cached current month ItemLists
-    /// ✅ Called automatically when itemLists changes (via didSet)
-    /// Update cache of current month ItemLists (for performance optimization)
-    /// ✅ Clean Architecture: Works with Domain models
     private func updateCurrentMonthCache() {
         let calendar = Calendar.current
-        let now = Date()
 
-        // Domain model date is NOT optional, simpler filtering!
-        let filtered = itemLists.filter { itemListDomain in
-            calendar.isDate(itemListDomain.date, equalTo: now, toGranularity: .month)
+        let filtered = itemLists.filter { itemList in
+            calendar.isDate(itemList.date, equalTo: selectedMonthAnchor, toGranularity: .month)
         }
 
-        // Check if content changed by comparing IDs AND relevant fields
-        // ID-only comparison misses renames/date/category changes on existing items
         let currentIds = Set(currentMonthItemLists.map { $0.id })
         let filteredIds = Set(filtered.map { $0.id })
-        let idsChanged = currentIds != filteredIds
-        let contentChanged = idsChanged || filtered.contains { newItem in
-            guard let existing = currentMonthItemLists.first(where: { $0.id == newItem.id }) else { return false }
-            return existing.itemListDescription != newItem.itemListDescription
-                || existing.date != newItem.date
-                || existing.categoryId != newItem.categoryId
-                || existing.paymentMethodId != newItem.paymentMethodId
-        }
 
-        if contentChanged {
-            print("🗓️ DashboardViewModel: Updating current month cache (content changed)")
-            print("   - Total ItemLists: \(itemLists.count)")
-            print("   - Current month ItemLists: \(filtered.count)")
+        if currentIds != filteredIds {
             currentMonthItemLists = filtered
         }
     }
-    
-    /// Format date for display
-    func formatDate(_ date: Date?) -> String {
-        guard let date = date else { return "Unknown Date" }
-        
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.locale = Locale(identifier: "es_ES")
-        return formatter.string(from: date)
+
+    private func refreshSelectedMonthTotal() {
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { total, itemList in
+            total + (itemListTotals[itemList.id] ?? 0)
+        }
     }
     
-    private func getItemListData(_ itemListDomain: ItemListDomain) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus) {
+    private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus) {
+        let cacheKey = itemListDataCacheKey(for: itemList)
+
+        if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
+            return (itemList.id, cached.paidTotal, cached.unpaidTotal, cached.count, cached.paidStatus, cached.rowStatus)
+        }
+
         do {
-            let items = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
+            let items = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
             let paidItems = items.filter { $0.isPaid }
             let unpaidItems = items.filter { !$0.isPaid }
             let paidTotal = paidItems.reduce(0.0) { acc, item in
-                let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
+                let value = item.totalAmount
                 return value.isFinite ? acc + value : acc
             }
             let unpaidTotal = unpaidItems.reduce(0.0) { acc, item in
-                let value = Double(truncating: item.amount as NSNumber) * Double(item.quantity)
+                let value = item.totalAmount
                 return value.isFinite ? acc + value : acc
             }
-            let totalUnits = items.reduce(0) { $0 + Int($1.quantity) }
+            let totalUnits = items.reduce(0) { $0 + $1.quantity }
             let paidStatus: ItemListPaidStatus
             if items.isEmpty || paidItems.isEmpty {
                 paidStatus = .none
@@ -764,177 +745,285 @@ class DashboardViewModel: ObservableObject {
             } else {
                 paidStatus = .partial
             }
-            return (itemListDomain.id, max(0, paidTotal.isFinite ? paidTotal : 0.0), max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0), totalUnits, paidStatus)
+            let rowStatus = makeRowStatus(
+                totalAmount: paidTotal + unpaidTotal,
+                itemCount: totalUnits,
+                paidStatus: paidStatus
+            )
+            let result = CachedItemListData(
+                paidTotal: max(0, paidTotal.isFinite ? paidTotal : 0.0),
+                unpaidTotal: max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0),
+                count: totalUnits,
+                paidStatus: paidStatus,
+                rowStatus: rowStatus
+            )
+            cacheManager.cacheCalculation(result, for: cacheKey)
+            return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus, result.rowStatus)
         } catch {
-            return (itemListDomain.id, 0.0, 0.0, 0, .none)
+            return (itemList.id, 0.0, 0.0, 0, .none, .neutral)
         }
     }
 
-    /// ✅ Clean Architecture: Uses Use Case, no Core Data knowledge
-    func getItemListTotal(_ itemListDomain: ItemListDomain) async -> Double {
+    private func makeRowStatus(
+        totalAmount _: Double,
+        itemCount: Int,
+        paidStatus: ItemListPaidStatus
+    ) -> ItemListRowStatus {
+        if itemCount == 0 {
+            return .neutral
+        }
+
+        switch paidStatus {
+        case .none:
+            return .unpaid
+        case .partial:
+            return .partial
+        case .all:
+            return .paid
+        }
+    }
+
+    private func filteredItemLists(from source: [SDItemList]) -> [SDItemList] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return source }
+
+        return source.filter { searchSummary(for: $0, query: query) != nil }
+    }
+
+    private func searchSummary(for itemList: SDItemList) -> ItemListSearchSummary? {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        return searchSummary(for: itemList, query: query)
+    }
+
+    private func searchSummary(for itemList: SDItemList, query: String) -> ItemListSearchSummary? {
+        guard !query.isEmpty else { return nil }
+
+        let listMatched = itemList.itemListDescription.localizedCaseInsensitiveContains(query)
+        let matchedItems = itemList.items.filter {
+            $0.itemDescription.localizedCaseInsensitiveContains(query)
+        }
+
+        guard listMatched || !matchedItems.isEmpty else { return nil }
+
+        let matchedSubtotal = matchedItems.reduce(0.0) { partialResult, item in
+            let value = item.totalAmount
+            guard value.isFinite else { return partialResult }
+            return partialResult + value
+        }
+        let matchedUnpaidSubtotal = matchedItems.reduce(0.0) { partialResult, item in
+            guard !item.isPaid else { return partialResult }
+            let value = item.totalAmount
+            guard value.isFinite else { return partialResult }
+            return partialResult + value
+        }
+
+        return ItemListSearchSummary(
+            listMatched: listMatched,
+            matchedItemCount: matchedItems.count,
+            matchedSubtotal: matchedSubtotal.isFinite ? matchedSubtotal : 0.0,
+            matchedUnpaidSubtotal: matchedUnpaidSubtotal.isFinite ? matchedUnpaidSubtotal : 0.0
+        )
+    }
+
+    private func itemListDataCacheKey(for itemList: SDItemList) -> String {
+        let versionDate = itemList.lastModifiedAt ?? itemList.createdAt
+        return "dashboard_item_list_data_\(itemList.id.uuidString)_\(versionDate.timeIntervalSince1970)"
+    }
+
+    func deleteItemList(_ itemList: SDItemList) async {
+        await removeItemList(itemList)
         do {
-            // Fetch items via Use Case (proper layering!)
-            let items = try await fetchItemsUseCase.execute(forItemListId: itemListDomain.id)
-
-            // Calculate total from Domain models
-            let total = items.reduce(0.0) { total, item in
-                let amount = Double(truncating: item.amount as NSNumber)
-                let quantity = Double(item.quantity)
-                let itemValue = amount * quantity
-
-                // Detect NaN at item level
-                guard itemValue.isFinite else {
-                    print("❌ DashboardViewModel: getItemListTotal(Domain) - Invalid item value detected!")
-                    print("   Item: \(item.itemDescription), Amount: \(amount), Quantity: \(quantity)")
-                    return total
-                }
-
-                return total + itemValue
-            }
-
-            // Detect NaN at total level
-            guard total.isFinite else {
-                print("❌ DashboardViewModel: getItemListTotal(Domain) - Total is NaN for ItemList: \(itemListDomain.itemListDescription)")
-                return 0.0
-            }
-
-            return total
+            try await deleteItemListUseCase.execute(id: itemList.id)
         } catch {
-            print("❌ DashboardViewModel: getItemListTotal(Domain) - Error fetching items: \(error.localizedDescription)")
-            return 0.0
-        }
-    }
-
-    /// Get formatted amount for an ItemListDomain (async, fetches items via Use Case)
-    /// ✅ Clean Architecture: Uses Use Case, no Core Data knowledge
-    func getFormattedItemListTotal(_ itemListDomain: ItemListDomain) async -> String {
-        let total = await getItemListTotal(itemListDomain)
-
-        // Extra protection
-        guard total.isFinite else {
-            print("❌ DashboardViewModel: getFormattedItemListTotal(Domain) - Attempted to format NaN!")
-            return "€0.00"
-        }
-
-        return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "€0.00"
-    }
-
-    /// Delete an ItemListDomain (Domain model version)
-    /// ✅ Clean Architecture: Uses Use Case only, no Core Data knowledge
-    func deleteItemListDomain(_ itemListDomain: ItemListDomain) async {
-        print("🗑️ DashboardViewModel: deleteItemListDomain() called for: \(itemListDomain.itemListDescription)")
-
-        do {
-            // 1. Remove from UI immediately (optimistic update)
-            print("⚡️ DashboardViewModel: Optimistic update - removing from UI")
-            await removeItemListDomain(itemListDomain)
-
-            // 2. Delete from persistence using Use Case
-            print("🔄 DashboardViewModel: Deleting from persistence...")
-            try await deleteItemListUseCase.execute(id: itemListDomain.id)
-            print("✅ DashboardViewModel: ItemList deleted successfully")
-
-        } catch {
-            print("❌ DashboardViewModel: Error deleting ItemList: \(error.localizedDescription)")
-
-            // Rollback UI change by reloading data
-            await MainActor.run {
-                errorMessage = "Error al eliminar el gasto: \(error.localizedDescription)"
-            }
-
-            // Reload to restore correct state
-            print("🔄 DashboardViewModel: Rolling back - reloading from database")
             await loadDashboardData()
         }
     }
 
-    /// Remove an ItemListDomain from the UI cache (Domain model version)
-    /// ✅ Clean Architecture: Works with Domain models only
-    private func removeItemListDomain(_ itemListDomain: ItemListDomain) async {
-        print("➖ DashboardViewModel: Removing ItemListDomain from UI cache")
-        print("🔍 DashboardViewModel: Removing: '\(itemListDomain.itemListDescription)'")
+    private func removeItemList(_ itemList: SDItemList) async {
+        let currentItemLists = itemLists
 
-        // Get current state
-        let currentItemLists = await MainActor.run { itemLists }
-
-        print("📊 DashboardViewModel: Current itemLists count BEFORE remove: \(currentItemLists.count)")
-
-        guard let index = currentItemLists.firstIndex(where: { $0.id == itemListDomain.id }) else {
-            print("⚠️ DashboardViewModel: ItemList not found in current list")
+        guard let index = currentItemLists.firstIndex(where: { $0.id == itemList.id }) else {
             return
         }
 
-        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
-
-        // Create updated list
         var updatedItemLists = currentItemLists
         updatedItemLists.remove(at: index)
 
-        print("📊 DashboardViewModel: New itemLists count AFTER remove: \(updatedItemLists.count)")
-
-        // Update UI on main thread and recalculate total
-        await MainActor.run {
+        withAnimation(.easeInOut(duration: 0.25)) {
             itemLists = updatedItemLists
         }
 
-        // Recalculate total spent (following RULES: always recalculate)
         await calculateTotalSpent()
     }
 
-    /// Update an ItemListDomain in the UI cache (Domain model version)
-    /// ✅ Clean Architecture: Works with Domain models only
-    func updateItemListDomain(_ itemListDomain: ItemListDomain) async {
-        print("✏️ DashboardViewModel: Updating ItemListDomain in UI cache")
-        print("🔍 DashboardViewModel: Updating: '\(itemListDomain.itemListDescription)'")
+    func updateItemList(_ itemList: SDItemList) async {
 
-        // Get current state
-        let currentItemLists = await MainActor.run { itemLists }
-
-        guard let index = currentItemLists.firstIndex(where: { $0.id == itemListDomain.id }) else {
-            print("⚠️ DashboardViewModel: ItemList not found in current list")
-            return
+        // Re-sort since date may have changed (SD* reference type, object is already mutated)
+        let cal = Calendar.current
+        itemLists = itemLists.sorted {
+            let d0 = cal.startOfDay(for: $0.date)
+            let d1 = cal.startOfDay(for: $1.date)
+            return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
         }
 
-        print("🎯 DashboardViewModel: Found ItemList at index \(index)")
-
-        // Create updated list
-        var updatedItemLists = currentItemLists
-        updatedItemLists[index] = itemListDomain
-
-        // Re-sort if dates changed
-        updatedItemLists = updatedItemLists.sorted { $0.date > $1.date }
-
-        print("📊 DashboardViewModel: ItemList updated")
-
-        // Update UI on main thread and recalculate total
-        await MainActor.run {
-            itemLists = updatedItemLists
-        }
-
-        // Recalculate total spent (following RULES: always recalculate)
         await calculateTotalSpent()
     }
 
-    /// Verify if an ItemListDomain belongs to the current dashboard context
-    /// ✅ Clean Architecture: Works with Domain models only
-    private func isItemListInCurrentContext(_ itemListDomain: ItemListDomain) -> Bool {
-        // Check if ItemList belongs to current group
-        guard let currentGroup = currentGroup else {
-            return false
-        }
-
-        return currentGroup.id == itemListDomain.groupId  // ✅ id is NOT optional
+    private func isItemListInCurrentContext(_ itemList: SDItemList) -> Bool {
+        guard let currentGroup = currentGroup else { return false }
+        return currentGroup.id == itemList.group?.id
     }
 
-    /// Get current month ItemLists (Domain model version)
-    /// ✅ Clean Architecture: Works with Domain models only
-    func getCurrentMonthItemLists() -> [ItemListDomain] {
-        let calendar = Calendar.current
-        let now = Date()
-
-        return itemLists.filter { itemListDomain in
-            calendar.isDate(itemListDomain.date, equalTo: now, toGranularity: .month)
+    func filteredItemLists(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> [SDItemList] {
+        let source: [SDItemList] = switch range {
+        case .today:
+            filteredTodayItemLists
+        case .month:
+            filteredMonthItemLists
         }
+
+        return source.filter { $0.category?.id == categoryId }
+    }
+
+    func categoryBox(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> DashboardCategoryBoxData? {
+        let source: [DashboardCategoryBoxData] = switch range {
+        case .today:
+            todayCategoryBoxes
+        case .month:
+            monthCategoryBoxes
+        }
+
+        return source.first { $0.categoryId == categoryId }
+    }
+
+    private func makeCategoryBoxes(from source: [SDItemList], range: DashboardCategoryRange) -> [DashboardCategoryBoxData] {
+        var grouped: [UUID: CategoryAggregate] = [:]
+
+        for itemList in source {
+            guard let category = itemList.category else { continue }
+
+            let metadata = categoryMetadata(for: category)
+            let paidAmount = itemListTotals[itemList.id] ?? 0.0
+            let unpaidAmount = itemListUnpaidTotals[itemList.id] ?? 0.0
+            let itemCount = itemListCounts[itemList.id] ?? itemList.itemCount
+
+            if var aggregate = grouped[category.id] {
+                aggregate.paidAmount += paidAmount
+                aggregate.unpaidAmount += unpaidAmount
+                aggregate.itemListCount += 1
+                aggregate.itemCount += itemCount
+                grouped[category.id] = aggregate
+            } else {
+                grouped[category.id] = CategoryAggregate(
+                    categoryId: category.id,
+                    categoryName: metadata.name,
+                    categoryColorHex: metadata.color,
+                    categoryIcon: metadata.icon,
+                    paidAmount: paidAmount,
+                    unpaidAmount: unpaidAmount,
+                    itemListCount: 1,
+                    itemCount: itemCount
+                )
+            }
+        }
+
+        let boxes = grouped.values.map { aggregate in
+            DashboardCategoryBoxData(
+                categoryId: aggregate.categoryId,
+                categoryName: aggregate.categoryName,
+                categoryColorHex: aggregate.categoryColorHex,
+                categoryIcon: aggregate.categoryIcon,
+                paidAmount: aggregate.paidAmount,
+                unpaidAmount: aggregate.unpaidAmount,
+                totalAmount: aggregate.paidAmount + aggregate.unpaidAmount,
+                itemListCount: aggregate.itemListCount,
+                itemCount: aggregate.itemCount,
+                sizeTier: .small,
+                range: range
+            )
+        }
+        .sorted {
+            if abs($0.paidAmount - $1.paidAmount) > 0.000_001 {
+                return $0.paidAmount > $1.paidAmount
+            }
+            return $0.categoryName.localizedCaseInsensitiveCompare($1.categoryName) == .orderedAscending
+        }
+
+        return applySizeTiers(to: boxes)
+    }
+
+    private func applySizeTiers(to boxes: [DashboardCategoryBoxData]) -> [DashboardCategoryBoxData] {
+        guard !boxes.isEmpty else { return [] }
+        guard boxes.count > 1 else {
+            return boxes.map { box in
+                DashboardCategoryBoxData(
+                    categoryId: box.categoryId,
+                    categoryName: box.categoryName,
+                    categoryColorHex: box.categoryColorHex,
+                    categoryIcon: box.categoryIcon,
+                    paidAmount: box.paidAmount,
+                    unpaidAmount: box.unpaidAmount,
+                    totalAmount: box.totalAmount,
+                    itemListCount: box.itemListCount,
+                    itemCount: box.itemCount,
+                    sizeTier: .large,
+                    range: box.range
+                )
+            }
+        }
+
+        let maxAmount = boxes.map(\.paidAmount).max() ?? 0.0
+        guard maxAmount > 0.000_001 else {
+            return boxes.enumerated().map { index, box in
+                DashboardCategoryBoxData(
+                    categoryId: box.categoryId,
+                    categoryName: box.categoryName,
+                    categoryColorHex: box.categoryColorHex,
+                    categoryIcon: box.categoryIcon,
+                    paidAmount: box.paidAmount,
+                    unpaidAmount: box.unpaidAmount,
+                    totalAmount: box.totalAmount,
+                    itemListCount: box.itemListCount,
+                    itemCount: box.itemCount,
+                    sizeTier: index == 0 ? .large : .small,
+                    range: box.range
+                )
+            }
+        }
+
+        return boxes.enumerated().map { index, box in
+            let ratio = box.paidAmount / maxAmount
+            let sizeTier: DashboardCategoryBoxSize
+            if index == 0 || ratio >= 0.70 {
+                sizeTier = .large
+            } else if ratio >= 0.35 {
+                sizeTier = .medium
+            } else {
+                sizeTier = .small
+            }
+
+            return DashboardCategoryBoxData(
+                categoryId: box.categoryId,
+                categoryName: box.categoryName,
+                categoryColorHex: box.categoryColorHex,
+                categoryIcon: box.categoryIcon,
+                paidAmount: box.paidAmount,
+                unpaidAmount: box.unpaidAmount,
+                totalAmount: box.totalAmount,
+                itemListCount: box.itemListCount,
+                itemCount: box.itemCount,
+                sizeTier: sizeTier,
+                range: box.range
+            )
+        }
+    }
+
+    private func categoryMetadata(for category: SDCategory) -> CategoryMetadata {
+        if let cached = categories[category.id] {
+            return cached
+        }
+
+        return (category.name, category.color, category.icon)
     }
 }
 

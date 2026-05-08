@@ -1,111 +1,294 @@
 import SwiftUI
-import CoreData
 
 struct CreateFirstUserView: View {
-    @Binding var isPresented: Bool
-    @StateObject private var viewModel: CreateFirstUserViewModel
-    var onUserCreated: (() async -> Void)?
+    @State private var viewModel: CreateFirstUserViewModel
+    @State private var acceptedLegal = false
+    @FocusState private var focusedField: Field?
     
-    init(isPresented: Binding<Bool>, onUserCreated: (() async -> Void)? = nil) {
-        self._isPresented = isPresented
-        self._viewModel = StateObject(wrappedValue: CreateFirstUserViewModel())
+    var onUserCreated: (() async -> Void)?
+    private let showsSimulationBadge: Bool
+    // TODO: Replace the landing-page fallback with dedicated Terms and Privacy URLs once the website pages exist.
+    private let legalURL = URL(string: "https://omopockettool.com")!
+    
+    enum Field: Hashable { 
+        case name, email 
+    }
+    
+    init(
+        onUserCreated: (() async -> Void)? = nil,
+        submissionMode: CreateFirstUserViewModel.SubmissionMode = .persist
+    ) {
+        self._viewModel = State(wrappedValue: CreateFirstUserViewModel(submissionMode: submissionMode))
         self.onUserCreated = onUserCreated
+        self.showsSimulationBadge = submissionMode == .simulate
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 16) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-                    
-                    Text("¡Bienvenido a OMOMoney!")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Crea tu primer usuario para empezar a gestionar tus gastos")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 40)
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 32) {
+                header
+                    .padding(.top, 40)
                 
-                // Form
-                VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Nombre")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        TextField("Tu nombre", text: $viewModel.name)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .autocapitalization(.words)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        TextField("tu@email.com", text: $viewModel.email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                    }
-                }
-                .padding(.horizontal, 32)
+                formContent
+                    .padding(.horizontal, AppConstants.UserInterface.largePadding)
                 
                 Spacer()
-                
-                // Create Button
-                Button(action: {
-                    Task {
-                        await viewModel.createUser()
-                        if viewModel.isSuccess {
-                            print("✅ Usuario creado exitosamente, ejecutando callback")
-                            await onUserCreated?()
-                        }
-                    }
-                }) {
-                    HStack {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .foregroundColor(.white)
-                        } else {
-                            Image(systemName: "person.badge.plus")
-                        }
-                        
-                        Text(viewModel.isLoading ? "Creando..." : "Crear Usuario")
-                            .font(.headline)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(viewModel.isFormValid ? Color.blue : Color.gray)
-                    .cornerRadius(12)
-                }
-                .disabled(!viewModel.isFormValid || viewModel.isLoading)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
             }
-            .navigationTitle("Primer Usuario")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("Error", isPresented: $viewModel.showError) {
-                Button("OK") { }
-            } message: {
-                Text(viewModel.errorMessage ?? "Error desconocido")
+            .opacity(viewModel.isLoading ? 0 : 1)
+        }
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(viewModel.errorMessage ?? "Error desconocido")
+        }
+    }
+    
+    // MARK: - Header
+    
+    private var header: some View {
+        VStack(spacing: 20) {
+            if showsSimulationBadge {
+                Text("DEBUG PREVIEW - No persistence")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            // Icon with modern gradient
+            ZStack {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: 100, height: 100)
+                    .shadow(color: Color.black.opacity(0.18), radius: 12, y: 6)
+
+                Image("settings-icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 68, height: 68)
+            }
+            .padding(.bottom, 8)
+            
+            VStack(spacing: 8) {
+                Text(LocalizationKey.User.Welcome.title.localized)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .tracking(1.2)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color.primary,
+                                Color.primary.opacity(0.78)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .multilineTextAlignment(.center)
+
+                Text(LocalizationKey.User.Welcome.subtitle.localized)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
             }
         }
     }
+    
+    // MARK: - Form Content
+    
+    private var formContent: some View {
+        VStack(spacing: 16) {
+            inputField(
+                icon: "person.fill",
+                placeholder: LocalizationKey.User.namePlaceholder.localized,
+                text: $viewModel.name,
+                field: .name,
+                contentType: .name,
+                keyboardType: .default,
+                capitalization: .words
+            )
+
+            inputField(
+                icon: "envelope.fill",
+                placeholder: LocalizationKey.User.emailPlaceholder.localized,
+                text: $viewModel.email,
+                field: .email,
+                contentType: .emailAddress,
+                keyboardType: .emailAddress,
+                capitalization: .never
+            )
+
+            legalDisclosure
+            
+            createButton
+                .padding(.top, 8)
+        }
+    }
+
+    private var legalDisclosure: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                withAnimation(AnimationHelper.quickSpring) {
+                    acceptedLegal.toggle()
+                }
+            } label: {
+                Image(systemName: acceptedLegal ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(acceptedLegal ? Color.accentColor : Color.secondary)
+                    .frame(width: 34, height: 34)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Text(legalConsentMarkdown)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .tint(Color.accentColor)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 2)
+    }
+
+    private var legalConsentMarkdown: AttributedString {
+        let intro = LocalizationKey.User.Welcome.legalIntro.localized
+        let terms = LocalizationKey.User.Welcome.terms.localized
+        let connector = LocalizationKey.User.Welcome.consent.localized
+        let privacy = LocalizationKey.User.Welcome.privacy.localized
+
+        return (try? AttributedString(
+            markdown: "\(intro) [\(terms)](\(legalURL.absoluteString)) \(connector) [\(privacy)](\(legalURL.absoluteString))"
+        )) ?? AttributedString("\(intro) \(terms) \(connector) \(privacy)")
+    }
+    
+    private func inputField(
+        icon: String,
+        placeholder: String,
+        text: Binding<String>,
+        field: Field,
+        contentType: UITextContentType,
+        keyboardType: UIKeyboardType,
+        capitalization: TextInputAutocapitalization
+    ) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Color.secondary)
+                .frame(width: 24)
+                .contentTransition(.symbolEffect(.replace))
+            
+            TextField(placeholder, text: text)
+                .textContentType(contentType)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(capitalization)
+                .autocorrectionDisabled()
+                .focused($focusedField, equals: field)
+                .submitLabel(field == .name ? .next : .done)
+                .onSubmit {
+                    if field == .name { 
+                        focusedField = .email 
+                    } else { 
+                        focusedField = nil
+                    }
+                }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemGroupedBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(
+                            focusedField == field ? Color(.systemGray3) : Color.clear,
+                            lineWidth: 2
+                        )
+                )
+        )
+    }
+    
+    // MARK: - Create Button
+    
+    private var createButton: some View {
+        Button {
+            focusedField = nil
+            Task {
+                await viewModel.createUser()
+                if viewModel.isSuccess {
+                    await onUserCreated?()
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 17, weight: .semibold))
+                    .symbolEffect(.bounce, value: viewModel.isFormValid)
+                
+                Text(LocalizationKey.User.create.localized)
+                    .font(.headline)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(
+                Group {
+                    if viewModel.isFormValid {
+                        LinearGradient(
+                            colors: [
+                                Color.accentColor,
+                                Color.accentColor.opacity(0.8)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    } else {
+                        LinearGradient(
+                            colors: [
+                                Color(.systemFill),
+                                Color(.systemFill)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(
+                color: viewModel.isFormValid ? Color.accentColor.opacity(0.3) : .clear,
+                radius: 8,
+                y: 4
+            )
+        }
+        .buttonStyle(PressHapticButtonStyle())
+        .disabled(!viewModel.isFormValid || !acceptedLegal || viewModel.isLoading)
+        .animation(.smooth(duration: 0.3), value: viewModel.isFormValid)
+        .animation(.smooth(duration: 0.3), value: acceptedLegal)
+    }
 }
 
-#Preview {
+// MARK: - Preview
+
+#Preview("Default") {
+    CreateFirstUserView(onUserCreated: {})
+}
+
+#Preview("Dark Mode") {
+    CreateFirstUserView(onUserCreated: {})
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Simulated Submission") {
     CreateFirstUserView(
-        isPresented: .constant(false), 
-        onUserCreated: {}
+        onUserCreated: {},
+        submissionMode: .simulate
     )
 }
