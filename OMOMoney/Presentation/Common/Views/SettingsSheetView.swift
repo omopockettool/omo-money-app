@@ -8,17 +8,30 @@ struct SettingsSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var backupViewModel: SettingsBackupViewModel
 
-    @MainActor
     init(
         user: SDUser,
         onUserUpdated: @escaping (SDUser) -> Void,
         onBackupImported: @escaping () async -> Void,
-        container: AppDIContainer = .shared
+        container: AppDIContainer
     ) {
         self.user = user
         self.onUserUpdated = onUserUpdated
         self.onBackupImported = onBackupImported
         _backupViewModel = State(wrappedValue: container.makeSettingsBackupViewModel())
+    }
+
+    @MainActor
+    init(
+        user: SDUser,
+        onUserUpdated: @escaping (SDUser) -> Void,
+        onBackupImported: @escaping () async -> Void
+    ) {
+        self.init(
+            user: user,
+            onUserUpdated: onUserUpdated,
+            onBackupImported: onBackupImported,
+            container: .shared
+        )
     }
 
     var body: some View {

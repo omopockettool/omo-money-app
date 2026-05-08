@@ -58,13 +58,10 @@ struct DashboardMonthFilterSheet: View {
 
             if isCustomFilterActive {
                 Button(LocalizationKey.Dashboard.currentMonth.localized, action: onReset)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.accent)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
             }
 
             Spacer(minLength: 0)
