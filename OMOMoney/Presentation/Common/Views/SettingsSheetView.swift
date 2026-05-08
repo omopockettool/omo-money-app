@@ -37,11 +37,13 @@ struct SettingsSheetView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(LocalizationKey.Settings.account.localized) {
+                Section {
                     NavigationLink {
                         UserProfileView(user: user, onUserUpdated: onUserUpdated)
                     } label: {
-                        settingsRow(icon: "person.fill", color: .purple, title: user.name)
+                        NativeSettingsRow(systemImage: "person.fill", color: .purple, title: user.name)
+                            .font(.body)
+                            .padding(.vertical, 2)
                     }
                 }
 
@@ -49,12 +51,13 @@ struct SettingsSheetView: View {
                     Text(LocalizationKey.Settings.backupDescription.localized)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .textCase(nil)
 
                     Button {
                         backupViewModel.beginManualExport()
                     } label: {
-                        settingsRow(
-                            icon: "square.and.arrow.up",
+                        NativeSettingsRow(
+                            systemImage: "square.and.arrow.up",
                             color: .green,
                             title: LocalizationKey.Settings.exportBackup.localized
                         )
@@ -64,8 +67,8 @@ struct SettingsSheetView: View {
                     Button {
                         backupViewModel.beginImport()
                     } label: {
-                        settingsRow(
-                            icon: "square.and.arrow.down",
+                        NativeSettingsRow(
+                            systemImage: "square.and.arrow.down",
                             color: .orange,
                             title: LocalizationKey.Settings.importBackup.localized
                         )
@@ -77,7 +80,7 @@ struct SettingsSheetView: View {
                     NavigationLink {
                         AboutOMOView()
                     } label: {
-                        settingsRow(icon: "info.circle.fill", color: .blue, title: LocalizationKey.Settings.aboutOMO.localized)
+                        NativeSettingsRow(systemImage: "info.circle.fill", color: .blue, title: LocalizationKey.Settings.aboutOMO.localized)
                     }
                 }
 
@@ -89,8 +92,8 @@ struct SettingsSheetView: View {
                             submissionMode: .simulate
                         )
                     } label: {
-                        settingsRow(
-                            icon: "person.badge.plus",
+                        NativeSettingsRow(
+                            systemImage: "person.badge.plus",
                             color: .orange,
                             title: "Onboarding Preview"
                         )
@@ -99,8 +102,9 @@ struct SettingsSheetView: View {
 #endif
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
             .navigationTitle(LocalizationKey.Settings.title.localized)
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -166,24 +170,5 @@ struct SettingsSheetView: View {
             Text(backupViewModel.errorMessage ?? "")
         }
         .toast($backupViewModel.toast)
-    }
-
-    private func settingsRow(icon: String, color: Color, title: String) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(color)
-                    .frame(width: 32, height: 32)
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white)
-            }
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
     }
 }

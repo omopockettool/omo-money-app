@@ -42,8 +42,8 @@ struct PaymentMethodFormView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
+        Form {
+            Section {
                 // Preview
                 ZStack {
                     Circle()
@@ -55,6 +55,8 @@ struct PaymentMethodFormView: View {
                 }
                 .animation(AnimationHelper.quickSpring, value: selectedType)
                 .animation(AnimationHelper.quickSpring, value: selectedIcon)
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
 
                 // Name
                 LimitedTextField(
@@ -62,72 +64,55 @@ struct PaymentMethodFormView: View {
                     placeholder: LocalizationKey.Payment.name.localized,
                     text: $name,
                     maxLength: 30,
+                    style: .formRow,
                     focusedField: $nameFocused,
                     fieldValue: true
                 )
+            }
 
-                // Type picker
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(LocalizationKey.Payment.type.localized)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 10) {
-                        ForEach(types, id: \.self) { type in
-                            Button {
-                                withAnimation(AnimationHelper.quickSpring) { selectedType = type }
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: typeIcon(type))
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(selectedType == type ? .white : typeColor(type))
-                                    Text(typeName(type))
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(selectedType == type ? .white : .primary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                    Spacer()
-                                }
-                                .padding(AppConstants.UserInterface.padding)
-                                .background(selectedType == type ? typeColor(type) : Color(.secondarySystemGroupedBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+            Section(LocalizationKey.Payment.type.localized) {
+                ForEach(types, id: \.self) { type in
+                    Button {
+                        withAnimation(AnimationHelper.quickSpring) { selectedType = type }
+                    } label: {
+                        NativeSettingsRow(
+                            systemImage: typeIcon(type),
+                            color: typeColor(type),
+                            title: typeName(type)
+                        ) {
+                            if selectedType == type {
+                                Image(systemName: "checkmark")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.accentColor)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
+            }
 
-                // Icon picker
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(LocalizationKey.Payment.icon.localized)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 10) {
-                        ForEach(iconOptions, id: \.self) { icon in
+            Section(LocalizationKey.Payment.icon.localized) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                    ForEach(iconOptions, id: \.self) { icon in
+                        Button {
+                            withAnimation(AnimationHelper.quickSpring) { selectedIcon = icon }
+                        } label: {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 10)
                                     .fill(selectedIcon == icon ? typeColor(selectedType) : Color(.tertiarySystemGroupedBackground))
-                                    .frame(height: 44)
+                                    .frame(height: 46)
                                 Image(systemName: icon)
-                                    .font(.system(size: 16))
+                                    .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(selectedIcon == icon ? .white : .secondary)
                             }
-                            .onTapGesture {
-                                withAnimation(AnimationHelper.quickSpring) { selectedIcon = icon }
-                            }
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(AppConstants.UserInterface.padding)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
                 }
             }
-            .padding(AppConstants.UserInterface.padding)
         }
-        .background(Color(.systemGroupedBackground))
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(.compact)
         .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -155,7 +140,7 @@ struct PaymentMethodFormView: View {
                 Button {
                     Task { await save() }
                 } label: {
-                    Image(systemName: "checkmark")
+                    Text(LocalizationKey.General.save.localized)
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-05-08
+
+### Added
+- **Introduced reusable native grouped-sheet primitives for settings-style rows and form surfaces** (`NativeGroupedSheetComponents`, `LimitedTextField`) — the app now has a small shared presentation layer for iOS-style grouped sheets, including a reusable settings-row icon treatment and a `LimitedTextField` style that can live inside `Form`/`List` without painting an extra card background on top of the system container.
+
+### Changed
+- **Settings now presents more like a native iOS settings screen instead of a custom modal card stack** (`SettingsSheetView`) — the settings sheet now leans on grouped list structure, tighter native spacing, large-title hierarchy, and full-row settings-style cells so the screen feels closer to Apple’s own Settings presentation while keeping OMO’s existing navigation behavior and icon consistency.
+- **Group and payment-method edit sheets now use native grouped form containers instead of manual scroll/card layouts** (`GroupInfoEditSheet`, `PaymentMethodFormView`) — both flows were moved from `ScrollView + systemGroupedBackground + custom cards` to `Form`-based grouped sections, which reduces the layered-sheet look and makes edit flows feel more at home inside iOS modal navigation.
+
+### Fixed
+- **Text-length enforcement in shared form fields now uses a sanitized binding instead of mutating the same state inside `onChange`** (`LimitedTextField`) — the reusable text field no longer observes `text` and writes back to `text` in the same change cycle. The max-length rule now lives in a dedicated binding setter, which better matches SwiftUI data-flow best practices and avoids the self-mutation pattern flagged by the project guide.
+
 ## [1.12.0] - 2026-05-07
 
 ### Added
