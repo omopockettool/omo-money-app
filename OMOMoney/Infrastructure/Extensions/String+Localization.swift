@@ -242,6 +242,16 @@ enum LocalizationKey {
         static let requiredConfig = "settings.requiredConfig"
         static let requiredConfigMsg = "settings.requiredConfigMsg"
         static let goToSettings = "settings.goToSettings"
+        static let backup = "settings.backup"
+        static let backupDescription = "settings.backupDescription"
+        static let exportBackup = "settings.exportBackup"
+        static let importBackup = "settings.importBackup"
+        static let rescueBackupTitle = "settings.rescueBackupTitle"
+        static let rescueBackupMessage = "settings.rescueBackupMessage"
+        static let rescueBackupConfirm = "settings.rescueBackupConfirm"
+        static let replaceDataTitle = "settings.replaceDataTitle"
+        static let replaceDataMessage = "settings.replaceDataMessage"
+        static let replaceDataConfirm = "settings.replaceDataConfirm"
     }
     
     // MARK: - Validation Errors

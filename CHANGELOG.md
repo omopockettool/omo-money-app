@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-05-07
+
+### Added
+- **Full-app backup export/import now lives in Settings using the native iOS Files flow** (`SettingsSheetView`, `SettingsBackupViewModel`, backup DTOs/use cases/repository, localization files) — the app can now export a complete JSON snapshot of the current local dataset as a `.omo-backup` file through `fileExporter`, so the user explicitly saves it into the Files app or another Files location. Settings also now offers backup import through the native file picker, with versioned backup metadata and payload statistics embedded in the file from day one.
+
+### Changed
+- **Backup restore uses a safer replace-all flow with validation and rescue export before destructive import** (`SettingsBackupViewModel`, `DefaultBackupRepository`, `OMOBackupModels`) — importing a backup now validates schema version, record counts, duplicate IDs, and cross-entity references before any mutation occurs. If the device already has local data, the app first prepares a rescue backup export to Files, and only after that save flow succeeds does it present the destructive confirmation to replace the current database with the imported snapshot.
+- **Backup import now explains the rescue-backup step before opening Files** (`SettingsSheetView`, `SettingsBackupViewModel`, localization files) — when the app already contains local data, selecting a backup for import no longer jumps straight into a second Files save flow with no context. The user now sees an explicit explanation that OMO is asking them to save a rescue copy of the current device data first, so the safety step feels intentional instead of confusing.
+- **The destructive restore confirmation copy was tightened after the rescue explanation step** (localization files) — once the rescue step has already been explained separately, the final replace-data alert now focuses only on the fact that the import will overwrite current data, which makes the sequence easier to understand.
+
+### Fixed
+- **The backup action rows in Settings now behave like full-width tappable rows** (`SettingsSheetView`) — `Export Backup to Files` and `Import Backup` no longer only respond when the user taps directly on the visible label/icon cluster. The whole row is now hit-testable, which matches native settings-list expectations.
+- **The first manual backup export no longer causes a brief two-button blink before the Files sheet appears** (`SettingsBackupViewModel`, `SettingsSheetView`) — the flow now prevents re-entry inside the view model instead of visually disabling both backup buttons during export preparation, avoiding the momentary flicker.
+- **Settings backup view initialization is now explicitly main-actor isolated** (`SettingsSheetView`) — this removes the Swift 6 warning caused by reading `AppDIContainer.shared` from a nonisolated initializer.
+
+### Notes
+- **Backup files use JSON internally with a custom `.omo-backup` extension** (`OMOBackupDocument`) — this keeps the file human-inspectable and migration-friendly while still giving the feature a dedicated app-specific backup format.
+- **Backup filenames now use deterministic zero-padded timestamps** (`SettingsBackupViewModel`) — export and rescue-backup files now always use a stable `yyyy-MM-dd-HH-mm` naming pattern so minute values like `00` are preserved correctly in the visible Files filename.
+- **The app now declares `.omo-backup` as a real document type in its Info.plist** (`Info.plist`, `OMOMoney.xcodeproj/project.pbxproj`) — this lets the iOS Files picker recognize backup files as selectable instead of showing them disabled during import.
+
 ## [1.11.4] - 2026-05-07
 
 ### Fixed
