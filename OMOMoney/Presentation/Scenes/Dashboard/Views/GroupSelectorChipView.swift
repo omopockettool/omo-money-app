@@ -100,6 +100,9 @@ struct GroupPickerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+
                 GroupPickerList(
                     groups: viewModel.availableGroups,
                     currentGroup: currentGroup,
@@ -157,9 +160,9 @@ struct GroupPickerSheet: View {
                     Button {
                         showingCreateGroup = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .accentColor)
+                        Image(systemName: "plus")
+                            .font(.title2.weight(.semibold))
+                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .white)
                     }
                     .buttonStyle(.plain)
                     .disabled(isChangingGroup || viewModel.isDeletingGroup)
@@ -183,6 +186,7 @@ struct GroupPickerSheet: View {
                 )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+                .presentationBackground(Color(.systemGroupedBackground))
             }
             .sheet(item: $groupToEdit) { group in
                 NavigationStack {
@@ -211,6 +215,7 @@ struct GroupPickerSheet: View {
                 }
             }
         }
+        .presentationBackground(Color(.systemGroupedBackground))
     }
 }
 

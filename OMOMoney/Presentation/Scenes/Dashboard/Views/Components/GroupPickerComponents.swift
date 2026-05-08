@@ -45,6 +45,9 @@ struct GroupPickerList: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
         .disabled(isDeletingGroup)
     }
 }

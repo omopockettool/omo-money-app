@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-05-08
+
+### Changed
+- **The dashboard group picker sheet now uses a flatter native grouped background instead of the translucent liquid-style modal surface** (`GroupSelectorChipView`, `GroupPickerComponents`) — the group-selection flow now forces a system grouped presentation background and hides the list’s default scroll surface so the medium detent no longer looks glassy or muddy compared with the fully expanded state.
+- **The add-group action in the group picker toolbar was visually simplified** (`GroupSelectorChipView`) — the previous filled circular-plus treatment was replaced with a cleaner standalone plus glyph, keeping the affordance obvious while reducing the heavy floating-button feel inside the navigation bar.
+- **The nested Create Group sheet now matches the same opaque grouped modal treatment as the picker itself** (`GroupSelectorChipView`) — opening group creation from the picker no longer reintroduces a transparent sheet background, so the whole group-management flow now feels visually consistent across stacked modal states.
+
 ## [1.13.0] - 2026-05-08
 
 ### Added
