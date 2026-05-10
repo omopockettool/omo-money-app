@@ -59,6 +59,13 @@ struct DashboardCategoryBoxData: Identifiable, Hashable {
 class DashboardViewModel {
     private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
     private typealias CategoryMetadata = (name: String, color: String, icon: String)
+    private typealias ItemPaidSnapshot = (id: UUID, isPaid: Bool)
+
+    private struct CachedSearchItemData {
+        let description: String
+        let totalAmount: Double
+        let isPaid: Bool
+    }
 
     private struct CachedItemListData {
         let paidTotal: Double
@@ -66,6 +73,7 @@ class DashboardViewModel {
         let count: Int
         let paidStatus: ItemListPaidStatus
         let rowStatus: ItemListRowStatus
+        let searchItems: [CachedSearchItemData]
     }
 
     private struct CategoryAggregate {
@@ -458,54 +466,42 @@ class DashboardViewModel {
             return
         }
 
-        let previousStates = itemList.items.map { (id: $0.id, isPaid: $0.isPaid) }
-        let currentStatus = itemListPaidStatus[itemList.id] ?? .none
-        let newValue = currentStatus == .all ? false : true
-        itemList.lastModifiedAt = Date()
-        itemListPaidStatus[itemList.id] = newValue ? .all : ItemListPaidStatus.none
-        itemList.items.forEach { $0.isPaid = newValue }
-        itemListRowStatus[itemList.id] = makeRowStatus(
-            totalAmount: itemList.totalAmount,
-            itemCount: itemCount,
-            paidStatus: itemListPaidStatus[itemList.id] ?? .none
-        )
+        paidToggleTasks[itemList.id]?.cancel()
+        paidToggleTasks[itemList.id] = Task { @MainActor in
+            let currentItems = await currentItemsSnapshot(for: itemList)
+            let previousStates = makePaidSnapshot(from: currentItems)
+            let currentStatus = itemListPaidStatus[itemList.id] ?? .none
+            let newValue = currentStatus == .all ? false : true
 
-        if itemCount > 1 {
-            toast = ToastMessage(
-                newValue
-                    ? LocalizationKey.Dashboard.markedAllPaid.localized
-                    : LocalizationKey.Dashboard.markedAllPending.localized,
-                type: .info,
-                actionTitle: LocalizationKey.Dashboard.undo.localized
-            ) { [weak self] in
-                Task { @MainActor in
-                    await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
-                }
-            }
-        } else {
-            toast = nil
-        }
+            applyBulkPaidState(
+                newValue,
+                to: currentItems,
+                in: itemList,
+                itemCount: itemCount
+            )
+            showBulkToggleToast(
+                for: itemList,
+                itemCount: itemCount,
+                newValue: newValue,
+                previousStates: previousStates
+            )
 
-        paidToggleTasks[itemList.id] = Task {
+            defer { paidToggleTasks[itemList.id] = nil }
+
             try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
             await calculateTotalSpent()
-            paidToggleTasks[itemList.id] = nil
         }
     }
 
     private func undoTogglePaid(
         for itemList: SDItemList,
-        previousStates: [(id: UUID, isPaid: Bool)]
+        previousStates: [ItemPaidSnapshot]
     ) async {
         if let pendingTask = paidToggleTasks[itemList.id] {
             await pendingTask.value
         }
 
-        for state in previousStates {
-            itemList.items.first { $0.id == state.id }?.isPaid = state.isPaid
-            try? await toggleItemPaidUseCase.execute(itemId: state.id, isPaid: state.isPaid)
-        }
-        itemList.lastModifiedAt = Date()
+        await restorePaidSnapshot(previousStates, for: itemList)
         await calculateTotalSpent()
         toast = ToastMessage(LocalizationKey.Dashboard.changeUndone.localized, type: .info)
     }
@@ -538,6 +534,90 @@ class DashboardViewModel {
 
     func clearSearch() {
         searchQuery = ""
+    }
+
+    private func makePaidSnapshot(from items: [SDItem]) -> [ItemPaidSnapshot] {
+        items.map { (id: $0.id, isPaid: $0.isPaid) }
+    }
+
+    private func applyBulkPaidState(
+        _ isPaid: Bool,
+        to items: [SDItem],
+        in itemList: SDItemList,
+        itemCount: Int
+    ) {
+        itemList.lastModifiedAt = Date()
+        itemListPaidStatus[itemList.id] = isPaid ? .all : .none
+        items.forEach { $0.isPaid = isPaid }
+        itemListRowStatus[itemList.id] = makeRowStatus(
+            totalAmount: itemList.totalAmount,
+            itemCount: itemCount,
+            paidStatus: itemListPaidStatus[itemList.id] ?? .none
+        )
+    }
+
+    private func showBulkToggleToast(
+        for itemList: SDItemList,
+        itemCount: Int,
+        newValue: Bool,
+        previousStates: [ItemPaidSnapshot]
+    ) {
+        guard itemCount > 1 else {
+            toast = nil
+            return
+        }
+
+        toast = ToastMessage(
+            newValue
+                ? LocalizationKey.Dashboard.markedAllPaid.localized
+                : LocalizationKey.Dashboard.markedAllPending.localized,
+            type: .info,
+            actionTitle: LocalizationKey.Dashboard.undo.localized
+        ) { [weak self] in
+            Task { @MainActor in
+                await self?.undoTogglePaid(for: itemList, previousStates: previousStates)
+            }
+        }
+    }
+
+    private func currentItemsSnapshot(for itemList: SDItemList) async -> [SDItem] {
+        if let fetchedItems = try? await fetchItemsUseCase.execute(forItemListId: itemList.id), !fetchedItems.isEmpty {
+            return fetchedItems
+        }
+        return itemList.items
+    }
+
+    private func restorePaidSnapshot(
+        _ snapshot: [ItemPaidSnapshot],
+        for itemList: SDItemList
+    ) async {
+        let currentItems = await currentItemsSnapshot(for: itemList)
+
+        for state in snapshot {
+            currentItems.first { $0.id == state.id }?.isPaid = state.isPaid
+            try? await toggleItemPaidUseCase.execute(itemId: state.id, isPaid: state.isPaid)
+        }
+
+        itemList.lastModifiedAt = Date()
+        let restoredStatus = paidStatus(from: snapshot)
+        itemListPaidStatus[itemList.id] = restoredStatus
+        itemListRowStatus[itemList.id] = makeRowStatus(
+            totalAmount: itemList.totalAmount,
+            itemCount: snapshot.count,
+            paidStatus: restoredStatus
+        )
+    }
+
+    private func paidStatus(from snapshot: [ItemPaidSnapshot]) -> ItemListPaidStatus {
+        let restoredPaidCount = snapshot.filter { $0.isPaid }.count
+
+        if snapshot.isEmpty || restoredPaidCount == 0 {
+            return .none
+        }
+        if restoredPaidCount == snapshot.count {
+            return .all
+        }
+        return .partial
     }
 
     private func calculateTotalSpent() async {
@@ -777,7 +857,14 @@ class DashboardViewModel {
                 unpaidTotal: max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0),
                 count: totalUnits,
                 paidStatus: paidStatus,
-                rowStatus: rowStatus
+                rowStatus: rowStatus,
+                searchItems: items.map {
+                    CachedSearchItemData(
+                        description: $0.itemDescription,
+                        totalAmount: $0.totalAmount,
+                        isPaid: $0.isPaid
+                    )
+                }
             )
             cacheManager.cacheCalculation(result, for: cacheKey)
             return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus, result.rowStatus)
@@ -821,8 +908,8 @@ class DashboardViewModel {
         guard !query.isEmpty else { return nil }
 
         let listMatched = itemList.itemListDescription.localizedCaseInsensitiveContains(query)
-        let matchedItems = itemList.items.filter {
-            $0.itemDescription.localizedCaseInsensitiveContains(query)
+        let matchedItems = currentSearchItems(for: itemList).filter {
+            $0.description.localizedCaseInsensitiveContains(query)
         }
 
         guard listMatched || !matchedItems.isEmpty else { return nil }
@@ -845,6 +932,21 @@ class DashboardViewModel {
             matchedSubtotal: matchedSubtotal.isFinite ? matchedSubtotal : 0.0,
             matchedUnpaidSubtotal: matchedUnpaidSubtotal.isFinite ? matchedUnpaidSubtotal : 0.0
         )
+    }
+
+    private func currentSearchItems(for itemList: SDItemList) -> [CachedSearchItemData] {
+        let cacheKey = itemListDataCacheKey(for: itemList)
+        if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
+            return cached.searchItems
+        }
+
+        return itemList.items.map {
+            CachedSearchItemData(
+                description: $0.itemDescription,
+                totalAmount: $0.totalAmount,
+                isPaid: $0.isPaid
+            )
+        }
     }
 
     private func itemListDataCacheKey(for itemList: SDItemList) -> String {

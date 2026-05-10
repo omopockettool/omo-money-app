@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.4] - 2026-05-10
+
+### Fixed
+- **Undo for mixed paid/unpaid dashboard item lists now restores each item’s real original paid state instead of flattening everything to pending** (`DashboardViewModel`) — the dashboard bulk paid toggle was taking its undo snapshot from the in-memory `itemList.items` relationship, which could diverge from the fresher item state used elsewhere in dashboard totals and row status calculations. The undo path now snapshots current items from a fresh fetch before applying the bulk toggle, and it also restores the in-memory paid/partial/all row state immediately when undo is tapped, so mixed lists return to their exact original combination of paid and unpaid items.
+- **Dashboard search results now calculate paid and unpaid matched amounts from the same fresh item source used by dashboard totals** (`DashboardViewModel`) — search-mode item-list rows could still show `0.00` paid even when a matched item was actually marked as paid, because the search summary logic was reading `itemList.items` while the rest of the dashboard relied on fresher fetched item data. Search summaries now reuse lightweight cached snapshots derived from the fetched items used for dashboard totals, so visible paid/unpaid search amounts stay consistent with the real item state.
+- **Dashboard bulk paid toggle restore now uses the same fresh item snapshot strategy on both snapshot and undo paths** (`DashboardViewModel`) — the mixed-state undo fix was tightened so restore no longer falls back to mutating only the potentially stale relationship array while persisting each item. This keeps the full bulk-toggle lifecycle more coherent and reduces the chance of relationship drift affecting visible dashboard state.
+
+### Changed
+- **The dashboard bulk paid/undo flow in the view model was refactored into smaller private helpers without changing behavior** (`DashboardViewModel`) — snapshot creation, optimistic bulk-state application, toast setup, restore, and paid-status derivation now live in dedicated helper methods, making the flow easier to reason about and keeping the paid-state rules centralized in the view model.
+
 ## [1.14.3] - 2026-05-10
 
 ### Fixed
