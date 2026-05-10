@@ -147,7 +147,22 @@ struct AddItemListView: View {
                 }
             }
             ToolbarItemGroup(placement: .keyboard) {
+                Button {
+                    moveFocusBackward()
+                } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .disabled(!canMoveFocusBackward)
+
+                Button {
+                    moveFocusForward()
+                } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .disabled(!canMoveFocusForward)
+
                 Spacer()
+
                 Button(LocalizationKey.General.done.localized) { focusedField = nil }
             }
         }
@@ -212,6 +227,43 @@ struct AddItemListView: View {
         .onChange(of: viewModel.selectedCategory) { viewModel.updateConceptAssists() }
         .onChange(of: focusedField) { _, _ in viewModel.updateSuggestions() }
         .animation(AnimationHelper.quickEase, value: focusedField == .description)
+    }
+
+    private var canMoveFocusBackward: Bool {
+        switch focusedField {
+        case .description:
+            return !viewModel.isEditMode
+        default:
+            return false
+        }
+    }
+
+    private var canMoveFocusForward: Bool {
+        switch focusedField {
+        case .price:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func moveFocusBackward() {
+        switch focusedField {
+        case .description:
+            guard !viewModel.isEditMode else { return }
+            focusedField = .price
+        default:
+            break
+        }
+    }
+
+    private func moveFocusForward() {
+        switch focusedField {
+        case .price:
+            focusedField = .description
+        default:
+            break
+        }
     }
 
     // MARK: - Top Card (Concept + Amount)
