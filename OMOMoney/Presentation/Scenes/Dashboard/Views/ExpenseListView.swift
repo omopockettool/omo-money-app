@@ -74,7 +74,11 @@ struct ExpenseListView<EmptyState: View>: View {
 
     var body: some View {
         List {
-            if itemLists.isEmpty && !showCustomEmptyState {
+            if itemLists.isEmpty && showCustomEmptyState {
+                customEmptyState
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else if itemLists.isEmpty && !showCustomEmptyState {
                 ExpenseListEmptyState()
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -119,13 +123,6 @@ struct ExpenseListView<EmptyState: View>: View {
             $0.refreshable {
                 await onRefresh()
                 try? await Task.sleep(for: .milliseconds(180))
-            }
-        }
-        .overlay {
-            if itemLists.isEmpty && showCustomEmptyState {
-                customEmptyState
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

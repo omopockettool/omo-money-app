@@ -1,38 +1,31 @@
 import SwiftUI
 
 struct DashboardNoResultsState: View {
+    private let emptyStateMinHeight: CGFloat = 360
+
     var body: some View {
         VStack {
             Spacer(minLength: 0)
 
-            ViewThatFits(in: .vertical) {
-                stateLayout(isCompact: false)
-                stateLayout(isCompact: true)
-            }
-            .padding(.horizontal, AppConstants.UserInterface.padding)
+            VStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 34, weight: .regular))
+                    .foregroundStyle(.secondary)
 
-            Spacer(minLength: 0)
-        }
-    }
+                Text(LocalizationKey.Dashboard.noMatchesTitle.localized)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
 
-    @ViewBuilder
-    private func stateLayout(isCompact: Bool) -> some View {
-        VStack(spacing: isCompact ? 10 : AppConstants.UserInterface.padding) {
-            Image(systemName: "magnifyingglass.circle")
-                .font(.system(size: isCompact ? 30 : 36, weight: .regular))
-                .foregroundStyle(.secondary)
-
-            Text(LocalizationKey.Dashboard.noMatchesTitle.localized)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            if !isCompact {
                 Text(LocalizationKey.Dashboard.noMatchesMessage.localized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, AppConstants.UserInterface.padding)
         .frame(maxWidth: .infinity)
+        .frame(minHeight: emptyStateMinHeight)
     }
 }

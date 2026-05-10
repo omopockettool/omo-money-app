@@ -272,9 +272,6 @@ struct DashboardView: View {
             collapsedDays: $collapsedMonthDays,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
-                if isSearchActive {
-                    dismissSearchKeyboardToken += 1
-                }
                 navigationPath.append(itemList)
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
@@ -473,9 +470,6 @@ struct DashboardView: View {
                 if let customTap = onItemTap {
                     customTap(item)
                 } else {
-                    if isSearchActive {
-                        dismissSearchKeyboardToken += 1
-                    }
                     navigationPath.append(item)
                 }
             },

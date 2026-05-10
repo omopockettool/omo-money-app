@@ -32,42 +32,34 @@ struct DashboardMonthFilterSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: AppConstants.UserInterface.padding) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(LocalizationKey.Dashboard.month.localized)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 12) {
-                    Picker(LocalizationKey.Dashboard.month.localized, selection: $selectedMonthIndex) {
-                        ForEach(Array(monthSymbols.enumerated()), id: \.offset) { index, month in
-                            Text(month.capitalized(with: Locale.current)).tag(index)
-                        }
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Picker(LocalizationKey.Dashboard.month.localized, selection: $selectedMonthIndex) {
+                    ForEach(Array(monthSymbols.enumerated()), id: \.offset) { index, month in
+                        Text(month.capitalized(with: Locale.current)).tag(index)
                     }
-                    .pickerStyle(.wheel)
-
-                    Picker(LocalizationKey.Dashboard.year.localized, selection: $selectedYear) {
-                        ForEach(availableYears, id: \.self) { year in
-                            Text("\(year)").tag(year)
-                        }
-                    }
-                    .pickerStyle(.wheel)
                 }
-                .frame(height: 160)
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+
+                Picker(LocalizationKey.Dashboard.year.localized, selection: $selectedYear) {
+                    ForEach(availableYears, id: \.self) { year in
+                        Text(String(year)).tag(year)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(width: 110)
             }
+            .padding(.horizontal, 8)
 
             if isCustomFilterActive {
-                Button(LocalizationKey.Dashboard.currentMonth.localized, action: onReset)
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
+                Button(LocalizationKey.Dashboard.currentMonth.localized) {
+                    onReset()
+                }
+                .font(.subheadline)
+                .padding(.bottom, 8)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(AppConstants.UserInterface.padding)
-        .background(Color(.systemGroupedBackground))
         .navigationTitle(LocalizationKey.Dashboard.filters.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -84,6 +76,7 @@ struct DashboardMonthFilterSheet: View {
                 }
             }
         }
+        .presentationBackground(Color(uiColor: .systemGroupedBackground))
     }
 
     private var monthSymbols: [String] {

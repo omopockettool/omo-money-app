@@ -177,6 +177,15 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         selectedFilterTitle != nil
     }
 
+    private var filteredListRefreshID: String {
+        let itemIDs = filteredItemLists.map(\.id.uuidString).joined(separator: "|")
+        return [
+            selectedFilterTitle ?? "none",
+            showingFullMonth ? "month" : "today",
+            itemIDs
+        ].joined(separator: "#")
+    }
+
     init(
         allFormattedAmount: String,
         allFormattedUnpaidAmount: String?,
@@ -273,6 +282,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                         collapsedDays: $collapsedDays,
                         allowsDayCollapse: showingFullMonth
                     )
+                    .id(filteredListRefreshID)
                     .zIndex(1)
                     .safeAreaInset(edge: .top, spacing: 0) {
                         DashboardSelectedFilterBar(

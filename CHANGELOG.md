@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-05-10
+
+### Changed
+- **The dashboard month filter sheet was simplified back to a cleaner wheel-based picker layout** (`DashboardMonthFilterSheet`) — month and year selection now use a tighter native wheel presentation with a lighter “Back to current month” reset action, reducing the heavier card-like form treatment introduced during the filter update.
+- **The dashboard no-results state now uses a dedicated centered filter/search presentation instead of the generic empty-state visual** (`DashboardNoResultsState`, `DashboardCategoryBoardComponents`, `ExpenseListView`) — when search or month filtering returns zero matches, the dashboard now shows a centered filter-style empty message inside the main content area, while truly empty groups still keep the normal add-entry empty state.
+
+### Fixed
+- **Resetting a custom month filter back to the current month now refreshes the visible dashboard content immediately** (`DashboardComponents`, `DashboardView`) — the hero totals were already updating correctly, but the filtered content area could remain visually empty until another UI interaction forced a redraw. The filtered list now refreshes its identity locally when its visible item set changes, so returning to the current month repopulates the board/list right away.
+- **Dashboard category drill-in transitions now preserve the intended side-swap motion again** (`DashboardView`, `DashboardComponents`) — the temporary whole-content identity refresh used to solve the stale filtered view bug was making SwiftUI rebuild the entire dashboard content node, which degraded category-board-to-list transitions into a fade. The refresh behavior is now scoped to the filtered list itself so the original left/right dashboard drill animation remains intact.
+- **Dashboard search navigation no longer interferes with normal list/detail push animations** (`DashboardView`) — tapping a matched item list now follows the same push path as regular navigation without an extra simultaneous keyboard-dismiss state change.
+
 ## [1.14.0] - 2026-05-08
 
 ### Changed

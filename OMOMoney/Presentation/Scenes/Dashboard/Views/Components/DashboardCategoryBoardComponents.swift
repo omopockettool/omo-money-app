@@ -41,7 +41,10 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
 
     var body: some View {
         ScrollView {
-            if boxes.isEmpty && !showCustomEmptyState {
+            if boxes.isEmpty && showCustomEmptyState {
+                customEmptyState
+                    .padding(.horizontal, AppConstants.UserInterface.padding)
+            } else if boxes.isEmpty && !showCustomEmptyState {
                 DashboardCategoryBoardEmptyState()
                     .frame(maxWidth: .infinity)
                     .padding(.top, 72)
@@ -52,9 +55,11 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
                         rowView(indexedRow.element)
                     }
 
-                    DashboardAllCategoryBoxView(
-                        onTap: onSelectAll
-                    )
+                    if !boxes.isEmpty {
+                        DashboardAllCategoryBoxView(
+                            onTap: onSelectAll
+                        )
+                    }
                 }
                 .padding(.horizontal, AppConstants.UserInterface.padding)
                 .padding(.top, AppConstants.UserInterface.padding)
@@ -66,13 +71,6 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
         .refreshable {
             await onRefresh()
             try? await Task.sleep(for: .milliseconds(180))
-        }
-        .overlay {
-            if boxes.isEmpty && showCustomEmptyState {
-                customEmptyState
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
