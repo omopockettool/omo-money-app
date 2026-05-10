@@ -5,20 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.14.7] - 2026-05-10
+## [1.16.0] - 2026-05-10
 
-### Fixed
-- **The dashboard now still exposes the `All` entry point when visible item lists have no category assigned** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`) — newly created groups could end up with visible entries that the category board could not render because every item list lacked a category, leaving users with no way to open those records from the dashboard. The dashboard now detects when the selected date range contains visible item lists even if the category box grid is empty, and shows the `All` button as a fallback so uncategorized records remain reachable.
+### Added
+- **New Entry now includes keyboard toolbar arrow controls to move focus between amount and description fields** (`AddItemListView`) — the quick-entry form now exposes up/down keyboard actions so users can move between the hero amount field and the concept field without relying only on taps, improving accessibility and faster keyboard-driven entry.
+
+### Changed
+- **Primary toolbar confirmation checkmarks now use a shared prominent circular button style across the app** (`PrimaryToolbarCheckButton`, `AddItemListView`, `CategoryFormView`, `PaymentMethodFormView`, `GroupInfoEditSheet`, `CreateGroupView`, `AddItemView`, `DashboardMonthFilterSheet`) — repeated toolbar save/confirm buttons were centralized into one shared component and updated to use a more visible prominent circular treatment tinted with the app accent color, bringing confirmation actions closer to native iOS affordances while keeping them consistent across forms and sheets.
+- **The group picker create action now uses the app accent color when enabled** (`GroupSelectorChipView`) — the `+` button used to open the Create Group flow now follows the same active-state color language as the rest of the app’s primary creation actions instead of appearing with the previous white treatment.
+- **Item-list detail hero add actions now inherit the current category color when available** (`ItemListDetailComponents`, `TotalSpentCardView`) — when viewing an item list tied to a category with its own color, the bottom hero `+` button now adopts that category color, extending the same contextual add-action cue already introduced on the dashboard.
+
+## [1.15.0] - 2026-05-10
+
+### Changed
+- **The dashboard add button now adopts the active category color while drilled into a category filter** (`DashboardView`, `DashboardComponents`, `TotalSpentCardView`) — when the user is browsing inside a selected dashboard category, the hero `+` action now uses that category’s color instead of the default accent color. This gives clearer context that the next new entry is being created from within that active category view, while preserving the standard accent styling when no category filter is active.
 
 ## [1.14.8] - 2026-05-10
 
 ### Changed
 - **The dashboard now auto-enters the `All` list when the visible range contains only uncategorized entries** (`DashboardView`) — instead of showing a category-board state with only an `All` fallback button, the dashboard now resolves that case as an implicit `All` selection and opens the entry list directly. This makes brand-new groups with uncategorized records feel more natural and removes an unnecessary intermediate step.
 
-## [1.15.0] - 2026-05-10
+## [1.14.7] - 2026-05-10
 
-### Changed
-- **The dashboard add button now adopts the active category color while drilled into a category filter** (`DashboardView`, `DashboardComponents`, `TotalSpentCardView`) — when the user is browsing inside a selected dashboard category, the hero `+` action now uses that category’s color instead of the default accent color. This gives clearer context that the next new entry is being created from within that active category view, while preserving the standard accent styling when no category filter is active.
+### Fixed
+- **The dashboard now still exposes the `All` entry point when visible item lists have no category assigned** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`) — newly created groups could end up with visible entries that the category board could not render because every item list lacked a category, leaving users with no way to open those records from the dashboard. The dashboard now detects when the selected date range contains visible item lists even if the category box grid is empty, and shows the `All` button as a fallback so uncategorized records remain reachable.
 
 ## [1.14.6] - 2026-05-10
 

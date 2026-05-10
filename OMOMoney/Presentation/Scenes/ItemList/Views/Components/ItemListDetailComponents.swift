@@ -9,11 +9,17 @@ struct ItemListDetailHeroCard: View {
     let showMetaLabels: Bool
     let onAddExpense: () -> Void
 
+    private var actionColor: Color {
+        guard let colorHex = itemList.category?.color else { return .accentColor }
+        return Color(hex: colorHex) ?? .accentColor
+    }
+
     var body: some View {
         TotalSpentCardView(
             label: heroIsSuccess ? lastAddedDescription : LocalizationKey.Item.costOf.localized(with: itemList.itemListDescription),
             totalAmount: totalAmount,
             onAddExpense: onAddExpense,
+            actionColor: actionColor,
             isSuccess: heroIsSuccess
         ) {
             ItemListDetailMetaRow(

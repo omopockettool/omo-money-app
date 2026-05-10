@@ -148,12 +148,9 @@ struct CategoryFormView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button {
+                PrimaryToolbarCheckButton(isDisabled: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading) {
                     Task { await save() }
-                } label: {
-                    Image(systemName: "checkmark")
                 }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }
         }
     }

@@ -82,15 +82,14 @@ struct AddItemView: View {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
+                    PrimaryToolbarCheckButton(isDisabled: !viewModel.canSave) {
                         Task {
                             if let item = await viewModel.saveItem() {
                                 onItemSaved(item)
                                 dismiss()
                             }
                         }
-                    } label: { Image(systemName: "checkmark") }
-                    .disabled(!viewModel.canSave)
+                    }
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()

@@ -56,12 +56,9 @@ struct CreateGroupView: View {
                     .disabled(viewModel.isLoading)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
+                    PrimaryToolbarCheckButton(isDisabled: groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading) {
                         Task { await createGroup() }
-                    } label: {
-                        Image(systemName: "checkmark")
                     }
-                    .disabled(groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
                 }
             }
             .disabled(viewModel.isLoading)

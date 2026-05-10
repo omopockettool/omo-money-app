@@ -69,10 +69,8 @@ struct DashboardMonthFilterSheet: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button {
+                PrimaryToolbarCheckButton {
                     onApply(selectedDate)
-                } label: {
-                    Image(systemName: "checkmark")
                 }
             }
         }

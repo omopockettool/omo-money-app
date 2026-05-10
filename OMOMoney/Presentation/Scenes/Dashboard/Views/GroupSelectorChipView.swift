@@ -162,7 +162,7 @@ struct GroupPickerSheet: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.title2.weight(.semibold))
-                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .white)
+                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .accentColor)
                     }
                     .buttonStyle(.plain)
                     .disabled(isChangingGroup || viewModel.isDeletingGroup)

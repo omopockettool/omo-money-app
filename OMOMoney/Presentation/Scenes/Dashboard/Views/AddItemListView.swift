@@ -136,14 +136,12 @@ struct AddItemListView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button {
+                PrimaryToolbarCheckButton {
                     if viewModel.canSave {
                         Task { await saveItemList() }
                     } else {
                         viewModel.showValidationToast()
                     }
-                } label: {
-                    Image(systemName: "checkmark")
                 }
             }
             ToolbarItemGroup(placement: .keyboard) {
