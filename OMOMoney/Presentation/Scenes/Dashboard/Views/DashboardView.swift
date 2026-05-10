@@ -249,7 +249,7 @@ struct DashboardView: View {
             filteredItemLists: activeFilteredItemLists,
             getItemListAmount: { viewModel.formattedPaid(for: $0) },
             getItemListUnpaidAmount: { viewModel.formattedUnpaid(for: $0) },
-            getDayTotal: { viewModel.formattedTotal(for: $0) },
+            getDayTotal: { viewModel.formattedVisibleDayPaidTotal(for: $0, from: activeFilteredItemLists) },
             getSearchSummary: { viewModel.formattedSearchSummary(for: $0) },
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },

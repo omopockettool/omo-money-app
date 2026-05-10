@@ -631,13 +631,35 @@ class DashboardViewModel {
 
     func formattedSearchMatchedSubtotal(for itemList: SDItemList) -> String? {
         guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
-        return currencyFormatter.string(from: NSNumber(value: summary.matchedSubtotal)) ?? "€0.00"
+        let paidMatchedAmount = summary.matchedSubtotal - summary.matchedUnpaidSubtotal
+        let visiblePaidAmount = max(0, paidMatchedAmount.isFinite ? paidMatchedAmount : 0.0)
+        return currencyFormatter.string(from: NSNumber(value: visiblePaidAmount)) ?? "€0.00"
     }
 
     func formattedSearchMatchedUnpaid(for itemList: SDItemList) -> String? {
         guard let summary = searchSummary(for: itemList), summary.hasItemMatches else { return nil }
         guard summary.matchedUnpaidSubtotal > 0.000_001 else { return nil }
         return currencyFormatter.string(from: NSNumber(value: summary.matchedUnpaidSubtotal))
+    }
+
+    func visiblePaidAmount(for itemList: SDItemList) -> Double {
+        if let summary = searchSummary(for: itemList), summary.hasItemMatches {
+            let paidMatchedAmount = summary.matchedSubtotal - summary.matchedUnpaidSubtotal
+            return max(0, paidMatchedAmount.isFinite ? paidMatchedAmount : 0.0)
+        }
+
+        return max(0, itemListTotals[itemList.id] ?? 0.0)
+    }
+
+    func formattedVisibleDayPaidTotal(for date: Date, from itemLists: [SDItemList]) -> String {
+        let calendar = Calendar.current
+        let dayTotal = itemLists
+            .filter { calendar.isDate($0.date, inSameDayAs: date) }
+            .reduce(0.0) { total, itemList in
+                total + visiblePaidAmount(for: itemList)
+            }
+
+        return formattedCurrency(dayTotal)
     }
 
     func formattedTotal(for date: Date) -> String {

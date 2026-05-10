@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.2] - 2026-05-10
+
+### Fixed
+- **Filtered dashboard day headers now respect the currently visible filtered totals instead of the full unfiltered day amount** (`DashboardView`) — when drilling into a category such as `Gafas`, the per-date header total now sums only the visible filtered item lists for that day rather than the total of every item list recorded on that date.
+- **Search-driven dashboard amounts now show the visible paid portion instead of the full matched subtotal** (`DashboardViewModel`, `DashboardView`) — when a filtered row contains both paid and unpaid matched items, the white main amount and the grouped day header now reflect only the paid matched value, while the unpaid matched amount remains in the secondary unpaid line below.
+
 ## [1.14.1] - 2026-05-10
 
 ### Changed
