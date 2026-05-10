@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.5] - 2026-05-10
+
+### Added
+- **Introduced a shared centered editor header block for preview + primary name input layouts** (`CenteredEditorNameBlock`) — the app now has a reusable component that combines a centered preview area with the shared `LimitedTextField`, so editor screens that follow this pattern can stay visually aligned without duplicating their top input structure.
+
+### Changed
+- **Category and payment method editors now use the same shared top input pattern** (`CategoryFormView`, `PaymentMethodFormView`) — both screens now build their centered preview and primary name field through the same common component instead of maintaining slightly different local layouts. This keeps the payment method name field aligned with the category editor and makes future input-style adjustments propagate consistently.
+
 ## [1.14.4] - 2026-05-10
 
 ### Fixed

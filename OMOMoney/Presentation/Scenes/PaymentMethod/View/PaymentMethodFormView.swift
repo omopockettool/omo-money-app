@@ -42,77 +42,96 @@ struct PaymentMethodFormView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                // Preview
-                ZStack {
-                    Circle()
-                        .fill(typeColor(selectedType).opacity(0.15))
-                        .frame(width: 72, height: 72)
-                    Image(systemName: selectedIcon)
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(typeColor(selectedType))
-                }
-                .animation(AnimationHelper.quickSpring, value: selectedType)
-                .animation(AnimationHelper.quickSpring, value: selectedIcon)
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
-
-                // Name
-                LimitedTextField(
+        ScrollView {
+            VStack(spacing: 20) {
+                CenteredEditorNameBlock(
                     icon: "textformat",
                     placeholder: LocalizationKey.Payment.name.localized,
                     text: $name,
                     maxLength: 30,
-                    style: .formRow,
                     focusedField: $nameFocused,
                     fieldValue: true
-                )
-            }
+                ) {
+                    ZStack {
+                        Circle()
+                            .fill(typeColor(selectedType).opacity(0.15))
+                            .frame(width: 72, height: 72)
+                        Image(systemName: selectedIcon)
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundStyle(typeColor(selectedType))
+                    }
+                    .animation(AnimationHelper.quickSpring, value: selectedType)
+                    .animation(AnimationHelper.quickSpring, value: selectedIcon)
+                }
 
-            Section(LocalizationKey.Payment.type.localized) {
-                ForEach(types, id: \.self) { type in
-                    Button {
-                        withAnimation(AnimationHelper.quickSpring) { selectedType = type }
-                    } label: {
-                        NativeSettingsRow(
-                            systemImage: typeIcon(type),
-                            color: typeColor(type),
-                            title: typeName(type)
-                        ) {
-                            if selectedType == type {
-                                Image(systemName: "checkmark")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.accentColor)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(LocalizationKey.Payment.type.localized)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(types.enumerated()), id: \.element) { index, type in
+                            Button {
+                                withAnimation(AnimationHelper.quickSpring) { selectedType = type }
+                            } label: {
+                                NativeSettingsRow(
+                                    systemImage: typeIcon(type),
+                                    color: typeColor(type),
+                                    title: typeName(type)
+                                ) {
+                                    if selectedType == type {
+                                        Image(systemName: "checkmark")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(Color.accentColor)
+                                    }
+                                }
+                                .padding(AppConstants.UserInterface.padding)
+                                .background(Color.clear)
+                            }
+                            .buttonStyle(.plain)
+
+                            if index < types.count - 1 {
+                                Divider()
+                                    .padding(.leading, AppConstants.UserInterface.padding + 42)
                             }
                         }
                     }
-                    .buttonStyle(.plain)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
                 }
-            }
 
-            Section(LocalizationKey.Payment.icon.localized) {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
-                    ForEach(iconOptions, id: \.self) { icon in
-                        Button {
-                            withAnimation(AnimationHelper.quickSpring) { selectedIcon = icon }
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedIcon == icon ? typeColor(selectedType) : Color(.tertiarySystemGroupedBackground))
-                                    .frame(height: 46)
-                                Image(systemName: icon)
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(selectedIcon == icon ? .white : .secondary)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(LocalizationKey.Payment.icon.localized)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
+                        ForEach(iconOptions, id: \.self) { icon in
+                            Button {
+                                withAnimation(AnimationHelper.quickSpring) { selectedIcon = icon }
+                            } label: {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedIcon == icon ? typeColor(selectedType) : Color(.tertiarySystemGroupedBackground))
+                                        .frame(height: 44)
+                                    Image(systemName: icon)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundStyle(selectedIcon == icon ? .white : .secondary)
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(AppConstants.UserInterface.padding)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
                 }
             }
+            .padding(AppConstants.UserInterface.padding)
         }
-        .listStyle(.insetGrouped)
-        .listSectionSpacing(.compact)
+        .background(Color(.systemGroupedBackground))
         .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -140,7 +159,7 @@ struct PaymentMethodFormView: View {
                 Button {
                     Task { await save() }
                 } label: {
-                    Text(LocalizationKey.General.save.localized)
+                    Image(systemName: "checkmark")
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
             }

@@ -48,27 +48,25 @@ struct CategoryFormView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Preview
-                ZStack {
-                    Circle()
-                        .fill((Color(hex: selectedColor) ?? .accentColor).opacity(0.15))
-                        .frame(width: 72, height: 72)
-                    Image(systemName: selectedIcon)
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(Color(hex: selectedColor) ?? .accentColor)
-                }
-                .animation(AnimationHelper.quickSpring, value: selectedColor)
-                .animation(AnimationHelper.quickSpring, value: selectedIcon)
-
-                // Name
-                LimitedTextField(
+                CenteredEditorNameBlock(
                     icon: "textformat",
                     placeholder: LocalizationKey.Category.name.localized,
                     text: $name,
                     maxLength: 20,
                     focusedField: $nameFocused,
                     fieldValue: true
-                )
+                ) {
+                    ZStack {
+                        Circle()
+                            .fill((Color(hex: selectedColor) ?? .accentColor).opacity(0.15))
+                            .frame(width: 72, height: 72)
+                        Image(systemName: selectedIcon)
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundStyle(Color(hex: selectedColor) ?? .accentColor)
+                    }
+                    .animation(AnimationHelper.quickSpring, value: selectedColor)
+                    .animation(AnimationHelper.quickSpring, value: selectedIcon)
+                }
 
                 // Color picker
                 VStack(alignment: .leading, spacing: 10) {
