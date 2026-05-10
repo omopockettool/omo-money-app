@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardCategoryBoardView<EmptyState: View>: View {
     let boxes: [DashboardCategoryBoxData]
+    let hasVisibleItemLists: Bool
     let allFormattedAmount: String
     let allFormattedUnpaidAmount: String?
     let getFormattedAmount: (DashboardCategoryBoxData) -> String
@@ -14,6 +15,7 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
 
     init(
         boxes: [DashboardCategoryBoxData],
+        hasVisibleItemLists: Bool,
         allFormattedAmount: String,
         allFormattedUnpaidAmount: String?,
         getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
@@ -25,6 +27,7 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
         onSelect: @escaping (DashboardCategoryBoxData) -> Void
     ) {
         self.boxes = boxes
+        self.hasVisibleItemLists = hasVisibleItemLists
         self.allFormattedAmount = allFormattedAmount
         self.allFormattedUnpaidAmount = allFormattedUnpaidAmount
         self.getFormattedAmount = getFormattedAmount
@@ -41,7 +44,16 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
 
     var body: some View {
         ScrollView {
-            if boxes.isEmpty && showCustomEmptyState {
+            if hasVisibleItemLists && boxes.isEmpty {
+                VStack(spacing: rowSpacing) {
+                    DashboardAllCategoryBoxView(
+                        onTap: onSelectAll
+                    )
+                }
+                .padding(.horizontal, AppConstants.UserInterface.padding)
+                .padding(.top, AppConstants.UserInterface.padding)
+                .padding(.bottom, 32)
+            } else if boxes.isEmpty && showCustomEmptyState {
                 customEmptyState
                     .padding(.horizontal, AppConstants.UserInterface.padding)
             } else if boxes.isEmpty && !showCustomEmptyState {
@@ -113,6 +125,7 @@ struct DashboardCategoryBoardView<EmptyState: View>: View {
 extension DashboardCategoryBoardView where EmptyState == EmptyView {
     init(
         boxes: [DashboardCategoryBoxData],
+        hasVisibleItemLists: Bool,
         allFormattedAmount: String,
         allFormattedUnpaidAmount: String?,
         getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
@@ -123,6 +136,7 @@ extension DashboardCategoryBoardView where EmptyState == EmptyView {
     ) {
         self.init(
             boxes: boxes,
+            hasVisibleItemLists: hasVisibleItemLists,
             allFormattedAmount: allFormattedAmount,
             allFormattedUnpaidAmount: allFormattedUnpaidAmount,
             getFormattedAmount: getFormattedAmount,

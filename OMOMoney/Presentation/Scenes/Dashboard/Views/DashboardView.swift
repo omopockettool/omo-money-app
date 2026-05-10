@@ -244,6 +244,7 @@ struct DashboardView: View {
             allFormattedAmount: viewModel.formattedVisibleRangePaidTotal(showingFullMonth: viewModel.showingFullMonth),
             allFormattedUnpaidAmount: viewModel.formattedVisibleRangeUnpaidTotal(showingFullMonth: viewModel.showingFullMonth),
             categoryBoxes: viewModel.visibleCategoryBoxes,
+            hasVisibleItemLists: hasVisibleItemListsInSelectedRange,
             getFormattedAmount: { viewModel.formattedAmount(for: $0) },
             getFormattedUnpaidAmount: { viewModel.formattedUnpaidAmount(for: $0) },
             filteredItemLists: activeFilteredItemLists,
@@ -313,6 +314,13 @@ struct DashboardView: View {
         .onChange(of: viewModel.itemListTotals) { _, _ in
             refreshActiveFilter()
         }
+    }
+
+    private var hasVisibleItemListsInSelectedRange: Bool {
+        let visibleRangeItemLists = viewModel.showingFullMonth
+            ? viewModel.filteredMonthItemLists
+            : viewModel.filteredTodayItemLists
+        return !visibleRangeItemLists.isEmpty
     }
 
     private func refreshActiveFilter() {

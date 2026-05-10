@@ -94,6 +94,7 @@ enum LocalizationKey {
     // MARK: - Group
     enum Group {
         static let title = "group.title"
+        static let singularTitle = "group.singularTitle"
         static let name = "group.name"
         static let currency = "group.currency"
         static let create = "group.create"

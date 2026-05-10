@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.7] - 2026-05-10
+
+### Fixed
+- **The dashboard now still exposes the `All` entry point when visible item lists have no category assigned** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`) — newly created groups could end up with visible entries that the category board could not render because every item list lacked a category, leaving users with no way to open those records from the dashboard. The dashboard now detects when the selected date range contains visible item lists even if the category box grid is empty, and shows the `All` button as a fallback so uncategorized records remain reachable.
+
 ## [1.14.6] - 2026-05-10
 
 ### Fixed

@@ -614,7 +614,7 @@ struct AddItemListGroupCard: View {
                 Image(systemName: "person.2.fill")
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 20)
-                Text(LocalizationKey.Group.title.localized)
+                Text(LocalizationKey.Group.singularTitle.localized)
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
                     .fontWeight(.semibold)

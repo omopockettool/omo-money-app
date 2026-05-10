@@ -40,6 +40,7 @@
 
 // MARK: - Group
 "group.title" = "Groups";
+"group.singularTitle" = "Group";
 "group.name" = "Group Name";
 "group.currency" = "Currency";
 "group.create" = "Create Group";

@@ -145,6 +145,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let allFormattedAmount: String
     let allFormattedUnpaidAmount: String?
     let categoryBoxes: [DashboardCategoryBoxData]
+    let hasVisibleItemLists: Bool
     let getFormattedAmount: (DashboardCategoryBoxData) -> String
     let getFormattedUnpaidAmount: (DashboardCategoryBoxData) -> String?
     let filteredItemLists: [SDItemList]
@@ -190,6 +191,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         allFormattedAmount: String,
         allFormattedUnpaidAmount: String?,
         categoryBoxes: [DashboardCategoryBoxData],
+        hasVisibleItemLists: Bool,
         getFormattedAmount: @escaping (DashboardCategoryBoxData) -> String,
         getFormattedUnpaidAmount: @escaping (DashboardCategoryBoxData) -> String?,
         filteredItemLists: [SDItemList],
@@ -221,6 +223,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         self.allFormattedAmount = allFormattedAmount
         self.allFormattedUnpaidAmount = allFormattedUnpaidAmount
         self.categoryBoxes = categoryBoxes
+        self.hasVisibleItemLists = hasVisibleItemLists
         self.getFormattedAmount = getFormattedAmount
         self.getFormattedUnpaidAmount = getFormattedUnpaidAmount
         self.filteredItemLists = filteredItemLists
@@ -300,6 +303,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                 } else {
                     DashboardCategoryBoardView(
                         boxes: categoryBoxes,
+                        hasVisibleItemLists: hasVisibleItemLists,
                         allFormattedAmount: allFormattedAmount,
                         allFormattedUnpaidAmount: allFormattedUnpaidAmount,
                         getFormattedAmount: getFormattedAmount,
