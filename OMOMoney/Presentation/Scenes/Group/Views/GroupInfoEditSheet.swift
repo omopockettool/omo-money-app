@@ -39,10 +39,16 @@ struct GroupInfoEditSheet: View {
                         placeholder: LocalizationKey.Group.name.localized,
                         text: $name,
                         maxLength: 30,
-                        style: .formRow,
                         focusedField: $nameFocused,
                         fieldValue: true
                     )
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(
+                        top: 0,
+                        leading: 0,
+                        bottom: 0,
+                        trailing: 0
+                    ))
                 }
 
                 Section(LocalizationKey.Group.currency.localized) {
@@ -92,7 +98,7 @@ struct GroupInfoEditSheet: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        Text(LocalizationKey.General.save.localized)
+                        Image(systemName: "checkmark")
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
                 }
