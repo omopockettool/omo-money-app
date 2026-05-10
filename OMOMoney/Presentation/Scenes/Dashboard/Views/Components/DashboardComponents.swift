@@ -263,37 +263,39 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
 
             ZStack(alignment: .top) {
                 if let selectedFilterTitle {
-                    ExpenseListView(
-                        itemLists: filteredItemLists,
-                        getFormattedAmount: getItemListAmount,
-                        getFormattedUnpaidAmount: getItemListUnpaidAmount,
-                        getSearchSummary: getSearchSummary,
-                        getSearchMatchedSubtotal: getSearchMatchedSubtotal,
-                        getSearchMatchedUnpaid: getSearchMatchedUnpaid,
-                        itemListRowStatus: itemListRowStatus,
-                        onItemTap: onItemTap,
-                        onTogglePaid: onTogglePaid,
-                        onRefresh: onRefresh,
-                        onDelete: onDelete,
-                        customEmptyState: { customEmptyState },
-                        showCustomEmptyState: showCustomEmptyState,
-                        getDayTotal: getDayTotal,
-                        hideSectionHeaders: !showingFullMonth,
-                        collapsedDays: $collapsedDays,
-                        allowsDayCollapse: showingFullMonth
-                    )
-                    .id(filteredListRefreshID)
-                    .zIndex(1)
-                    .safeAreaInset(edge: .top, spacing: 0) {
+                    VStack(spacing: 0) {
                         DashboardSelectedFilterBar(
                             title: selectedFilterTitle,
                             iconName: selectedFilterIcon,
                             colorHex: selectedFilterColorHex,
                             onClear: onClearCategoryFilter
                         )
-                        .padding(.horizontal, AppConstants.UserInterface.smallPadding)
-                        .padding(.bottom, 0)
+                        .padding(.horizontal, AppConstants.UserInterface.padding)
+                        .padding(.top, AppConstants.UserInterface.smallPadding)
+                        .padding(.bottom, 2)
+
+                        ExpenseListView(
+                            itemLists: filteredItemLists,
+                            getFormattedAmount: getItemListAmount,
+                            getFormattedUnpaidAmount: getItemListUnpaidAmount,
+                            getSearchSummary: getSearchSummary,
+                            getSearchMatchedSubtotal: getSearchMatchedSubtotal,
+                            getSearchMatchedUnpaid: getSearchMatchedUnpaid,
+                            itemListRowStatus: itemListRowStatus,
+                            onItemTap: onItemTap,
+                            onTogglePaid: onTogglePaid,
+                            onRefresh: onRefresh,
+                            onDelete: onDelete,
+                            customEmptyState: { customEmptyState },
+                            showCustomEmptyState: showCustomEmptyState,
+                            getDayTotal: getDayTotal,
+                            hideSectionHeaders: !showingFullMonth,
+                            collapsedDays: $collapsedDays,
+                            allowsDayCollapse: showingFullMonth
+                        )
+                        .id(filteredListRefreshID)
                     }
+                    .zIndex(1)
                     .transition(.dashboardFilteredViewSwap)
                 } else {
                     DashboardCategoryBoardView(

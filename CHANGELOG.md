@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.3] - 2026-05-10
+
+### Fixed
+- **The selected dashboard category bar now sits inside the main rounded content card instead of appearing like a separate protruding surface** (`DashboardComponents`) — the active category row was previously injected above the filtered list through a top safe-area inset, which made it look wider and visually detached from the main dashboard container even though both surfaces shared the same background color. The selected-category bar now lives in the same vertical content stack as the filtered list, so its width, alignment, and containment match the main card correctly.
+
 ## [1.14.2] - 2026-05-10
 
 ### Fixed
