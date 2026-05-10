@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **The dashboard now auto-enters the `All` list when the visible range contains only uncategorized entries** (`DashboardView`) — instead of showing a category-board state with only an `All` fallback button, the dashboard now resolves that case as an implicit `All` selection and opens the entry list directly. This makes brand-new groups with uncategorized records feel more natural and removes an unnecessary intermediate step.
 
+## [1.15.0] - 2026-05-10
+
+### Changed
+- **The dashboard add button now adopts the active category color while drilled into a category filter** (`DashboardView`, `DashboardComponents`, `TotalSpentCardView`) — when the user is browsing inside a selected dashboard category, the hero `+` action now uses that category’s color instead of the default accent color. This gives clearer context that the next new entry is being created from within that active category view, while preserving the standard accent styling when no category filter is active.
+
 ## [1.14.6] - 2026-05-10
 
 ### Fixed

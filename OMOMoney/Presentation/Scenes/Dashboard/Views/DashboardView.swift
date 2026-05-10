@@ -416,6 +416,7 @@ struct DashboardView: View {
                             todayTotal: viewModel.formattedTodayTotal,
                             overrideLabel: activeCategoryBox?.categoryName,
                             overrideTotal: activeCategoryBox.map { viewModel.formattedCurrency($0.paidAmount) },
+                            overrideActionColor: activeCategoryBox.flatMap { Color(hex: $0.categoryColorHex) },
                             onAddExpense: {
                                 addItemListTrigger = AddItemListTrigger(
                                     initialDate: selectedCalendarDay,

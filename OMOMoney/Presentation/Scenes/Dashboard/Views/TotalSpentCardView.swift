@@ -11,6 +11,7 @@ struct TotalSpentCardView<BottomContent: View>: View {
     let label: String
     let totalAmount: String
     let onAddExpense: () -> Void
+    var actionColor: Color = .accentColor
     var isSuccess: Bool = false
     @ViewBuilder let bottomContent: () -> BottomContent
 
@@ -24,12 +25,14 @@ struct TotalSpentCardView<BottomContent: View>: View {
         label: String,
         totalAmount: String,
         onAddExpense: @escaping () -> Void,
+        actionColor: Color = .accentColor,
         isSuccess: Bool = false,
         @ViewBuilder bottomContent: @escaping () -> BottomContent
     ) {
         self.label = label
         self.totalAmount = totalAmount
         self.onAddExpense = onAddExpense
+        self.actionColor = actionColor
         self.isSuccess = isSuccess
         self.bottomContent = bottomContent
     }
@@ -71,12 +74,12 @@ struct TotalSpentCardView<BottomContent: View>: View {
 
                 ZStack {
                     Circle()
-                        .fill(isSuccess ? Color.green.opacity(0.45) : Color.accentColor.opacity(0.45))
+                        .fill(isSuccess ? Color.green.opacity(0.45) : actionColor.opacity(0.45))
                         .frame(width: 48, height: 48)
                         .offset(y: 4)
 
                     Circle()
-                        .fill(isSuccess ? Color.green : Color.accentColor)
+                        .fill(isSuccess ? Color.green : actionColor)
                         .frame(width: 48, height: 48)
                         .overlay {
                             ZStack {
@@ -155,12 +158,14 @@ extension TotalSpentCardView where BottomContent == EmptyView {
         label: String,
         totalAmount: String,
         onAddExpense: @escaping () -> Void,
+        actionColor: Color = .accentColor,
         isSuccess: Bool = false
     ) {
         self.init(
             label: label,
             totalAmount: totalAmount,
             onAddExpense: onAddExpense,
+            actionColor: actionColor,
             isSuccess: isSuccess,
             bottomContent: { EmptyView() }
         )

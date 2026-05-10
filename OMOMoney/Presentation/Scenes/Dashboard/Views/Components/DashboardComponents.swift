@@ -76,6 +76,7 @@ struct DashboardHeroSection: View {
     let todayTotal: String
     var overrideLabel: String? = nil
     var overrideTotal: String? = nil
+    var overrideActionColor: Color? = nil
     let onAddExpense: () -> Void
 
     private var displayLabel: String {
@@ -94,6 +95,7 @@ struct DashboardHeroSection: View {
             label: displayLabel,
             totalAmount: displayTotal,
             onAddExpense: onAddExpense,
+            actionColor: overrideActionColor ?? .accentColor,
             isSuccess: heroIsSuccess
         )
         .padding(.horizontal, AppConstants.UserInterface.padding)
