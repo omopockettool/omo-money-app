@@ -324,7 +324,7 @@ struct DashboardView: View {
     }
 
     private func refreshActiveFilter() {
-        switch activeFilter {
+        switch resolvedActiveFilter {
         case .all:
             break
         case .category(let categoryId, let range):
@@ -340,7 +340,7 @@ struct DashboardView: View {
     }
 
     private var activeFilteredItemLists: [SDItemList] {
-        switch activeFilter {
+        switch resolvedActiveFilter {
         case .all(let range):
             return range == .month ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists
         case .category(let categoryId, let range):
@@ -354,7 +354,7 @@ struct DashboardView: View {
     }
 
     private var activeFilterTitle: String? {
-        switch activeFilter {
+        switch resolvedActiveFilter {
         case .all:
             return LocalizationKey.General.all.localized
         case .category:
@@ -365,7 +365,7 @@ struct DashboardView: View {
     }
 
     private var activeFilterIcon: String? {
-        switch activeFilter {
+        switch resolvedActiveFilter {
         case .all:
             return "square.grid.2x2.fill"
         case .category:
@@ -376,7 +376,7 @@ struct DashboardView: View {
     }
 
     private var activeFilterColorHex: String? {
-        switch activeFilter {
+        switch resolvedActiveFilter {
         case .all:
             return nil
         case .category:
@@ -384,6 +384,22 @@ struct DashboardView: View {
         case nil:
             return nil
         }
+    }
+
+    private var resolvedActiveFilter: DashboardActiveFilter? {
+        if let activeFilter {
+            return activeFilter
+        }
+
+        guard shouldAutoSelectAllForUncategorizedOnly else {
+            return nil
+        }
+
+        return .all(viewModel.showingFullMonth ? .month : .today)
+    }
+
+    private var shouldAutoSelectAllForUncategorizedOnly: Bool {
+        hasVisibleItemListsInSelectedRange && viewModel.visibleCategoryBoxes.isEmpty
     }
 
     private var bottomInset: some View {
@@ -430,7 +446,7 @@ struct DashboardView: View {
     }
 
     private var activeCategoryBox: DashboardCategoryBoxData? {
-        guard case .category(let categoryId, let range) = activeFilter else { return nil }
+        guard case .category(let categoryId, let range) = resolvedActiveFilter else { return nil }
         return viewModel.categoryBox(forCategoryId: categoryId, in: range)
     }
 

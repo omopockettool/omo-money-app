@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **The dashboard now still exposes the `All` entry point when visible item lists have no category assigned** (`DashboardView`, `DashboardComponents`, `DashboardCategoryBoardComponents`) — newly created groups could end up with visible entries that the category board could not render because every item list lacked a category, leaving users with no way to open those records from the dashboard. The dashboard now detects when the selected date range contains visible item lists even if the category box grid is empty, and shows the `All` button as a fallback so uncategorized records remain reachable.
 
+## [1.14.8] - 2026-05-10
+
+### Changed
+- **The dashboard now auto-enters the `All` list when the visible range contains only uncategorized entries** (`DashboardView`) — instead of showing a category-board state with only an `All` fallback button, the dashboard now resolves that case as an implicit `All` selection and opens the entry list directly. This makes brand-new groups with uncategorized records feel more natural and removes an unnecessary intermediate step.
+
 ## [1.14.6] - 2026-05-10
 
 ### Fixed
