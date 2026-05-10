@@ -162,9 +162,9 @@ struct AddItemListView: View {
             await viewModel.loadGroups()
             if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
             let activeGroupID = activeGroup.id
+            await viewModel.loadUsageMemory(forGroupId: activeGroupID)
             let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
             let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
-            await viewModel.loadUsageMemory(forGroupId: activeGroupID)
             async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
             async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
             _ = await (categories, paymentMethods)
@@ -186,9 +186,9 @@ struct AddItemListView: View {
             viewModel.selectedPaymentMethod = nil
             Task {
                 let activeGroupID = activeGroup.id
+                await viewModel.loadUsageMemory(forGroupId: activeGroupID)
                 let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
                 let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
-                await viewModel.loadUsageMemory(forGroupId: activeGroupID)
                 async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
                 async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
                 _ = await (categories, paymentMethods)
