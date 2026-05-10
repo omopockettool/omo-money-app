@@ -547,12 +547,12 @@ class DashboardViewModel {
         itemCount: Int
     ) {
         itemList.lastModifiedAt = Date()
-        itemListPaidStatus[itemList.id] = isPaid ? .all : .none
+        itemListPaidStatus[itemList.id] = isPaid ? ItemListPaidStatus.all : ItemListPaidStatus.none
         items.forEach { $0.isPaid = isPaid }
         itemListRowStatus[itemList.id] = makeRowStatus(
             totalAmount: itemList.totalAmount,
             itemCount: itemCount,
-            paidStatus: itemListPaidStatus[itemList.id] ?? .none
+            paidStatus: itemListPaidStatus[itemList.id] ?? ItemListPaidStatus.none
         )
     }
 
