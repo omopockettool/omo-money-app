@@ -307,6 +307,9 @@ struct DashboardView: View {
                 }
             }
         }
+        .onChange(of: viewModel.selectedMonthAnchor) { _, _ in
+            refreshActiveFilter()
+        }
         .onChange(of: viewModel.itemListTotals) { _, _ in
             refreshActiveFilter()
         }
