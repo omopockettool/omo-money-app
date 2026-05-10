@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.6] - 2026-05-10
+
+### Fixed
+- **Dashboard category labels now follow category renames immediately when returning from category management** (`DashboardView`, `DashboardViewModel`) — the dashboard was still showing stale category names after edits because its selected filter state and category-box metadata path could outlive the renamed value. The dashboard filter state now stores only stable category identifiers instead of copied box snapshots, and dashboard category-box labels now read directly from the live `SDCategory` relationship values during aggregation instead of preferring older cached metadata. This keeps the dashboard aligned with category edits as soon as the user comes back.
+
 ## [1.14.5] - 2026-05-10
 
 ### Added

@@ -1143,10 +1143,6 @@ class DashboardViewModel {
     }
 
     private func categoryMetadata(for category: SDCategory) -> CategoryMetadata {
-        if let cached = categories[category.id] {
-            return cached
-        }
-
         return (category.name, category.color, category.icon)
     }
 }

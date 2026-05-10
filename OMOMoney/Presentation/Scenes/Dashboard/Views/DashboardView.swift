@@ -9,7 +9,7 @@ import SwiftUI
 
 private enum DashboardActiveFilter {
     case all(DashboardCategoryRange)
-    case category(DashboardCategoryBoxData)
+    case category(categoryId: UUID, range: DashboardCategoryRange)
 }
 
 enum DashboardViewMode {
@@ -142,9 +142,9 @@ struct DashboardView: View {
                     )
                 }
             }
-            .sheet(isPresented: $viewModel.showingSettings) {
+            .sheet(isPresented: $viewModel.showingSettings, onDismiss: {
                 Task { await viewModel.refreshCategories() }
-            } content: {
+            }) {
                 if let user = viewModel.currentUser {
                     SettingsSheetView(
                         user: user,
@@ -263,7 +263,7 @@ struct DashboardView: View {
             },
             onCategoryTap: { box in
                 withAnimation(AnimationHelper.smoothSpring) {
-                    activeFilter = .category(box)
+                    activeFilter = .category(categoryId: box.categoryId, range: box.range)
                 }
             },
             selectedFilterTitle: activeFilterTitle,
@@ -297,11 +297,11 @@ struct DashboardView: View {
                 switch activeFilter {
                 case .all:
                     activeFilter = .all(targetRange)
-                case .category(let selectedCategoryBox):
+                case .category(let categoryId, _):
                     activeFilter = viewModel.categoryBox(
-                        forCategoryId: selectedCategoryBox.categoryId,
+                        forCategoryId: categoryId,
                         in: targetRange
-                    ).map { .category($0) }
+                    ) == nil ? nil : .category(categoryId: categoryId, range: targetRange)
                 case nil:
                     break
                 }
@@ -319,14 +319,12 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             break
-        case .category(let box):
-            let refreshedFilter = viewModel.categoryBox(forCategoryId: box.categoryId, in: box.range).map { DashboardActiveFilter.category($0) }
-            guard refreshedFilter?.categoryId != activeCategoryBox?.categoryId || refreshedFilter == nil else {
-                activeFilter = refreshedFilter
-                return
-            }
+        case .category(let categoryId, let range):
+            let hasBox = viewModel.categoryBox(forCategoryId: categoryId, in: range) != nil
+            let refreshedFilter: DashboardActiveFilter? = hasBox ? .category(categoryId: categoryId, range: range) : nil
+            guard refreshedFilter == nil else { return }
             withAnimation(AnimationHelper.smoothSpring) {
-                activeFilter = refreshedFilter
+                activeFilter = nil
             }
         case nil:
             break
@@ -337,10 +335,10 @@ struct DashboardView: View {
         switch activeFilter {
         case .all(let range):
             return range == .month ? viewModel.filteredMonthItemLists : viewModel.filteredTodayItemLists
-        case .category(let selectedCategoryBox):
+        case .category(let categoryId, let range):
             return viewModel.filteredItemLists(
-                forCategoryId: selectedCategoryBox.categoryId,
-                in: selectedCategoryBox.range
+                forCategoryId: categoryId,
+                in: range
             )
         case nil:
             return []
@@ -351,8 +349,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return LocalizationKey.General.all.localized
-        case .category(let box):
-            return box.categoryName
+        case .category:
+            return activeCategoryBox?.categoryName
         case nil:
             return nil
         }
@@ -362,8 +360,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return "square.grid.2x2.fill"
-        case .category(let box):
-            return box.categoryIcon
+        case .category:
+            return activeCategoryBox?.categoryIcon
         case nil:
             return nil
         }
@@ -373,8 +371,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return nil
-        case .category(let box):
-            return box.categoryColorHex
+        case .category:
+            return activeCategoryBox?.categoryColorHex
         case nil:
             return nil
         }
@@ -424,8 +422,8 @@ struct DashboardView: View {
     }
 
     private var activeCategoryBox: DashboardCategoryBoxData? {
-        guard case .category(let box) = activeFilter else { return nil }
-        return box
+        guard case .category(let categoryId, let range) = activeFilter else { return nil }
+        return viewModel.categoryBox(forCategoryId: categoryId, in: range)
     }
 
     // View picker: filter pill on left, settings icon on right
@@ -488,8 +486,8 @@ struct DashboardView: View {
 
 private extension DashboardActiveFilter {
     var categoryId: UUID? {
-        guard case .category(let box) = self else { return nil }
-        return box.categoryId
+        guard case .category(let categoryId, _) = self else { return nil }
+        return categoryId
     }
 }
 
