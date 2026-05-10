@@ -22,16 +22,21 @@ struct DashboardBottomBarView: View {
         ZStack(alignment: .trailing) {
             inactiveContent
                 .opacity(isSearchActive ? 0 : 1)
+                .offset(y: isSearchActive ? 8 : 0)
+                .scaleEffect(isSearchActive ? 0.98 : 1, anchor: .trailing)
                 .allowsHitTesting(!isSearchActive)
 
             searchContent
                 .opacity(isSearchActive ? 1 : 0)
+                .offset(y: isSearchActive ? 0 : 8)
+                .scaleEffect(isSearchActive ? 1 : 0.98, anchor: .trailing)
                 .allowsHitTesting(isSearchActive)
         }
         .padding(.horizontal, AppConstants.UserInterface.padding)
         .padding(.top, AppConstants.UserInterface.smallPadding)
         .padding(.bottom, AppConstants.UserInterface.smallPadding)
         .background(Color(.systemBackground).ignoresSafeArea(edges: .bottom))
+        .animation(AnimationHelper.quickEase, value: isSearchActive)
         .onChange(of: isSearchActive) { _, isActive in
             searchFocusTask?.cancel()
 
@@ -43,7 +48,6 @@ struct DashboardBottomBarView: View {
                 }
             } else {
                 isSearchFieldFocused = false
-                searchText = ""
             }
         }
         .onChange(of: dismissKeyboardToken) { _, _ in
@@ -72,9 +76,7 @@ struct DashboardBottomBarView: View {
                     .submitLabel(.search)
 
                 Button {
-                    isSearchActive = false
-                    searchText = ""
-                    isSearchFieldFocused = false
+                    closeSearchMode()
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
@@ -131,6 +133,21 @@ struct DashboardBottomBarView: View {
             }
             .background(Color(.systemGray5))
             .clipShape(Capsule())
+        }
+    }
+
+    private func closeSearchMode() {
+        searchFocusTask?.cancel()
+        isSearchFieldFocused = false
+
+        withAnimation(AnimationHelper.quickEase) {
+            isSearchActive = false
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(140))
+            guard !isSearchActive else { return }
+            searchText = ""
         }
     }
 }
