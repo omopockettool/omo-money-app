@@ -68,16 +68,20 @@ struct AddItemListDescriptionField: View {
     let onClear: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: "character.cursor.ibeam")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(Color(.tertiaryLabel))
-                .padding(.top, isEditMode ? 2 : 1)
 
-            TextField(placeholder, text: $description, axis: .vertical)
+            TextField(placeholder, text: $description)
                 .font(isEditMode ? .body : .subheadline)
                 .foregroundStyle(isEditMode ? .primary : .secondary)
                 .focused(focusedField, equals: .description)
+                .submitLabel(.done)
+                .onSubmit {
+                    focusedField.wrappedValue = nil
+                }
+                .lineLimit(1)
 
             if !description.isEmpty {
                 Button(action: onClear) {

@@ -116,7 +116,9 @@ struct AddItemView: View {
             placeholder: itemListDescription,
             text: $viewModel.description,
             maxLength: 200,
-            axis: .vertical,
+            axis: .horizontal,
+            submitLabel: .done,
+            onSubmit: { focusedField = nil },
             focusedField: $focusedField,
             fieldValue: .description
         )

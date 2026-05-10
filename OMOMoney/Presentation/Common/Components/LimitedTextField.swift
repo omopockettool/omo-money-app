@@ -14,6 +14,8 @@ struct LimitedTextField<F: Hashable>: View {
     var maxLength: Int = 30
     var axis: Axis = .horizontal
     var style: Style = .groupedCard
+    var submitLabel: SubmitLabel = .done
+    var onSubmit: (() -> Void)? = nil
     var focusedField: FocusState<F?>.Binding
     let fieldValue: F
 
@@ -41,6 +43,10 @@ struct LimitedTextField<F: Hashable>: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .focused(focusedField, equals: fieldValue)
+                .submitLabel(submitLabel)
+                .onSubmit {
+                    onSubmit?()
+                }
 
             if !text.isEmpty {
                 Button { text = "" } label: {
