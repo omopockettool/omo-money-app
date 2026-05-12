@@ -165,6 +165,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let selectedFilterTitle: String?
     let selectedFilterIcon: String?
     let selectedFilterColorHex: String?
+    let selectedFilterShowsClearAction: Bool
     @Binding var collapsedDays: Set<Date>
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
@@ -211,6 +212,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         selectedFilterTitle: String?,
         selectedFilterIcon: String?,
         selectedFilterColorHex: String?,
+        selectedFilterShowsClearAction: Bool,
         collapsedDays: Binding<Set<Date>>,
         itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
@@ -243,6 +245,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         self.selectedFilterTitle = selectedFilterTitle
         self.selectedFilterIcon = selectedFilterIcon
         self.selectedFilterColorHex = selectedFilterColorHex
+        self.selectedFilterShowsClearAction = selectedFilterShowsClearAction
         self._collapsedDays = collapsedDays
         self.itemListRowStatus = itemListRowStatus
         self.onItemTap = onItemTap
@@ -273,6 +276,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                             title: selectedFilterTitle,
                             iconName: selectedFilterIcon,
                             colorHex: selectedFilterColorHex,
+                            showsClearAction: selectedFilterShowsClearAction,
                             onClear: onClearCategoryFilter
                         )
                         .padding(.horizontal, AppConstants.UserInterface.padding)
@@ -350,6 +354,7 @@ private struct DashboardSelectedFilterBar: View {
     let title: String
     let iconName: String?
     let colorHex: String?
+    let showsClearAction: Bool
     let onClear: () -> Void
 
     private var accentColor: Color {
@@ -359,28 +364,40 @@ private struct DashboardSelectedFilterBar: View {
 
     var body: some View {
         HStack {
-            Button(action: onClear) {
-                HStack(spacing: 6) {
-                    if let iconName {
-                        Image(systemName: iconName)
-                            .font(.system(size: 11, weight: .semibold))
+            Group {
+                if showsClearAction {
+                    Button(action: onClear) {
+                        chipContent
                     }
-                    Text(title)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
+                    .buttonStyle(.plain)
+                } else {
+                    chipContent
                 }
-                .foregroundStyle(accentColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(accentColor.opacity(0.12))
-                .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var chipContent: some View {
+        HStack(spacing: 6) {
+            if let iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+
+            if showsClearAction {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+            }
+        }
+        .foregroundStyle(accentColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(accentColor.opacity(0.12))
+        .clipShape(Capsule())
     }
 }
 

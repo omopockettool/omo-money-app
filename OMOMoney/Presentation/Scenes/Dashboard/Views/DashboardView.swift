@@ -270,6 +270,7 @@ struct DashboardView: View {
             selectedFilterTitle: activeFilterTitle,
             selectedFilterIcon: activeFilterIcon,
             selectedFilterColorHex: activeFilterColorHex,
+            selectedFilterShowsClearAction: activeFilterShowsClearAction,
             collapsedDays: $collapsedMonthDays,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
@@ -384,6 +385,10 @@ struct DashboardView: View {
         case nil:
             return nil
         }
+    }
+
+    private var activeFilterShowsClearAction: Bool {
+        activeFilter != nil
     }
 
     private var resolvedActiveFilter: DashboardActiveFilter? {
