@@ -133,7 +133,7 @@ struct AboutOMOView: View {
                                 endPoint: .trailing
                             )
                         )
-                    Text(LocalizationKey.About.heroTagline.localized)
+                    Text(LocalizationKey.User.Welcome.subtitle.localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
