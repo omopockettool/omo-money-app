@@ -111,7 +111,7 @@ struct AddItemView: View {
 
     private var descriptionCard: some View {
         LimitedTextField(
-            icon: "text.alignleft",
+            icon: "textformat",
             placeholder: itemListDescription,
             text: $viewModel.description,
             maxLength: 200,

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1] - 2026-05-12
+
+### Fixed
+- **The selected dashboard category filter chip is now left-aligned and includes its clear action inside the chip itself** (`DashboardComponents`) — the filtered-list header no longer shows a detached trailing close button. The active category chip now contains the `x` inside the same capsule using the category accent color, and it also has a bit more top spacing so it sits more comfortably inside the list container.
+- **Text-entry fields now follow the shared input treatment more consistently across entry and group creation flows** (`LimitedTextField`, `AddItemListComponents`, `AddItemListView`, `AddItemView`, `CreateGroupView`) — the Add Entry concept field now reuses the shared common text input instead of a one-off inline implementation, the Add Item description field now uses the `textformat` icon to match the category editor style, and the New Group name field now uses the shared input component while keeping the group-specific `person.2.fill` icon used by group editing.
+
 ## [1.16.0] - 2026-05-10
 
 ### Added

@@ -277,8 +277,7 @@ struct AddItemListView: View {
             focusedField: $focusedField,
             onValidate: viewModel.validateAndCorrectPrice,
             onPaste: viewModel.pastePrice,
-            onSuggestionSelected: { viewModel.applySuggestion($0, forGroupId: activeGroup.id) },
-            onClearDescription: { viewModel.description = "" }
+            onSuggestionSelected: { viewModel.applySuggestion($0, forGroupId: activeGroup.id) }
         )
     }
 

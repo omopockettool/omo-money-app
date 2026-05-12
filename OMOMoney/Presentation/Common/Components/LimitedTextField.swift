@@ -6,6 +6,7 @@ struct LimitedTextField<F: Hashable>: View {
     enum Style {
         case groupedCard
         case formRow
+        case embedded
     }
 
     let icon: String
@@ -22,6 +23,7 @@ struct LimitedTextField<F: Hashable>: View {
     private var isFocused: Bool { focusedField.wrappedValue == fieldValue }
     private var isMultiline: Bool { axis == .vertical }
     private var usesGroupedCardChrome: Bool { style == .groupedCard }
+    private var usesEmbeddedChrome: Bool { style == .embedded }
     private var limitedText: Binding<String> {
         Binding(
             get: { text },
@@ -60,7 +62,7 @@ struct LimitedTextField<F: Hashable>: View {
                 .animation(AnimationHelper.quickEase, value: text.isEmpty)
             }
         }
-        .padding(AppConstants.UserInterface.padding)
+        .padding(usesEmbeddedChrome ? 0 : AppConstants.UserInterface.padding)
         .background(backgroundView)
         .clipShape(clipShape)
         .overlay(overlayView)
@@ -70,6 +72,8 @@ struct LimitedTextField<F: Hashable>: View {
     private var backgroundView: some View {
         if usesGroupedCardChrome {
             Color(.secondarySystemGroupedBackground)
+        } else if usesEmbeddedChrome {
+            Color.clear
         } else {
             Color.clear
         }
@@ -85,6 +89,8 @@ struct LimitedTextField<F: Hashable>: View {
             RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius)
                 .stroke(isFocused ? Color(.systemGray3) : Color.clear, lineWidth: 1.5)
                 .animation(AnimationHelper.formFocus, value: isFocused)
+        } else if usesEmbeddedChrome {
+            EmptyView()
         } else {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isFocused ? Color(.systemGray4) : Color.clear, lineWidth: 1)

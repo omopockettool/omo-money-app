@@ -16,7 +16,6 @@ struct AddItemListTopCard: View {
     let onValidate: () -> Void
     let onPaste: () -> Void
     let onSuggestionSelected: (ConceptSuggestion) -> Void
-    let onClearDescription: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,8 +40,7 @@ struct AddItemListTopCard: View {
                 isEditMode: isEditMode,
                 description: $description,
                 placeholder: descriptionPlaceholder,
-                focusedField: focusedField,
-                onClear: onClearDescription
+                focusedField: focusedField
             )
 
             if focusedField.wrappedValue == .description && !suggestions.isEmpty {
@@ -65,35 +63,20 @@ struct AddItemListDescriptionField: View {
     @Binding var description: String
     let placeholder: String
     let focusedField: FocusState<AddItemListField?>.Binding
-    let onClear: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "character.cursor.ibeam")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(Color(.tertiaryLabel))
-
-            TextField(placeholder, text: $description)
-                .font(isEditMode ? .body : .subheadline)
-                .foregroundStyle(isEditMode ? .primary : .secondary)
-                .focused(focusedField, equals: .description)
-                .submitLabel(.done)
-                .onSubmit {
-                    focusedField.wrappedValue = nil
-                }
-                .lineLimit(1)
-
-            if !description.isEmpty {
-                Button(action: onClear) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Color(.tertiaryLabel))
-                        .font(.system(size: 16))
-                }
-                .buttonStyle(.plain)
-                .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                .animation(AnimationHelper.quickEase, value: description.isEmpty)
-            }
-        }
+        LimitedTextField(
+            icon: "textformat",
+            placeholder: placeholder,
+            text: $description,
+            maxLength: 200,
+            axis: .horizontal,
+            style: .embedded,
+            submitLabel: .done,
+            onSubmit: { focusedField.wrappedValue = nil },
+            focusedField: focusedField,
+            fieldValue: .description
+        )
         .padding(isEditMode ? AppConstants.UserInterface.largePadding : AppConstants.UserInterface.padding)
     }
 }

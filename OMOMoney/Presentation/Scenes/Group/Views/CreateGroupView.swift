@@ -9,6 +9,7 @@ struct CreateGroupView: View {
     @State private var viewModel = GroupFormViewModel()
     @State private var groupName = ""
     @State private var selectedCurrency = "EUR"
+    @FocusState private var groupNameFocused: Bool?
 
     private var availableCurrencies: [(String, String)] {
         [
@@ -21,8 +22,22 @@ struct CreateGroupView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(LocalizationKey.Group.name.localized, text: $groupName)
-                        .textInputAutocapitalization(.words)
+                    LimitedTextField(
+                        icon: "person.2.fill",
+                        placeholder: LocalizationKey.Group.name.localized,
+                        text: $groupName,
+                        maxLength: 30,
+                        focusedField: $groupNameFocused,
+                        fieldValue: true
+                    )
+                    .textInputAutocapitalization(.words)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(
+                        top: 0,
+                        leading: 0,
+                        bottom: 0,
+                        trailing: 0
+                    ))
                 } header: {
                     Text(LocalizationKey.Group.info.localized)
                 }
