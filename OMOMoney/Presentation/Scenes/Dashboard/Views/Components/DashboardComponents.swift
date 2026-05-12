@@ -276,7 +276,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                             onClear: onClearCategoryFilter
                         )
                         .padding(.horizontal, AppConstants.UserInterface.padding)
-                        .padding(.top, AppConstants.UserInterface.smallPadding)
+                        .padding(.top, AppConstants.UserInterface.largePadding)
                         .padding(.bottom, 2)
 
                         ExpenseListView(
@@ -358,39 +358,29 @@ private struct DashboardSelectedFilterBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 6) {
-                if let iconName {
-                    Image(systemName: iconName)
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(accentColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(accentColor.opacity(0.12))
-            .clipShape(Capsule())
-
-            Spacer()
-
+        HStack {
             Button(action: onClear) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color.primary)
-                .frame(width: 28, height: 28)
+                HStack(spacing: 6) {
+                    if let iconName {
+                        Image(systemName: iconName)
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundStyle(accentColor)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(.systemBackground))
-                .clipShape(Circle())
+                .background(accentColor.opacity(0.12))
+                .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
