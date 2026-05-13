@@ -158,13 +158,10 @@ struct SettingsSheetView: View {
         }
         .alert(
             LocalizationKey.General.error.localized,
-            isPresented: Binding(
-                get: { backupViewModel.errorMessage != nil },
-                set: { if !$0 { backupViewModel.errorMessage = nil } }
-            )
+            isPresented: $backupViewModel.showError
         ) {
             Button(LocalizationKey.General.ok.localized, role: .cancel) {
-                backupViewModel.errorMessage = nil
+                backupViewModel.clearError()
             }
         } message: {
             Text(backupViewModel.errorMessage ?? "")

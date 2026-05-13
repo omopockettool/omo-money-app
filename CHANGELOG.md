@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.5] - 2026-05-14
+
+### Changed
+- **Settings backup error presentation now uses explicit alert state instead of a derived binding** (`SettingsSheetView`, `SettingsBackupViewModel`) — backup/export/import errors are now surfaced through a dedicated `showError` flag in the ViewModel rather than through a `Binding(get:set:)` derived from `errorMessage` inside the view. This keeps the Settings sheet closer to the same simple, explicit alert pattern already used in other flows and reduces reactive presentation glue in the SwiftUI layer.
+
 ## [1.18.4] - 2026-05-14
 
 ### Changed

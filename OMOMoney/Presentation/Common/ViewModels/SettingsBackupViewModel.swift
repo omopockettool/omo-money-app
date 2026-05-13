@@ -18,6 +18,7 @@ final class SettingsBackupViewModel {
     var pendingImportedBackup: OMOBackupEnvelope?
     var pendingExportPurpose: ExportPurpose = .manual
     var errorMessage: String?
+    var showError = false
     var toast: ToastMessage?
 
     private let createBackupUseCase: CreateBackupUseCase
@@ -75,6 +76,7 @@ final class SettingsBackupViewModel {
 
             resetExportMetadata()
             errorMessage = error.localizedDescription
+            showError = true
         }
     }
 
@@ -89,6 +91,7 @@ final class SettingsBackupViewModel {
         case .failure(let error):
             guard !isCancellation(error) else { return }
             errorMessage = error.localizedDescription
+            showError = true
         }
     }
 
@@ -109,6 +112,7 @@ final class SettingsBackupViewModel {
                 await onImported()
             } catch {
                 errorMessage = error.localizedDescription
+                showError = true
             }
         }
     }
@@ -137,6 +141,7 @@ final class SettingsBackupViewModel {
             isShowingExporter = true
         } catch {
             errorMessage = error.localizedDescription
+            showError = true
         }
     }
 
@@ -160,7 +165,13 @@ final class SettingsBackupViewModel {
         } catch {
             pendingImportedBackup = nil
             errorMessage = error.localizedDescription
+            showError = true
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 
     func confirmRescueExport() {
