@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.6] - 2026-05-14
+
+### Changed
+- **Create Group now presents creation errors through an explicit alert instead of changing the form structure** (`CreateGroupView`, `GroupFormViewModel`) — group-creation failures no longer inject a temporary inline error section into the `Form`. Error presentation now uses a dedicated `showError` flag in the ViewModel and a standard alert in the view, keeping the sheet layout stable while still surfacing failures clearly.
+
 ## [1.18.5] - 2026-05-14
 
 ### Changed

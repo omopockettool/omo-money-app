@@ -6,6 +6,7 @@ final class GroupFormViewModel {
 
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     private let createGroupUseCase: CreateGroupUseCase
     private let createUserGroupUseCase: CreateUserGroupUseCase
@@ -34,6 +35,7 @@ final class GroupFormViewModel {
     func create(name: String, currency: String, userId: UUID) async -> SDGroup? {
         isLoading = true
         errorMessage = nil
+        showError = false
         defer { isLoading = false }
         do {
             let group = try await createGroupUseCase.execute(name: name, currency: currency)
@@ -41,6 +43,7 @@ final class GroupFormViewModel {
             return group
         } catch {
             errorMessage = error.localizedDescription
+            showError = true
             return nil
         }
     }
@@ -49,6 +52,7 @@ final class GroupFormViewModel {
     func update(group: SDGroup, name: String, currency: String) async -> Bool {
         isLoading = true
         errorMessage = nil
+        showError = false
         defer { isLoading = false }
         group.name = name
         group.currency = currency
@@ -58,7 +62,13 @@ final class GroupFormViewModel {
             return true
         } catch {
             errorMessage = error.localizedDescription
+            showError = true
             return false
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 }

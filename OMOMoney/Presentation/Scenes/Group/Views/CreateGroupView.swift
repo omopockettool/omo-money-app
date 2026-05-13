@@ -52,14 +52,6 @@ struct CreateGroupView: View {
                 } header: {
                     Text(LocalizationKey.Group.settings.localized)
                 }
-
-                if let error = viewModel.errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    }
-                }
             }
             .navigationTitle(LocalizationKey.Group.create.localized)
             .navigationBarTitleDisplayMode(.inline)
@@ -77,6 +69,13 @@ struct CreateGroupView: View {
                 }
             }
             .disabled(viewModel.isLoading)
+        }
+        .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
+            Button(LocalizationKey.General.ok.localized, role: .cancel) {
+                viewModel.clearError()
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
         }
     }
 
