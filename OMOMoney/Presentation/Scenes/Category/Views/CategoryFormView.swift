@@ -1,5 +1,4 @@
 import SwiftUI
-import OSLog
 
 struct CategoryFormView: View {
     let group: SDGroup
@@ -9,7 +8,6 @@ struct CategoryFormView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = CategoryFormViewModel()
 
-    @State private var debugNodeID = UUID()
     @State private var name = ""
     @State private var selectedColor = "#0A84FF"
     @State private var selectedIcon = "tag.fill"
@@ -32,8 +30,6 @@ struct CategoryFormView: View {
         "cup.and.saucer.fill", "tv.fill", "phone.fill", "wifi"
     ]
 
-    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.CategoryFormView")
-
     init(group: SDGroup, categoryToEdit: SDCategory?, onSaved: @escaping (SDCategory) -> Void) {
         self.group = group
         self.categoryToEdit = categoryToEdit
@@ -42,7 +38,6 @@ struct CategoryFormView: View {
         _name = State(wrappedValue: categoryToEdit?.name ?? "")
         _selectedColor = State(wrappedValue: categoryToEdit?.color ?? "#0A84FF")
         _selectedIcon = State(wrappedValue: categoryToEdit?.icon ?? "tag.fill")
-        Self.logger.debug("init editMode=\(categoryToEdit != nil) initialName=\(categoryToEdit?.name ?? "")")
     }
 
     var body: some View {
@@ -126,21 +121,6 @@ struct CategoryFormView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(isEditMode ? LocalizationKey.Category.edit.localized : LocalizationKey.Category.new.localized)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            Self.logger.debug("node appeared nodeID=\(self.debugNodeID.uuidString) editMode=\(self.categoryToEdit != nil) draftName=\(self.name) color=\(self.selectedColor) icon=\(self.selectedIcon)")
-        }
-        .onDisappear {
-            Self.logger.debug("node disappeared nodeID=\(self.debugNodeID.uuidString) draftName=\(self.name) color=\(self.selectedColor) icon=\(self.selectedIcon)")
-        }
-        .onChange(of: name) { _, newValue in
-            Self.logger.debug("draft name changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
-        .onChange(of: selectedColor) { _, newValue in
-            Self.logger.debug("draft color changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
-        .onChange(of: selectedIcon) { _, newValue in
-            Self.logger.debug("draft icon changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: {
@@ -159,13 +139,9 @@ struct CategoryFormView: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        Self.logger.debug("save tapped editMode=\(categoryToEdit != nil) trimmedName=\(trimmed)")
         if let saved = await viewModel.save(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id, categoryToEdit: categoryToEdit) {
-            Self.logger.debug("save succeeded savedName=\(saved.name)")
             onSaved(saved)
             dismiss()
-        } else {
-            Self.logger.debug("save failed editMode=\(categoryToEdit != nil)")
         }
     }
 }

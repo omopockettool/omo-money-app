@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.2] - 2026-05-14
+
+### Changed
+- **Category form lifecycle noise was removed without changing user-facing behavior** (`CategoryFormView`) — temporary node/debug logging and non-functional lifecycle observers were stripped from the category editor so the form stays focused on rendering and saving only. The create/edit category flow should behave the same, but with a cleaner and less reactive view structure.
+
+## [1.18.1] - 2026-05-14
+
+### Changed
+- **Add Item input handling was simplified to reduce fragile in-view reactivity** (`AddItemView`, `AddItemViewModel`) — the item form no longer sanitizes quantity through an `onChange` that rewrites the same bound state from inside the view. Quantity input is now sanitized through a dedicated binding backed by the ViewModel, and the custom keyboard accessory toolbar was removed to keep the form lifecycle lighter and more predictable.
+
 ## [1.18.0] - 2026-05-13
 
 ### Added
