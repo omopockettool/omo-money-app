@@ -1,5 +1,4 @@
 import SwiftUI
-import OSLog
 
 struct PaymentMethodFormView: View {
     let group: SDGroup
@@ -9,7 +8,6 @@ struct PaymentMethodFormView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = PaymentMethodFormViewModel()
 
-    @State private var debugNodeID = UUID()
     @State private var name = ""
     @State private var selectedType = "card_debit"
     @State private var selectedIcon = "creditcard.fill"
@@ -22,8 +20,6 @@ struct PaymentMethodFormView: View {
         "building.columns.fill", "qrcode", "wallet.pass.fill", "checkmark.seal.fill"
     ]
     private var isEditMode: Bool { methodToEdit != nil }
-
-    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.PaymentMethodFormView")
 
     init(group: SDGroup, methodToEdit: SDPaymentMethod?, onSaved: @escaping () -> Void) {
         self.group = group
@@ -38,7 +34,6 @@ struct PaymentMethodFormView: View {
                 return methodToEdit.icon.isEmpty ? Self.defaultTypeIcon(for: methodToEdit.type) : methodToEdit.icon
             }()
         )
-        Self.logger.debug("init editMode=\(methodToEdit != nil) initialName=\(methodToEdit?.name ?? "") initialType=\(methodToEdit?.type ?? "card_debit")")
     }
 
     var body: some View {
@@ -134,21 +129,6 @@ struct PaymentMethodFormView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            Self.logger.debug("node appeared nodeID=\(self.debugNodeID.uuidString) editMode=\(self.methodToEdit != nil) draftName=\(self.name) type=\(self.selectedType) icon=\(self.selectedIcon)")
-        }
-        .onDisappear {
-            Self.logger.debug("node disappeared nodeID=\(self.debugNodeID.uuidString) draftName=\(self.name) type=\(self.selectedType) icon=\(self.selectedIcon)")
-        }
-        .onChange(of: name) { _, newValue in
-            Self.logger.debug("draft name changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
-        .onChange(of: selectedType) { _, newValue in
-            Self.logger.debug("draft type changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
-        .onChange(of: selectedIcon) { _, newValue in
-            Self.logger.debug("draft icon changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: {
@@ -167,13 +147,9 @@ struct PaymentMethodFormView: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        Self.logger.debug("save tapped editMode=\(methodToEdit != nil) trimmedName=\(trimmed) selectedType=\(selectedType)")
         if await viewModel.save(name: trimmed, type: selectedType, icon: selectedIcon, groupId: group.id, methodToEdit: methodToEdit) {
-            Self.logger.debug("save succeeded editMode=\(methodToEdit != nil)")
             onSaved()
             dismiss()
-        } else {
-            Self.logger.debug("save failed editMode=\(methodToEdit != nil)")
         }
     }
 

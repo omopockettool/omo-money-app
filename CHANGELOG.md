@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.3] - 2026-05-14
+
+### Changed
+- **Payment method form lifecycle noise was removed without changing user-facing behavior** (`PaymentMethodFormView`) — temporary node/debug logging and non-functional lifecycle observers were stripped from the payment method editor so the form stays focused on rendering and saving only. The create/edit payment method flow should behave the same, but with a cleaner and less reactive view structure.
+
 ## [1.18.2] - 2026-05-14
 
 ### Changed
