@@ -3,6 +3,7 @@ import Foundation
 @MainActor @Observable final class PaymentMethodFormViewModel {
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     private let createPaymentMethodUseCase: CreatePaymentMethodUseCase
     private let updatePaymentMethodUseCase: UpdatePaymentMethodUseCase
@@ -24,6 +25,7 @@ import Foundation
     func save(name: String, type: String, icon: String, groupId: UUID, methodToEdit: SDPaymentMethod?) async -> Bool {
         isLoading = true
         errorMessage = nil
+        showError = false
         defer { isLoading = false }
 
         do {
@@ -45,7 +47,13 @@ import Foundation
             return true
         } catch {
             errorMessage = "Error al guardar método de pago: \(error.localizedDescription)"
+            showError = true
             return false
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 }

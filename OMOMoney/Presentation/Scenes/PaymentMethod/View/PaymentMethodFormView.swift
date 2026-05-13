@@ -129,6 +129,13 @@ struct PaymentMethodFormView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(isEditMode ? LocalizationKey.Payment.editMethod.localized : LocalizationKey.Payment.newMethod.localized)
         .navigationBarTitleDisplayMode(.inline)
+        .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
+            Button(LocalizationKey.General.ok.localized, role: .cancel) {
+                viewModel.clearError()
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: {
