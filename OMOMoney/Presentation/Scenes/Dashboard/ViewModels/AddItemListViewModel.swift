@@ -177,7 +177,9 @@ final class AddItemListViewModel {
                 selectedCategory = categories.first { $0.id == itemListToEdit?.category?.id }
                 selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
             } else {
-                selectedCategory = nil
+                selectedCategory = preferredCategoryId.flatMap { preferredId in
+                    categories.first { $0.id == preferredId }
+                }
                 selectedPaymentMethod = nil
             }
 

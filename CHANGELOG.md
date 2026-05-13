@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-05-13
+
+### Added
+- **New Entry now inherits the active dashboard category when opened from a filtered category view** (`DashboardView`, `AddItemListView`, `AddItemListViewModel`) — when the user is currently filtered into a specific dashboard category and opens the add-entry sheet, the form now preselects that same category automatically. This keeps the quick-entry flow aligned with the user’s visible context while intentionally avoiding heavier “last used” memory behavior for now.
+
 ## [1.17.1] - 2026-05-12
 
 ### Fixed
