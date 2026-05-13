@@ -91,10 +91,6 @@ struct AddItemView: View {
                         }
                     }
                 }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(LocalizationKey.General.done.localized) { focusedField = nil }
-                }
             }
         }
     }
@@ -130,6 +126,13 @@ struct AddItemView: View {
         )
     }
 
+    private var quantityTextBinding: Binding<String> {
+        Binding(
+            get: { viewModel.quantity },
+            set: { viewModel.quantity = viewModel.sanitizeQuantityInput($0) }
+        )
+    }
+
     private var quantityStepper: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(LocalizationKey.Item.quantity.localized)
@@ -143,18 +146,10 @@ struct AddItemView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 20)
 
-                TextField("1", text: $viewModel.quantity)
+                TextField("1", text: quantityTextBinding)
                     .keyboardType(.numberPad)
                     .font(.subheadline.weight(.semibold))
                     .focused($focusedField, equals: .quantity)
-                    .onChange(of: viewModel.quantity) { _, newValue in
-                        let digits = newValue.filter { $0.isNumber }
-                        if let number = Int(digits) {
-                            viewModel.quantity = String(min(number, 999999))
-                        } else {
-                            viewModel.quantity = digits
-                        }
-                    }
 
                 Stepper("", value: quantityBinding, in: 1...999999)
                     .labelsHidden()

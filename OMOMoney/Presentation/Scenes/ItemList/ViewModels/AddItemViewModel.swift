@@ -117,6 +117,12 @@ final class AddItemViewModel {
         amount = correctAmountInput(amount)
     }
 
+    func sanitizeQuantityInput(_ input: String) -> String {
+        let digits = input.filter(\.isNumber)
+        guard let number = Int(digits) else { return digits }
+        return String(min(number, 999999))
+    }
+
     // MARK: - Private Methods
 
     private func correctAmountInput(_ input: String) -> String {
