@@ -122,6 +122,7 @@ struct ItemListDetailView: View {
                 NavigationStack {
                     AddItemListView(
                         group: group,
+                        availableGroups: [group],
                         itemListToEdit: itemList,
                         onItemListCreated: { _ in },
                         onItemListUpdated: { updated in

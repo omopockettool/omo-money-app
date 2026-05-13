@@ -163,6 +163,7 @@ struct DashboardView: View {
                     NavigationStack {
                         AddItemListView(
                             group: group,
+                            availableGroups: viewModel.availableGroups,
                             initialDate: trigger.initialDate,
                             preferredCategoryId: trigger.preferredCategoryId,
                             onItemListCreated: { createdItemList in

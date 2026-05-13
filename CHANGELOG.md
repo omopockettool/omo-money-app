@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-05-13
+
+### Changed
+- **New Entry was simplified back to a stable, Apple-like sheet flow** (`AddItemListView`, `AddItemListViewModel`, `DashboardView`, `ItemListDetailView`) — the form no longer tries to bootstrap itself through stacked reactive modifiers and competing async entry paths. The parent now provides the available groups up front, the ViewModel owns the initial form configuration, and the sheet reloads only the active group’s categories and payment methods through one clear loading path.
+- **Add Entry form architecture now follows the project’s SwiftUI data-flow rules more closely** (`AddItemListView`, `AddItemListViewModel`, `docs/START_HERE.md`) — the form view was reduced to a simpler rendering layer while the ViewModel became responsible for loading option data and selected-group context. The project quick-start guide now also documents this pattern explicitly: dumb forms, smart ViewModels, and no patch-style bootstrap logic in SwiftUI views.
+
+### Removed
+- **Non-essential reactive polish was stripped from New Entry while restoring runtime stability** (`AddItemListView`) — the temporary keyboard accessory toolbar, focus-driven animation, and extra in-view suggestion/update hooks were removed from the form body so the sheet can open reliably before any future UX polish is reintroduced on top of a stable lifecycle.
+
 ## [1.16.1] - 2026-05-12
 
 ### Fixed

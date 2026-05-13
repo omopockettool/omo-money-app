@@ -15,11 +15,10 @@ struct AddItemListView: View {
     @State private var showCategoryOverflow = false
     @State private var showPaymentMethodOverflow = false
     @State private var scrollToPaymentMethods = false
-    @State private var orderedCategories: [SDCategory] = []
-    @State private var orderedPaymentMethods: [SDPaymentMethod] = []
 
     init(
         group: SDGroup,
+        availableGroups: [SDGroup] = [],
         itemListToEdit: SDItemList? = nil,
         initialDate: Date? = nil,
         preferredCategoryId: UUID? = nil,
@@ -31,13 +30,20 @@ struct AddItemListView: View {
         self.onItemListCreated = onItemListCreated
         self.onItemListUpdated = onItemListUpdated
         self.onCancel = onCancel
-        self._viewModel = State(
-            wrappedValue: AddItemListViewModel(
-                itemListToEdit: itemListToEdit,
-                initialDate: initialDate,
-                preferredCategoryId: preferredCategoryId
-            )
+        let initialViewModel = AddItemListViewModel(
+            itemListToEdit: itemListToEdit,
+            initialDate: initialDate,
+            preferredCategoryId: preferredCategoryId
         )
+        initialViewModel.configure(defaultGroup: group, availableGroups: availableGroups)
+        let startsExpandedForEdit = initialViewModel.isEditMode
+        let startsWithDatePicker = startsExpandedForEdit && !Calendar.current.isDateInToday(initialViewModel.date)
+        self._viewModel = State(
+            wrappedValue: initialViewModel
+        )
+        self._showDetails = State(initialValue: startsExpandedForEdit)
+        self._showDatePicker = State(initialValue: startsWithDatePicker)
+        self._suppressCalendarExpand = State(initialValue: startsWithDatePicker)
     }
 
     // MARK: - Computed
@@ -48,27 +54,27 @@ struct AddItemListView: View {
     private static let gridPaymentMethodLimit = 3
 
     private var gridCategories: [SDCategory] {
-        orderedCategories.prefix(Self.gridCategoryLimit).map { $0 }
+        viewModel.categories.prefix(Self.gridCategoryLimit).map { $0 }
     }
 
     private var overflowCategories: [SDCategory] {
-        Array(orderedCategories.dropFirst(Self.gridCategoryLimit))
+        Array(viewModel.categories.dropFirst(Self.gridCategoryLimit))
     }
 
     private var displayedCategories: [SDCategory] {
-        showCategoryOverflow ? orderedCategories : gridCategories
+        showCategoryOverflow ? viewModel.categories : gridCategories
     }
 
     private var gridPaymentMethods: [SDPaymentMethod] {
-        orderedPaymentMethods.prefix(Self.gridPaymentMethodLimit).map { $0 }
+        viewModel.paymentMethods.prefix(Self.gridPaymentMethodLimit).map { $0 }
     }
 
     private var overflowPaymentMethods: [SDPaymentMethod] {
-        Array(orderedPaymentMethods.dropFirst(Self.gridPaymentMethodLimit))
+        Array(viewModel.paymentMethods.dropFirst(Self.gridPaymentMethodLimit))
     }
 
     private var displayedPaymentMethods: [SDPaymentMethod] {
-        showPaymentMethodOverflow ? orderedPaymentMethods : gridPaymentMethods
+        showPaymentMethodOverflow ? viewModel.paymentMethods : gridPaymentMethods
     }
 
     private var categoryChipMinHeight: CGFloat {
@@ -97,6 +103,17 @@ struct AddItemListView: View {
         return LocalizationKey.Entry.concept.localized
     }
 
+    private var isShowingErrorAlert: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearError()
+                }
+            }
+        )
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -104,7 +121,7 @@ struct AddItemListView: View {
         ScrollView {
             VStack(spacing: 20) {
                 topCard
-                if !orderedCategories.isEmpty {
+                if !viewModel.categories.isEmpty {
                     categoryGridSection
                 }
                 moreDetailsSection
@@ -144,87 +161,16 @@ struct AddItemListView: View {
                     }
                 }
             }
-            ToolbarItemGroup(placement: .keyboard) {
-                Button {
-                    moveFocusBackward()
-                } label: {
-                    Image(systemName: "chevron.up")
-                }
-                .disabled(!canMoveFocusBackward)
-
-                Button {
-                    moveFocusForward()
-                } label: {
-                    Image(systemName: "chevron.down")
-                }
-                .disabled(!canMoveFocusForward)
-
-                Spacer()
-
-                Button(LocalizationKey.General.done.localized) { focusedField = nil }
-            }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+        .alert("Error", isPresented: isShowingErrorAlert) {
             Button("OK") { viewModel.clearError() }
         } message: {
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-            }
+            Text(viewModel.errorMessage ?? "")
         }
-        .task {
-            await viewModel.loadGroups()
-            if viewModel.selectedGroup == nil { viewModel.selectedGroup = group }
-            let activeGroupID = activeGroup.id
-            await viewModel.loadUsageMemory(forGroupId: activeGroupID)
-            let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
-            let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
-            async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
-            async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
-            _ = await (categories, paymentMethods)
-            orderedCategories = viewModel.orderedCategoriesByUsage()
-            orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
-            if viewModel.isEditMode {
-                showDetails = true
-                if !Calendar.current.isDateInToday(viewModel.date) {
-                    suppressCalendarExpand = true
-                    showDatePicker = true
-                }
-            }
-        }
-        .onChange(of: viewModel.selectedGroup?.id) { oldValue, _ in
-            guard oldValue != nil else { return }
-            let previousCategoryName = viewModel.selectedCategory?.name
-            let previousPaymentMethodName = viewModel.selectedPaymentMethod?.name
-            viewModel.selectedCategory = nil
-            viewModel.selectedPaymentMethod = nil
-            Task {
-                let activeGroupID = activeGroup.id
-                await viewModel.loadUsageMemory(forGroupId: activeGroupID)
-                let lastUsedCategoryID = viewModel.lastUsedCategoryIds.first
-                let lastUsedPaymentMethodID = viewModel.lastUsedPaymentMethodId
-                async let categories: () = viewModel.loadCategories(forGroupId: activeGroupID, lastUsedCategoryId: lastUsedCategoryID)
-                async let paymentMethods: () = viewModel.loadPaymentMethods(forGroupId: activeGroupID, lastUsedPaymentMethodId: lastUsedPaymentMethodID)
-                _ = await (categories, paymentMethods)
-                orderedCategories = viewModel.orderedCategoriesByUsage()
-                orderedPaymentMethods = viewModel.orderedPaymentMethodsByUsage()
-                if let name = previousCategoryName {
-                    viewModel.selectedCategory = viewModel.categories.first {
-                        $0.name.lowercased() == name.lowercased()
-                    } ?? viewModel.selectedCategory
-                }
-                if let name = previousPaymentMethodName {
-                    viewModel.selectedPaymentMethod = viewModel.paymentMethods.first {
-                        $0.name.lowercased() == name.lowercased()
-                    } ?? viewModel.selectedPaymentMethod
-                }
-            }
+        .task(id: activeGroup.id) {
+            await viewModel.loadOptionsForSelectedGroup()
         }
         .toast($viewModel.toast)
-        .onChange(of: viewModel.description) { viewModel.updateConceptAssists() }
-        .onChange(of: viewModel.price) { viewModel.updateSuggestions() }
-        .onChange(of: viewModel.selectedCategory) { viewModel.updateConceptAssists() }
-        .onChange(of: focusedField) { _, _ in viewModel.updateSuggestions() }
-        .animation(AnimationHelper.quickEase, value: focusedField == .description)
     }
 
     private var canMoveFocusBackward: Bool {
@@ -295,7 +241,6 @@ struct AddItemListView: View {
         ) { category in
             withAnimation(AnimationHelper.quickSpring) {
                 viewModel.selectedCategory = category
-                viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
                 showCategoryOverflow = false
             }
         }
@@ -315,7 +260,7 @@ struct AddItemListView: View {
             dateCard
             groupCard
 
-            if !orderedPaymentMethods.isEmpty {
+            if !viewModel.paymentMethods.isEmpty {
                 paymentMethodGridSection
             }
 
@@ -338,7 +283,6 @@ struct AddItemListView: View {
             onSelect: { method in
                 withAnimation(AnimationHelper.quickSpring) {
                     viewModel.selectedPaymentMethod = method
-                    viewModel.recordPaymentMethodUsage(method, forGroupId: activeGroup.id)
                     showPaymentMethodOverflow = false
                     scrollToPaymentMethods = true
                 }
@@ -430,12 +374,6 @@ struct AddItemListView: View {
                 groupId: activeGroup.id,
                 paymentMethodId: viewModel.selectedPaymentMethod?.id
             ) {
-                if let category = viewModel.selectedCategory {
-                    viewModel.recordCategoryUsage(category, forGroupId: activeGroup.id)
-                }
-                if let paymentMethod = viewModel.selectedPaymentMethod {
-                    viewModel.recordPaymentMethodUsage(paymentMethod, forGroupId: activeGroup.id)
-                }
                 onItemListCreated(created)
             }
         }

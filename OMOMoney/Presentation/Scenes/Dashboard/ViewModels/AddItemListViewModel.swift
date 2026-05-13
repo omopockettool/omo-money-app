@@ -1,6 +1,7 @@
 
 import Foundation
 import UIKit
+import Observation
 
 @MainActor
 
@@ -28,8 +29,8 @@ final class AddItemListViewModel {
     var selectedPaymentMethod: SDPaymentMethod?
     var suggestions: [ConceptSuggestion] = []
     var lastUsedConcept: String?
-    var lastUsedCategoryIds: [UUID] = []
-    var lastUsedPaymentMethodId: UUID?
+    @ObservationIgnored var lastUsedCategoryIds: [UUID] = []
+    @ObservationIgnored var lastUsedPaymentMethodId: UUID?
 
     // MARK: - Dependencies
     private let createItemListUseCase: CreateItemListUseCase
@@ -42,10 +43,11 @@ final class AddItemListViewModel {
     private let fetchGroupsForUserUseCase: FetchGroupsForUserUseCase
     private let itemListToEdit: SDItemList?
     private let preferredCategoryId: UUID?
-    private let cacheManager = CacheManager.shared
-    private let categoryUsageLimit = 3
-    private var usageMemorySnapshots: [UsageMemorySnapshot] = []
-    private var didManuallyChoosePaymentMethod = false
+    @ObservationIgnored private let cacheManager = CacheManager.shared
+    @ObservationIgnored private let categoryUsageLimit = 3
+    @ObservationIgnored private var usageMemorySnapshots: [UsageMemorySnapshot] = []
+    @ObservationIgnored private var didManuallyChoosePaymentMethod = false
+    @ObservationIgnored private var hasLoadedFormData = false
 
     // MARK: - Computed
 
@@ -147,11 +149,44 @@ final class AddItemListViewModel {
 
     // MARK: - Public Methods
 
-    func loadGroups() async {
+    func configure(defaultGroup: SDGroup, availableGroups: [SDGroup]) {
+        if selectedGroup == nil {
+            selectedGroup = defaultGroup
+        }
+        self.availableGroups = availableGroups.isEmpty ? [defaultGroup] : availableGroups
+    }
+
+    func loadOptionsForSelectedGroup() async {
+        guard let groupId = selectedGroup?.id else { return }
+        let shouldRestoreEditSelections = isEditMode && !hasLoadedFormData
+        await loadOptions(forGroupId: groupId, restoringEditSelections: shouldRestoreEditSelections)
+        hasLoadedFormData = true
+    }
+
+    func loadOptions(forGroupId groupId: UUID, restoringEditSelections: Bool) async {
+        isLoading = true
+        errorMessage = nil
+
         do {
-            guard let user = try await getCurrentUserUseCase.execute() else { return }
-            availableGroups = try await fetchGroupsForUserUseCase.execute(userId: user.id)
-        } catch { }
+            let categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
+            let paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
+            self.categories = categories
+            self.paymentMethods = paymentMethods
+
+            if restoringEditSelections {
+                selectedCategory = categories.first { $0.id == itemListToEdit?.category?.id }
+                selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
+            } else {
+                selectedCategory = nil
+                selectedPaymentMethod = nil
+            }
+
+            updateSuggestions()
+        } catch {
+            errorMessage = "Error al cargar datos del formulario: \(error.localizedDescription)"
+        }
+
+        isLoading = false
     }
 
     func loadUsageMemory(forGroupId groupId: UUID) async {
@@ -164,6 +199,18 @@ final class AddItemListViewModel {
         lastUsedPaymentMethodId = persistedLastUsed.hasHistory
             ? persistedLastUsed.paymentMethodId
             : storedPaymentMethodId(forGroupId: groupId)
+    }
+
+    func resolveUsageMemory(forGroupId groupId: UUID) async -> (categoryIds: [UUID], paymentMethodId: UUID?) {
+        let persistedLastUsed = await loadLastUsedSelectionIds(forGroupId: groupId)
+        var categoryIds = storedCategoryIds(forGroupId: groupId)
+        if categoryIds.isEmpty, let categoryId = persistedLastUsed.categoryId {
+            categoryIds = [categoryId]
+        }
+        let paymentMethodId = persistedLastUsed.hasHistory
+            ? persistedLastUsed.paymentMethodId
+            : storedPaymentMethodId(forGroupId: groupId)
+        return (categoryIds, paymentMethodId)
     }
 
     func recordCategoryUsage(_ category: SDCategory, forGroupId groupId: UUID) {
@@ -195,7 +242,21 @@ final class AddItemListViewModel {
         }
     }
 
+    func orderedCategoriesByUsage(lastUsedCategoryIds: [UUID]) -> [SDCategory] {
+        categories.sorted {
+            chipRank($0.id, lastUsed: lastUsedCategoryIds) <
+            chipRank($1.id, lastUsed: lastUsedCategoryIds)
+        }
+    }
+
     func orderedPaymentMethodsByUsage() -> [SDPaymentMethod] {
+        paymentMethods.sorted {
+            chipRank($0.id, lastUsed: lastUsedPaymentMethodId) <
+            chipRank($1.id, lastUsed: lastUsedPaymentMethodId)
+        }
+    }
+
+    func orderedPaymentMethodsByUsage(lastUsedPaymentMethodId: UUID?) -> [SDPaymentMethod] {
         paymentMethods.sorted {
             chipRank($0.id, lastUsed: lastUsedPaymentMethodId) <
             chipRank($1.id, lastUsed: lastUsedPaymentMethodId)
@@ -283,11 +344,7 @@ final class AddItemListViewModel {
             if isEditMode {
                 selectedCategory = categories.first { $0.id == itemListToEdit?.category?.id }
             } else {
-                selectedCategory = preferredCategoryId.flatMap { id in
-                    categories.first { $0.id == id }
-                } ?? lastUsedCategoryId.flatMap { id in
-                    categories.first { $0.id == id }
-                }
+                selectedCategory = nil
             }
             updateSuggestions()
         } catch {
@@ -306,9 +363,7 @@ final class AddItemListViewModel {
             if isEditMode {
                 selectedPaymentMethod = paymentMethods.first { $0.id == itemListToEdit?.paymentMethod?.id }
             } else {
-                selectedPaymentMethod = lastUsedPaymentMethodId.flatMap { id in
-                    paymentMethods.first { $0.id == id }
-                }
+                selectedPaymentMethod = nil
             }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"

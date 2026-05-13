@@ -86,6 +86,20 @@ struct MyView: View {
 - **Repositories**: `MainActor.run { }` wrapping ModelContext operations
 - **Async**: Use `async/await` and `withTaskGroup` for concurrent ops
 
+### 5. Form Pattern (KEEP IT SIMPLE)
+- **Dumb forms, smart ViewModels.** A form view should mostly render bindings and user actions. Loading categories, payment methods, groups, or other form data belongs in the ViewModel.
+- **No patchy bootstrap logic in SwiftUI views.** Avoid stacking `.task`, `Task {}`, `onChange`, and post-render state fixes to "finish" building a form after presentation.
+- **Initialize structural UI state up front.** Things like edit-mode expansion, initial detent intent, and default selected context should be decided in `init` or by the ViewModel before the view starts reacting.
+- **Prefer one clear loading flow.** For sheets and forms, aim for a single standard loading path instead of several competing async triggers.
+- **No rush fixes.** We optimize for stable architecture and predictable SwiftUI data flow, not quick patches. If a flow feels too clever, simplify it.
+
+### 6. View Lifecycle Rule (APPLE-LIKE BY DEFAULT)
+- **Views should open light.** Opening a sheet, push view, or modal should not trigger heavy UI-side orchestration. A screen should appear because its state already makes sense, not because the view is racing to repair itself after render.
+- **Keep views “dumb” beyond forms too.** This rule applies to any SwiftUI screen, not only editors. Views render state. ViewModels prepare state, load data, and decide the flow.
+- **Do not put heavy startup logic in `body` modifiers.** Avoid mixing multiple `.task`, `onAppear`, `onChange`, focus reactions, keyboard toolbars, alerts, and animations when a screen is first mounting. If startup behavior feels busy, move the logic down into the ViewModel or simplify the feature.
+- **One responsibility per trigger.** If a screen needs initial data, use one clear load path. If it needs to react to identity changes like `group.id`, use one standard reload path. Do not stack several reactive mechanisms for the same concern.
+- **Stability first, polish second.** Keyboard accessories, focus animations, suggestion engines, and similar enhancements should only be layered on top once the base screen is already stable.
+
 ---
 
 ## 📂 Quick File Location Guide
