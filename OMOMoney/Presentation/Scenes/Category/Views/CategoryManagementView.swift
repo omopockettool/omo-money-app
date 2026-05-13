@@ -37,8 +37,8 @@ struct CategoryManagementView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { sheetMode = .add } label: {
-                    Image(systemName: "plus")
+                PrimaryToolbarAddButton {
+                    sheetMode = .add
                 }
             }
         }

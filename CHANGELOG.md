@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.1] - 2026-05-12
+
+### Fixed
+- **Toolbar add actions now use one shared white `+` treatment across management flows** (`PrimaryToolbarAddButton`, `CategoryManagementView`, `PaymentMethodManagementView`, `GroupSelectorChipView`) — the app now centralizes the primary add button used in toolbar trailing positions through a small shared component, so category management, payment method management, and the dashboard group picker all present the same semibold white plus icon with a consistent disabled gray state.
+
 ## [1.17.0] - 2026-05-13
 
 ### Changed
