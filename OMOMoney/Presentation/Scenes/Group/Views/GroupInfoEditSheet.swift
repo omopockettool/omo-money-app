@@ -1,5 +1,4 @@
 import SwiftUI
-import OSLog
 
 struct GroupInfoEditSheet: View {
     let group: SDGroup
@@ -7,7 +6,6 @@ struct GroupInfoEditSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = GroupFormViewModel()
-    @State private var debugNodeID = UUID()
     @State private var name = ""
     @State private var selectedCurrency = "EUR"
     @FocusState private var nameFocused: Bool?
@@ -19,15 +17,12 @@ struct GroupInfoEditSheet: View {
         ]
     }
 
-    private static let logger = Logger(subsystem: "OMOMoney", category: "Lifecycle.GroupInfoEditSheet")
-
     init(group: SDGroup, onSaved: @escaping () -> Void) {
         self.group = group
         self.onSaved = onSaved
 
         _name = State(wrappedValue: group.name)
         _selectedCurrency = State(wrappedValue: group.currency)
-        Self.logger.debug("init initialName=\(group.name) initialCurrency=\(group.currency)")
     }
 
     var body: some View {
@@ -75,18 +70,6 @@ struct GroupInfoEditSheet: View {
             .listSectionSpacing(.compact)
             .navigationTitle(LocalizationKey.Group.info.localized)
             .navigationBarTitleDisplayMode(.inline)
-            .task {
-                Self.logger.debug("node appeared nodeID=\(self.debugNodeID.uuidString) draftName=\(self.name) currency=\(self.selectedCurrency)")
-            }
-            .onDisappear {
-                Self.logger.debug("node disappeared nodeID=\(self.debugNodeID.uuidString) draftName=\(self.name) currency=\(self.selectedCurrency)")
-            }
-            .onChange(of: name) { _, newValue in
-                Self.logger.debug("draft name changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-            }
-            .onChange(of: selectedCurrency) { _, newValue in
-                Self.logger.debug("draft currency changed nodeID=\(self.debugNodeID.uuidString) value=\(newValue)")
-            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -108,13 +91,9 @@ struct GroupInfoEditSheet: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        Self.logger.debug("save tapped trimmedName=\(trimmed) selectedCurrency=\(selectedCurrency)")
         if await viewModel.update(group: group, name: trimmed, currency: selectedCurrency) {
-            Self.logger.debug("save succeeded")
             onSaved()
             dismiss()
-        } else {
-            Self.logger.debug("save failed")
         }
     }
 }
