@@ -6,6 +6,7 @@ final class CategoryFormViewModel {
 
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     private let createCategoryUseCase: CreateCategoryUseCase
     private let updateCategoryUseCase: UpdateCategoryUseCase
@@ -27,6 +28,7 @@ final class CategoryFormViewModel {
     func save(name: String, color: String, icon: String, groupId: UUID, categoryToEdit: SDCategory?) async -> SDCategory? {
         isLoading = true
         errorMessage = nil
+        showError = false
         defer { isLoading = false }
 
         do {
@@ -52,7 +54,13 @@ final class CategoryFormViewModel {
             }
         } catch {
             errorMessage = error.localizedDescription
+            showError = true
             return nil
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 }
