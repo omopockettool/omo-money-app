@@ -16,6 +16,7 @@ final class AddItemViewModel {
     var quantity = "1"
     var isSaving = false
     var errorMessage: String?
+    var showError = false
 
     // MARK: - Dependencies
     private let itemListId: UUID
@@ -30,7 +31,7 @@ final class AddItemViewModel {
     var canSave: Bool {
         let hasDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let hasAmount = !amount.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return (hasDescription || hasAmount) && !quantity.isEmpty && !isSaving
+        return (hasDescription || hasAmount) && isQuantityValid && isAmountValid && !isSaving
     }
 
     var showsTotalPreview: Bool {
@@ -38,6 +39,20 @@ final class AddItemViewModel {
         guard let price = Decimal(string: normalized), price > 0,
               let qty = Int(quantity), qty > 1 else { return false }
         return true
+    }
+
+    private var isQuantityValid: Bool {
+        guard let quantityInt = Int(quantity) else { return false }
+        return quantityInt > 0
+    }
+
+    private var isAmountValid: Bool {
+        let trimmedAmount = amount.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedAmount.isEmpty else { return true }
+
+        let normalizedAmount = trimmedAmount.replacingOccurrences(of: ",", with: ".")
+        if normalizedAmount.hasSuffix(".") { return false }
+        return Decimal(string: normalizedAmount) != nil
     }
 
     // MARK: - Initialization
@@ -67,16 +82,30 @@ final class AddItemViewModel {
         let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalDescription = trimmed.isEmpty ? itemListDescription : trimmed
 
-        let normalizedAmount = amount.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-        let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : (Decimal(string: normalizedAmount) ?? Decimal(0))
+        let trimmedAmount = amount.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAmount = trimmedAmount.replacingOccurrences(of: ",", with: ".")
 
-        guard let quantityInt = Int32(quantity) else {
+        if !trimmedAmount.isEmpty, normalizedAmount.hasSuffix(".") {
+            errorMessage = "Cantidad inválida"
+            showError = true
+            return nil
+        }
+
+        guard let amountDecimal = normalizedAmount.isEmpty ? Decimal(0) : Decimal(string: normalizedAmount) else {
+            errorMessage = "Cantidad inválida"
+            showError = true
+            return nil
+        }
+
+        guard let quantityInt = Int32(quantity), quantityInt > 0 else {
             errorMessage = "Unidades inválidas"
+            showError = true
             return nil
         }
 
         isSaving = true
         errorMessage = nil
+        showError = false
 
         do {
             let item: SDItem
@@ -104,6 +133,7 @@ final class AddItemViewModel {
             return item
         } catch {
             errorMessage = "Error al guardar artículo: \(error.localizedDescription)"
+            showError = true
             isSaving = false
             return nil
         }
@@ -111,6 +141,7 @@ final class AddItemViewModel {
 
     func clearError() {
         errorMessage = nil
+        showError = false
     }
 
     func validateAndCorrectAmount() {
@@ -120,7 +151,7 @@ final class AddItemViewModel {
     func sanitizeQuantityInput(_ input: String) -> String {
         let digits = input.filter(\.isNumber)
         guard let number = Int(digits) else { return digits }
-        return String(min(number, 999999))
+        return String(min(max(number, 1), 999999))
     }
 
     // MARK: - Private Methods

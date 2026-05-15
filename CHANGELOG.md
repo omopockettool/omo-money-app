@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.9] - 2026-05-15
+
+### Fixed
+- **Add Item now presents validation and save failures through an explicit alert instead of failing silently** (`AddItemView`, `AddItemViewModel`) — the item editor now surfaces invalid quantity and save errors through a dedicated `showError` state in the ViewModel and a standard alert in the form. This keeps the sheet usable while making failures visible, and it completes the same explicit error-presentation pattern already adopted across the other main form flows.
+- **Add Item input validation was tightened so invalid quantity and malformed amount values are rejected before save** (`AddItemViewModel`) — quantity entered by keyboard is now clamped to a valid positive range, `0` is no longer treated as a valid saveable quantity, and malformed amount strings no longer fall through as implicit zero-value saves.
+
 ## [1.18.8] - 2026-05-14
 
 ### Fixed
