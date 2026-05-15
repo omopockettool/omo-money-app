@@ -145,22 +145,19 @@ struct ItemListDetailView: View {
 
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
+                .overlay {
+                    itemsList
+                        .safeAreaInset(edge: .top, spacing: 0) {
+                            Color.clear.frame(height: 4)
+                        }
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            Color.clear.frame(height: 2)
+                        }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .padding(.horizontal, AppConstants.UserInterface.padding)
                 .padding(.top, 4)
                 .padding(.bottom, 2)
-
-            itemsList
-                .padding(.horizontal, AppConstants.UserInterface.padding)
-                // Match the dashboard refresh path: the pull gesture should resolve
-                // against inset space above the list instead of pushing a padded frame.
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    Color.clear
-                        .frame(height: 4)
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    Color.clear
-                        .frame(height: 2)
-                }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {

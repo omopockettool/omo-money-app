@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.24] - 2026-05-15
+
+### Fixed
+- **Item list scroll content no longer overflows above the rounded container** (`ItemListDetailView`) — the items list and the rounded rectangle were siblings in a `ZStack`, so scrolled content could escape upward past the container's top edge and bleed toward the navigation bar. The list is now placed inside the rounded rectangle via `.overlay` and the combined view is clipped with `.clipShape(RoundedRectangle(cornerRadius: 24))`, so scrolling content is properly contained. Visual layout and spacing are unchanged.
+
 ## [1.18.23] - 2026-05-15
 
 ### Fixed
