@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.13] - 2026-05-15
+
+### Changed
+- **The shared error-alert modifier was rolled out across the remaining form and management flows that already used explicit `showError` state** (`ErrorAlertModifier`, `SettingsSheetView`, `CreateFirstUserView`, `CreateGroupView`, `UserProfileView`, `CategoryFormView`, `CategoryManagementView`, `PaymentMethodFormView`, `PaymentMethodManagementView`) — after the first pilot adoption in `New Entry` and `Add Item`, the same shared modifier now drives standard error-alert presentation in the rest of the edited flows. This leaves one central place to evolve common error-alert UI while keeping each view’s error wiring minimal and consistent.
+
 ## [1.18.12] - 2026-05-15
 
 ### Changed

@@ -13,11 +13,15 @@ struct PressHapticButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeInOut(duration: 0.12), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
+#if targetEnvironment(simulator)
+                return
+#else
                 if isPressed {
                     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                 } else {
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 }
+#endif
             }
     }
 }

@@ -156,16 +156,11 @@ struct SettingsSheetView: View {
         } message: {
             Text(LocalizationKey.Settings.replaceDataMessage.localized)
         }
-        .alert(
-            LocalizationKey.General.error.localized,
-            isPresented: $backupViewModel.showError
-        ) {
-            Button(LocalizationKey.General.ok.localized, role: .cancel) {
-                backupViewModel.clearError()
-            }
-        } message: {
-            Text(backupViewModel.errorMessage ?? "")
-        }
+        .errorAlert(
+            isPresented: $backupViewModel.showError,
+            message: backupViewModel.errorMessage,
+            onDismiss: backupViewModel.clearError
+        )
         .toast($backupViewModel.toast)
     }
 }

@@ -121,13 +121,11 @@ struct CategoryFormView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(isEditMode ? LocalizationKey.Category.edit.localized : LocalizationKey.Category.new.localized)
         .navigationBarTitleDisplayMode(.inline)
-        .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
-            Button(LocalizationKey.General.ok.localized, role: .cancel) {
-                viewModel.clearError()
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
+        .errorAlert(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage,
+            onDismiss: viewModel.clearError
+        )
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: {

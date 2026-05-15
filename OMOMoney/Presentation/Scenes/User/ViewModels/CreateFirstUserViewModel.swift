@@ -127,6 +127,16 @@ class CreateFirstUserViewModel {
         showError = false
     }
 
+    func clearError() {
+        errorMessage = nil
+        showError = false
+    }
+
+    func triggerTestError() {
+        errorMessage = "Debug test error"
+        showError = true
+    }
+
     private func runSimulation() async throws {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)

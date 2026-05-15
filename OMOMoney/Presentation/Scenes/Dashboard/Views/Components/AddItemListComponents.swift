@@ -581,9 +581,7 @@ struct AddItemListGroupCard: View {
         Menu {
             ForEach(availableGroups, id: \.id) { group in
                 Button {
-                    withAnimation(AnimationHelper.quickSpring) {
-                        onSelect(group)
-                    }
+                    onSelect(group)
                 } label: {
                     if group.id == activeGroup.id {
                         Label(group.name, systemImage: "checkmark")

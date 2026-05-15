@@ -39,11 +39,11 @@ struct CreateFirstUserView: View {
             }
             .opacity(viewModel.isLoading ? 0 : 1)
         }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.errorMessage ?? "Error desconocido")
-        }
+        .errorAlert(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage ?? "Error desconocido",
+            onDismiss: viewModel.clearError
+        )
     }
     
     // MARK: - Header
@@ -118,7 +118,7 @@ struct CreateFirstUserView: View {
                 placeholder: LocalizationKey.User.emailPlaceholder.localized,
                 text: $viewModel.email,
                 field: .email,
-                contentType: .emailAddress,
+                contentType: nil,
                 keyboardType: .emailAddress,
                 capitalization: .never
             )
@@ -174,7 +174,7 @@ struct CreateFirstUserView: View {
         placeholder: String,
         text: Binding<String>,
         field: Field,
-        contentType: UITextContentType,
+        contentType: UITextContentType?,
         keyboardType: UIKeyboardType,
         capitalization: TextInputAutocapitalization
     ) -> some View {
@@ -184,9 +184,12 @@ struct CreateFirstUserView: View {
                 .foregroundStyle(Color.secondary)
                 .frame(width: 24)
                 .contentTransition(.symbolEffect(.replace))
-            
-            TextField(placeholder, text: text)
-                .textContentType(contentType)
+
+            configuredTextField(
+                placeholder: placeholder,
+                text: text,
+                contentType: contentType
+            )
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(capitalization)
                 .autocorrectionDisabled()
@@ -214,12 +217,30 @@ struct CreateFirstUserView: View {
                 )
         )
     }
+
+    @ViewBuilder
+    private func configuredTextField(
+        placeholder: String,
+        text: Binding<String>,
+        contentType: UITextContentType?
+    ) -> some View {
+        if let contentType {
+            TextField(placeholder, text: text)
+                .textContentType(contentType)
+        } else {
+            TextField(placeholder, text: text)
+        }
+    }
     
     // MARK: - Create Button
     
     private var createButton: some View {
         Button {
             focusedField = nil
+            if showsSimulationBadge {
+                viewModel.triggerTestError()
+                return
+            }
             Task {
                 await viewModel.createUser()
                 if viewModel.isSuccess {

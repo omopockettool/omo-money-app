@@ -70,13 +70,11 @@ struct CreateGroupView: View {
             }
             .disabled(viewModel.isLoading)
         }
-        .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
-            Button(LocalizationKey.General.ok.localized, role: .cancel) {
-                viewModel.clearError()
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
+        .errorAlert(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage,
+            onDismiss: viewModel.clearError
+        )
     }
 
     private func createGroup() async {
