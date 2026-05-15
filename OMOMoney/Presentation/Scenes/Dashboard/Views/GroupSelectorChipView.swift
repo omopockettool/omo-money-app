@@ -157,15 +157,11 @@ struct GroupPickerSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
+                    PrimaryToolbarAddButton(
+                        isDisabled: isChangingGroup || viewModel.isDeletingGroup
+                    ) {
                         showingCreateGroup = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(isChangingGroup || viewModel.isDeletingGroup ? .gray : .accentColor)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isChangingGroup || viewModel.isDeletingGroup)
                 }
             }
             .sheet(isPresented: $showingCreateGroup, onDismiss: {

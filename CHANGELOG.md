@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.23] - 2026-05-15
+
+### Fixed
+- **Group picker add button now uses `PrimaryToolbarAddButton` matching the style of add-category and add-payment-method** (`GroupSelectorChipView`) — the `+` button in the group picker sheet was using `.accentColor` instead of the standard `.white` used by `PrimaryToolbarAddButton`. Replaced the custom button with the shared component so the color, weight, and disabled state are consistent across all management screens.
+
 ## [1.18.22] - 2026-05-15
 
 ### Fixed
