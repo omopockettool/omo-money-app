@@ -20,6 +20,8 @@ final class SwiftDataTestContainer {
         context = container.mainContext
     }
 
+    // MARK: - Repository factories
+
     func makeGroupRepository() -> GroupRepository {
         DefaultGroupRepository(context: context)
     }
@@ -30,6 +32,10 @@ final class SwiftDataTestContainer {
 
     func makeItemListRepository() -> ItemListRepository {
         DefaultItemListRepository(context: context)
+    }
+
+    func makeItemRepository() -> ItemRepository {
+        DefaultItemRepository(context: context)
     }
 
     // MARK: - Seed helpers
@@ -55,5 +61,25 @@ final class SwiftDataTestContainer {
         context.insert(itemList)
         try context.save()
         return itemList
+    }
+
+    @discardableResult
+    func insertItem(
+        description: String = "Item",
+        amount: Double = 10.0,
+        quantity: Int = 1,
+        isPaid: Bool = false,
+        itemList: SDItemList
+    ) throws -> SDItem {
+        let item = SDItem(
+            itemDescription: description,
+            amount: amount,
+            quantity: quantity,
+            isPaid: isPaid
+        )
+        item.itemList = itemList
+        context.insert(item)
+        try context.save()
+        return item
     }
 }

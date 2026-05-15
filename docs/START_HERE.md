@@ -215,10 +215,49 @@ Fix at the lowest layer that makes sense. Don't cascade a change through all lay
 
 ---
 
-**Last Updated:** April 16, 2026 (Phase 4 complete)
+## 🧪 Unit Tests
+
+**Target:** `OMOMoneyTests` — XCTest + SwiftData in-memory (`OMOMoneyTests/`)
+**Run:** `Cmd+U` in Xcode (UI Tests disabled from scheme — they're slow and test nothing useful yet)
+
+### What layer is tested
+
+| Layer | Tested? | How |
+|---|---|---|
+| **Domain / UseCases** | ✅ Yes | Real use case + real repository backed by in-memory SwiftData |
+| **Data / Repositories** | ✅ Indirectly | Exercised through UseCases via `SwiftDataTestContainer` |
+| **Infrastructure / Cache** | ✅ Yes | `CacheManager` directly |
+| **Presentation / ViewModels** | ❌ No | Logic lives in UseCases; ViewModels are coordinators only |
+| **Views** | ❌ No | Validated manually on physical device |
+
+### Test files
+
+```
+OMOMoneyTests/
+├── TestHelpers/
+│   └── SwiftDataTestContainer.swift     ← in-memory container + seed helpers (insertGroup, insertItemList, insertItem...)
+├── Cache/
+│   └── CacheManagerTests.swift          ← 11 tests: store/retrieve/clear/expiry/type safety
+└── Domain/UseCases/
+    ├── CreateGroupUseCaseTests.swift     ← 5 tests: validation, trim, uppercase currency
+    ├── FetchCategoriesUseCaseTests.swift ← 5 tests: group scoping, ordering
+    ├── CreateItemUseCaseTests.swift      ← 10 tests: creation, trim, quantity, all validation errors
+    ├── CalculateItemListTotalsUseCaseTests.swift ← 12 tests: paid status, totals, search items, cache
+    └── ItemUseCaseTests.swift            ← 8 tests: delete (target isolation, notFound), toggle paid (bulk, scope)
+```
+
+### Rules for new tests
+- **Add a test every time you fix a real bug** — the failing test is proof the bug existed and won't return
+- **Never mock the repository** — use `SwiftDataTestContainer` (in-memory SwiftData) for real persistence behavior
+- **Don't test ViewModels** — if logic needs testing, it belongs in a UseCase, not a ViewModel
+- **One `SwiftDataTestContainer` per test class** — created in `setUp`, destroyed in `tearDown` for full isolation
+
+---
+
+**Last Updated:** May 15, 2026 (v1.20.0 — unit test coverage added)
 **Framework:** SwiftUI + SwiftData
 **iOS Version:** 26.1
-**Architecture:** Clean Architecture — SwiftData persistence, @Observable ViewModels (in progress)
+**Architecture:** Clean Architecture — SwiftData persistence, @Observable ViewModels
 
 ---
 

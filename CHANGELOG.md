@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-05-15
+
+### Fixed
+- **Fixed `CacheManagerTests` crash on all tests except the first** (`CacheManagerTests`) — `setUp` was empty and never initialized `cacheManager`, so every test beyond the first hit a nil force-unwrap crash on a background thread. Fixed by marking the class `@MainActor`, making `setUp`/`tearDown` async, and initializing `CacheManager.shared` with a full cache clear before each test. Tests simplified to remove unnecessary `await MainActor.run {}` wrappers.
+
+### Tests
+- **Added `CreateItemUseCaseTests`** — 10 tests covering successful creation, description trimming, multi-quantity total amount, `isPaid` persistence, and all validation error paths (`invalidDescription`, `invalidAmount`, `invalidQuantity`, nil `itemListId`).
+- **Added `CalculateItemListTotalsUseCaseTests`** — 12 tests covering empty states, all paid/unpaid/partial status transitions, `paidTotal`/`unpaidTotal` accuracy, quantity multiplication, multi-list `totalSpent` aggregation, unpaid items excluded from total, `itemCount` from quantities, `searchItems` population, and cache consistency across two calls.
+- **Added `ItemUseCaseTests`** — 8 tests split across `DeleteItemUseCaseTests` (deletes correct item, leaves others untouched, throws `RepositoryError.notFound` for unknown id) and `ToggleAllItemsPaidUseCaseTests` (marks all paid, all unpaid, mixed state, empty list, scoped to target list only).
+- **Expanded `SwiftDataTestContainer`** — added `makeItemRepository()` factory and `insertItem(description:amount:quantity:isPaid:itemList:)` seed helper used by all new item-level tests.
+
 ## [1.19.0] - 2026-05-15
 
 ### Refactored
