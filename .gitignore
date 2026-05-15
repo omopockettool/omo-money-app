@@ -106,3 +106,7 @@ iOSInjectionProject/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+
+SwiftUIDataFlowBook-Preview.pdf
+omo-backup-2026-05-07-14-0.omo-backup
+omo-backup-failed.json

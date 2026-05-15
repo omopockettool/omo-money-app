@@ -1,19 +1,6 @@
 import Foundation
 import SwiftUI
 
-enum ItemListPaidStatus {
-    case none       // 0 items, or all unpaid
-    case partial    // some paid, some not
-    case all        // all items paid
-}
-
-enum ItemListRowStatus {
-    case neutral
-    case unpaid
-    case partial
-    case paid
-}
-
 enum DashboardCategoryRange: String, Hashable {
     case today
     case month
@@ -57,7 +44,6 @@ struct DashboardCategoryBoxData: Identifiable, Hashable {
 
 @Observable
 class DashboardViewModel {
-    private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
     private typealias CategoryMetadata = (name: String, color: String, icon: String)
     private typealias ItemPaidSnapshot = (id: UUID, isPaid: Bool)
     private typealias ItemListCollectionSnapshot = (
@@ -73,21 +59,6 @@ class DashboardViewModel {
         currentMonthTotal: Double,
         currentMonthUnpaidTotal: Double
     )
-
-    private struct CachedSearchItemData {
-        let description: String
-        let totalAmount: Double
-        let isPaid: Bool
-    }
-
-    private struct CachedItemListData {
-        let paidTotal: Double
-        let unpaidTotal: Double
-        let count: Int
-        let paidStatus: ItemListPaidStatus
-        let rowStatus: ItemListRowStatus
-        let searchItems: [CachedSearchItemData]
-    }
 
     private struct CategoryAggregate {
         let categoryId: UUID
@@ -214,9 +185,11 @@ class DashboardViewModel {
     private let toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase
     private let toggleItemPaidUseCase: ToggleItemPaidUseCase
     private let deleteGroupUseCase: DeleteGroupUseCase
+    private let calculateItemListTotalsUseCase: CalculateItemListTotalsUseCase
 
     // MARK: - Cache
     private let cacheManager = CacheManager.shared
+    private var cachedSearchItems: [UUID: [ItemListTotalsResult.SearchItemData]] = [:]
     private var paidToggleTasks: [UUID: Task<Void, Never>] = [:]
     private var _currencyFormatter: NumberFormatter?
     private var _currencyFormatterCode: String = ""
@@ -237,7 +210,8 @@ class DashboardViewModel {
         fetchCategoriesUseCase: FetchCategoriesUseCase,
         toggleAllItemsPaidInListUseCase: ToggleAllItemsPaidInListUseCase,
         toggleItemPaidUseCase: ToggleItemPaidUseCase,
-        deleteGroupUseCase: DeleteGroupUseCase
+        deleteGroupUseCase: DeleteGroupUseCase,
+        calculateItemListTotalsUseCase: CalculateItemListTotalsUseCase
     ) {
         self.fetchItemListsUseCase = fetchItemListsUseCase
         self.fetchItemsUseCase = fetchItemsUseCase
@@ -248,6 +222,7 @@ class DashboardViewModel {
         self.toggleAllItemsPaidInListUseCase = toggleAllItemsPaidInListUseCase
         self.toggleItemPaidUseCase = toggleItemPaidUseCase
         self.deleteGroupUseCase = deleteGroupUseCase
+        self.calculateItemListTotalsUseCase = calculateItemListTotalsUseCase
     }
     
     // MARK: - Public Methods
@@ -286,7 +261,7 @@ class DashboardViewModel {
             itemLists = fetchedItemLists
             categories = categoriesDict
 
-            await calculateTotalSpent()
+            await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
 
             isLoading = false
             
@@ -324,7 +299,7 @@ class DashboardViewModel {
                 itemLists = sortedItemLists
             }
 
-            await calculateTotalSpent()
+            await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
 
             isRefreshing = false
             
@@ -368,7 +343,7 @@ class DashboardViewModel {
             itemLists = fetchedItemLists
             categories = categoriesDict
 
-            await calculateTotalSpent()
+            await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
 
             isChangingGroup = false
         } catch {
@@ -462,7 +437,7 @@ class DashboardViewModel {
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
             itemLists = sortedItemLists
         }
-        await calculateTotalSpent()
+        await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
 
     }
 
@@ -502,7 +477,7 @@ class DashboardViewModel {
             defer { paidToggleTasks[itemList.id] = nil }
 
             try? await toggleAllItemsPaidInListUseCase.execute(itemListId: itemList.id, isPaid: newValue)
-            await calculateTotalSpent()
+            await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
         }
     }
 
@@ -515,7 +490,7 @@ class DashboardViewModel {
         }
 
         await restorePaidSnapshot(previousStates, for: itemList)
-        await calculateTotalSpent()
+        await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
         toast = ToastMessage(LocalizationKey.Dashboard.changeUndone.localized, type: .info)
     }
 
@@ -557,7 +532,7 @@ class DashboardViewModel {
     }
 
     func refreshTotals() async {
-        await calculateTotalSpent()
+        await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
     }
 
     func applyMonthFilter(_ month: Date) {
@@ -651,6 +626,15 @@ class DashboardViewModel {
         )
     }
 
+    private func makeRowStatus(totalAmount _: Double, itemCount: Int, paidStatus: ItemListPaidStatus) -> ItemListRowStatus {
+        guard itemCount > 0 else { return .neutral }
+        switch paidStatus {
+        case .none: return .unpaid
+        case .partial: return .partial
+        case .all: return .paid
+        }
+    }
+
     private func paidStatus(from snapshot: [ItemPaidSnapshot]) -> ItemListPaidStatus {
         let restoredPaidCount = snapshot.filter { $0.isPaid }.count
 
@@ -663,49 +647,18 @@ class DashboardViewModel {
         return .partial
     }
 
-    private func calculateTotalSpent() async {
-        let results = await withTaskGroup(of: ItemListData.self) { group in
-            var items: [ItemListData] = []
-
-            for itemList in itemLists {
-                group.addTask {
-                    return await self.getItemListData(itemList)
-                }
-            }
-
-            for await result in group {
-                items.append(result)
-            }
-
-            return items
-        }
-
-        let totals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidTotal) })
-        let unpaidTotals = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.unpaidTotal) })
-        let counts = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.count) })
-        let paidStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.paidStatus) })
-        let rowStatuses = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0.rowStatus) })
-
-        itemListTotals = totals
-        itemListUnpaidTotals = unpaidTotals
-        itemListCounts = counts
-        itemListPaidStatus = paidStatuses
-        itemListRowStatus = rowStatuses
-        todayTotal = todayItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
-        todayUnpaidTotal = todayItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
-        currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (totals[$1.id] ?? 0) }
-        currentMonthUnpaidTotal = currentMonthItemLists.reduce(0.0) { $0 + (unpaidTotals[$1.id] ?? 0) }
-
-        let newTotal = totals.values.reduce(0.0) { total, itemListTotal in
-            guard itemListTotal.isFinite else { return total }
-            return total + itemListTotal
-        }
-
-        if newTotal.isFinite {
-            totalSpent = max(0, newTotal)
-        } else {
-            totalSpent = 0.0
-        }
+    private func applyTotals(_ result: ItemListTotalsResult) {
+        itemListTotals = result.itemListTotals
+        itemListUnpaidTotals = result.itemListUnpaidTotals
+        itemListCounts = result.itemListCounts
+        itemListPaidStatus = result.itemListPaidStatus
+        itemListRowStatus = result.itemListRowStatus
+        cachedSearchItems = result.searchItems
+        totalSpent = result.totalSpent
+        todayTotal = todayItemLists.reduce(0.0) { $0 + (result.itemListTotals[$1.id] ?? 0) }
+        todayUnpaidTotal = todayItemLists.reduce(0.0) { $0 + (result.itemListUnpaidTotals[$1.id] ?? 0) }
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (result.itemListTotals[$1.id] ?? 0) }
+        currentMonthUnpaidTotal = currentMonthItemLists.reduce(0.0) { $0 + (result.itemListUnpaidTotals[$1.id] ?? 0) }
     }
 
     private func recomputeTotalsFromCurrentState() {
@@ -877,79 +830,6 @@ class DashboardViewModel {
         }
     }
     
-    private func getItemListData(_ itemList: SDItemList) async -> (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus) {
-        let cacheKey = itemListDataCacheKey(for: itemList)
-
-        if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
-            return (itemList.id, cached.paidTotal, cached.unpaidTotal, cached.count, cached.paidStatus, cached.rowStatus)
-        }
-
-        do {
-            let items = try await fetchItemsUseCase.execute(forItemListId: itemList.id)
-            let paidItems = items.filter { $0.isPaid }
-            let unpaidItems = items.filter { !$0.isPaid }
-            let paidTotal = paidItems.reduce(0.0) { acc, item in
-                let value = item.totalAmount
-                return value.isFinite ? acc + value : acc
-            }
-            let unpaidTotal = unpaidItems.reduce(0.0) { acc, item in
-                let value = item.totalAmount
-                return value.isFinite ? acc + value : acc
-            }
-            let totalUnits = items.reduce(0) { $0 + $1.quantity }
-            let paidStatus: ItemListPaidStatus
-            if items.isEmpty || paidItems.isEmpty {
-                paidStatus = .none
-            } else if paidItems.count == items.count {
-                paidStatus = .all
-            } else {
-                paidStatus = .partial
-            }
-            let rowStatus = makeRowStatus(
-                totalAmount: paidTotal + unpaidTotal,
-                itemCount: totalUnits,
-                paidStatus: paidStatus
-            )
-            let result = CachedItemListData(
-                paidTotal: max(0, paidTotal.isFinite ? paidTotal : 0.0),
-                unpaidTotal: max(0, unpaidTotal.isFinite ? unpaidTotal : 0.0),
-                count: totalUnits,
-                paidStatus: paidStatus,
-                rowStatus: rowStatus,
-                searchItems: items.map {
-                    CachedSearchItemData(
-                        description: $0.itemDescription,
-                        totalAmount: $0.totalAmount,
-                        isPaid: $0.isPaid
-                    )
-                }
-            )
-            cacheManager.cacheCalculation(result, for: cacheKey)
-            return (itemList.id, result.paidTotal, result.unpaidTotal, result.count, result.paidStatus, result.rowStatus)
-        } catch {
-            return (itemList.id, 0.0, 0.0, 0, .none, .neutral)
-        }
-    }
-
-    private func makeRowStatus(
-        totalAmount _: Double,
-        itemCount: Int,
-        paidStatus: ItemListPaidStatus
-    ) -> ItemListRowStatus {
-        if itemCount == 0 {
-            return .neutral
-        }
-
-        switch paidStatus {
-        case .none:
-            return .unpaid
-        case .partial:
-            return .partial
-        case .all:
-            return .paid
-        }
-    }
-
     private func filteredItemLists(from source: [SDItemList]) -> [SDItemList] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return source }
@@ -992,24 +872,15 @@ class DashboardViewModel {
         )
     }
 
-    private func currentSearchItems(for itemList: SDItemList) -> [CachedSearchItemData] {
-        let cacheKey = itemListDataCacheKey(for: itemList)
-        if let cached: CachedItemListData = cacheManager.getCachedCalculation(for: cacheKey) {
-            return cached.searchItems
-        }
-
+    private func currentSearchItems(for itemList: SDItemList) -> [ItemListTotalsResult.SearchItemData] {
+        if let cached = cachedSearchItems[itemList.id] { return cached }
         return itemList.items.map {
-            CachedSearchItemData(
+            ItemListTotalsResult.SearchItemData(
                 description: $0.itemDescription,
                 totalAmount: $0.totalAmount,
                 isPaid: $0.isPaid
             )
         }
-    }
-
-    private func itemListDataCacheKey(for itemList: SDItemList) -> String {
-        let versionDate = itemList.lastModifiedAt ?? itemList.createdAt
-        return "dashboard_item_list_data_\(itemList.id.uuidString)_\(versionDate.timeIntervalSince1970)"
     }
 
     func deleteItemList(_ itemList: SDItemList) {
@@ -1018,7 +889,7 @@ class DashboardViewModel {
         Task {
             do {
                 try await deleteItemListUseCase.execute(id: itemList.id)
-                cacheManager.clearCalculationCache(for: itemListDataCacheKey(for: itemList))
+                calculateItemListTotalsUseCase.clearCache(for: itemList)
             } catch {
                 restoreItemListCollectionSnapshot(snapshot)
             }
@@ -1061,7 +932,7 @@ class DashboardViewModel {
             return d0 == d1 ? $0.createdAt > $1.createdAt : d0 > d1
         }
 
-        await calculateTotalSpent()
+        await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
     }
 
     private func isItemListInCurrentContext(_ itemList: SDItemList) -> Bool {

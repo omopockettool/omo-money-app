@@ -53,6 +53,9 @@ final class AppDIContainer {
     func makeDeleteItemListUseCase() -> DeleteItemListUseCase {
         DefaultDeleteItemListUseCase(itemListRepository: itemListRepository)
     }
+    func makeCalculateItemListTotalsUseCase() -> CalculateItemListTotalsUseCase {
+        DefaultCalculateItemListTotalsUseCase(fetchItemsUseCase: makeFetchItemsUseCase(), cacheManager: .shared)
+    }
 
     // MARK: - Item Use Cases
 

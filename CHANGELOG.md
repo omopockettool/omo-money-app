@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-05-15
+
+### Refactored
+- **Extracted `CalculateItemListTotalsUseCase` from `DashboardViewModel`** (`DashboardViewModel`, `CalculateItemListTotalsUseCase`, `ItemListStatus`, `DashboardView`, `AppDIContainer`) — the per-item-list financial calculation logic (`calculateTotalSpent`, `getItemListData`, cache read/write, `paidStatus`, `makeRowStatus`) was embedded inside the ViewModel, making it untestable without SwiftUI. All of that logic now lives in `DefaultCalculateItemListTotalsUseCase`, a pure Swift class that accepts a `FetchItemsUseCase` protocol and returns an `ItemListTotalsResult` struct containing per-list totals, counts, paid/row statuses, and search item snapshots. The ViewModel is reduced to calling `applyTotals(_:)`, which assigns the result and derives today/month aggregates from ViewModel-owned state. `ItemListPaidStatus` and `ItemListRowStatus` were moved to their own file in `Domain/UseCases/ItemList/` so both layers can reference them without circular dependency. Cache invalidation on delete is now delegated to `calculateItemListTotalsUseCase.clearCache(for:)`.
+
 ## [1.18.24] - 2026-05-15
 
 ### Fixed
