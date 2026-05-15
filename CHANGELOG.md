@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.14] - 2026-05-15
+
+### Fixed
+- **Add Item now opens with a more compact initial sheet height and expands only when the quantity subtotal preview needs extra room** (`AddItemView`) — the new/edit item sheet no longer presents effectively full-height on first open. It now starts at a mid-height detent that feels closer to a 50–60% sheet, while still animating up to a slightly taller detent when `quantity > 1` reveals the subtotal multiplication preview. This keeps the entry flow lighter at launch without clipping the dynamic quantity breakdown.
+
 ## [1.18.13] - 2026-05-15
 
 ### Changed

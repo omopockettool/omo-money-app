@@ -7,6 +7,9 @@ enum AddItemField {
 }
 
 struct AddItemView: View {
+    private let compactDetent: PresentationDetent = .fraction(0.58)
+    private let subtotalDetent: PresentationDetent = .fraction(0.66)
+
     let onItemSaved: (SDItem) -> Void
     let currencyCode: String
     let itemListDescription: String
@@ -16,6 +19,7 @@ struct AddItemView: View {
     @FocusState private var focusedField: AddItemField?
     @State private var displayedSubtotal: String = ""
     @State private var subtotalIsDecreasing: Bool = false
+    @State private var selectedDetent: PresentationDetent = .fraction(0.58)
 
     init(
         itemListId: UUID,
@@ -77,11 +81,21 @@ struct AddItemView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(viewModel.isEditMode ? LocalizationKey.Item.editItem.localized : LocalizationKey.Item.newItem.localized)
             .navigationBarTitleDisplayMode(.inline)
+            .presentationDetents([compactDetent, subtotalDetent, .large], selection: $selectedDetent)
+            .presentationDragIndicator(.visible)
             .errorAlert(
                 isPresented: $viewModel.showError,
                 message: viewModel.errorMessage,
                 onDismiss: viewModel.clearError
             )
+            .onAppear {
+                selectedDetent = viewModel.showsTotalPreview ? subtotalDetent : compactDetent
+            }
+            .onChange(of: viewModel.showsTotalPreview) { _, showsPreview in
+                withAnimation(AnimationHelper.quickSpring) {
+                    selectedDetent = showsPreview ? subtotalDetent : compactDetent
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
