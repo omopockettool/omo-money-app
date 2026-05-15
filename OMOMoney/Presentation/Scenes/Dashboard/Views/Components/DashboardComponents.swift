@@ -327,8 +327,8 @@ struct ScrollEdgeFadeMask: View {
     let showsTopFade: Bool
     let showsBottomFade: Bool
 
-    private let topFadeHeight: CGFloat = 12
-    private let bottomFadeHeight: CGFloat = 12
+    private let topFadeHeight: CGFloat = 8
+    private let bottomFadeHeight: CGFloat = 8
 
     var body: some View {
         VStack(spacing: 0) {
