@@ -18,7 +18,7 @@ struct ExpenseListView<EmptyState: View>: View {
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
     let onRefresh: () async -> Void
-    let onDelete: (SDItemList) async -> Void
+    let onDelete: (SDItemList) -> Void
     let customEmptyState: EmptyState
     let showCustomEmptyState: Bool
     var isCompact: Bool = false
@@ -39,7 +39,7 @@ struct ExpenseListView<EmptyState: View>: View {
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
         onRefresh: @escaping () async -> Void,
-        onDelete: @escaping (SDItemList) async -> Void,
+        onDelete: @escaping (SDItemList) -> Void,
         @ViewBuilder customEmptyState: () -> EmptyState,
         showCustomEmptyState: Bool = true,
         isCompact: Bool = false,
@@ -111,6 +111,9 @@ struct ExpenseListView<EmptyState: View>: View {
                         )
                     )
                 }
+                .onDelete { indexSet in
+                    indexSet.forEach { onDelete(itemLists[$0]) }
+                }
             } else {
                 ForEach(groupedItemLists.keys.sorted(by: >), id: \.self) { date in
                     if let itemListsForDate = groupedItemLists[date] {
@@ -124,6 +127,9 @@ struct ExpenseListView<EmptyState: View>: View {
                                             count: itemListsForDate.count
                                         )
                                     )
+                                }
+                                .onDelete { indexSet in
+                                    indexSet.forEach { onDelete(itemListsForDate[$0]) }
                                 }
                             }
                         } header: {
@@ -163,10 +169,7 @@ struct ExpenseListView<EmptyState: View>: View {
             isCompact: isCompact,
             timelinePosition: timelinePosition,
             onTap: { onItemTap(itemList) },
-            onTogglePaid: { onTogglePaid(itemList) },
-            onDelete: {
-                Task { await onDelete(itemList) }
-            }
+            onTogglePaid: { onTogglePaid(itemList) }
         )
     }
     
@@ -244,7 +247,7 @@ extension ExpenseListView where EmptyState == EmptyView {
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
         onRefresh: @escaping () async -> Void,
-        onDelete: @escaping (SDItemList) async -> Void,
+        onDelete: @escaping (SDItemList) -> Void,
         isCompact: Bool = false,
         getDayTotal: ((Date) -> String)? = nil,
         focusedDate: Date? = nil,

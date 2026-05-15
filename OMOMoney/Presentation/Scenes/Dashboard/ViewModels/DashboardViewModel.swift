@@ -1012,14 +1012,16 @@ class DashboardViewModel {
         return "dashboard_item_list_data_\(itemList.id.uuidString)_\(versionDate.timeIntervalSince1970)"
     }
 
-    func deleteItemList(_ itemList: SDItemList) async {
+    func deleteItemList(_ itemList: SDItemList) {
         let snapshot = makeItemListCollectionSnapshot()
         removeItemList(itemList)
-        do {
-            try await deleteItemListUseCase.execute(id: itemList.id)
-            cacheManager.clearCalculationCache(for: itemListDataCacheKey(for: itemList))
-        } catch {
-            restoreItemListCollectionSnapshot(snapshot)
+        Task {
+            do {
+                try await deleteItemListUseCase.execute(id: itemList.id)
+                cacheManager.clearCalculationCache(for: itemListDataCacheKey(for: itemList))
+            } catch {
+                restoreItemListCollectionSnapshot(snapshot)
+            }
         }
     }
 
@@ -1033,7 +1035,9 @@ class DashboardViewModel {
         var updatedItemLists = currentItemLists
         updatedItemLists.remove(at: index)
 
-        itemLists = updatedItemLists
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            itemLists = updatedItemLists
+        }
 
         var transaction = Transaction()
         transaction.disablesAnimations = true

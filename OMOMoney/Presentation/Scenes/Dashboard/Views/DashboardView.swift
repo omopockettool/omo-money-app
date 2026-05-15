@@ -275,7 +275,7 @@ struct DashboardView: View {
                 navigationPath.append(itemList)
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
-            onDelete: { await viewModel.deleteItemList($0) },
+            onDelete: { viewModel.deleteItemList($0) },
             showingFullMonth: $viewModel.showingFullMonth,
             hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
             onOpenSettings: { viewModel.openSettings() },
@@ -533,7 +533,7 @@ struct DashboardView: View {
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onRefresh: { await viewModel.refreshData() },
-            onDelete: { await viewModel.deleteItemList($0) },
+            onDelete: { viewModel.deleteItemList($0) },
             isCompact: isCompact
         )
         .frame(maxHeight: .infinity)

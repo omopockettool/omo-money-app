@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.19] - 2026-05-15
+
+### Fixed
+- **Deleting an item list now uses the native SwiftUI `.onDelete` mechanism instead of custom swipe actions, eliminating the animation conflict between UIKit's destructive row animation and SwiftUI's section removal** (`ExpenseListView`, `ExpenseListComponents`, `DashboardComponents`, `DashboardView`, `DashboardViewModel`) — the previous implementation attached a `swipeActions` button with `role: .destructive` to each row container, which caused UIKit to play its own row-collapse animation simultaneously with SwiftUI trying to remove the section when the last item in a date group was deleted. The result was a visible empty gap followed by a brusque snap of the remaining list. The fix replaces the per-row swipe action with `.onDelete(perform:)` on each section's `ForEach`, which gives SwiftUI full ownership of the deletion gesture and its animation. `deleteItemList` is now a synchronous call that removes the item from `itemLists` immediately under a spring animation matching the add-item spring (`response: 0.38`, `dampingFraction: 0.82`), so the remaining rows and section headers slide up fluidly in one coordinated motion. Persistence and cache invalidation continue asynchronously inside an internal `Task`, with snapshot-based rollback on failure.
+
 ## [1.18.18] - 2026-05-15
 
 ### Fixed

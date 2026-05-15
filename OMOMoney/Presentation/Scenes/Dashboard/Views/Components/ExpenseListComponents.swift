@@ -18,7 +18,6 @@ struct ExpenseListRowContainer: View {
     let timelinePosition: TimelinePosition
     let onTap: () -> Void
     let onTogglePaid: () -> Void
-    let onDelete: () -> Void
 
     var body: some View {
         ExpenseRowView(
@@ -42,11 +41,6 @@ struct ExpenseListRowContainer: View {
         ))
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive, action: onDelete) {
-                Label(LocalizationKey.General.delete.localized, systemImage: "trash")
-            }
-        }
     }
 }
 

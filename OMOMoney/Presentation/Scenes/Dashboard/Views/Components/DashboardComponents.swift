@@ -167,7 +167,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
-    let onDelete: (SDItemList) async -> Void
+    let onDelete: (SDItemList) -> Void
     @Binding var showingFullMonth: Bool
     let hasItemsOutsideToday: Bool
     let onOpenSettings: () -> Void
@@ -208,7 +208,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
-        onDelete: @escaping (SDItemList) async -> Void,
+        onDelete: @escaping (SDItemList) -> Void,
         showingFullMonth: Binding<Bool>,
         hasItemsOutsideToday: Bool,
         onOpenSettings: @escaping () -> Void,
