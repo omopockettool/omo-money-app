@@ -33,6 +33,7 @@ struct DashboardCategoryBoxData: Identifiable, Hashable {
     let itemCount: Int
     let sizeTier: DashboardCategoryBoxSize
     let range: DashboardCategoryRange
+    let categoryLimit: Double?
 
     var id: String {
         "\(range.rawValue)-\(categoryId.uuidString)"
@@ -69,6 +70,7 @@ class DashboardViewModel {
         var unpaidAmount: Double
         var itemListCount: Int
         var itemCount: Int
+        let categoryLimit: Double?
     }
 
     struct ItemListSearchSummary {
@@ -1020,7 +1022,8 @@ class DashboardViewModel {
                     paidAmount: paidAmount,
                     unpaidAmount: unpaidAmount,
                     itemListCount: 1,
-                    itemCount: itemCount
+                    itemCount: itemCount,
+                    categoryLimit: category.limit
                 )
             }
         }
@@ -1037,7 +1040,8 @@ class DashboardViewModel {
                 itemListCount: aggregate.itemListCount,
                 itemCount: aggregate.itemCount,
                 sizeTier: .small,
-                range: range
+                range: range,
+                categoryLimit: aggregate.categoryLimit
             )
         }
         .sorted {
@@ -1065,7 +1069,8 @@ class DashboardViewModel {
                     itemListCount: box.itemListCount,
                     itemCount: box.itemCount,
                     sizeTier: .large,
-                    range: box.range
+                    range: box.range,
+                    categoryLimit: box.categoryLimit
                 )
             }
         }
@@ -1084,7 +1089,8 @@ class DashboardViewModel {
                     itemListCount: box.itemListCount,
                     itemCount: box.itemCount,
                     sizeTier: index == 0 ? .large : .small,
-                    range: box.range
+                    range: box.range,
+                    categoryLimit: box.categoryLimit
                 )
             }
         }
@@ -1111,7 +1117,8 @@ class DashboardViewModel {
                 itemListCount: box.itemListCount,
                 itemCount: box.itemCount,
                 sizeTier: sizeTier,
-                range: box.range
+                range: box.range,
+                categoryLimit: box.categoryLimit
             )
         }
     }

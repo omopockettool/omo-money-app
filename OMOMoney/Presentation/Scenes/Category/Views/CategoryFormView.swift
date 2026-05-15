@@ -11,6 +11,7 @@ struct CategoryFormView: View {
     @State private var name = ""
     @State private var selectedColor = "#0A84FF"
     @State private var selectedIcon = "tag.fill"
+    @State private var limitText = ""
     @FocusState private var nameFocused: Bool?
 
     private var isEditMode: Bool { categoryToEdit != nil }
@@ -38,6 +39,9 @@ struct CategoryFormView: View {
         _name = State(wrappedValue: categoryToEdit?.name ?? "")
         _selectedColor = State(wrappedValue: categoryToEdit?.color ?? "#0A84FF")
         _selectedIcon = State(wrappedValue: categoryToEdit?.icon ?? "tag.fill")
+        _limitText = State(wrappedValue: categoryToEdit?.limit.map {
+            $0 == $0.rounded() ? String(format: "%.0f", $0) : String(format: "%.2f", $0)
+        } ?? "")
     }
 
     var body: some View {
@@ -115,6 +119,11 @@ struct CategoryFormView: View {
                     .background(Color(.secondarySystemGroupedBackground))
                     .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
                 }
+
+                BudgetLimitField(
+                    text: $limitText,
+                    accentColor: Color(hex: selectedColor) ?? .accentColor
+                )
             }
             .padding(AppConstants.UserInterface.padding)
         }
@@ -144,7 +153,10 @@ struct CategoryFormView: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        if let saved = await viewModel.save(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id, categoryToEdit: categoryToEdit) {
+        let limit: Decimal? = Decimal(string: limitText.replacingOccurrences(of: ",", with: "."))
+            .flatMap { $0 > 0 ? $0 : nil }
+
+        if let saved = await viewModel.save(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id, limit: limit, categoryToEdit: categoryToEdit) {
             onSaved(saved)
             dismiss()
         }

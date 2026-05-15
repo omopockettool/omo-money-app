@@ -39,7 +39,7 @@ final class DefaultGroupRepository: GroupRepository {
             ("Salud",        "#FFEAA7", "heart.fill",           0),
         ]
         for (catName, catColor, catIcon, catSortOrder) in defaultCategories {
-            let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder)
+            let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder, limit: 300, limitFrequency: "monthly")
             cat.group = group
             context.insert(cat)
         }

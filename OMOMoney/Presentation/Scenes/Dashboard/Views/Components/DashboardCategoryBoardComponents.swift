@@ -227,6 +227,21 @@ struct DashboardCategoryBoxView: View {
         Color(hex: data.categoryColorHex) ?? .accentColor
     }
 
+    private var hasLimit: Bool {
+        guard let limit = data.categoryLimit else { return false }
+        return limit > 0
+    }
+
+    private var isOverLimit: Bool {
+        guard let limit = data.categoryLimit, limit > 0 else { return false }
+        return data.paidAmount > limit
+    }
+
+    private var fillRatio: Double {
+        guard let limit = data.categoryLimit, limit > 0 else { return 1.0 }
+        return min(data.paidAmount / limit, 1.0)
+    }
+
     private var minHeight: CGFloat {
         switch data.sizeTier {
         case .small:
@@ -309,8 +324,34 @@ struct DashboardCategoryBoxView: View {
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, 10)
             .background {
-                RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous)
-                    .fill(accentColor.opacity(0.13))
+                if hasLimit {
+                    ZStack(alignment: .bottom) {
+                        RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous)
+                            .fill(Color(.systemGray4))
+                        Rectangle()
+                            .fill(accentColor.opacity(0.18))
+                            .scaleEffect(x: 1, y: fillRatio, anchor: .bottom)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous)
+                        .fill(accentColor.opacity(0.13))
+                }
+            }
+            .overlay {
+                if isOverLimit, let limit = data.categoryLimit, data.paidAmount > 0 {
+                    GeometryReader { proxy in
+                        let limitRatio = limit / data.paidAmount
+                        let lineY = proxy.size.height * (1.0 - limitRatio)
+                        Path { path in
+                            path.move(to: CGPoint(x: 0, y: lineY))
+                            path.addLine(to: CGPoint(x: proxy.size.width, y: lineY))
+                        }
+                        .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                        .foregroundStyle(accentColor.opacity(0.75))
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius, style: .continuous))
+                }
             }
         }
         .buttonStyle(PressHapticButtonStyle())

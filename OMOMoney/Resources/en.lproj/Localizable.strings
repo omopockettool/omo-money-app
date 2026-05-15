@@ -54,6 +54,7 @@
 "category.name" = "Category Name";
 "category.color" = "Color";
 "category.limit" = "Budget Limit";
+"category.noLimit" = "No limit";
 "category.create" = "Create Category";
 "category.edit" = "Edit Category";
 "category.delete.confirm" = "Are you sure you want to delete this category?";

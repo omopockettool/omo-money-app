@@ -130,8 +130,9 @@ enum LocalizationKey {
         static let emptyHint = "category.emptyHint"
         static let icon = "category.icon"
         static let new = "category.new"
+        static let noLimit = "category.noLimit"
     }
-    
+
     // MARK: - Entry
     enum Entry {
         static let title = "entry.title"

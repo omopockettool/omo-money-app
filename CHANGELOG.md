@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-05-15
+
+### Added
+- **Category monthly budget limit — form input + dashboard fill visual** (`CategoryFormView`, `CategoryFormViewModel`, `DashboardViewModel`, `DashboardCategoryBoardComponents`, `BudgetLimitField`, `DefaultGroupRepository`, `Localizable.strings`) — activates the existing `limit: Double?` and `limitFrequency: String` fields on `SDCategory` end-to-end.
+  - **`BudgetLimitField`** (new reusable component in `Common/Components/`) — budget limit input field with section label, accent-colored icon that reacts to the selected category color, decimal pad, a `tertiaryLabel`-gray clear button, and a keyboard toolbar with a **Done** button to dismiss the numpad.
+  - **`CategoryFormView`** — added `@State private var limitText`, initialized from `categoryToEdit?.limit` when editing, and replaced the inline block with the new `BudgetLimitField` component.
+  - **`CategoryFormViewModel.save()`** — now accepts `limit: Decimal?` and passes it to both `CreateCategoryUseCase` and `UpdateCategoryUseCase` (previously always `nil`).
+  - **Dashboard fill visual** — `DashboardCategoryBoxData` and `CategoryAggregate` now carry `categoryLimit: Double?` threaded from `SDCategory.limit` through `makeCategoryBoxes` and all three `applySizeTiers` map passes. `DashboardCategoryBoxView` renders a fill-from-bottom bucket: `systemGray4` base + category accent color scaled upward proportionally (`accentColor.opacity(0.18)`, `scaleEffect(anchor: .bottom)`). When spending exceeds the limit, a dashed line (`StrokeStyle(lineWidth: 1.5, dash: [5, 3])`, `accentColor.opacity(0.75)`) marks the limit position via `GeometryReader` in the overlay. No new text labels added to the dashboard.
+  - **Onboarding defaults** — all 5 default categories created during group setup now seed with `limit: 300` and `limitFrequency: "monthly"` so new users see the visual immediately.
+  - **Localization** — added `category.noLimit` key (EN: "No limit" / ES: "Sin límite").
+
 ## [1.20.0] - 2026-05-15
 
 ### Fixed
