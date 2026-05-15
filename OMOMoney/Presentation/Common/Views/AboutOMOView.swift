@@ -4,6 +4,7 @@ import UIKit
 struct AboutOMOView: View {
     private let appInfo = AppInfo.current
     private let donationsURL = URL(string: "https://buymeacoffee.com/omopockettool")!
+    private let appStoreURL = URL(string: "https://omopockettool.com")!
     @State private var copiedFieldTitle: String?
 
     var body: some View {
@@ -86,6 +87,31 @@ struct AboutOMOView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.primary)
                             Text("buymeacoffee.com/omopockettool")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                }
+
+                ShareLink(item: appStoreURL) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(.blue)
+                                .frame(width: 36, height: 36)
+
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(LocalizationKey.About.shareApp.localized)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                            Text(LocalizationKey.About.shareAppSubtitle.localized)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

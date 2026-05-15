@@ -306,6 +306,8 @@ enum LocalizationKey {
         static let installed = "about.installed"
         static let changelog = "about.changelog"
         static let news = "about.news"
+        static let shareApp = "about.shareApp"
+        static let shareAppSubtitle = "about.shareAppSubtitle"
     }
 }
 

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-05-15
+
+### Added
+- **Share app row in About OMO → Support OMO section** (`AboutOMOView`, `Localizable.strings`) — added a "Share OMO Money" row using SwiftUI's native `ShareLink`, which opens the system share sheet (iMessage, WhatsApp, copy link, etc.) without any custom state or `UIActivityViewController`. The row follows the same visual style as the donation row (rounded icon, title + subtitle). Currently points to `omopockettool.com`.
+  - ⚠️ **TODO:** replace `appStoreURL` in `AboutOMOView` with the real App Store link (`https://apps.apple.com/app/idXXXXXXXXXX`) once the app is published.
+- Localization added: `about.shareApp` (EN: "Share OMO Money" / ES: "Compartir OMO Money") and `about.shareAppSubtitle` (EN: "Recommend it to a friend" / ES: "Recomiéndala a un amigo").
+
 ## [1.21.0] - 2026-05-15
 
 ### Added

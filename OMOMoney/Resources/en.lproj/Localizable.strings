@@ -6,7 +6,7 @@
 */
 
 // MARK: - General
-"app.name" = "OMO Money";
+"app.name" = "OMONI";
 "general.ok" = "OK";
 "general.cancel" = "Cancel";
 "general.save" = "Save";
@@ -258,7 +258,7 @@
 "about.officialWeb" = "Official website";
 "about.contact" = "Contact";
 "about.support" = "Support OMO";
-"about.supportQuestion" = "Is OMO Money helping you?";
+"about.supportQuestion" = "Is OMONI helping you?";
 "about.supportDescription" = "If the app brings you value, you can support its development with a donation and help it keep growing.";
 "about.donate" = "Support with a donation";
 "about.developedBy" = "Developed by";
@@ -267,3 +267,5 @@
 "about.installed" = "Installed";
 "about.changelog" = "Change history";
 "about.news" = "What's new";
+"about.shareApp" = "Share OMONI";
+"about.shareAppSubtitle" = "Recommend it to a friend";
