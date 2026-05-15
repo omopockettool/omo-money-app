@@ -6,6 +6,7 @@ final class UserProfileViewModel {
     var name: String
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     private let user: SDUser
     private let updateUserUseCase: UpdateUserUseCase
@@ -34,6 +35,7 @@ final class UserProfileViewModel {
 
         isLoading = true
         errorMessage = nil
+        showError = false
         defer { isLoading = false }
 
         user.name = trimmedName
@@ -44,7 +46,13 @@ final class UserProfileViewModel {
             return user
         } catch {
             errorMessage = error.localizedDescription
+            showError = true
             return nil
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 }

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.10] - 2026-05-15
+
+### Changed
+- **User Profile now presents save failures through an explicit alert instead of changing the view layout** (`UserProfileView`, `UserProfileViewModel`) — profile-update errors no longer appear as inline red text inside the main profile content. Failures now toggle a dedicated `showError` state in the ViewModel and present a standard alert, keeping the profile screen structurally stable while still surfacing save problems clearly.
+
 ## [1.18.9] - 2026-05-15
 
 ### Fixed
