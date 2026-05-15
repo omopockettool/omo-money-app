@@ -133,7 +133,7 @@ struct ItemListItemsSection: View {
     let isSearchMatch: (SDItem) -> Bool
     let onItemTap: (SDItem) -> Void
     let onTogglePaid: (SDItem) -> Void
-    let onDelete: (SDItem, Int) -> Void
+    let onDelete: (SDItem) -> Void
     let onRefresh: () async -> Void
 
     var body: some View {
@@ -156,13 +156,9 @@ struct ItemListItemsSection: View {
                     .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 16))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            onDelete(item, index)
-                        } label: {
-                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
-                        }
-                    }
+                }
+                .onDelete { indexSet in
+                    indexSet.forEach { onDelete(items[$0]) }
                 }
             }
         }

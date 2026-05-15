@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.20] - 2026-05-15
+
+### Fixed
+- **Deleting an item inside an item list now uses the same native `.onDelete` pattern as the dashboard** (`ItemListDetailComponents`, `ItemListDetailViewModel`, `ItemListDetailView`) — the per-row `swipeActions` button with `role: .destructive` was replaced with `.onDelete(perform:)` on the items `ForEach`, giving SwiftUI full control of the deletion gesture and animation. `deleteItem` is now synchronous and removes the item immediately under a spring animation (`response: 0.38`, `dampingFraction: 0.82`) matching the dashboard deletion spring, so the remaining rows slide up fluidly. The index parameter was removed — the item is removed by id, and rollback on persistence failure re-appends and re-sorts with the same spring. Persistence runs asynchronously in an internal `Task`.
+
 ## [1.18.19] - 2026-05-15
 
 ### Fixed

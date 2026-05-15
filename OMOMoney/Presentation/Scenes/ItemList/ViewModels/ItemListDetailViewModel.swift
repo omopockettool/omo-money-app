@@ -106,12 +106,19 @@ class ItemListDetailViewModel {
         items = sortItems(items)
     }
 
-    func deleteItem(_ item: SDItem, at index: Int) async {
-        withAnimation { _ = items.remove(at: index) }
-        do {
-            try await deleteItemUseCase.execute(id: item.id)
-        } catch {
-            withAnimation { items.insert(item, at: index) }
+    func deleteItem(_ item: SDItem) {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            items.removeAll { $0.id == item.id }
+        }
+        Task {
+            do {
+                try await deleteItemUseCase.execute(id: item.id)
+            } catch {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    items.append(item)
+                    items = sortItems(items)
+                }
+            }
         }
     }
 

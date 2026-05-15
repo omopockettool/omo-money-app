@@ -199,9 +199,7 @@ struct ItemListDetailView: View {
                     onPaidStatusChanged?()
                 }
             },
-            onDelete: { item, index in
-                Task { await viewModel.deleteItem(item, at: index) }
-            },
+            onDelete: { viewModel.deleteItem($0) },
             onRefresh: { await viewModel.loadItems() }
         )
     }
