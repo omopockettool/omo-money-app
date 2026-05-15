@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.15] - 2026-05-15
+
+### Fixed
+- **Add Item and New Entry now enforce the same hero amount input limits through one shared sanitizer** (`HeroAmountInputSanitizer`, `AddItemViewModel`, `AddItemListViewModel`) — the item editor no longer allows more integer digits than the item-list creation flow. Both screens now use the same shared amount-input sanitization rules behind the shared hero amount widget, so pasted or typed values are normalized consistently and future amount-input behavior changes can be made in one place instead of drifting between flows.
+
 ## [1.18.14] - 2026-05-15
 
 ### Fixed
