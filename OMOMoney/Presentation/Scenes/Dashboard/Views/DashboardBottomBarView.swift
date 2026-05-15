@@ -10,9 +10,13 @@ struct DashboardBottomBarView: View {
     let userId: UUID?
     let isChangingGroup: Bool
     let isFilterActive: Bool
+    let selectedScopeTitle: String?
+    let selectedScopeIcon: String?
+    let selectedScopeColorHex: String?
     let onGroupChange: (SDGroup) -> Void
     let onGroupCreated: (SDGroup) -> Void
     let onDeleteGroup: (SDGroup) async throws -> Void
+    let onSelectedScopeTap: () -> Void
     let onOpenFilters: () -> Void
 
     @FocusState private var isSearchFieldFocused: Bool
@@ -105,7 +109,17 @@ struct DashboardBottomBarView: View {
                 )
             }
 
-            Spacer(minLength: 0)
+            if let selectedScopeTitle {
+                DashboardSelectedScopeChip(
+                    title: selectedScopeTitle,
+                    iconName: selectedScopeIcon,
+                    colorHex: selectedScopeColorHex,
+                    onTap: onSelectedScopeTap
+                )
+                .frame(maxWidth: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
 
             HStack(spacing: 0) {
                 Button(action: onOpenFilters) {
@@ -149,5 +163,47 @@ struct DashboardBottomBarView: View {
             guard !isSearchActive else { return }
             searchText = ""
         }
+    }
+}
+
+private struct DashboardSelectedScopeChip: View {
+    let title: String
+    let iconName: String?
+    let colorHex: String?
+    let onTap: () -> Void
+
+    private var accentColor: Color {
+        guard let colorHex else { return .accentColor }
+        return Color(hex: colorHex) ?? .accentColor
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                if let iconName {
+                    Image(systemName: iconName)
+                        .font(.caption2)
+                }
+
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 4)
+
+                Image(systemName: "xmark")
+                    .font(.caption2)
+            }
+            .foregroundStyle(accentColor)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(accentColor.opacity(0.12))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

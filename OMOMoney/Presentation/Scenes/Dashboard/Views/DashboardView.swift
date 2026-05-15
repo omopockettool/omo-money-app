@@ -269,9 +269,6 @@ struct DashboardView: View {
                 }
             },
             selectedFilterTitle: activeFilterTitle,
-            selectedFilterIcon: activeFilterIcon,
-            selectedFilterColorHex: activeFilterColorHex,
-            selectedFilterShowsClearAction: activeFilterShowsClearAction,
             collapsedDays: $collapsedMonthDays,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
@@ -279,11 +276,6 @@ struct DashboardView: View {
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onDelete: { await viewModel.deleteItemList($0) },
-            onClearCategoryFilter: {
-                withAnimation(AnimationHelper.smoothSpring) {
-                    activeFilter = nil
-                }
-            },
             showingFullMonth: $viewModel.showingFullMonth,
             hasItemsOutsideToday: viewModel.hasItemsOutsideToday,
             onOpenSettings: { viewModel.openSettings() },
@@ -388,8 +380,34 @@ struct DashboardView: View {
         }
     }
 
-    private var activeFilterShowsClearAction: Bool {
-        activeFilter != nil
+    private var selectedScopeTitle: String? {
+        guard let activeFilter else { return nil }
+        switch activeFilter {
+        case .all:
+            return LocalizationKey.General.all.localized
+        case .category:
+            return activeCategoryBox?.categoryName
+        }
+    }
+
+    private var selectedScopeIcon: String? {
+        guard let activeFilter else { return nil }
+        switch activeFilter {
+        case .all:
+            return "square.grid.2x2.fill"
+        case .category:
+            return activeCategoryBox?.categoryIcon
+        }
+    }
+
+    private var selectedScopeColorHex: String? {
+        guard let activeFilter else { return nil }
+        switch activeFilter {
+        case .all:
+            return nil
+        case .category:
+            return activeCategoryBox?.categoryColorHex
+        }
     }
 
     private var resolvedActiveFilter: DashboardActiveFilter? {
@@ -443,9 +461,17 @@ struct DashboardView: View {
                     userId: viewModel.currentUser?.id,
                     isChangingGroup: viewModel.isChangingGroup,
                     isFilterActive: viewModel.isCustomMonthFilterActive,
+                    selectedScopeTitle: selectedScopeTitle,
+                    selectedScopeIcon: selectedScopeIcon,
+                    selectedScopeColorHex: selectedScopeColorHex,
                     onGroupChange: { newGroup in Task { await viewModel.changeGroup(to: newGroup) } },
                     onGroupCreated: { newGroup in viewModel.addGroup(newGroup) },
                     onDeleteGroup: { deletedGroup in try await viewModel.deleteGroup(deletedGroup) },
+                    onSelectedScopeTap: {
+                        withAnimation(AnimationHelper.smoothSpring) {
+                            activeFilter = nil
+                        }
+                    },
                     onOpenFilters: { showingFiltersSheet = true }
                 )
             }

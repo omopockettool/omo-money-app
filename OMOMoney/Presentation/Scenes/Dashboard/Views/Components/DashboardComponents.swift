@@ -163,15 +163,11 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
     let onAllTap: () -> Void
     let onCategoryTap: (DashboardCategoryBoxData) -> Void
     let selectedFilterTitle: String?
-    let selectedFilterIcon: String?
-    let selectedFilterColorHex: String?
-    let selectedFilterShowsClearAction: Bool
     @Binding var collapsedDays: Set<Date>
     let itemListRowStatus: [UUID: ItemListRowStatus]
     let onItemTap: (SDItemList) -> Void
     let onTogglePaid: (SDItemList) -> Void
     let onDelete: (SDItemList) async -> Void
-    let onClearCategoryFilter: () -> Void
     @Binding var showingFullMonth: Bool
     let hasItemsOutsideToday: Bool
     let onOpenSettings: () -> Void
@@ -210,15 +206,11 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         onAllTap: @escaping () -> Void,
         onCategoryTap: @escaping (DashboardCategoryBoxData) -> Void,
         selectedFilterTitle: String?,
-        selectedFilterIcon: String?,
-        selectedFilterColorHex: String?,
-        selectedFilterShowsClearAction: Bool,
         collapsedDays: Binding<Set<Date>>,
         itemListRowStatus: [UUID: ItemListRowStatus],
         onItemTap: @escaping (SDItemList) -> Void,
         onTogglePaid: @escaping (SDItemList) -> Void,
         onDelete: @escaping (SDItemList) async -> Void,
-        onClearCategoryFilter: @escaping () -> Void,
         showingFullMonth: Binding<Bool>,
         hasItemsOutsideToday: Bool,
         onOpenSettings: @escaping () -> Void,
@@ -243,15 +235,11 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         self.onAllTap = onAllTap
         self.onCategoryTap = onCategoryTap
         self.selectedFilterTitle = selectedFilterTitle
-        self.selectedFilterIcon = selectedFilterIcon
-        self.selectedFilterColorHex = selectedFilterColorHex
-        self.selectedFilterShowsClearAction = selectedFilterShowsClearAction
         self._collapsedDays = collapsedDays
         self.itemListRowStatus = itemListRowStatus
         self.onItemTap = onItemTap
         self.onTogglePaid = onTogglePaid
         self.onDelete = onDelete
-        self.onClearCategoryFilter = onClearCategoryFilter
         self._showingFullMonth = showingFullMonth
         self.hasItemsOutsideToday = hasItemsOutsideToday
         self.onOpenSettings = onOpenSettings
@@ -271,39 +259,26 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
 
             ZStack(alignment: .top) {
                 if let selectedFilterTitle {
-                    VStack(spacing: 0) {
-                        DashboardSelectedFilterBar(
-                            title: selectedFilterTitle,
-                            iconName: selectedFilterIcon,
-                            colorHex: selectedFilterColorHex,
-                            showsClearAction: selectedFilterShowsClearAction,
-                            onClear: onClearCategoryFilter
-                        )
-                        .padding(.horizontal, AppConstants.UserInterface.padding)
-                        .padding(.top, AppConstants.UserInterface.largePadding)
-                        .padding(.bottom, 2)
-
-                        ExpenseListView(
-                            itemLists: filteredItemLists,
-                            getFormattedAmount: getItemListAmount,
-                            getFormattedUnpaidAmount: getItemListUnpaidAmount,
-                            getSearchSummary: getSearchSummary,
-                            getSearchMatchedSubtotal: getSearchMatchedSubtotal,
-                            getSearchMatchedUnpaid: getSearchMatchedUnpaid,
-                            itemListRowStatus: itemListRowStatus,
-                            onItemTap: onItemTap,
-                            onTogglePaid: onTogglePaid,
-                            onRefresh: onRefresh,
-                            onDelete: onDelete,
-                            customEmptyState: { customEmptyState },
-                            showCustomEmptyState: showCustomEmptyState,
-                            getDayTotal: getDayTotal,
-                            hideSectionHeaders: !showingFullMonth,
-                            collapsedDays: $collapsedDays,
-                            allowsDayCollapse: showingFullMonth
-                        )
-                        .id(filteredListRefreshID)
-                    }
+                    ExpenseListView(
+                        itemLists: filteredItemLists,
+                        getFormattedAmount: getItemListAmount,
+                        getFormattedUnpaidAmount: getItemListUnpaidAmount,
+                        getSearchSummary: getSearchSummary,
+                        getSearchMatchedSubtotal: getSearchMatchedSubtotal,
+                        getSearchMatchedUnpaid: getSearchMatchedUnpaid,
+                        itemListRowStatus: itemListRowStatus,
+                        onItemTap: onItemTap,
+                        onTogglePaid: onTogglePaid,
+                        onRefresh: onRefresh,
+                        onDelete: onDelete,
+                        customEmptyState: { customEmptyState },
+                        showCustomEmptyState: showCustomEmptyState,
+                        getDayTotal: getDayTotal,
+                        hideSectionHeaders: !showingFullMonth,
+                        collapsedDays: $collapsedDays,
+                        allowsDayCollapse: showingFullMonth
+                    )
+                    .id(filteredListRefreshID)
                     .zIndex(1)
                     .transition(.dashboardFilteredViewSwap)
                 } else {
@@ -332,7 +307,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                 )
             }
             .padding(.horizontal, AppConstants.UserInterface.padding)
-            .padding(.top, selectedFilterTitle == nil ? AppConstants.UserInterface.smallPadding : 2)
+            .padding(.top, selectedFilterTitle == nil ? AppConstants.UserInterface.smallPadding : 6)
             .animation(AnimationHelper.dashboardDrill, value: isShowingFilteredList)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -347,57 +322,6 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomInset
         }
-    }
-}
-
-private struct DashboardSelectedFilterBar: View {
-    let title: String
-    let iconName: String?
-    let colorHex: String?
-    let showsClearAction: Bool
-    let onClear: () -> Void
-
-    private var accentColor: Color {
-        guard let colorHex else { return .accentColor }
-        return Color(hex: colorHex) ?? .accentColor
-    }
-
-    var body: some View {
-        HStack {
-            Group {
-                if showsClearAction {
-                    Button(action: onClear) {
-                        chipContent
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    chipContent
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var chipContent: some View {
-        HStack(spacing: 6) {
-            if let iconName {
-                Image(systemName: iconName)
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-
-            if showsClearAction {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
-            }
-        }
-        .foregroundStyle(accentColor)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(accentColor.opacity(0.12))
-        .clipShape(Capsule())
     }
 }
 

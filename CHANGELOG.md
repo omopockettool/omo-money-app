@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.16] - 2026-05-15
+
+### Changed
+- **The dashboard selected-category status moved into the bottom control row beside the group chip** (`DashboardView`, `DashboardMainContent`, `DashboardBottomBarView`) — the active category or `All` state no longer consumes its own strip above the item-list area. The dashboard now shows that state as a full-width chip between the selected group and the filter/search controls, which frees more vertical space for item lists while preserving the existing tap behavior of returning to the default dashboard start state.
+
+### Fixed
+- **The dashboard bottom selected-scope chip now matches the active-category chip behavior more closely** (`DashboardView`, `DashboardBottomBarView`) — the bottom chip no longer appears in the default dashboard state, so the category-board view stays visually clean until the user explicitly selects `All` or a category. When it does appear, it now includes the close `x` affordance and uses the same compact selected-chip language as the previous active-category indicator, making the clear action more obvious.
+- **The dashboard selected-scope chip now matches the group chip’s typography and height more closely** (`DashboardBottomBarView`) — the bottom selected-category/`All` chip was using a smaller caption-style treatment and shorter vertical padding, which made it feel visually misaligned beside the group chip. Its font sizing, weight, icon sizing, and padding were tightened to the same chip rhythm so the whole bottom control row reads as one consistent system.
+- **Filtered item-list mode now uses a slightly tighter but still balanced top inset once the old selected-category bar is gone** (`DashboardMainContent`) — when a category is selected and the dashboard switches into the item-list view, the list now sits a bit higher inside the rounded container instead of keeping the roomier board-mode top spacing, but it still preserves enough breathing room to avoid feeling visually cramped against the top edge.
+
 ## [1.18.15] - 2026-05-15
 
 ### Fixed
