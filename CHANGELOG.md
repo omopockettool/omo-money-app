@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.11] - 2026-05-15
+
+### Changed
+- **New Entry now uses explicit alert state instead of a derived error binding** (`AddItemListView`, `AddItemListViewModel`) — the add-entry form no longer derives alert presentation directly from `errorMessage` through a manual `Binding(get:set:)` inside the view. Error presentation now follows the same explicit `showError` pattern used in the other main form flows, which keeps the SwiftUI layer simpler and makes failure presentation more predictable.
+
 ## [1.18.10] - 2026-05-15
 
 ### Changed

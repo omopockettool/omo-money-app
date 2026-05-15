@@ -103,17 +103,6 @@ struct AddItemListView: View {
         return LocalizationKey.Entry.concept.localized
     }
 
-    private var isShowingErrorAlert: Binding<Bool> {
-        Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { isPresented in
-                if !isPresented {
-                    viewModel.clearError()
-                }
-            }
-        )
-    }
-
     // MARK: - Body
 
     var body: some View {
@@ -162,7 +151,7 @@ struct AddItemListView: View {
                 }
             }
         }
-        .alert("Error", isPresented: isShowingErrorAlert) {
+        .alert("Error", isPresented: $viewModel.showError) {
             Button("OK") { viewModel.clearError() }
         } message: {
             Text(viewModel.errorMessage ?? "")

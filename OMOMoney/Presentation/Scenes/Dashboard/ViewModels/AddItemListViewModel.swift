@@ -21,6 +21,7 @@ final class AddItemListViewModel {
     var selectedGroup: SDGroup?
     var isLoading = false
     var errorMessage: String?
+    var showError = false
     var toast: ToastMessage?
     var description = ""
     var price = ""
@@ -166,6 +167,7 @@ final class AddItemListViewModel {
     func loadOptions(forGroupId groupId: UUID, restoringEditSelections: Bool) async {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             let categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
@@ -186,6 +188,7 @@ final class AddItemListViewModel {
             updateSuggestions()
         } catch {
             errorMessage = "Error al cargar datos del formulario: \(error.localizedDescription)"
+            showError = true
         }
 
         isLoading = false
@@ -340,6 +343,7 @@ final class AddItemListViewModel {
     func loadCategories(forGroupId groupId: UUID, lastUsedCategoryId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
@@ -351,6 +355,7 @@ final class AddItemListViewModel {
             updateSuggestions()
         } catch {
             errorMessage = "Error al cargar categorías: \(error.localizedDescription)"
+            showError = true
         }
 
         isLoading = false
@@ -359,6 +364,7 @@ final class AddItemListViewModel {
     func loadPaymentMethods(forGroupId groupId: UUID, lastUsedPaymentMethodId: UUID? = nil) async {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             paymentMethods = try await fetchPaymentMethodsUseCase.executeActive(forGroupId: groupId)
@@ -369,6 +375,7 @@ final class AddItemListViewModel {
             }
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"
+            showError = true
         }
 
         isLoading = false
@@ -383,6 +390,7 @@ final class AddItemListViewModel {
     ) async -> SDItemList? {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -411,6 +419,7 @@ final class AddItemListViewModel {
             return itemList
         } catch {
             errorMessage = "Error al crear gasto: \(error.localizedDescription)"
+            showError = true
             isLoading = false
             return nil
         }
@@ -420,6 +429,7 @@ final class AddItemListViewModel {
         guard let toEdit = itemListToEdit else { return nil }
         isLoading = true
         errorMessage = nil
+        showError = false
 
         if let newCategory = selectedCategory,
            newCategory.id != toEdit.category?.id,
@@ -456,6 +466,7 @@ final class AddItemListViewModel {
             return toEdit
         } catch {
             errorMessage = "Error al actualizar: \(error.localizedDescription)"
+            showError = true
             isLoading = false
             return nil
         }
@@ -558,5 +569,6 @@ final class AddItemListViewModel {
 
     func clearError() {
         errorMessage = nil
+        showError = false
     }
 }
