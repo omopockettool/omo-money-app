@@ -60,6 +60,19 @@ class DashboardViewModel {
     private typealias ItemListData = (id: UUID, paidTotal: Double, unpaidTotal: Double, count: Int, paidStatus: ItemListPaidStatus, rowStatus: ItemListRowStatus)
     private typealias CategoryMetadata = (name: String, color: String, icon: String)
     private typealias ItemPaidSnapshot = (id: UUID, isPaid: Bool)
+    private typealias ItemListCollectionSnapshot = (
+        itemLists: [SDItemList],
+        itemListTotals: [UUID: Double],
+        itemListUnpaidTotals: [UUID: Double],
+        itemListCounts: [UUID: Int],
+        itemListPaidStatus: [UUID: ItemListPaidStatus],
+        itemListRowStatus: [UUID: ItemListRowStatus],
+        totalSpent: Double,
+        todayTotal: Double,
+        todayUnpaidTotal: Double,
+        currentMonthTotal: Double,
+        currentMonthUnpaidTotal: Double
+    )
 
     private struct CachedSearchItemData {
         let description: String
@@ -513,6 +526,36 @@ class DashboardViewModel {
     
     // MARK: - Private Methods
 
+    private func makeItemListCollectionSnapshot() -> ItemListCollectionSnapshot {
+        (
+            itemLists: itemLists,
+            itemListTotals: itemListTotals,
+            itemListUnpaidTotals: itemListUnpaidTotals,
+            itemListCounts: itemListCounts,
+            itemListPaidStatus: itemListPaidStatus,
+            itemListRowStatus: itemListRowStatus,
+            totalSpent: totalSpent,
+            todayTotal: todayTotal,
+            todayUnpaidTotal: todayUnpaidTotal,
+            currentMonthTotal: currentMonthTotal,
+            currentMonthUnpaidTotal: currentMonthUnpaidTotal
+        )
+    }
+
+    private func restoreItemListCollectionSnapshot(_ snapshot: ItemListCollectionSnapshot) {
+        itemLists = snapshot.itemLists
+        itemListTotals = snapshot.itemListTotals
+        itemListUnpaidTotals = snapshot.itemListUnpaidTotals
+        itemListCounts = snapshot.itemListCounts
+        itemListPaidStatus = snapshot.itemListPaidStatus
+        itemListRowStatus = snapshot.itemListRowStatus
+        totalSpent = snapshot.totalSpent
+        todayTotal = snapshot.todayTotal
+        todayUnpaidTotal = snapshot.todayUnpaidTotal
+        currentMonthTotal = snapshot.currentMonthTotal
+        currentMonthUnpaidTotal = snapshot.currentMonthUnpaidTotal
+    }
+
     func refreshTotals() async {
         await calculateTotalSpent()
     }
@@ -663,6 +706,21 @@ class DashboardViewModel {
         } else {
             totalSpent = 0.0
         }
+    }
+
+    private func recomputeTotalsFromCurrentState() {
+        todayTotal = todayItemLists.reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        todayUnpaidTotal = todayItemLists.reduce(0.0) { $0 + (itemListUnpaidTotals[$1.id] ?? 0) }
+        currentMonthTotal = currentMonthItemLists.reduce(0.0) { $0 + (itemListTotals[$1.id] ?? 0) }
+        currentMonthUnpaidTotal = currentMonthItemLists.reduce(0.0) { $0 + (itemListUnpaidTotals[$1.id] ?? 0) }
+
+        let newTotal = itemLists.reduce(0.0) { partialResult, itemList in
+            let value = itemListTotals[itemList.id] ?? 0.0
+            guard value.isFinite else { return partialResult }
+            return partialResult + value
+        }
+
+        totalSpent = newTotal.isFinite ? max(0, newTotal) : 0.0
     }
     
     // MARK: - Helper Methods
@@ -955,15 +1013,17 @@ class DashboardViewModel {
     }
 
     func deleteItemList(_ itemList: SDItemList) async {
-        await removeItemList(itemList)
+        let snapshot = makeItemListCollectionSnapshot()
+        removeItemList(itemList)
         do {
             try await deleteItemListUseCase.execute(id: itemList.id)
+            cacheManager.clearCalculationCache(for: itemListDataCacheKey(for: itemList))
         } catch {
-            await loadDashboardData()
+            restoreItemListCollectionSnapshot(snapshot)
         }
     }
 
-    private func removeItemList(_ itemList: SDItemList) async {
+    private func removeItemList(_ itemList: SDItemList) {
         let currentItemLists = itemLists
 
         guard let index = currentItemLists.firstIndex(where: { $0.id == itemList.id }) else {
@@ -973,11 +1033,18 @@ class DashboardViewModel {
         var updatedItemLists = currentItemLists
         updatedItemLists.remove(at: index)
 
-        withAnimation(.easeInOut(duration: 0.25)) {
-            itemLists = updatedItemLists
-        }
+        itemLists = updatedItemLists
 
-        await calculateTotalSpent()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            itemListTotals[itemList.id] = nil
+            itemListUnpaidTotals[itemList.id] = nil
+            itemListCounts[itemList.id] = nil
+            itemListPaidStatus[itemList.id] = nil
+            itemListRowStatus[itemList.id] = nil
+            recomputeTotalsFromCurrentState()
+        }
     }
 
     func updateItemList(_ itemList: SDItemList) async {
@@ -1018,6 +1085,38 @@ class DashboardViewModel {
         }
 
         return source.first { $0.categoryId == categoryId }
+    }
+
+    func hasCategoryContext(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> Bool {
+        categoryBox(forCategoryId: categoryId, in: range) != nil ||
+        categoryMetadata(forCategoryId: categoryId) != nil
+    }
+
+    func categoryDisplayName(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> String? {
+        categoryBox(forCategoryId: categoryId, in: range)?.categoryName ??
+        categoryMetadata(forCategoryId: categoryId)?.name
+    }
+
+    func categoryDisplayIcon(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> String? {
+        categoryBox(forCategoryId: categoryId, in: range)?.categoryIcon ??
+        categoryMetadata(forCategoryId: categoryId)?.icon
+    }
+
+    func categoryDisplayColorHex(forCategoryId categoryId: UUID, in range: DashboardCategoryRange) -> String? {
+        categoryBox(forCategoryId: categoryId, in: range)?.categoryColorHex ??
+        categoryMetadata(forCategoryId: categoryId)?.color
+    }
+
+    private func categoryMetadata(forCategoryId categoryId: UUID) -> CategoryMetadata? {
+        if let category = categories[categoryId] {
+            return (category.name, category.color, category.icon)
+        }
+
+        if let category = itemLists.first(where: { $0.category?.id == categoryId })?.category {
+            return categoryMetadata(for: category)
+        }
+
+        return nil
     }
 
     private func makeCategoryBoxes(from source: [SDItemList], range: DashboardCategoryRange) -> [DashboardCategoryBoxData] {

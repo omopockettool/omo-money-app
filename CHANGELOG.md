@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.18] - 2026-05-15
+
+### Fixed
+- **Deleting item lists inside filtered dashboard mode now follows a more native optimistic-removal path without recreating the whole list or refreshing the whole dashboard** (`DashboardComponents`, `DashboardView`, `DashboardViewModel`) — filtered dashboard mode now keeps its active category context even when the last visible item list in that category is removed, and the filtered list view identity no longer depends on the full set of visible item IDs. The dashboard also no longer falls back to a full `loadDashboardData()` refresh on the normal optimistic delete path. Instead it stays on the system-style `List` delete interaction while removing the row locally, updating derived totals without extra animation, and restoring a saved snapshot only if persistence fails. This keeps the flow closer to the native feel of apps like Reminders instead of layering custom destructive visuals on top.
+
 ## [1.18.17] - 2026-05-15
 
 ### Fixed

@@ -177,12 +177,10 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
         selectedFilterTitle != nil
     }
 
-    private var filteredListRefreshID: String {
-        let itemIDs = filteredItemLists.map(\.id.uuidString).joined(separator: "|")
+    private var filteredListContextID: String {
         return [
             selectedFilterTitle ?? "none",
-            showingFullMonth ? "month" : "today",
-            itemIDs
+            showingFullMonth ? "month" : "today"
         ].joined(separator: "#")
     }
 
@@ -258,7 +256,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                 .padding(.bottom, 2)
 
             ZStack(alignment: .top) {
-                if let selectedFilterTitle {
+                if selectedFilterTitle != nil {
                     ExpenseListView(
                         itemLists: filteredItemLists,
                         getFormattedAmount: getItemListAmount,
@@ -278,7 +276,7 @@ struct DashboardMainContent<EmptyState: View, BottomInset: View>: View {
                         collapsedDays: $collapsedDays,
                         allowsDayCollapse: showingFullMonth
                     )
-                    .id(filteredListRefreshID)
+                    .id(filteredListContextID)
                     .zIndex(1)
                     .transition(.dashboardFilteredViewSwap)
                 } else {

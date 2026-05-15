@@ -322,8 +322,8 @@ struct DashboardView: View {
         case .all:
             break
         case .category(let categoryId, let range):
-            let hasBox = viewModel.categoryBox(forCategoryId: categoryId, in: range) != nil
-            let refreshedFilter: DashboardActiveFilter? = hasBox ? .category(categoryId: categoryId, range: range) : nil
+            let hasCategoryContext = viewModel.hasCategoryContext(forCategoryId: categoryId, in: range)
+            let refreshedFilter: DashboardActiveFilter? = hasCategoryContext ? .category(categoryId: categoryId, range: range) : nil
             guard refreshedFilter == nil else { return }
             withAnimation(AnimationHelper.smoothSpring) {
                 activeFilter = nil
@@ -351,8 +351,8 @@ struct DashboardView: View {
         switch resolvedActiveFilter {
         case .all:
             return LocalizationKey.General.all.localized
-        case .category:
-            return activeCategoryBox?.categoryName
+        case .category(let categoryId, _):
+            return activeCategoryBox?.categoryName ?? viewModel.categoryDisplayName(forCategoryId: categoryId, in: viewModel.showingFullMonth ? .month : .today)
         case nil:
             return nil
         }
@@ -362,8 +362,8 @@ struct DashboardView: View {
         switch resolvedActiveFilter {
         case .all:
             return "square.grid.2x2.fill"
-        case .category:
-            return activeCategoryBox?.categoryIcon
+        case .category(let categoryId, _):
+            return activeCategoryBox?.categoryIcon ?? viewModel.categoryDisplayIcon(forCategoryId: categoryId, in: viewModel.showingFullMonth ? .month : .today)
         case nil:
             return nil
         }
@@ -373,8 +373,8 @@ struct DashboardView: View {
         switch resolvedActiveFilter {
         case .all:
             return nil
-        case .category:
-            return activeCategoryBox?.categoryColorHex
+        case .category(let categoryId, _):
+            return activeCategoryBox?.categoryColorHex ?? viewModel.categoryDisplayColorHex(forCategoryId: categoryId, in: viewModel.showingFullMonth ? .month : .today)
         case nil:
             return nil
         }
@@ -385,8 +385,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return LocalizationKey.General.all.localized
-        case .category:
-            return activeCategoryBox?.categoryName
+        case .category(let categoryId, let range):
+            return activeCategoryBox?.categoryName ?? viewModel.categoryDisplayName(forCategoryId: categoryId, in: range)
         }
     }
 
@@ -395,8 +395,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return "square.grid.2x2.fill"
-        case .category:
-            return activeCategoryBox?.categoryIcon
+        case .category(let categoryId, let range):
+            return activeCategoryBox?.categoryIcon ?? viewModel.categoryDisplayIcon(forCategoryId: categoryId, in: range)
         }
     }
 
@@ -405,8 +405,8 @@ struct DashboardView: View {
         switch activeFilter {
         case .all:
             return nil
-        case .category:
-            return activeCategoryBox?.categoryColorHex
+        case .category(let categoryId, let range):
+            return activeCategoryBox?.categoryColorHex ?? viewModel.categoryDisplayColorHex(forCategoryId: categoryId, in: range)
         }
     }
 
