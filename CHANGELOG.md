@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.17] - 2026-05-15
+
+### Fixed
+- **Filtered item-list spacing is now tuned from one shared list-layout source instead of scattered top-padding tweaks** (`ExpenseListView`, `ExpenseListLayoutMetrics`, `ExpenseListSectionHeader`) — the remaining spacing mismatch between `Today` and `This Month` came from the month view still rendering date section headers while the today view did not. The list now uses centralized responsive layout metrics that apply a lighter global top compensation plus dedicated breathing room for the date header itself, so the filtered list sits higher without pushing the month header awkwardly against the top edge, and future spacing changes can be made from one place.
+
 ## [1.18.16] - 2026-05-15
 
 ### Changed

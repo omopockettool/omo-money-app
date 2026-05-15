@@ -73,6 +73,25 @@ struct ExpenseListView<EmptyState: View>: View {
     }
 
     var body: some View {
+        GeometryReader { geometry in
+            expenseList(
+                topContentOffset: ExpenseListLayoutMetrics.topContentOffset(
+                    hideSectionHeaders: hideSectionHeaders,
+                    availableHeight: geometry.size.height
+                ),
+                sectionHeaderTopPadding: ExpenseListLayoutMetrics.sectionHeaderTopPadding(
+                    hideSectionHeaders: hideSectionHeaders,
+                    availableHeight: geometry.size.height
+                )
+            )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private func expenseList(
+        topContentOffset: CGFloat,
+        sectionHeaderTopPadding: CGFloat
+    ) -> some View {
         List {
             if itemLists.isEmpty && showCustomEmptyState {
                 customEmptyState
@@ -108,7 +127,10 @@ struct ExpenseListView<EmptyState: View>: View {
                                 }
                             }
                         } header: {
-                            sectionHeader(for: date)
+                            sectionHeader(
+                                for: date,
+                                topPadding: sectionHeaderTopPadding
+                            )
                         }
                         .opacity(sectionOpacity(for: date))
                     }
@@ -119,13 +141,13 @@ struct ExpenseListView<EmptyState: View>: View {
         .scrollContentBackground(.hidden)
         .scrollIndicators(.hidden)
         .contentMargins(.top, 0, for: .scrollContent)
+        .padding(.top, topContentOffset)
         .if(!isCompact) {
             $0.refreshable {
                 await onRefresh()
                 try? await Task.sleep(for: .milliseconds(180))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     @ViewBuilder
@@ -151,7 +173,10 @@ struct ExpenseListView<EmptyState: View>: View {
     // MARK: - Private Views
     
     @ViewBuilder
-    private func sectionHeader(for date: Date) -> some View {
+    private func sectionHeader(
+        for date: Date,
+        topPadding: CGFloat
+    ) -> some View {
         ExpenseListSectionHeader(
             date: date,
             isCompact: isCompact,
@@ -159,6 +184,7 @@ struct ExpenseListView<EmptyState: View>: View {
             allowsDayCollapse: allowsDayCollapse,
             isCollapsed: isCollapsed(date),
             total: getDayTotal?(date),
+            topPadding: topPadding,
             onToggleCollapsed: {
                 guard allowsDayCollapse else { return }
                 toggleCollapsed(date)

@@ -57,6 +57,7 @@ struct ExpenseListSectionHeader: View {
     let allowsDayCollapse: Bool
     let isCollapsed: Bool
     let total: String?
+    let topPadding: CGFloat
     let onToggleCollapsed: () -> Void
 
     var body: some View {
@@ -93,6 +94,7 @@ struct ExpenseListSectionHeader: View {
                 .disabled(!allowsDayCollapse)
                 .animation(.spring(response: 0.35, dampingFraction: 0.82), value: total)
             }
+            .padding(.top, topPadding)
         }
     }
 }
