@@ -77,13 +77,11 @@ struct AddItemView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(viewModel.isEditMode ? LocalizationKey.Item.editItem.localized : LocalizationKey.Item.newItem.localized)
             .navigationBarTitleDisplayMode(.inline)
-            .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
-                Button(LocalizationKey.General.ok.localized, role: .cancel) {
-                    viewModel.clearError()
-                }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
-            }
+            .errorAlert(
+                isPresented: $viewModel.showError,
+                message: viewModel.errorMessage,
+                onDismiss: viewModel.clearError
+            )
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }

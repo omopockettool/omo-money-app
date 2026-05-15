@@ -6,6 +6,7 @@ import SwiftUI
     var paymentMethods: [SDPaymentMethod] = []
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     private let fetchPaymentMethodsUseCase: FetchPaymentMethodsUseCase
     private let deletePaymentMethodUseCase: DeletePaymentMethodUseCase
@@ -27,10 +28,12 @@ import SwiftUI
     func loadPaymentMethods(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
+        showError = false
         do {
             paymentMethods = try await fetchPaymentMethodsUseCase.execute(forGroupId: groupId)
         } catch {
             errorMessage = "Error al cargar métodos de pago: \(error.localizedDescription)"
+            showError = true
         }
         isLoading = false
     }
@@ -43,6 +46,12 @@ import SwiftUI
         } catch {
             withAnimation { paymentMethods.append(pm) }
             errorMessage = "Error al eliminar método de pago: \(error.localizedDescription)"
+            showError = true
         }
+    }
+
+    func clearError() {
+        errorMessage = nil
+        showError = false
     }
 }

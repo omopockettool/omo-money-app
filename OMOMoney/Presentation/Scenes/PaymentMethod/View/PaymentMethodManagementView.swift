@@ -35,6 +35,13 @@ struct PaymentMethodManagementView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(LocalizationKey.Payment.title.localized)
         .navigationBarTitleDisplayMode(.inline)
+        .alert(LocalizationKey.General.error.localized, isPresented: $viewModel.showError) {
+            Button(LocalizationKey.General.ok.localized, role: .cancel) {
+                viewModel.clearError()
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 PrimaryToolbarAddButton {

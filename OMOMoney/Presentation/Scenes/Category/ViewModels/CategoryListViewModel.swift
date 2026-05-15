@@ -10,6 +10,7 @@ class CategoryListViewModel {
     var categories: [SDCategory] = []
     var isLoading = false
     var errorMessage: String?
+    var showError = false
 
     // MARK: - Use Cases
     private let fetchCategoriesUseCase: FetchCategoriesUseCase
@@ -45,11 +46,13 @@ class CategoryListViewModel {
     func loadCategories(forGroupId groupId: UUID) async {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             categories = try await fetchCategoriesUseCase.execute(forGroupId: groupId)
         } catch {
             errorMessage = "Error loading categories: \(error.localizedDescription)"
+            showError = true
         }
 
         isLoading = false
@@ -58,6 +61,7 @@ class CategoryListViewModel {
     func createCategory(name: String, color: String? = nil, icon: String = "tag.fill", groupId: UUID) async -> Bool {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             let newCategory = try await createCategoryUseCase.execute(
@@ -74,6 +78,7 @@ class CategoryListViewModel {
             return true
         } catch {
             errorMessage = "Error creating category: \(error.localizedDescription)"
+            showError = true
             isLoading = false
             return false
         }
@@ -82,6 +87,7 @@ class CategoryListViewModel {
     func updateCategory(_ category: SDCategory, name: String? = nil, icon: String? = nil, color: String? = nil) async -> Bool {
         isLoading = true
         errorMessage = nil
+        showError = false
 
         do {
             try await updateCategoryUseCase.execute(
@@ -96,6 +102,7 @@ class CategoryListViewModel {
             return true
         } catch {
             errorMessage = "Error updating category: \(error.localizedDescription)"
+            showError = true
             isLoading = false
             return false
         }
@@ -109,6 +116,7 @@ class CategoryListViewModel {
         } catch {
             withAnimation { categories.append(category) }
             errorMessage = "Error deleting category: \(error.localizedDescription)"
+            showError = true
             return false
         }
     }
@@ -123,5 +131,6 @@ class CategoryListViewModel {
 
     func clearError() {
         errorMessage = nil
+        showError = false
     }
 }

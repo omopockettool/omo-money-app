@@ -151,11 +151,11 @@ struct AddItemListView: View {
                 }
             }
         }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK") { viewModel.clearError() }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
+        .errorAlert(
+            isPresented: $viewModel.showError,
+            message: viewModel.errorMessage,
+            onDismiss: viewModel.clearError
+        )
         .task(id: activeGroup.id) {
             await viewModel.loadOptionsForSelectedGroup()
         }

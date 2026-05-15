@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.12] - 2026-05-15
+
+### Changed
+- **A shared error-alert modifier was introduced and adopted first in the main item-entry flows** (`ErrorAlertModifier`, `AddItemListView`, `AddItemView`) — the app now has a reusable SwiftUI helper for presenting standard error alerts from explicit `showError` state plus `errorMessage`. The first rollout wires the shared modifier into `New Entry` and `Add Item`, creating one central place to evolve common error-alert presentation before migrating the remaining forms and editors.
+
 ## [1.18.11] - 2026-05-15
 
 ### Changed
