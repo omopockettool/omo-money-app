@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.21] - 2026-05-15
+
+### Fixed
+- **Category and payment method deletion now use the same native `.onDelete` pattern established for item lists and dashboard** (`CategoryManagementView`, `CategoryListViewModel`, `PaymentMethodManagementView`, `PaymentMethodListViewModel`) — both screens replaced their per-row `swipeActions` + `Button(role: .destructive)` with `.onDelete(perform:)` on the `ForEach`. Both ViewModel methods are now synchronous — optimistic removal fires immediately under a spring animation (`response: 0.38`, `dampingFraction: 0.82`), persistence runs in an internal `Task`, and rollback on failure restores the item with the same spring. The `deletePaymentMethod` signature was simplified from `(paymentMethodId: UUID)` to `(_ pm: SDPaymentMethod)` for consistency with the rest of the deletion API.
+
 ## [1.18.20] - 2026-05-15
 
 ### Fixed

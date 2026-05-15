@@ -38,15 +38,20 @@ import SwiftUI
         isLoading = false
     }
 
-    func deletePaymentMethod(paymentMethodId: UUID) async {
-        guard let pm = paymentMethods.first(where: { $0.id == paymentMethodId }) else { return }
-        withAnimation { paymentMethods.removeAll { $0.id == paymentMethodId } }
-        do {
-            try await deletePaymentMethodUseCase.execute(id: paymentMethodId)
-        } catch {
-            withAnimation { paymentMethods.append(pm) }
-            errorMessage = "Error al eliminar método de pago: \(error.localizedDescription)"
-            showError = true
+    func deletePaymentMethod(_ pm: SDPaymentMethod) {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            paymentMethods.removeAll { $0.id == pm.id }
+        }
+        Task {
+            do {
+                try await deletePaymentMethodUseCase.execute(id: pm.id)
+            } catch {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    paymentMethods.append(pm)
+                }
+                errorMessage = "Error al eliminar método de pago: \(error.localizedDescription)"
+                showError = true
+            }
         }
     }
 

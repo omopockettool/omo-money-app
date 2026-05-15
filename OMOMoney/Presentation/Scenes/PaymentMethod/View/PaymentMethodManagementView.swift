@@ -21,13 +21,9 @@ struct PaymentMethodManagementView: View {
                     .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            Task { await viewModel.deletePaymentMethod(paymentMethodId: pm.id) }
-                        } label: {
-                            Label(LocalizationKey.General.delete.localized, systemImage: "trash")
-                        }
-                    }
+            }
+            .onDelete { indexSet in
+                indexSet.forEach { viewModel.deletePaymentMethod(viewModel.paymentMethods[$0]) }
             }
         }
         .listStyle(.plain)
