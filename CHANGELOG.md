@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2026-05-17
+
+### Added
+- **Dashboard pending-only filter with pending drill-in behavior** (`DashboardViewModel`, `DashboardView`, `DashboardMonthFilterSheet`, `ItemListDetailView`, `ItemListDetailViewModel`, `String+Localization`, `Localizable.strings`) — the dashboard Filters sheet now includes an `Item Status` selector with `All` and `Pending`.
+  - When `Pending` is selected, the dashboard shows only item lists that still contain at least one item with `isPaid == false`.
+  - This works both in the general dashboard scope and when a category is selected, so category drill-in respects the same pending-only filtering.
+  - Opening an item list from a pending-filtered dashboard now presents only the unpaid items inside that list, keeping the drill-in aligned with the user’s selected filter context.
+
+### Changed
+- **Dashboard Filters sheet polished for clearer reset behavior and cleaner native layout** (`DashboardMonthFilterSheet`, `DashboardView`, `String+Localization`, `Localizable.strings`) — the old month-reset action was replaced with `Clean filters`, which now resets both the selected month back to the current month and the `Item Status` selector back to `All`. The item-status control was also redesigned into a single inline settings row, with the label on the left and the native menu selector aligned on the right, plus more spacing around the reset action.
+
+### Refactored
+- **Dashboard filter application centralized in the view model** (`DashboardViewModel`, `DashboardView`) — filter rules are now coordinated through dedicated view-model methods instead of ad-hoc logic inside the sheet callback. The view now forwards user intent, while the view model owns:
+  - how selected month and pending status are applied together
+  - when the dashboard should preserve the `Today` tab
+  - how all dashboard filters are cleared in one place
+- This also fixes the previous regression where applying the pending filter from `Today` could incorrectly force the dashboard into `This month`.
+
 ## [1.23.0] - 2026-05-17
 
 ### Added

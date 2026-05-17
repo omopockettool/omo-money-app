@@ -12,6 +12,12 @@ private enum DashboardActiveFilter {
     case category(categoryId: UUID, range: DashboardCategoryRange)
 }
 
+private struct DashboardItemListRoute: Hashable {
+    let itemListId: UUID
+    let highlightedSearchQuery: String?
+    let showsPendingItemsOnly: Bool
+}
+
 enum DashboardViewMode {
     case calendar, list
 
@@ -29,6 +35,7 @@ struct ItemListDetailNavigationWrapper: View {
     let currencyCode: String
     let group: SDGroup
     let highlightedSearchQuery: String?
+    let showsPendingItemsOnly: Bool
     let onItemListUpdated: (SDItemList) -> Void
     let onPaidStatusChanged: (() -> Void)?
 
@@ -38,6 +45,7 @@ struct ItemListDetailNavigationWrapper: View {
             currencyCode: currencyCode,
             group: group,
             highlightedSearchQuery: highlightedSearchQuery,
+            showsPendingItemsOnly: showsPendingItemsOnly,
             onItemListUpdated: onItemListUpdated,
             onPaidStatusChanged: onPaidStatusChanged
         )
@@ -127,13 +135,15 @@ struct DashboardView: View {
                     viewModel.clearSearch()
                 }
             }
-            .navigationDestination(for: SDItemList.self) { itemList in
-                if let group = viewModel.currentGroup {
+            .navigationDestination(for: DashboardItemListRoute.self) { route in
+                if let group = viewModel.currentGroup,
+                   let itemList = viewModel.itemLists.first(where: { $0.id == route.itemListId }) {
                     ItemListDetailNavigationWrapper(
                         itemList: itemList,
                         currencyCode: group.currency,
                         group: group,
-                        highlightedSearchQuery: viewModel.hasActiveSearch ? viewModel.searchQuery : nil,
+                        highlightedSearchQuery: route.highlightedSearchQuery,
+                        showsPendingItemsOnly: route.showsPendingItemsOnly,
                         onItemListUpdated: { updated in
                             Task { await viewModel.updateItemList(updated) }
                         },
@@ -199,12 +209,14 @@ struct DashboardView: View {
                         selectedMonth: viewModel.selectedMonthAnchor,
                         availableYears: viewModel.availableFilterYears,
                         isCustomFilterActive: viewModel.isCustomMonthFilterActive,
-                        onApply: { month in
-                            viewModel.applyMonthFilter(month)
+                        isPendingFilterActive: viewModel.hasActivePendingFilter,
+                        selectedPendingFilter: viewModel.pendingFilter,
+                        onApply: { month, pendingFilter in
+                            viewModel.applyDashboardFilters(selectedMonth: month, pendingFilter: pendingFilter)
                             showingFiltersSheet = false
                         },
                         onReset: {
-                            viewModel.resetMonthFilterToCurrentMonth()
+                            viewModel.clearDashboardFilters()
                             showingFiltersSheet = false
                         },
                         onClose: { showingFiltersSheet = false }
@@ -257,7 +269,7 @@ struct DashboardView: View {
             getSearchMatchedSubtotal: { viewModel.formattedSearchMatchedSubtotal(for: $0) },
             getSearchMatchedUnpaid: { viewModel.formattedSearchMatchedUnpaid(for: $0) },
             customEmptyState: { DashboardNoResultsState() },
-            showCustomEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive,
+            showCustomEmptyState: viewModel.hasActiveSearch || viewModel.isCustomMonthFilterActive || viewModel.hasActivePendingFilter,
             onRefresh: { await viewModel.refreshData() },
             onAllTap: {
                 withAnimation(AnimationHelper.smoothSpring) {
@@ -273,7 +285,7 @@ struct DashboardView: View {
             collapsedDays: $collapsedMonthDays,
             itemListRowStatus: viewModel.itemListRowStatus,
             onItemTap: { itemList in
-                navigationPath.append(itemList)
+                navigationPath.append(itemListRoute(for: itemList))
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
             onDelete: { viewModel.deleteItemList($0) },
@@ -307,6 +319,9 @@ struct DashboardView: View {
             refreshActiveFilter()
         }
         .onChange(of: viewModel.itemListTotals) { _, _ in
+            refreshActiveFilter()
+        }
+        .onChange(of: viewModel.pendingFilter) { _, _ in
             refreshActiveFilter()
         }
     }
@@ -461,7 +476,7 @@ struct DashboardView: View {
                     availableGroups: viewModel.availableGroups,
                     userId: viewModel.currentUser?.id,
                     isChangingGroup: viewModel.isChangingGroup,
-                    isFilterActive: viewModel.isCustomMonthFilterActive,
+                    isFilterActive: viewModel.isCustomMonthFilterActive || viewModel.hasActivePendingFilter,
                     selectedScopeTitle: selectedScopeTitle,
                     selectedScopeIcon: selectedScopeIcon,
                     selectedScopeColorHex: selectedScopeColorHex,
@@ -529,7 +544,7 @@ struct DashboardView: View {
                 if let customTap = onItemTap {
                     customTap(item)
                 } else {
-                    navigationPath.append(item)
+                    navigationPath.append(itemListRoute(for: item))
                 }
             },
             onTogglePaid: { viewModel.togglePaid(for: $0) },
@@ -540,6 +555,16 @@ struct DashboardView: View {
         .frame(maxHeight: .infinity)
     }
 
+}
+
+private extension DashboardView {
+    func itemListRoute(for itemList: SDItemList) -> DashboardItemListRoute {
+        DashboardItemListRoute(
+            itemListId: itemList.id,
+            highlightedSearchQuery: viewModel.hasActiveSearch ? viewModel.searchQuery : nil,
+            showsPendingItemsOnly: viewModel.hasActivePendingFilter
+        )
+    }
 }
 
 private extension DashboardActiveFilter {

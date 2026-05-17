@@ -20,6 +20,7 @@
 "general.search" = "Buscar";
 "general.close" = "Cerrar";
 "general.all" = "Todo";
+"general.pending" = "Pendiente";
 
 // MARK: - Navigation
 "nav.dashboard" = "Panel";
@@ -143,9 +144,10 @@
 "dashboard.costToday" = "Coste de hoy";
 "dashboard.added" = "¡Listo!";
 "dashboard.filters" = "Filtros";
+"dashboard.itemStatus" = "Estado de artículos";
 "dashboard.month" = "Mes";
 "dashboard.year" = "Año";
-"dashboard.currentMonth" = "Volver al mes actual";
+"dashboard.clearFilters" = "Limpiar filtros";
 "dashboard.noMatchesTitle" = "Sin coincidencias";
 "dashboard.noMatchesMessage" = "Prueba otra búsqueda o ajusta los filtros.";
 "dashboard.searchItemSummary.single" = "%d artículo coincidente";

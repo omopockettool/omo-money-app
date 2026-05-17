@@ -5,6 +5,7 @@ struct ItemListDetailView: View {
     let currencyCode: String
     let group: SDGroup
     let highlightedSearchQuery: String?
+    let showsPendingItemsOnly: Bool
     let onItemListUpdated: ((SDItemList) -> Void)?
 
     @State private var viewModel: ItemListDetailViewModel
@@ -34,6 +35,7 @@ struct ItemListDetailView: View {
         currencyCode: String = "EUR",
         group: SDGroup,
         highlightedSearchQuery: String? = nil,
+        showsPendingItemsOnly: Bool = false,
         onItemListUpdated: ((SDItemList) -> Void)? = nil,
         onPaidStatusChanged: (() -> Void)? = nil
     ) {
@@ -41,6 +43,7 @@ struct ItemListDetailView: View {
         self.currencyCode = currencyCode
         self.group = group
         self.highlightedSearchQuery = highlightedSearchQuery
+        self.showsPendingItemsOnly = showsPendingItemsOnly
         self.onItemListUpdated = onItemListUpdated
         self.onPaidStatusChanged = onPaidStatusChanged
 
@@ -48,6 +51,7 @@ struct ItemListDetailView: View {
         self._viewModel = State(wrappedValue: ItemListDetailViewModel(
             itemList: itemList,
             currencyCode: currencyCode,
+            showsPendingItemsOnly: showsPendingItemsOnly,
             fetchItemsUseCase: container.makeFetchItemsUseCase(),
             createItemUseCase: container.makeCreateItemUseCase(),
             updateItemUseCase: container.makeUpdateItemUseCase(),
@@ -183,7 +187,7 @@ struct ItemListDetailView: View {
 
     private var itemsList: some View {
         ItemListItemsSection(
-            items: viewModel.items,
+            items: viewModel.visibleItems,
             currencyCode: currencyCode,
             formattedAmount: viewModel.getFormattedAmount,
             isSearchMatch: { item in

@@ -15,6 +15,20 @@ enum DashboardCategoryRange: String, Hashable {
     }
 }
 
+enum DashboardPendingFilter: String, Hashable, CaseIterable {
+    case all
+    case pending
+
+    var title: String {
+        switch self {
+        case .all:
+            LocalizationKey.General.all.localized
+        case .pending:
+            LocalizationKey.General.pending.localized
+        }
+    }
+}
+
 enum DashboardCategoryBoxSize: Hashable {
     case small
     case medium
@@ -115,6 +129,7 @@ class DashboardViewModel {
     var showingFullMonth = false
     var selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
     var searchQuery = ""
+    var pendingFilter: DashboardPendingFilter = .all
 
     // MARK: - Filtered Lists
 
@@ -160,6 +175,10 @@ class DashboardViewModel {
 
     var hasActiveSearch: Bool {
         !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var hasActivePendingFilter: Bool {
+        pendingFilter == .pending
     }
 
     var selectedMonthTitle: String {
@@ -537,10 +556,18 @@ class DashboardViewModel {
         await applyTotals(calculateItemListTotalsUseCase.execute(itemLists: itemLists))
     }
 
-    func applyMonthFilter(_ month: Date) {
-        selectedMonthAnchor = Calendar.current.startOfMonth(for: month)
+    func applyDashboardFilters(selectedMonth month: Date, pendingFilter: DashboardPendingFilter) {
+        let normalizedMonth = Calendar.current.startOfMonth(for: month)
+        let currentMonth = Calendar.current.startOfMonth(for: Date())
+        let shouldPreserveTodayTab = !showingFullMonth && normalizedMonth == currentMonth
+
+        selectedMonthAnchor = normalizedMonth
+        self.pendingFilter = pendingFilter
         updateCurrentMonthCache()
         refreshSelectedMonthTotal()
+
+        guard !shouldPreserveTodayTab else { return }
+
         withAnimation(AnimationHelper.quickSpring) {
             showingFullMonth = true
         }
@@ -550,6 +577,11 @@ class DashboardViewModel {
         selectedMonthAnchor = Calendar.current.startOfMonth(for: Date())
         updateCurrentMonthCache()
         refreshSelectedMonthTotal()
+    }
+
+    func clearDashboardFilters() {
+        pendingFilter = .all
+        resetMonthFilterToCurrentMonth()
     }
 
     func clearSearch() {
@@ -833,10 +865,18 @@ class DashboardViewModel {
     }
     
     private func filteredItemLists(from source: [SDItemList]) -> [SDItemList] {
-        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return source }
+        let pendingFilteredSource: [SDItemList]
+        switch pendingFilter {
+        case .all:
+            pendingFilteredSource = source
+        case .pending:
+            pendingFilteredSource = source.filter(hasPendingItems)
+        }
 
-        return source.filter { searchSummary(for: $0, query: query) != nil }
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return pendingFilteredSource }
+
+        return pendingFilteredSource.filter { searchSummary(for: $0, query: query) != nil }
     }
 
     private func searchSummary(for itemList: SDItemList) -> ItemListSearchSummary? {
@@ -883,6 +923,10 @@ class DashboardViewModel {
                 isPaid: $0.isPaid
             )
         }
+    }
+
+    private func hasPendingItems(in itemList: SDItemList) -> Bool {
+        currentSearchItems(for: itemList).contains { !$0.isPaid }
     }
 
     func deleteItemList(_ itemList: SDItemList) {

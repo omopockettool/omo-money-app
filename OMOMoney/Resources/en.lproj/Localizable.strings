@@ -20,6 +20,7 @@
 "general.search" = "Search";
 "general.close" = "Close";
 "general.all" = "All";
+"general.pending" = "Pending";
 
 // MARK: - Navigation
 "nav.dashboard" = "Dashboard";
@@ -143,9 +144,10 @@
 "dashboard.costToday" = "Cost today";
 "dashboard.added" = "Added!";
 "dashboard.filters" = "Filters";
+"dashboard.itemStatus" = "Item Status";
 "dashboard.month" = "Month";
 "dashboard.year" = "Year";
-"dashboard.currentMonth" = "Back to current month";
+"dashboard.clearFilters" = "Clean filters";
 "dashboard.noMatchesTitle" = "No matches found";
 "dashboard.noMatchesMessage" = "Try a different search or adjust your filters.";
 "dashboard.searchItemSummary.single" = "%d matching item";

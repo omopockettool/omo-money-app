@@ -32,6 +32,7 @@ class ItemListDetailViewModel {
     // MARK: - Model & Cache
     private let itemList: SDItemList
     private let currencyCode: String
+    private let showsPendingItemsOnly: Bool
     private let cacheManager = CacheManager.shared
 
     // MARK: - Cache Keys
@@ -47,6 +48,7 @@ class ItemListDetailViewModel {
     init(
         itemList: SDItemList,
         currencyCode: String,
+        showsPendingItemsOnly: Bool,
         fetchItemsUseCase: FetchItemsUseCase,
         createItemUseCase: CreateItemUseCase,
         updateItemUseCase: UpdateItemUseCase,
@@ -55,6 +57,7 @@ class ItemListDetailViewModel {
     ) {
         self.itemList = itemList
         self.currencyCode = currencyCode
+        self.showsPendingItemsOnly = showsPendingItemsOnly
         self.fetchItemsUseCase = fetchItemsUseCase
         self.createItemUseCase = createItemUseCase
         self.updateItemUseCase = updateItemUseCase
@@ -63,6 +66,10 @@ class ItemListDetailViewModel {
     }
 
     // MARK: - Data Loading
+
+    var visibleItems: [SDItem] {
+        showsPendingItemsOnly ? items.filter { !$0.isPaid } : items
+    }
 
     func loadItems() async {
 
@@ -171,24 +178,26 @@ class ItemListDetailViewModel {
     }
 
     func getFormattedTotal() -> String {
-        let total = items.filter { $0.isPaid }.reduce(0.0) { result, item in
-            result + item.totalAmount
-        }
+        let total = showsPendingItemsOnly
+            ? visibleItems.reduce(0.0) { $0 + $1.totalAmount }
+            : visibleItems.filter { $0.isPaid }.reduce(0.0) { result, item in
+                result + item.totalAmount
+            }
         return makeCurrencyFormatter().string(from: NSNumber(value: total)) ?? "\(total) \(currencyCode)"
     }
 
     func getFormattedUnpaidTotal() -> String? {
-        let unpaid = items.filter { !$0.isPaid }.reduce(0.0) { $0 + $1.totalAmount }
+        let unpaid = visibleItems.filter { !$0.isPaid }.reduce(0.0) { $0 + $1.totalAmount }
         guard unpaid > 0 else { return nil }
         return makeCurrencyFormatter().string(from: NSNumber(value: unpaid)) ?? "\(unpaid) \(currencyCode)"
     }
 
     func getHeroStatus() -> ItemListDetailHeroStatus {
-        guard !items.isEmpty else {
+        guard !visibleItems.isEmpty else {
             return .neutral
         }
 
-        let hasUnpaidItems = items.contains { !$0.isPaid }
+        let hasUnpaidItems = visibleItems.contains { !$0.isPaid }
         if hasUnpaidItems {
             return .pending(getFormattedUnpaidTotal() ?? "")
         }
