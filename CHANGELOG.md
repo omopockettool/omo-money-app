@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0] - 2026-05-17
+
+### Added
+- **Per-category budget frequency selector in create/edit category sheets** (`CategoryFormView`, `CategoryFormViewModel`, `String+Localization`, `Localizable.strings`) — added a native iOS menu-style `Picker` directly below the `Budget Limit` field so each category can define its own budget cadence. The selector supports `Daily`, `Weekly`, and `Monthly`, preloads the saved value when editing an existing category, and now persists `limitFrequency` through the existing create/update use case flow instead of always falling back to `monthly`.
+
+### Changed
+- **Onboarding default category budgets now seed fixed monthly limits instead of one shared placeholder value** (`DefaultGroupRepository`) — new groups now create their default categories with these explicit monthly limits:
+  - `Hogar`: `700`
+  - `Alimentación`: `300`
+  - `Salud`: `50`
+  - `Movilidad`: `100`
+  - `Moda`: `100`
+  - `Ocio`: `200`
+- All onboarding default categories continue to set `limitFrequency: "monthly"` explicitly so the new budget frequency UI starts from a predictable default.
+
 ## [1.22.0] - 2026-05-15
 
 ### Added

@@ -131,6 +131,9 @@
 "general.retry" = "Retry";
 "general.empty" = "Nothing here...";
 "general.paste" = "Paste";
+"general.daily" = "Daily";
+"general.weekly" = "Weekly";
+"general.monthly" = "Monthly";
 
 // MARK: - Dashboard (extended)
 "dashboard.changingGroup" = "Changing group...";
@@ -193,6 +196,7 @@
 "category.emptyHint" = "Categories are created automatically when a group is created";
 "category.icon" = "Icon";
 "category.new" = "New category";
+"category.limitFrequency" = "Budget Frequency";
 
 // MARK: - Payment (extended)
 "payment.selectPayment" = "Select Payment Method";

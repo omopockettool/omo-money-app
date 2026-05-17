@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct CategoryFormView: View {
+    private struct LimitFrequencyOption: Identifiable {
+        let value: String
+        let titleKey: String
+
+        var id: String { value }
+    }
+
     let group: SDGroup
     let categoryToEdit: SDCategory?
     let onSaved: (SDCategory) -> Void
@@ -12,6 +19,7 @@ struct CategoryFormView: View {
     @State private var selectedColor = "#0A84FF"
     @State private var selectedIcon = "tag.fill"
     @State private var limitText = ""
+    @State private var selectedLimitFrequency = BudgetHelper.LimitFrequency.monthly.rawValue
     @FocusState private var nameFocused: Bool?
 
     private var isEditMode: Bool { categoryToEdit != nil }
@@ -31,6 +39,12 @@ struct CategoryFormView: View {
         "cup.and.saucer.fill", "tv.fill", "phone.fill", "wifi"
     ]
 
+    private let limitFrequencyOptions: [LimitFrequencyOption] = [
+        LimitFrequencyOption(value: BudgetHelper.LimitFrequency.daily.rawValue, titleKey: LocalizationKey.General.daily),
+        LimitFrequencyOption(value: BudgetHelper.LimitFrequency.weekly.rawValue, titleKey: LocalizationKey.General.weekly),
+        LimitFrequencyOption(value: BudgetHelper.LimitFrequency.monthly.rawValue, titleKey: LocalizationKey.General.monthly)
+    ]
+
     init(group: SDGroup, categoryToEdit: SDCategory?, onSaved: @escaping (SDCategory) -> Void) {
         self.group = group
         self.categoryToEdit = categoryToEdit
@@ -42,7 +56,18 @@ struct CategoryFormView: View {
         _limitText = State(wrappedValue: categoryToEdit?.limit.map {
             $0 == $0.rounded() ? String(format: "%.0f", $0) : String(format: "%.2f", $0)
         } ?? "")
+        _selectedLimitFrequency = State(
+            wrappedValue: Self.allowedLimitFrequencyValues.contains(categoryToEdit?.limitFrequency ?? "")
+                ? (categoryToEdit?.limitFrequency ?? BudgetHelper.LimitFrequency.monthly.rawValue)
+                : BudgetHelper.LimitFrequency.monthly.rawValue
+        )
     }
+
+    private static let allowedLimitFrequencyValues: Set<String> = [
+        BudgetHelper.LimitFrequency.daily.rawValue,
+        BudgetHelper.LimitFrequency.weekly.rawValue,
+        BudgetHelper.LimitFrequency.monthly.rawValue
+    ]
 
     var body: some View {
         ScrollView {
@@ -124,6 +149,26 @@ struct CategoryFormView: View {
                     text: $limitText,
                     accentColor: Color(hex: selectedColor) ?? .accentColor
                 )
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(LocalizationKey.Category.limitFrequency.localized)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+
+                    Picker(LocalizationKey.Category.limitFrequency.localized, selection: $selectedLimitFrequency) {
+                        ForEach(limitFrequencyOptions) { option in
+                            Text(option.titleKey.localized)
+                                .tag(option.value)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Color(hex: selectedColor) ?? .accentColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(AppConstants.UserInterface.padding)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.UserInterface.cornerRadius))
+                }
             }
             .padding(AppConstants.UserInterface.padding)
         }
@@ -156,7 +201,15 @@ struct CategoryFormView: View {
         let limit: Decimal? = Decimal(string: limitText.replacingOccurrences(of: ",", with: "."))
             .flatMap { $0 > 0 ? $0 : nil }
 
-        if let saved = await viewModel.save(name: trimmed, color: selectedColor, icon: selectedIcon, groupId: group.id, limit: limit, categoryToEdit: categoryToEdit) {
+        if let saved = await viewModel.save(
+            name: trimmed,
+            color: selectedColor,
+            icon: selectedIcon,
+            groupId: group.id,
+            limit: limit,
+            limitFrequency: selectedLimitFrequency,
+            categoryToEdit: categoryToEdit
+        ) {
             onSaved(saved)
             dismiss()
         }

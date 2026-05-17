@@ -31,15 +31,23 @@ final class DefaultGroupRepository: GroupRepository {
             context.insert(pm)
         }
 
-        let defaultCategories: [(String, String, String, Int)] = [
-            ("Alimentación", "#FF6B6B", "cart.fill",            0),
-            ("Movilidad",    "#4ECDC4", "car.fill",             0),
-            ("Hogar",        "#45B7D1", "house.fill",           0),
-            ("Ocio",         "#96CEB4", "theatermasks.fill",    0),
-            ("Salud",        "#FFEAA7", "heart.fill",           0),
+        let defaultCategories: [(String, String, String, Int, Double, String)] = [
+            ("Alimentación", "#FF6B6B", "cart.fill",            0, 300, "monthly"),
+            ("Movilidad",    "#4ECDC4", "car.fill",             0, 100, "monthly"),
+            ("Hogar",        "#45B7D1", "house.fill",           0, 700, "monthly"),
+            ("Ocio",         "#96CEB4", "theatermasks.fill",    0, 200, "monthly"),
+            ("Salud",        "#FFEAA7", "heart.fill",           0, 50, "monthly"),
+            ("Moda",         "#ffa7ed", "tshirt.fill",          0, 100, "monthly"),
         ]
-        for (catName, catColor, catIcon, catSortOrder) in defaultCategories {
-            let cat = SDCategory(name: catName, color: catColor, icon: catIcon, sortOrder: catSortOrder, limit: 300, limitFrequency: "monthly")
+        for (catName, catColor, catIcon, catSortOrder, catLimit, catLimitFrequency) in defaultCategories {
+            let cat = SDCategory(
+                name: catName,
+                color: catColor,
+                icon: catIcon,
+                sortOrder: catSortOrder,
+                limit: catLimit,
+                limitFrequency: catLimitFrequency
+            )
             cat.group = group
             context.insert(cat)
         }

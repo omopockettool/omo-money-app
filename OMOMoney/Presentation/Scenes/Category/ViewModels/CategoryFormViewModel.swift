@@ -25,7 +25,15 @@ final class CategoryFormViewModel {
     }
 
     /// Returns the saved SDCategory on success, nil on failure.
-    func save(name: String, color: String, icon: String, groupId: UUID, limit: Decimal?, categoryToEdit: SDCategory?) async -> SDCategory? {
+    func save(
+        name: String,
+        color: String,
+        icon: String,
+        groupId: UUID,
+        limit: Decimal?,
+        limitFrequency: String,
+        categoryToEdit: SDCategory?
+    ) async -> SDCategory? {
         isLoading = true
         errorMessage = nil
         showError = false
@@ -39,7 +47,7 @@ final class CategoryFormViewModel {
                     icon: icon,
                     color: color,
                     limit: limit,
-                    limitFrequency: nil
+                    limitFrequency: limitFrequency
                 )
                 return category
             } else {
@@ -49,7 +57,7 @@ final class CategoryFormViewModel {
                     icon: icon,
                     groupId: groupId,
                     limit: limit,
-                    limitFrequency: nil
+                    limitFrequency: limitFrequency
                 )
             }
         } catch {

@@ -52,6 +52,9 @@ enum LocalizationKey {
         static let empty = "general.empty"
         static let paste = "general.paste"
         static let all = "general.all"
+        static let daily = "general.daily"
+        static let weekly = "general.weekly"
+        static let monthly = "general.monthly"
     }
     
     // MARK: - Navigation
@@ -131,6 +134,7 @@ enum LocalizationKey {
         static let icon = "category.icon"
         static let new = "category.new"
         static let noLimit = "category.noLimit"
+        static let limitFrequency = "category.limitFrequency"
     }
 
     // MARK: - Entry
